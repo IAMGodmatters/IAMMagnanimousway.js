@@ -3,20 +3,24 @@ import {useState} from 'react';
 
 type Opportunity={
  id:string;name:string;status:'active-ph'|'location-check'|'waitlist'|'closed';
- badge:string;summary:string;requirements:string[];examples?:string[];official:string;secondary?:string;secondaryLabel?:string;tertiary?:string;tertiaryLabel?:string;cta:string;referral?:string;verified:string;
+ badge:string;summary:string;requirements:string[];examples?:string[];official:string;secondary?:string;secondaryLabel?:string;tertiary?:string;tertiaryLabel?:string;quaternary?:string;quaternaryLabel?:string;cta:string;referral?:string;verified:string;
 };
 
 const opportunities:Opportunity[]=[
  {
-  id:'atlas',name:'Atlas Capture',status:'location-check',badge:'IPHONE VIDEO TASKS • COUNTRY AVAILABILITY VARIES',
-  summary:'The current official opportunity page lists first-person home-task video capture for AI research. It currently specifies an iPhone 11 or newer and pay per approved hour; rates and task availability vary by country. The current official page no longer advertises the older browser-labeling rate claim, so that claim has been removed pending confirmation.',
-  requirements:['iPhone 11 or newer; a head strap is required and the official site says it is available through the app—confirm whether it is provided and whether any cost applies before spending money','Only approved hours are paid; task volume and pay vary by country and task','The current official site says withdrawals start at USD $10 and unlock after 5 approved hours; verify payout method and Philippines eligibility in-app','Do not buy equipment from unsolicited messages or third-party sellers expecting reimbursement; app-store reviews report reimbursement and support complaints','Review video licensing/privacy terms and keep children, faces, IDs, screens, addresses and confidential household details out of frame'],
+  id:'atlas',name:'Atlas Capture',status:'location-check',badge:'HIGH CAUTION • IPHONE VIDEO TASKS • PAYOUT COMPLAINTS',
+  summary:'The official Atlas Capture opportunity page and Philippines App Store listing describe iPhone-based first-person home-task video capture. The official listing specifies iPhone 11 or newer, a head strap, and pay per approved hour; rates and task availability vary by country. ScamAdviser currently labels the official atlascapture.io domain “Caution Recommended” with a low trust signal; automated scores are not proof of fraud. Trustpilot currently shows 1.9/5 from 92 reviews, with 71% one-star ratings and multiple user reports of delayed or unpaid work; these are user-submitted reports, not independently adjudicated findings, but the pattern is a serious payment-risk warning. A separate atlascapture.work site is not linked from the official domain, is not verified as affiliated with Atlas Capture LLC, makes conflicting Android/payout claims and is flagged as very high risk. Do not use atlascapture.work; do not pay fees or send sensitive data to either site.',
+  requirements:['Official Philippines App Store listing is for iPhone; the official opportunity page specifies iPhone 11 or newer. Android support is not confirmed by the official app listing','A head strap is required; confirm whether it is actually supplied and whether any cost applies before spending money','Only approved hours are paid; task volume and pay vary by country and task','The current official site says withdrawals start at USD $10 and unlock after 5 approved hours; verify payout method and Philippines eligibility in-app','Do not use atlascapture.work unless Atlas Capture LLC confirms it through atlascapture.io; that lookalike domain is newly registered, hides its owner and is rated very high risk by ScamAdviser','Do not buy equipment from unsolicited messages or third-party sellers expecting reimbursement; Trustpilot currently shows 1.9/5 from 92 reviews, with 71% one-star ratings; individual reports include delayed or unpaid work, rejected tasks and support problems. These are user-submitted reviews, not independently adjudicated findings, but they make earnings highly uncertain—do not invest significant time or buy equipment before independently verifying a successful payout','Review video licensing/privacy terms and keep children, faces, IDs, screens, addresses and confidential household details out of frame'],
   examples:['Official tasks include folding laundry, washing dishes, watering plants and wiping counters','Pay is per approved hour; no universal country rate is published','Withdrawal threshold: USD $10 after 5 approved hours, according to the current official site'],
   official:'https://www.atlascapture.io/opportunities',
   secondary:'https://apps.apple.com/ph/app/atlas-capture/id6755671397',
+  tertiary:'https://www.scamadviser.com/check-website/atlascapture.io',
+  tertiaryLabel:'ScamAdviser automated domain-risk review (not proof of fraud)',
+  quaternary:'https://www.trustpilot.com/review/atlascapture.io',
+  quaternaryLabel:'Independent user reviews; individual reports are unverified',
   cta:'Open official opportunities',
   referral:'2PDR9UXD',
-  verified:'2026-10-29'
+  verified:'2026-10-31'
  },
  {
   id:'kled-iphone-data-tasks',name:'Kled — iPhone Photo/Video Data Tasks',status:'location-check',badge:'IPHONE ONLY • CONFIRM LIVE PH TASKS',
@@ -147,11 +151,13 @@ const opportunities:Opportunity[]=[
  },
  {
   id:'userlytics-ph-usability',name:'Userlytics — Paid Website & App Usability Tests',status:'active-ph',badge:'PHILIPPINES • PAYPAL • DESKTOP & MOBILE STUDIES',
-  summary:'Userlytics accepts testers in countries where PayPal can receive payments; PayPal’s official country feature list includes the Philippines. Its official tester page advertises USD $10–$50 per study, with the reward shown before a test begins. Typical tests take about 20–40 minutes, but invitations are limited and selected randomly; no test volume or income is guaranteed.',
+  summary:'Userlytics accepts testers in countries where PayPal can receive payments; PayPal’s official country feature list includes the Philippines. Its official tester page advertises USD $10–$50 per study, with the reward shown before a test begins. The official tester FAQ says typical tests take 20–40 minutes; invitations are limited and selected from the contributor pool, so no test volume or income is guaranteed.',
   requirements:['Free tester registration; Philippines eligibility depends on maintaining a working PayPal account able to receive payments','The official Userlytics page advertises USD $10–$50 per study; actual reward depends on the specific invitation and is shown before starting','Tests may require a Windows or Mac computer, high-speed internet, headphones, microphone and sometimes webcam; selected studies can use iOS or Android phones','Approved-test payments are made every 15 days; the September 2026 tester terms allow up to 30 days after full completion','Important privacy/rights warning: tests may record your screen, voice and face; the current terms allow use of generated data to train/improve AI and assign copyright in recordings and test content to Userlytics. Read the terms before joining','No application fee. Never provide passwords, card details or government ID during a test unless the official study explicitly requires a legitimate and necessary verification step'],
   official:'https://www.userlytics.com/user-experience-research/paid-ux-testing/',
   secondary:'https://www.userlytics.com/user-experience-research/legal-resources/terms-of-service-testers/',
   secondaryLabel:'Official tester terms and privacy conditions',
+  tertiary:'https://www.userlytics.com/user-experience-research/paid-ux-testing/frequently-asked-questions-testers/',
+  tertiaryLabel:'Official tester FAQ: typical duration and payment timing',
   cta:'Join official tester program',
   verified:'2026-10-31'
  },
@@ -209,7 +215,247 @@ const opportunities:Opportunity[]=[
   official:'https://www.prolific.com/participants-join-us',
   cta:'View official participant information',
   verified:'2026-09-25'
- }
+ },
+  {
+   id:'alignerr-ph-entry-ai',name:'Alignerr — English Audio Transcription Specialist (Manila)',status:'active-ph',badge:'PHILIPPINES / MANILA • REMOTE • BEGINNER-FRIENDLY',
+   summary:'The official English Audio Transcription Specialist listing explicitly identifies Manila/Philippines, advertises USD $10–$35/hour and lists 10–40 hours/week. It says prior transcription or AI experience is not required. The rate and hours are advertised ranges, not guaranteed work or earnings.',
+   requirements:['Strong English listening and written comprehension; no previous transcription or AI experience required','Computer and reliable internet required; this is not a phone-only task','The listing describes an hourly freelance contract and weekly payout; confirm exact rate, screening, task supply, rejection rules and payment terms before accepting','No guaranteed hours or income; do not pay a recruiter or share passwords, OTPs or crypto recovery phrases'],
+   official:'https://www.alignerr.com/en/jobs/9a4a33ed-d48b-44ab-a415-496a2a128fdb',
+   cta:'Apply on official Alignerr listing',
+   verified:'2026-10-31'
+  },
+  {
+   id:'alignerr-global-ai-quality',name:'Alignerr — AI Data Quality Analyst',status:'location-check',badge:'REMOTE LISTING • PHILIPPINES ELIGIBILITY NOT STATED',
+   summary:'The official remote listing advertises USD $40–$120/hour and 10–40 hours/week for reviewing AI outputs for factual accuracy and relevance. The public page does not explicitly identify the Philippines, so confirm that Philippine residents can onboard before treating it as available.',
+   requirements:['The listing says prior AI or technical experience is not required; strong English, analytical judgment and detailed guideline-following are needed','Computer and reliable internet required; not phone-only','USD $40–$120/hour is the advertised range, not a guaranteed rate; ask which rate applies to the task and confirm actual work volume, screening and payment terms','Do not use a false address or VPN to bypass country checks; no application fee is advertised'],
+   official:'https://www.alignerr.com/jobs/1804f5ac-2feb-4360-a0c3-9af017539b26',
+   cta:'Check country eligibility on official listing',
+   verified:'2026-10-31'
+  },
+  {
+   id:'alignerr-global-video-annotation',name:'Alignerr — Video Annotation Specialist',status:'location-check',badge:'REMOTE LISTING • PHILIPPINES ELIGIBILITY NOT STATED',
+   summary:'The official remote listing advertises USD $40–$120/hour and 10–40 hours/week for labeling video scenes, camera angles and actions. The public page does not explicitly identify the Philippines, so confirm country eligibility before applying.',
+   requirements:['The listing says professional video or AI experience is not required; careful observation, strong English and reliable guideline-following are important','Computer and reliable internet required; not phone-only','The USD $40–$120/hour range and weekly hours are advertised, not guaranteed; confirm the actual task rate, work supply and contract/payment terms','No application fee is advertised; never pay a recruiter or provide passwords, OTPs or recovery phrases'],
+   official:'https://www.alignerr.com/jobs/98116e05-9cfc-437e-b96c-132d9a5476c4',
+   cta:'Check country eligibility on official listing',
+   verified:'2026-10-31'
+  },
+  {
+   id:'alignerr-ph-expert-author',name:'Alignerr — Expert AI Task Author Projects (Philippines)',status:'active-ph',badge:'PHILIPPINES • REMOTE • ADVANCED EXPERIENCE',
+   summary:'Current official Philippines role pages include Customer Support Task Author (USD $20–$50/hour) and Finance & Accounting Task Author (USD $60–$120/hour). These are broad advertised ranges, not guaranteed pay; the roles require real professional experience and are hourly freelance contracts.',
+   requirements:['Customer Support Task Author: for experienced support engineers, technical support specialists or customer-success engineers who can write and score realistic support-triage tasks; the page lists 10–40 hours/week','Finance & Accounting Task Author: for experienced accountants or finance analysts with strong reconciliation, revenue-recognition and spreadsheet skills; CPA Philippines is a plus; work is flexible and task-based','AI experience is not required, but hands-on domain experience is required','Confirm exact rate, task supply, expected workload, screening and contract/payment terms before accepting; no guaranteed hours or income','No application fee is advertised. Never pay a recruiter or provide passwords, OTPs or recovery phrases'],
+   examples:['Customer Support Task Author — USD $20–$50/hour advertised','Finance & Accounting Task Author — USD $60–$120/hour advertised'],
+   official:'https://www.alignerr.com/jobs/543e6d17-c69e-41c5-b5b2-71a94a91b55c',
+   secondary:'https://www.alignerr.com/jobs/1bbf57c7-49d5-4da7-b0f5-2837461959a7',
+   secondaryLabel:'Official Finance & Accounting Task Author listing',
+   cta:'Review expert task-author roles',
+   verified:'2026-10-31'
+  },
+  {
+   id:'innodata-ph-llm-video-audio',name:'Innodata Knowledge Services — LLM Video & Audio Annotation',status:'closed',badge:'PHILIPPINES • APPLICATION CLOSED',
+   summary:'The company-posted LinkedIn listing is now marked as no longer accepting applications. Keep this record closed and do not direct applicants to the expired form unless Innodata republishes the role.',
+   requirements:['Bachelor’s degree in any course, excellent English reading and comprehension, strong observation skills, a personal computer/laptop and reliable internet','Work includes reviewing video/audio, comparing AI-generated descriptions, labeling objects/actions/sounds and checking annotation quality','Part-time project work; pay rate, weekly hours, task volume, contract duration and payment schedule are not disclosed—ask for them in writing before accepting','Apply through the company-posted listing and verify the recruiter’s identity before sending documents','Innodata’s official careers page says it never asks for payment, banking details or sensitive personal information during the application process; report suspected impersonation to verifyjoboffer@innodata.com'],
+   official:'https://ph.linkedin.com/jobs/view/llm-video-audio-annotation-specialists-at-innodata-knowledge-services-inc-4466668593',
+   secondary:'https://innodatacareers.com/',
+   secondaryLabel:'Official Innodata careers and recruitment scam warning',
+   cta:'Open official Innodata listing',
+   verified:'2026-10-31'
+  },
+  {
+   id:'innodata-ph-ai-evaluation',name:'Innodata — AI Evaluation Specialist Roles (STEM / Technical)',status:'active-ph',badge:'PHILIPPINES • REMOTE • ADVANCED STEM / TECH',
+   summary:'Two current Innodata Knowledge Services Philippines contract listings are visible: AI Evaluation Specialists — STEM Graduates, and Technical AI Evaluation Specialists. Both are remote; the employer does not disclose pay in the job posts.',
+   requirements:['STEM evaluation role: graduate in Physics, Data Science, Mathematics, Engineering or a related STEM field, with background in spatial reasoning, video ML, spatial RL or related areas','Technical AI Evaluation role: CS/IT or related graduate, 2+ years programming experience, code evaluation and strong analytical skills; project-based full-time work for approximately three months','The STEM role is contract work; exact hours and duration are not stated. The technical role is full-time project-based for three months','Ask for the pay rate, weekly hours, screening, contract, task allocation and payment schedule in writing before accepting; no guaranteed work or income','Innodata’s official careers page says it never asks for payment, banking details or sensitive personal information during application; report suspected impersonation to verifyjoboffer@innodata.com'],
+   official:'https://ph.linkedin.com/jobs/view/ai-evaluation-specialists-%E2%80%93-stem-graduates-at-innodata-knowledge-services-inc-4476639384',
+   secondary:'https://ph.linkedin.com/jobs/view/technical-ai-evaluation-specialists-at-innodata-knowledge-services-inc-4476625833',
+   secondaryLabel:'Technical AI Evaluation Specialist listing',
+   tertiary:'https://innodatacareers.com/',
+   tertiaryLabel:'Official Innodata careers and recruitment scam warning',
+   cta:'Review official Innodata AI evaluation roles',
+   verified:'2026-10-31'
+  },
+  {
+   id:'deepgram-ph-language-labeling',name:'Deepgram — Philippine-Language Freelance Labeling',status:'active-ph',badge:'PHILIPPINES • REMOTE • TAGALOG / CEBUANO / DIALECTS',
+   summary:'Deepgram has current company-posted remote freelance listings for Tagalog, Cebuano/Visaya, and Ilonggo/Hiligaynon plus Kapampangan language labeling. Work includes transcribing, reviewing and correcting speech data used to train voice AI. Pay is not disclosed.',
+   requirements:['Native or near-native fluency in the specific language is required, plus strong English comprehension, attention to detail and reliable weekly output','The listings describe recurring weekly workload and quality targets, not occasional microtasks; labeling can take longer than the audio itself','No degree requirement is stated in the listings; previous transcription or annotation experience is helpful but not listed as mandatory','Ask the recruiter for the per-hour or per-unit rate, expected weekly volume, quality/rejection rules and payment schedule before accepting','Apply only through the company-posted Deepgram listings. No application fee is advertised; never pay to unlock tasks or buy required equipment from a recruiter'],
+   examples:['Tagalog — active company-posted listing','Cebuano / Visaya — active company-posted listing','Ilonggo / Hiligaynon / Kapampangan — active company-posted listing'],
+   official:'https://ph.linkedin.com/jobs/view/freelance-labeling-editor-tagalog-at-deepgram-4479815443',
+   secondary:'https://ph.linkedin.com/jobs/view/freelance-labeling-editor-cebuano-visaya-at-deepgram-4475537023',
+   secondaryLabel:'Cebuano / Visaya role',
+   tertiary:'https://ph.linkedin.com/jobs/view/freelance-labeling-editor-ilokano-hiligaynon-kapampangan-at-deepgram-4475518844',
+   tertiaryLabel:'Ilonggo / Hiligaynon / Kapampangan role',
+   cta:'Open language-specific Deepgram roles',
+   verified:'2026-10-31'
+  },
+  {
+   id:'rws-cebuano-conversation-recording',name:'RWS — AI Conversation Recording Contributor (Cebuano)',status:'active-ph',badge:'PHILIPPINES • WORK FROM HOME • USD $7/HOUR',
+   summary:'RWS has a current company-posted freelance project for native-level Cebuano speakers. The Tagbilaran listing says work from home, flexible task-based work of approximately 2–4 hours daily, immediate start and an advertised rate of USD $7/hour. Project duration is still to be confirmed.',
+   requirements:['Native-level everyday Cebuano fluency and advanced English to understand instructions; do not imitate an accent or dialect that is not your own','Freelance, remote and task-based; approximately 2–4 hours daily is an estimate, not guaranteed hours','Quiet room and a computer microphone or headset with microphone; reliable internet and access to the online recording platform required','Work includes individual or two-person natural conversation recording, voice/voice-text interactions, annotation and metadata','Recordings and related metadata may be used to evaluate speech AI and incorporated into research, development, testing and improvement datasets; read the consent and usage terms before recording and obtain consent from every conversation participant','LinkedIn metadata labels the employment type Full-time while the job description calls it Freelance and describes 2–4 hours/day task-based work; confirm the actual engagement classification and hours with RWS','The listing does not disclose payment schedule, project end date or rejection rules; obtain these in writing before accepting. No experience is required and no application fee is advertised'],
+   official:'https://ph.linkedin.com/jobs/view/ai-conversation-recording-contributor-cebuano-at-rws-4481376934',
+   secondary:'https://www.rws.com/',
+   secondaryLabel:'Official RWS company website',
+   cta:'Open RWS Cebuano project listing',
+   verified:'2026-10-31'
+  },
+  {
+   id:'innodata-ph-robotics-annotator',name:'Innodata — Robotics Annotator Rater (Work From Home)',status:'active-ph',badge:'PHILIPPINES • 100% REMOTE • PROJECT THROUGH DEC 31',
+   summary:'A current company-recruiter-posted Innodata project is explicitly 100% remote and runs October 28–December 31, 2026. Annotators review household-task videos, mark action timestamps and hand/object details, and write concise descriptions. Pay and working hours are not disclosed.',
+   requirements:['College graduate with any four-year degree; previous data annotation, AI training, video/image evaluation, QA, transcription or captioning is helpful but not required','Must use a desktop or laptop; mobile devices are not supported. Stable high-speed internet required','Project-based contract; project dates are October 28–December 31, 2026; work hours are still to follow','Ask for rate, hours, payment schedule, quality thresholds and task availability in writing before accepting','Innodata’s official careers page says it never asks applicants for payment, banking details or sensitive personal information; report suspected impersonation to verifyjoboffer@innodata.com'],
+   official:'https://ph.linkedin.com/jobs/view/robotics-annotator-rater-work-from-home-at-innodata-inc-4476406055',
+   secondary:'https://innodatacareers.com/',
+   secondaryLabel:'Official Innodata careers and recruitment scam warning',
+   cta:'Open official Innodata project listing',
+   verified:'2026-10-31'
+  },
+  {
+   id:'innodata-ph-domain-experts',name:'Innodata — Senior AI Domain Expert Projects',status:'location-check',badge:'PHILIPPINES • PART-TIME • WORK ARRANGEMENT / PAY TO CONFIRM',
+   summary:'Innodata has current company-recruiter-posted Philippines part-time listings for Senior Engineering Domain Expert, Senior Computing & IT Domain Expert, Senior Energy & Environmental Systems Domain Expert, and Quantitative Social Scientist / Causal Inference Statistician / Biostatistician Expert. The postings describe a flexible remote-friendly work environment; confirm that the specific project can be performed fully remotely from your location. Compensation is not disclosed.',
+   requirements:['Engineering role: degree in a relevant engineering discipline and 3+ years of professional or advanced research experience; specialist areas include electrical, mechanical, civil, chemical, aerospace, industrial and related engineering','Computing & IT role: relevant computing/engineering degree and 3+ years in performance engineering, networking, digital hardware, distributed systems or high-performance computing','Energy/environment role: relevant degree and 3+ years of professional or academic research in energy systems, hydrology, atmospheric science, environmental systems, wildfire science or petroleum engineering','Quantitative social-science role: Master’s or PhD in a relevant quantitative discipline and 3+ years of research/professional experience with SEM, causal inference, econometrics, psychometrics or biostatistics','All roles are part-time, require specialist subject-matter expertise and describe a flexible remote-friendly environment; confirm full remote availability from your location, expected hours, project duration, compensation, assessment and payment terms before applying','Innodata states it never asks applicants for payment, banking details or sensitive personal information; use the official company-posted job and careers channels'],
+   official:'https://ph.linkedin.com/jobs/view/senior-engineering-domain-expert-ai-training-benchmarking-technical-evaluation-at-innodata-inc-4481426805',
+   secondary:'https://ph.linkedin.com/jobs/view/senior-energy-environmental-systems-domain-expert-ai-training-benchmarking-technical-evaluation-at-innodata-inc-4481438265',
+   secondaryLabel:'Senior Energy & Environmental Systems Expert listing',
+   tertiary:'https://ph.linkedin.com/jobs/view/quantitative-social-scientist-causal-inference-statistician-people-analytics-scientist-or-biostatistician-expert-ai-training-benchmarking-technical-evaluation-at-innodata-inc-4481432662',
+   tertiaryLabel:'Quantitative Social Scientist / Statistician Expert listing',
+   quaternary:'https://ph.linkedin.com/jobs/view/senior-computing-it-domain-expert-ai-training-benchmarking-technical-evaluation-at-innodata-inc-4481430713',
+   quaternaryLabel:'Senior Computing & IT Domain Expert listing',
+   cta:'Review Innodata specialist roles',
+   verified:'2026-10-31'
+  },
+  {
+   id:'attapoll-ph-surveys',name:'AttaPoll — Paid Surveys & Mobile Rewards',status:'active-ph',badge:'PHILIPPINES • ANDROID + IPHONE • SURVEY PAYOUTS VARY',
+   summary:'AttaPoll is a free survey app with official Philippines iPhone and Android store listings, and its official referral-country page explicitly includes the Philippines. Surveys pay per completed activity, but the amount, screening and task supply vary; the app’s global store examples are not a guaranteed Philippines rate. The actual withdrawal methods and minimum are shown in-app for your country.',
+   requirements:['Free to download and join; App Store Philippines lists age 13+; Android and iPhone apps are available','Complete your profile accurately and check the displayed reward before starting; survey screen-outs and limited local survey supply are possible, so no earnings are guaranteed','AttaPoll’s official help says payout thresholds vary by country and the available methods are shown in the app. Do not assume the UK/US advertised minimum or every global method applies in the Philippines; confirm the PH cashout method and threshold before investing time','The Philippines App Store and Google Play privacy disclosures say the app may collect location and personal information; Google Play also lists app activity and app information/performance. Data is encrypted in transit and deletion can be requested','Philippines store reviews include reports of infrequent surveys, disqualifications and game-task rewards not credited, alongside some positive payout reports. These are user reviews, not proof of systematic nonpayment; use ordinary surveys first and avoid spending money or grinding game offers until a first withdrawal is verified','Never pay to join, buy in-app items to unlock surveys, use VPN/proxy location masking or provide passwords/OTPs'],
+   official:'https://attapoll.com/en-us/terms-and-conditions/',
+   secondary:'https://apps.apple.com/ph/app/attapoll-surveys-earn-money/id1107631390',
+   secondaryLabel:'Official iPhone app — Philippines App Store',
+   tertiary:'https://play.google.com/store/apps/details?hl=fil&id=com.requapp.requ',
+   tertiaryLabel:'Official Android app — Philippines Google Play',
+   quaternary:'https://attapoll.com/en-sg/referral-program-countries/',
+   quaternaryLabel:'Official country list — Philippines included',
+   cta:'Open official AttaPoll information',
+   verified:'2026-10-31'
+  },
+  {
+   id:'premise-ph-local-tasks',name:'Premise — Local Photo, Survey & Information Tasks',status:'location-check',badge:'PHILIPPINES IPHONE APP • LOCAL TASKS VARY BY CITY',
+   summary:'Premise offers free iOS and Android apps for paid local photo/data-collection tasks, surveys and short information-gathering missions. Its official iPhone app is listed in the Philippines App Store; the Android app is on Google Play, but this review did not independently confirm Philippines storefront availability for Android. Premise says task availability depends on local research needs and changes frequently. There is no fixed pay rate or guaranteed task volume; check the live task marketplace in your area before spending time.',
+   requirements:['Free to download and join; the Philippines iPhone App Store listing is rated 18+. Google Play displays an Everyone rating, so check the current in-app age and task terms','The iPhone app is confirmed in the Philippines App Store. The official Android app is on Google Play, but confirm that it can be installed from your Philippines Google Play account before relying on it','The official contributor site lists PayPal, Payoneer or Bitcoin depending on country. Confirm the actual Philippines payout methods, minimum cashout and any fees in-app before completing tasks','No universal per-task rate or guaranteed supply; tasks are driven by current local research demand','Apple and Google store privacy disclosures include location, personal information and user content such as photos/videos. Avoid faces, children, IDs, addresses, financial records and private property unless the task is legitimate and all required consent is obtained','Recent Google Play reviews report long periods with few or no tasks and difficulty reaching minimum cashout; Premise support replied on June 30, 2026 that it had temporarily redirected research effort to other regions. These are user reports and a company support response, not proof of misconduct, but treat this as low-priority supplemental earning and do not invest time until suitable local tasks appear'],
+   official:'https://contributors.premise.com/',
+   secondary:'https://apps.apple.com/ph/app/premise-earn-money/id1390094962',
+   secondaryLabel:'Official iPhone app (Philippines)',
+   tertiary:'https://play.google.com/store/apps/details?id=com.premise.android.prod',
+   tertiaryLabel:'Official Android app and recent task-availability responses',
+   cta:'Open official contributor program',
+   verified:'2026-10-31'
+  },
+  {
+   id:'telus-ai-linguist-experts-ph',name:'TELUS Digital AI Community — English & Tagalog Linguist Expert',status:'location-check',badge:'PHILIPPINES • PART-TIME • PAY / FULL REMOTE STATUS TO CONFIRM',
+   summary:'TELUS Digital AI Community has current company-posted Philippines part-time listings for English Linguist Expert and Tagalog Linguist Expert. The work evaluates text-to-speech and speech-recognition quality, phonetics, prosody, dialect variation and speech-dataset annotation. The job posts do not disclose pay or clearly confirm that every project is fully remote from every Philippine location.',
+   requirements:['A Bachelor’s degree in Linguistics, Phonetics, Phonology, Speech-Language Pathology, Computational Linguistics, Language Sciences or a related discipline, OR 2+ years of relevant professional experience in linguistic analysis, speech science, language documentation, dialect research, computational linguistics, speech datasets or voice-AI linguistics','For the English role: native-level English (C1/C2+) and advanced English phonetics, phonology, morphology and syntax. For the Tagalog role: native-level Tagalog (C1/C2+) and advanced Tagalog linguistics','Working knowledge of phonetic transcription, spectrogram analysis, prosody, acoustic phonetics and linguistic annotation (IPA, SAMPA or similar)','Part-time; complete a subject-specific qualification assessment. Identity verification is required after application completion','No pay range, guaranteed hours or full remote arrangement is stated; confirm work location, project availability, rate, schedule and payment terms through official TELUS onboarding before proceeding','This is a specialist linguistics role, not a beginner transcription task. Do not pay recruiters or send ID through unofficial forms or personal messaging accounts'],
+   official:'https://ph.linkedin.com/jobs/view/english-linguist-expert-at-telus-digital-ai-community-4485309477',
+   secondary:'https://ph.linkedin.com/jobs/view/tagalog-linguist-expert-ai-community-at-telus-international-ai-data-solutions-4482081515',
+   secondaryLabel:'Tagalog Linguist Expert — TELUS International AI Data Solutions',
+   tertiary:'https://ph.linkedin.com/jobs/view/tagalog-linguist-expert-at-telus-digital-ai-community-4484944208',
+   tertiaryLabel:'Newer Tagalog Linguist Expert listing — Metro Manila',
+   cta:'Review official TELUS linguist listings',
+   verified:'2026-10-31'
+  },
+  {
+   id:'aidi-ph-technical-annotator',name:'AI Data Innovations — Technical Data Annotator (AI Safety & Guardrails)',status:'location-check',badge:'PHILIPPINES • REMOTE • 12-WEEK PROJECT • VERIFY APPLY ROUTE',
+   summary:'A company-posted LinkedIn listing describes a remote, project-based independent-contractor role for approximately 12 weeks at USD $8/hour; weekly hours are to be confirmed. The work reviews multi-turn AI coding-assistant conversations for prompt-injection and safety risks. The company website describes AI data annotation and remote data collection, but the job post’s external careers-page URL is not exposed in the public text, so verify the application route and recruiter before sharing documents.',
+   requirements:['Computer Science, Software Engineering, IT or related STEM degree, or equivalent technical training and demonstrable experience','Familiarity with at least one programming language, basic code/configuration/log interpretation, application-security concepts and professional English','Remote Philippines; approximately 12 weeks; independent contractor/project-based; weekly hours not disclosed','Technical screening and project training/calibration required; tasks may include potentially harmful, offensive or sensitive content','Advertised pay is USD $8/hour. Confirm hours, acceptance/rejection rules, payment schedule and written contract before working; do not pay an application or onboarding fee'],
+   official:'https://ph.linkedin.com/jobs/view/technical-data-annotator-remote-position-at-ai-data-innovations-4479543236',
+   secondary:'https://aidatainnovations.com/',
+   secondaryLabel:'Company website and identity check',
+   cta:'Review company-posted LinkedIn job',
+   verified:'2026-10-31'
+  },
+  {
+   id:'crowtado-ph-phone-data',name:'Crowtado — Phone Video / Audio Data Tasks',status:'location-check',badge:'FREE TO JOIN • PHILIPPINES TASKS NOT CONFIRMED',
+   summary:'Crowtado’s official site allows free signup in most countries. First-person video tasks are open in many countries and display the pay before recording, but the Philippines is not explicitly confirmed for a current task. Only accepted submissions are paid; task availability depends on country and language.',
+   requirements:['Smartphone required; first-person video tasks also need a head or chest mount. Some paired-conversation tasks are limited to US/Canada native American-English speakers','Free to join and no Crowtado fee; no fixed income or set hours are guaranteed','Official withdrawal minimum is USD $10, or USD $25 for bank transfers; PayPal, Wise and other methods vary by country. Confirm Philippines payout availability before recording','Recordings are used as AI training data. Read the contributor agreement and privacy policy; accepted content may be licensed and reused. Get consent from anyone recorded and never record children or private information','Do not submit family photos, IDs, passwords, bank cards, private conversations, addresses or confidential household details'],
+   official:'https://www.crowtado.com/en',
+   secondary:'https://www.crowtado.com/en/terms',
+   secondaryLabel:'Official contributor terms and content licence',
+   tertiary:'https://www.crowtado.com/en/trust',
+   tertiaryLabel:'Official pay and data-use explanation',
+   cta:'Create free account and check PH tasks',
+   verified:'2026-10-31'
+  },
+  {
+   id:'egovista-ph-phone-capture',name:'EgoVista — Smartphone First-Person Capture Network',status:'location-check',badge:'GLOBAL SIGNUP • NO PH MISSIONS VERIFIED',
+   summary:'EgoVista says contributor accounts are open worldwide, with no country excluded as policy, but a payment route must exist for the contributor’s country. Its signup page locks the country after registration, so confirm Philippines payment availability before creating an account. Public missions currently describe research partners in France, Spain and Scandinavia; no Philippines mission has been verified. Pay is per hour of accepted usable footage at a rate shown on each mission. The current Terms v2.4 say payment within 15 days after approval, while the public contributor page still says within 30 days—ask the company to clarify and rely on the terms you accept.',
+   requirements:['Free signup, age 18+ and no minimum commitment; the signup page lists iPhone 12 or newer, older iPhones, recent Android (2022+), GoPro and smart glasses. A hands-free head/chest mount is needed for a phone or action camera','The signup page says the country is locked after registration. Confirm that Philippines is selectable and that a payment route is available before creating the account','Public missions currently describe research partners in France, Spain and Scandinavia; no Philippines mission is verified. A specific mission may restrict where the footage itself must be recorded','Only accepted usable footage is paid; the mission page shows the rate before joining. Terms v2.4 (effective September 11, 2026) state payment within 15 days after approval; the public contributor page still says 30 days, so ask for clarification before accepting','The terms grant a worldwide, long-duration non-exclusive license to accepted footage and derivatives for AI/robotics datasets. Faces are pseudonymised before external processing; voice is used only if a mission expressly requests it, and voice cloning/synthesis is excluded. Get consent and keep children, IDs, private screens and sensitive household details out of frame'],
+   official:'https://www.egovista.app/contribute',
+   secondary:'https://www.egovista.app/cgu',
+   secondaryLabel:'Official Contributor Terms v2.4 and payment conditions',
+   tertiary:'https://www.egovista.app/signup',
+   tertiaryLabel:'Official signup page — country is locked after registration',
+   cta:'Check country and mission availability before signup',
+   verified:'2026-10-31'
+  },
+  {
+   id:'mytron-ph-phone-data',name:'MyTron Labs — Smartphone Video Data Collection',status:'location-check',badge:'PHILIPPINES LISTED • EARLY-STAGE • PAYOUT NOT INDEPENDENTLY VERIFIED',
+   summary:'MyTron Labs’ official contributor page lists the Philippines among countries accepting collectors, advertises USD $2–$10 per hour depending on project, and says payouts are weekly to local bank or mobile wallet. Signup is free and no prior experience or special equipment is required. The contributor page says weekly payouts to local bank or mobile wallet, while the trust page lists UPI, PayPal, Wise and AirTM; neither page confirms which methods are currently active for Philippine contributors. The trust page reports payments in seven countries but does not name them, so Philippine payouts remain unverified.',
+   requirements:['Modern smartphone; the site says no special equipment or experience is required and onboarding is by region/project','Advertised pay USD $2–$10/hour; task availability and rates depend on environment and project; no minimum work commitment','The signup form asks for name, email, password, mobile number and country; an optional but preferred two-minute environment video is requested. Do not upload a video showing people, children, addresses, IDs, screens, valuables or private spaces. The company identifies itself as MyTron Labs LLP (LLPIN ACV-7478, incorporated in India in 2026); this registry entry was not independently confirmed in this review. Its privacy policy says PAN/Aadhaar are collected only for India-based contributors, not contributors outside India','Privacy policy says recordings may capture surroundings, voices and other people; some data may be licensed to clients and may remain in anonymised datasets after account deletion. Read the exact task consent before recording','The site advertises a 20% lifetime referral share; treat this as a referral promotion, not guaranteed task income. Confirm a Philippine payout method and an actual project offer before spending time or sharing footage'],
+   official:'https://www.mytronlabs.com/join-as-contributor',
+   secondary:'https://www.mytronlabs.com/privacy-policy',
+   secondaryLabel:'Official privacy policy and data-use terms',
+   tertiary:'https://www.mytronlabs.com/trust',
+   tertiaryLabel:'Company trust and payment claims',
+   cta:'Review free signup and country availability',
+   verified:'2026-10-31'
+  },
+  {
+   id:'loggy3-ph-desktop-data',name:'Loggy3 — Desktop Activity Data Collection (High Privacy Risk)',status:'location-check',badge:'PHILIPPINES • VERY HIGH PRIVACY RISK • NOT RECOMMENDED ON PERSONAL PC',
+   summary:'Loggy3 advertises availability in the Philippines and USD $0.10–$1.00 per active recording hour by tier, up to 10 paid hours/day, with twice-monthly payouts through Dots and GCash/PayPal options depending on country. However, its own privacy notice says the desktop app records screen activity, keystrokes, mouse movements, network/hardware data and content visible on screen; recording data is retained for at least five years. This is a serious privacy trade-off, not a routine survey app.',
+   requirements:['Windows 10/11 or macOS computer and age 18+; not an iPhone/Android-only task','Official website claims average earnings of USD $100/month, but that is a company average, not a guarantee; tier rates are USD $0.10, $0.25, $0.50 and $1.00 per active recording hour','Privacy notice permits collection of files, documents, audio, video, images and communications displayed while recording; it may include microphone/webcam feeds when enabled, while the FAQ says they are not recorded—this is a policy inconsistency','Screen/input recordings are retained for at least five years; identity/account and payment records may be retained for seven years after account closure','Strong recommendation: do not install on a personal or primary computer containing banking, passwords, private messages, family photos, IDs or confidential work. Consider only a dedicated clean device after reading the full privacy notice and understanding the consent','The site says no minimum withdrawal and twice-monthly processing via Dots; confirm GCash/PayPal availability for Philippines before installing'],
+   official:'https://loggy3.com/',
+   secondary:'https://loggy3.com/privacy',
+   secondaryLabel:'Official privacy notice — screen/key data and five-year retention',
+   cta:'Read privacy notice before considering installation',
+   verified:'2026-10-31'
+  },
+
+  {
+   id:'dost-tapi-vfp-startups',name:'DOST-TAPI — Venture Financing Program for Startups & Technology-Based Projects',status:'location-check',badge:'PHILIPPINES • 60% FILIPINO-OWNED ENTITY BASELINE • CONTACT FIRST',
+   summary:'DOST-TAPI’s official Citizen’s Charter describes a Venture Financing Program for start-up companies and technology-based projects. It provides financial support to IP-rights owners/assignees or technology-based startups for production equipment used by emerging or innovative technologies. The published document is the 2021 Charter edition still hosted on the official TAPI site, so confirm that the eligibility and process remain current before preparing an application.',
+   requirements:['The published Charter baseline says the applicant should be a Filipino man or woman who owns an MSME; a duly registered sole proprietorship, corporation, partnership or cooperative at least 60% Filipino-owned; a tech-based or IP-based company; and have no delinquent account with TAPI','The Charter checklist includes an application/interest letter, DOST-TAPI data-privacy consent, a full project proposal/feasibility study covering company background, marketing, technology, waste/environmental/social and financial aspects, endorsement and initial assessment from the concerned DOST Regional Director, business permits/licenses, and SEC/CDA registration documents','The document is a 2021 Charter edition, not a current 2026 call. Ask DOST-TAPI to confirm current eligibility, application forms, amount/ceiling, whether assistance is repayable, equity- or royalty-based, deadlines and current documentary requirements','Treat this as venture financing/financial assistance, not a guaranteed free grant. Do not pay intermediaries or assume approval'],
+   official:'https://tapi.dost.gov.ph/resources/downloads?catid=14&id=2859&m=0&task=download.send',
+   secondary:'https://www.tapi.dost.gov.ph/',
+   secondaryLabel:'Official DOST-TAPI website — confirm current program rules',
+   cta:'Confirm current VFP eligibility and intake with DOST-TAPI',
+   verified:'2026-10-31'
+  },
+  {
+   id:'dost-tapi-technicom-2',name:'DOST-TAPI — TECHNiCOM 2.0 Technology Commercialization Assistance',status:'location-check',badge:'PHILIPPINE INNOVATION GRANT • INQUIRY ONLY • NO OPEN CALL VERIFIED',
+   summary:'DOST-TAPI’s official channel confirms TECHNiCOM 2.0 funds pilot testing, technical validation and commercialization of research-based technologies and early-stage startups. One official example is a ₱4,970,270 grant to BIOMATS PH Inc. for a bioprinter pilot-testing and technical-validation project. That is one award, not a published funding cap or a guaranteed amount for other applicants.',
+   requirements:['Potential fit is a Philippine research-based technology, prototype or early-stage startup seeking pilot testing, validation or commercialization; confirm entity, ownership, IP, co-funding and technical-readiness rules directly with DOST-TAPI','The ₱4,970,270 BIOMATS PH award is an example only; no general minimum/maximum award or current 2026 application deadline was verified','No current open application window or complete 2026 application package was found; contact DOST-TAPI and request current guidelines, eligibility checklist and application forms','Do not pay intermediaries or assume the historical award amount is available to every applicant'],
+   official:'https://www.linkedin.com/posts/dosttapi_biomats-ph-inc-moa-signing-under-technicom-activity-7472603992498503681-OhhR',
+   secondary:'https://www.linkedin.com/company/dosttapi/',
+   secondaryLabel:'Official DOST-TAPI channel',
+   cta:'Check current TECHNiCOM 2.0 intake with DOST-TAPI',
+   verified:'2026-10-31'
+  },
+  {
+   id:'dost-tapi-evfp',name:'DOST-TAPI — Expanded Venture Financing Program (EVFP)',status:'location-check',badge:'PHILIPPINE STARTUPS • FINANCIAL ASSISTANCE • TERMS / INTAKE TO CONFIRM',
+   summary:'DOST-TAPI’s official channel references an Expanded Venture Financing Program (EVFP) to support startups and innovative technology commercialization. The post does not publish a current application form, complete eligibility rules, funding amount, financing instrument or deadline. Treat this as a contact-first watch, not an open grant.',
+   requirements:['The official post does not provide a complete eligibility list; ask DOST-TAPI in writing whether startups, spin-offs, TECHNiCOM graduates, SGF graduates or other technology-based companies qualify under the current EVFP rules','No open 2026 call, public application package, funding amount, deadline, repayment terms or equity/royalty instrument was verified; request the current written guidelines before relying on the program','Use the official DOST-TAPI website/contact channel and ask for the current intake process, eligible entity type, IP/technology requirements, co-funding, financial terms and required documents','Do not pay intermediaries or assume approval; DOST-TAPI screening and written financing terms apply'],
+   official:'https://www.linkedin.com/posts/dosttapi_doon-philippines-moa-signing-under-dost-tapis-activity-7470052103655260160-IWVe',
+   secondary:'https://www.linkedin.com/company/dosttapi/',
+   secondaryLabel:'Official DOST-TAPI channel',
+   cta:'Ask DOST-TAPI for current EVFP eligibility and intake',
+   verified:'2026-10-31'
+  },
+  {
+   id:'landbank-dost-lifting',name:'LANDBANK + DOST — LIFTING MSMEs Lending Program',status:'location-check',badge:'PHILIPPINES • LOAN FINANCING • NOT A GRANT',
+   summary:'DOST and LANDBANK announced a partnership to improve financing access for DOST-assisted MSMEs and startups through LANDBANK’s LIFTING MSMEs Lending Program. The official DOST announcement identifies indicative loan amounts of ₱500,000 for startups, ₱5 million for expanding MSMEs and up to ₱50 million for enterprises levelling up. DOST uses a referral process for its assisted enterprises and LANDBANK performs the lending review. This is debt financing, not a grant.',
+   requirements:['The official DOST announcement identifies ₱500,000 for startups, ₱5 million for expanding MSMEs and up to ₱50 million for enterprises levelling up; these are loan amounts, not grants','The partnership focuses on DOST-assisted MSMEs/startups connected with programs such as SETUP, TECHNiCOM and the Startup Grant Fund; DOST uses a referral process and LANDBANK performs its own credit review','LANDBANK performs its own credit evaluation and loan approval; a DOST referral does not guarantee approval','Ask LANDBANK for current interest rate, repayment term, collateral/security, fees, required financial statements, eligible expenses and deadline before applying','Do not treat this as a grant or assume approval; borrowing creates repayment obligations'],
+   official:'https://www.dost.gov.ph/knowledge-resources/news/4379-dost-landbank-to-grow-local-msmes-thru-technology-upgrades-and-financing.html',
+   secondary:'https://www.landbank.com/news/landbank-dost-strengthen-nationwide-support-for-msmes-startups',
+   secondaryLabel:'Official LANDBANK program information',
+   cta:'Review official LANDBANK financing information',
+   verified:'2026-10-31'
+  },
+
 ];
 
 const statusLabel=(s:Opportunity['status'])=>s==='active-ph'?'Verified PH path':s==='closed'?'Closed / deadline passed':s==='location-check'?'Check eligibility / location':'Waitlist / unavailable in PH';
@@ -243,12 +489,12 @@ export default function OpportunityVault(){
     <h3>Current facts</h3><ul>{o.requirements.map(x=><li key={x}>{x}</li>)}</ul>
     {o.examples?.length?<><h3>Examples seen in the current official listing</h3><ul>{o.examples.map(x=><li key={x}>{x}</li>)}</ul></>:null}
     {o.referral&&<div className="ref"><span>Optional referral code supplied by I AM Magnanimous Way™</span><b>{o.referral}</b><button onClick={()=>copy(o.referral!)}>Copy code</button><small>No bonus amount is promised here; current referral terms must be checked in the app.</small></div>}
-    <div className="actions"><a href={o.official} target="_blank" rel="noreferrer">{o.cta}</a>{o.secondary&&<a href={o.secondary} target="_blank" rel="noreferrer">{o.secondaryLabel||'Open secondary source'}</a>}{o.tertiary&&<a href={o.tertiary} target="_blank" rel="noreferrer">{o.tertiaryLabel||'Open third source'}</a>}</div>
+    <div className="actions"><a href={o.official} target="_blank" rel="noreferrer">{o.cta}</a>{o.secondary&&<a href={o.secondary} target="_blank" rel="noreferrer">{o.secondaryLabel||'Open secondary source'}</a>}{o.tertiary&&<a href={o.tertiary} target="_blank" rel="noreferrer">{o.tertiaryLabel||'Open third source'}</a>}{o.quaternary&&<a href={o.quaternary} target="_blank" rel="noreferrer">{o.quaternaryLabel||'Open fourth source'}</a>}</div>
     <footer>Last source verification: {o.verified}</footer>
    </article>)}
   </section>
   <section className="watch">
-   <small>STARTUP FUNDING WATCH • 2026-10-31 (PH TIME)</small><h2>DICT / IIDB Startup Grant Fund 2026 — October target elapsed; official call still not verified</h2><p>As of October 31, 2026 Philippine time, I could not verify a published official 2026 DICT/IIDB Call for Applications, final eligibility rules, application templates or a submission deadline. IIDB’s official public update had targeted the revised circular and next call for October 2026; that target month has now elapsed without a verified call in the sources checked. Keep this as a high-priority pending watch item—not an open grant. Do not confuse it with the separate DOST-PCAARRD Startup Grant Fund or DEPDev Innovation Grants. Check the <a href="https://www.linkedin.com/posts/dict-iidb_dict-iidb-startupgrantfund-activity-7502542376213598208-hx9S" target="_blank" rel="noreferrer">official IIDB update</a> and <a href="https://startup.gov.ph/programs" target="_blank" rel="noreferrer">government Startup Philippines programs</a> before applying or sharing documents.</p>
+   <small>STARTUP FUNDING WATCH • 2026-10-31 (PH TIME)</small><h2>DICT / IIDB Startup Grant Fund 2026 — October target elapsed; official call still not verified</h2><p>As of October 31, 2026 Philippine time, I could not verify a published official 2026 DICT/IIDB Call for Applications, final eligibility rules, application templates or a submission deadline. IIDB’s official public update had targeted the revised circular and next call for October 2026; that target month has now elapsed without a verified call in the sources checked. This is consistent with the October 7 DICT SGF message that eligibility, procedures, templates and application details would be published when the official call launches. Keep this as a high-priority pending watch item—not an open grant. Do not confuse it with the separate DOST-PCAARRD Startup Grant Fund or DEPDev Innovation Grants. Check the <a href="https://www.linkedin.com/posts/dict-iidb_dict-iidb-startupgrantfund-activity-7502542376213598208-hx9S" target="_blank" rel="noreferrer">official IIDB update</a> and <a href="https://startup.gov.ph/programs" target="_blank" rel="noreferrer">government Startup Philippines programs</a> before applying or sharing documents.</p>
    <h2>Unverified names stay out of the active list.</h2><p>Older notes mentioned ClarU.ai/Claru.ai, but no sufficiently authoritative current opportunity source has been verified, so it is not presented as an active earning option. AniAni is listed with pilot and privacy warnings, not a verified payout history.</p>
   </section>
   <style jsx>{`
