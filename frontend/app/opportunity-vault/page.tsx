@@ -3,7 +3,7 @@ import {useState} from 'react';
 
 type Opportunity={
  id:string;name:string;status:'active-ph'|'location-check'|'waitlist'|'closed';
- badge:string;summary:string;requirements:string[];examples?:string[];official:string;secondary?:string;secondaryLabel?:string;cta:string;referral?:string;verified:string;
+ badge:string;summary:string;requirements:string[];examples?:string[];official:string;secondary?:string;secondaryLabel?:string;tertiary?:string;tertiaryLabel?:string;cta:string;referral?:string;verified:string;
 };
 
 const opportunities:Opportunity[]=[
@@ -161,7 +161,7 @@ const opportunities:Opportunity[]=[
   requirements:['Free registration on the Philippines-specific Toluna site; the official PH FAQ says signup and participation are free','The PH FAQ says a new member receives 500 welcome points and that survey rewards vary widely by length and eligibility; points are not cash and no fixed hourly rate is promised','The available reward catalogue depends on country and may include vouchers or cash options; inspect the actual PH Rewards Centre before spending time on surveys','Points expire 16 months after earning them; some survey points may take up to six weeks after a survey closes to post','Available on iPhone and Android through the official Toluna Influencers apps; use only the official developer listings','Screen-outs may receive no points. Do not pay a registration or withdrawal fee, and never share OTPs or passwords'],
   official:'https://www.toluna.com/en-PH/',
   secondary:'https://apps.apple.com/ph/app/toluna-influencers/id1473731257',
-  secondaryLabel:'Official iPhone app; Android app: https://play.google.com/store/apps/details?id=com.toluna.webservice',
+  secondaryLabel:'Official iPhone app',tertiary:'https://play.google.com/store/apps/details?id=com.toluna.webservice',tertiaryLabel:'Official Android app',
   cta:'Join Toluna Philippines',
   verified:'2026-10-31'
  },
@@ -171,7 +171,7 @@ const opportunities:Opportunity[]=[
   requirements:['Join through the official Philippines panel; complete the introductory survey and keep your profile accurate to receive relevant invitations','Points are awarded according to survey length and complexity; the official reward threshold and available payout choices are shown in the Philippines account, not guaranteed at a universal rate','Official iPhone app is listed in the Philippines App Store; official Android app is published by YouGov PLC on Google Play','Survey invitations vary and may be infrequent; no fixed number of surveys or earnings is promised','Review the YouGov Pulse feature and its Accessibility/data-transmission permissions before enabling it; check the current privacy settings and consent details','No joining fee. Ignore third-party messages asking for deposits, OTPs or account passwords'],
   official:'https://account.yougov.com/ph-fil/join/main',
   secondary:'https://apps.apple.com/ph/app/yougov/id1154082222',
-  secondaryLabel:'Official iPhone app; Android app: https://play.google.com/store/apps/details?id=com.yougov.mobile.online',
+  secondaryLabel:'Official iPhone app',tertiary:'https://play.google.com/store/apps/details?id=com.yougov.mobile.online',tertiaryLabel:'Official Android app',
   cta:'Join official Philippines panel',
   verified:'2026-10-31'
  },
@@ -243,7 +243,7 @@ export default function OpportunityVault(){
     <h3>Current facts</h3><ul>{o.requirements.map(x=><li key={x}>{x}</li>)}</ul>
     {o.examples?.length?<><h3>Examples seen in the current official listing</h3><ul>{o.examples.map(x=><li key={x}>{x}</li>)}</ul></>:null}
     {o.referral&&<div className="ref"><span>Optional referral code supplied by I AM Magnanimous Way™</span><b>{o.referral}</b><button onClick={()=>copy(o.referral!)}>Copy code</button><small>No bonus amount is promised here; current referral terms must be checked in the app.</small></div>}
-    <div className="actions"><a href={o.official} target="_blank" rel="noreferrer">{o.cta}</a>{o.secondary&&<a href={o.secondary} target="_blank" rel="noreferrer">{o.secondaryLabel||'Open secondary source'}</a>}</div>
+    <div className="actions"><a href={o.official} target="_blank" rel="noreferrer">{o.cta}</a>{o.secondary&&<a href={o.secondary} target="_blank" rel="noreferrer">{o.secondaryLabel||'Open secondary source'}</a>}{o.tertiary&&<a href={o.tertiary} target="_blank" rel="noreferrer">{o.tertiaryLabel||'Open third source'}</a>}</div>
     <footer>Last source verification: {o.verified}</footer>
    </article>)}
   </section>
