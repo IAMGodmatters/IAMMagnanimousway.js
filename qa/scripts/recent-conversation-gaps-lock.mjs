@@ -23,7 +23,7 @@ for(const s of [
  'October 31, 2026 Philippine time','no longer accepting applications','Unverified names stay out of the active list.'
 ])assert.ok(vault.includes(s),'Opportunity Vault missing '+s);
 assert.ok(!/referral[^.]{0,120}\$3\b|\$3\b[^.]{0,120}referral/i.test(vault),'Vault must not preserve stale $3 referral-bonus claims without current source verification');
-assert.ok(vault.includes('Typical tests take 20–40 minutes'),'Userlytics typical test duration must match its official tester FAQ');
+assert.ok(vault.includes('typical tests take 20–40 minutes'),'Userlytics typical test duration must match its official tester FAQ');
 assert.ok(vault.includes("id:'swc-ph-2026',name:'Startup World Cup Philippines Regional 2026 — Pitch Competition',status:'closed'"),'expired Startup World Cup application must remain closed');
 assert.ok(vault.includes('The official iPhone app is listed in the Philippines App Store'),'Premise Android PH availability must not be overstated');
 assert.ok(vault.includes('Philippines eligibility is not stated')||vault.includes('Philippines storefront availability'),'country uncertainty must be visible for unverified listings');
