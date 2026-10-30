@@ -16,7 +16,7 @@ const opportunities:Opportunity[]=[
   secondary:'https://apps.apple.com/ph/app/atlas-capture/id6755671397',
   cta:'Open official opportunities',
   referral:'2PDR9UXD',
-  verified:'2026-10-29'
+  verified:'2026-10-31'
  },
  {
   id:'kled-iphone-data-tasks',name:'Kled — iPhone Photo/Video Data Tasks',status:'location-check',badge:'IPHONE ONLY • CONFIRM LIVE PH TASKS',
@@ -323,18 +323,7 @@ const opportunities:Opportunity[]=[
    cta:'Read privacy notice before considering installation',
    verified:'2026-10-31'
   },
-  {
-   id:'dict-sgf-2026-watch',name:'DICT / IIDB — Startup Grant Fund 2026 Call (High-Priority Watch)',status:'location-check',badge:'HIGH-PRIORITY WATCH • NO OFFICIAL 2026 CALL VERIFIED',
-   summary:'DICT SGF told the user on October 7, 2026 that eligibility, procedures, templates and application details would be published when the 2026 call officially launches through DICT/IIDB channels. The October target window has now elapsed. As of October 31, no official 2026 call, final guidelines, templates or submission deadline has been verified on the official DICT/IIDB channels checked. This is a watch item, not an open application.',
-   requirements:['Wait for a dated call or application package published by DICT or the ICT Industry Development Bureau (IIDB); do not rely on reposted graphics, old forms or third-party grant aggregators','Eligibility, company-registration requirements, funding amount, allowable costs, co-funding, templates and deadline remain unconfirmed until the official call is published','Do not confuse DICT/IIDB SGF with the separate DOST-PCAARRD 2026 Startup Grant Fund, whose 2026 submission deadline was April 15','When the official call appears, verify the application URL, eligibility, attachments, submission method and deadline before uploading business or personal documents'],
-   official:'https://www.facebook.com/DICTIIDB',
-   secondary:'https://ph.linkedin.com/company/dict-iidb/',
-   secondaryLabel:'Official ICT Industry Development Bureau updates',
-   tertiary:'https://dict.gov.ph/',
-   tertiaryLabel:'Official DICT website',
-   cta:'Check official DICT / IIDB announcements',
-   verified:'2026-10-31'
-  },
+
   {
    id:'dost-tapi-tech-commercialisation',name:'DOST-TAPI — TECHNiCOM 2.0 / Expanded Venture Financing (EVFP)',status:'location-check',badge:'PHILIPPINE INNOVATION FUNDING • INQUIRY ONLY • NO OPEN CALL VERIFIED',
    summary:'DOST-TAPI’s official channels confirm ongoing financial-assistance pathways for research-based technologies and innovative startups. TECHNiCOM 2.0 supports pilot testing, technical validation and commercialization; EVFP supports eligible startups, spin-offs, TECHNiCOM graduates, Startup Grant Fund graduates and other innovative startup companies. Recent project awards were multi-million-peso examples, not published award minimums or maximums. No current open application window, general funding cap, deadline or complete 2026 application package was verified.',
@@ -358,7 +347,7 @@ const opportunities:Opportunity[]=[
    verified:'2026-10-31'
   },
   {
-   id:'dost-tapi-apac-hackathon-2026',name:'DOST-TAPI — Asia-Pacific Hackathon 2026 (AI TRL Assessment Tool)',status:'waitlist',badge:'YOUNG INNOVATORS • AGE 35 AND BELOW • DETAILS PENDING',
+   id:'dost-tapi-apac-hackathon-2026',name:'DOST-TAPI — Asia-Pacific Hackathon 2026 (AI TRL Assessment Tool)',status:'location-check',badge:'YOUNG INNOVATORS • AGE 35 AND BELOW • DETAILS PENDING',
    summary:'DOST-TAPI’s official channel announced an Asia-Pacific Hackathon 2026 challenge to build an AI-powered Technology Readiness Level (TRL) Assessment Tool. Teams may have up to two members; the final event is scheduled for December 16–18, 2026 at Techfest, IIT Bombay, India. The national qualifying-round application link, eligibility details and submission guidelines were not yet published in the announcement checked.',
    requirements:['Eligibility announcement says young innovators aged 35 and below; maximum team size is two','Challenge: develop an AI-powered tool to assess technology maturity and commercialization readiness','Final event is scheduled for December 16–18, 2026 at Techfest, IIT Bombay, Mumbai, India','No prize amount, travel support, application deadline or official application form was confirmed; wait for the DOST-TAPI call before making travel or spending commitments'],
    official:'https://www.linkedin.com/company/dosttapi/',
@@ -403,7 +392,7 @@ export default function OpportunityVault(){
    </article>)}
   </section>
   <section className="watch">
-   <small>STARTUP FUNDING WATCH • 2026-10-31 (PH TIME)</small><h2>DICT / IIDB Startup Grant Fund 2026 — October target elapsed; official call still not verified</h2><p>As of October 31, 2026 Philippine time, I could not verify a published official 2026 DICT/IIDB Call for Applications, final eligibility rules, application templates or a submission deadline. IIDB’s official public update had targeted the revised circular and next call for October 2026; that target month has now elapsed without a verified call in the sources checked. Keep this as a high-priority pending watch item—not an open grant. Do not confuse it with the separate DOST-PCAARRD Startup Grant Fund or DEPDev Innovation Grants. Check the <a href="https://www.linkedin.com/posts/dict-iidb_dict-iidb-startupgrantfund-activity-7502542376213598208-hx9S" target="_blank" rel="noreferrer">official IIDB update</a> and <a href="https://startup.gov.ph/programs" target="_blank" rel="noreferrer">government Startup Philippines programs</a> before applying or sharing documents.</p>
+   <small>STARTUP FUNDING WATCH • 2026-10-31 (PH TIME)</small><h2>DICT / IIDB Startup Grant Fund 2026 — October target elapsed; official call still not verified</h2><p>As of October 31, 2026 Philippine time, I could not verify a published official 2026 DICT/IIDB Call for Applications, final eligibility rules, application templates or a submission deadline. IIDB’s official public update had targeted the revised circular and next call for October 2026; that target month has now elapsed without a verified call in the sources checked. This is consistent with the October 7 DICT SGF message that eligibility, procedures, templates and application details would be published when the official call launches. Keep this as a high-priority pending watch item—not an open grant. Do not confuse it with the separate DOST-PCAARRD Startup Grant Fund or DEPDev Innovation Grants. Check the <a href="https://www.linkedin.com/posts/dict-iidb_dict-iidb-startupgrantfund-activity-7502542376213598208-hx9S" target="_blank" rel="noreferrer">official IIDB update</a> and <a href="https://startup.gov.ph/programs" target="_blank" rel="noreferrer">government Startup Philippines programs</a> before applying or sharing documents.</p>
    <h2>Unverified names stay out of the active list.</h2><p>Older notes mentioned ClarU.ai/Claru.ai, but no sufficiently authoritative current opportunity source has been verified, so it is not presented as an active earning option. AniAni is listed with pilot and privacy warnings, not a verified payout history.</p>
   </section>
   <style jsx>{`
