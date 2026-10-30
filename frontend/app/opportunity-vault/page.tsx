@@ -146,6 +146,44 @@ const opportunities:Opportunity[]=[
   verified:'2026-10-27'
  },
  {
+  id:'userlytics-ph-usability',name:'Userlytics — Paid Website & App Usability Tests',status:'active-ph',badge:'PHILIPPINES • PAYPAL • DESKTOP & MOBILE STUDIES',
+  summary:'Userlytics accepts testers in countries where PayPal can receive payments; PayPal’s official country feature list includes the Philippines. Its official tester page advertises USD $10–$50 per study, with the reward shown before a test begins. Typical tests take about 20–40 minutes, but invitations are limited and selected randomly; no test volume or income is guaranteed.',
+  requirements:['Free tester registration; Philippines eligibility depends on maintaining a working PayPal account able to receive payments','The official Userlytics page advertises USD $10–$50 per study; actual reward depends on the specific invitation and is shown before starting','Tests may require a Windows or Mac computer, high-speed internet, headphones, microphone and sometimes webcam; selected studies can use iOS or Android phones','Approved-test payments are made every 15 days; the September 2026 tester terms allow up to 30 days after full completion','Important privacy/rights warning: tests may record your screen, voice and face; the current terms allow use of generated data to train/improve AI and assign copyright in recordings and test content to Userlytics. Read the terms before joining','No application fee. Never provide passwords, card details or government ID during a test unless the official study explicitly requires a legitimate and necessary verification step'],
+  official:'https://www.userlytics.com/user-experience-research/paid-ux-testing/',
+  secondary:'https://www.userlytics.com/user-experience-research/legal-resources/terms-of-service-testers/',
+  secondaryLabel:'Official tester terms and privacy conditions',
+  cta:'Join official tester program',
+  verified:'2026-10-31'
+ },
+ {
+  id:'toluna-ph-surveys',name:'Toluna Influencers — Philippines Surveys & Rewards',status:'active-ph',badge:'PHILIPPINES • FREE JOIN • ANDROID & IPHONE',
+  summary:'Toluna’s official Philippines site offers free survey and opinion-panel membership. Members earn points for eligible surveys and other activities, then redeem rewards from the Philippines-specific catalogue. It is supplemental pocket money, not a job or guaranteed income; survey invitations and qualification vary.',
+  requirements:['Free registration on the Philippines-specific Toluna site; the official PH FAQ says signup and participation are free','The PH FAQ says a new member receives 500 welcome points and that survey rewards vary widely by length and eligibility; points are not cash and no fixed hourly rate is promised','The available reward catalogue depends on country and may include vouchers or cash options; inspect the actual PH Rewards Centre before spending time on surveys','Points expire 16 months after earning them; some survey points may take up to six weeks after a survey closes to post','Available on iPhone and Android through the official Toluna Influencers apps; use only the official developer listings','Screen-outs may receive no points. Do not pay a registration or withdrawal fee, and never share OTPs or passwords'],
+  official:'https://www.toluna.com/en-PH/',
+  secondary:'https://apps.apple.com/ph/app/toluna-influencers/id1473731257',
+  secondaryLabel:'Official iPhone app; Android app: https://play.google.com/store/apps/details?id=com.toluna.webservice',
+  cta:'Join Toluna Philippines',
+  verified:'2026-10-31'
+ },
+ {
+  id:'yougov-ph-panel',name:'YouGov — Philippines Paid Survey Panel',status:'active-ph',badge:'PHILIPPINES • FREE JOIN • ANDROID & IPHONE',
+  summary:'YouGov operates a Philippines panel where members earn points for surveys and other research activity, then redeem rewards from their account’s country-specific YouGov Wallet. The official Philippines join page is live and the official iPhone and Android apps are available. Survey frequency and reward thresholds vary; this is not guaranteed income.',
+  requirements:['Join through the official Philippines panel; complete the introductory survey and keep your profile accurate to receive relevant invitations','Points are awarded according to survey length and complexity; the official reward threshold and available payout choices are shown in the Philippines account, not guaranteed at a universal rate','Official iPhone app is listed in the Philippines App Store; official Android app is published by YouGov PLC on Google Play','Survey invitations vary and may be infrequent; no fixed number of surveys or earnings is promised','Review the YouGov Pulse feature and its Accessibility/data-transmission permissions before enabling it; check the current privacy settings and consent details','No joining fee. Ignore third-party messages asking for deposits, OTPs or account passwords'],
+  official:'https://account.yougov.com/ph-fil/join/main',
+  secondary:'https://apps.apple.com/ph/app/yougov/id1154082222',
+  secondaryLabel:'Official iPhone app; Android app: https://play.google.com/store/apps/details?id=com.yougov.mobile.online',
+  cta:'Join official Philippines panel',
+  verified:'2026-10-31'
+ },
+ {
+  id:'google-opinion-rewards-ph',name:'Google Opinion Rewards — Not Available in the Philippines',status:'waitlist',badge:'PHILIPPINES NOT ON CURRENT ANDROID COUNTRY LIST',
+  summary:'Google’s current official Android availability list does not include the Philippines. The official page also says only users in supported countries who are over 18 are eligible for surveys. Do not install unofficial APKs, change your account country falsely or use a VPN to bypass eligibility.',
+  requirements:['Philippines is absent from Google’s official Android country list as checked October 31, 2026','The cited official availability page lists Android countries only; it does not establish Philippine iPhone availability','Google Opinion Rewards uses the country associated with the Google Account to determine eligibility and reward currency; do not misrepresent residence','Recheck the official country list if Google adds the Philippines later'],
+  official:'https://support.google.com/opinionrewards/answer/6322274?hl=en',
+  cta:'Check Google’s official country list',
+  verified:'2026-10-31'
+ },
+ {
   id:'outlier',name:'Outlier',status:'location-check',badge:'PHILIPPINES ALLOWED • PROJECT-SPECIFIC',
   summary:'Outlier’s official flexible-working guidelines (effective July 15, 2026) explicitly include the Philippines as a permitted country, but each paid AI-training project may impose narrower location and skill restrictions. A permitted country does NOT guarantee an open project or earnings.',
   requirements:['The Philippines appears on Outlier’s official permitted-country list; verify the exact role before applying','Identity and actual work location may be checked during onboarding; update your primary location if you relocate','Do not mask your actual location with a VPN or claim another country to bypass project restrictions','Project availability, skills, screening, pay and task volume vary'],
