@@ -116,6 +116,19 @@ const opportunities:Opportunity[]=[
   verified:'2026-10-31'
  },
  {
+  id:'dost-tapi-evfp-2026',name:'DOST-TAPI Expanded Venture Financing Program (eVFP) — Contact-first Watch',status:'location-check',badge:'PH STARTUP FINANCING • CURRENT INTAKE / ELIGIBILITY TO CONFIRM',
+  summary:'DOST-TAPI’s official 2026 communications describe the Expanded Venture Financing Program as financial assistance for commercialization of innovative technologies, including eligible startups, spin-offs, TECHNiCOM graduates, Startup Grant Fund graduates and other innovative startup companies. The sources checked do not publish a current eVFP application form, funding ceiling, deadline, or complete 2026 eligibility rules. Treat this as a contact-first financing lead—not an open grant or guaranteed award.',
+  requirements:['Potential applicants should be Philippine-registered startups, spin-offs or qualifying technology-based businesses; confirm the exact 2026 eVFP entity, ownership, technology and stage requirements directly with DOST-TAPI before preparing a proposal','The older public Venture Financing Program procedure is not confirmed to be the current eVFP rule. It listed Filipino ownership and business-registration, permits, regional endorsement, privacy-consent and full project-proposal requirements; do not assume that checklist automatically governs eVFP','Public 2026 sources reviewed do not disclose a funding amount or ceiling, whether assistance is debt/equity/grant, repayment or co-funding terms, application deadline, or current downloadable form','Ask DOST-TAPI’s Investment and Business Operations Division for the current eVFP call, eligibility, application forms, funding terms and regional endorsement process before sending confidential company documents','No intermediary or application fee is verified. Use official DOST-TAPI contact channels only; do not pay recruiters or share OTPs, passwords or banking credentials'],
+  official:'https://www.linkedin.com/posts/dosttapi_doon-philippines-moa-signing-under-dost-tapis-activity-7470052103655260160-IWVe',
+  secondary:'https://www.tapi.dost.gov.ph/',
+  secondaryLabel:'Official DOST-TAPI website',
+  tertiary:'https://tapi.dost.gov.ph/resources/downloads?catid=14&id=2859&m=0&task=download.send',
+  tertiaryLabel:'Older public VFP procedure — not confirmed as eVFP rules',
+  cta:'Check current DOST-TAPI financing guidance',
+  verified:'2026-10-31'
+ },
+
+ {
   id:'ndc-svf',name:'NDC — Startup Venture Fund (equity investment)',status:'location-check',badge:'PHILIPPINES • REGISTERED STARTUPS • EQUITY, NOT A GRANT',
   summary:'The Philippine National Development Company currently provides an official Startup Venture Fund application form. SVF invests in eligible innovative startups from seed through Series B; it is EQUITY FINANCING, not free grant money, and investment is not guaranteed. No fixed award amount or 2026 deadline is shown on the official application.',
   requirements:['Startup must be based and SEC-registered in the Philippines, with an existing minimum viable product, working service or validated business model','At least one year of operating history; no pending accountability to government agencies; disclose government funding received','A co-investment partner is needed before investment; NDC may help find a match but cannot invest alone or lead','Application requests pitch deck, 3–7 minute product demo, SEC documents, business permit, financial statements, monthly 3-year projections and capitalization data','Read equity/dilution and legal terms before applying; this is not the separate DICT/IIDB Startup Grant Fund','Official online intake was accessible October 27, 2026; screening, due diligence and investment approval still apply'],
