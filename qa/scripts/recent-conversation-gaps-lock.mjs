@@ -14,9 +14,17 @@ for(const s of [
  'https://www.atlascapture.io/opportunities','https://apps.apple.com/ph/app/atlas-capture/id6755671397',
  'https://jobs.lever.co/weloglobal/?location=Philippines','https://app.outlier.ai/opportunities?hl=en-US',
  'https://www.prolific.com/participants-join-us','2PDR9UXD','NOT CURRENTLY PH-SUPPORTED',
- 'Unverified names stay out of the active list.'
+ 'https://ph.linkedin.com/jobs/view/ai-conversation-recording-contributor-cebuano-at-rws-4481376934','USD $7/hour',
+ 'https://contributors.premise.com/','https://apps.apple.com/ph/app/premise-earn-money/id1390094962','https://play.google.com/store/apps/details?id=com.premise.android.prod',
+ "id:'premise-ph-local-tasks'","id:'rws-cebuano-conversation-recording'","id:'innodata-ph-robotics-annotator'","id:'innodata-ph-domain-experts'",
+ "id:'dost-tapi-technicom-2'","id:'dost-tapi-evfp'","id:'landbank-dost-lifting'",
+ 'October 31, 2026 Philippine time','no longer accepting applications','Unverified names stay out of the active list.'
 ])assert.ok(vault.includes(s),'Opportunity Vault missing '+s);
 assert.ok(!vault.includes('$3'),'Vault must not preserve stale referral bonus claims without current source verification');
+assert.ok(!vault.includes('Typical tests take about 20–40 minutes'),'Userlytics duration must not be asserted without an official source');
+assert.ok(vault.includes("id:'swc-ph-2026',name:'Startup World Cup Philippines Regional 2026 — Pitch Competition',status:'closed'"),'expired Startup World Cup application must remain closed');
+assert.ok(vault.includes('The official iPhone app is listed in the Philippines App Store'),'Premise Android PH availability must not be overstated');
+assert.ok(vault.includes('Philippines eligibility is not stated')||vault.includes('Philippines storefront availability'),'country uncertainty must be visible for unverified listings');
 assert.ok(catalog.includes("key:'opportunity'"),'interaction catalog must understand Opportunity Vault');
 assert.ok(kids.includes("import { currentUser } from './integrations.js';"),'Kids Drive owner OAuth must retain the existing session user resolver import');
 assert.ok(!kids.includes("await ensureTables(env);\n if(request.method==='OPTIONS')"),'Kids public media routes must not run DDL per request');
