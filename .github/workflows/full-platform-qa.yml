@@ -58,6 +58,9 @@ jobs:
       - name: Lock specialist branch architecture
         run: node qa/scripts/specialist-branch-lock.mjs
 
+      - name: Verify bounded Magnanimous specialist squad planner
+        run: node qa/scripts/magnanimous-squad-planner-lock.mjs
+
       - name: Lock live contact center and carrier contracts
         run: node qa/scripts/contact-center-runtime-lock.mjs
 
