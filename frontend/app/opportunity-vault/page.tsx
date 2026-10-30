@@ -209,8 +209,7 @@ const opportunities:Opportunity[]=[
   official:'https://www.prolific.com/participants-join-us',
   cta:'View official participant information',
   verified:'2026-09-25'
- }
-
+ },
   {
    id:'alignerr-ph-entry-ai',name:'Alignerr — Entry-Level AI Training Roles (Philippines)',status:'active-ph',badge:'PHILIPPINES • REMOTE • BEGINNER-FRIENDLY',
    summary:'Current official Philippines-facing role pages include English Audio Transcription Specialist (USD $10–$35/hour), AI Data Quality Analyst (USD $40–$120/hour), and Video Annotation Specialist (USD $40–$120/hour). These are advertised ranges, not guaranteed earnings; Alignerr says actual pay depends on skills and experience. All are remote hourly contracts and the pages advertise weekly payouts.',
