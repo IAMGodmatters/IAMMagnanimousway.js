@@ -27,6 +27,8 @@ assert.ok(vault.includes("id:'swc-ph-2026',name:'Startup World Cup Philippines R
 assert.ok(vault.includes('The official iPhone app is listed in the Philippines App Store'),'Premise Android PH availability must not be overstated');
 assert.ok(vault.includes('Philippines eligibility is not stated')||vault.includes('Philippines storefront availability'),'country uncertainty must be visible for unverified listings');
 assert.ok(catalog.includes("key:'opportunity'"),'interaction catalog must understand Opportunity Vault');
+assert.ok(vault.includes('quaternary?:string;quaternaryLabel?:string'),'Opportunity Vault must support an additional verified source link');
+assert.ok(vault.includes('o.quaternary&&<a href={o.quaternary}'),'additional source links must render as clickable links');
 assert.ok(kids.includes("import { currentUser } from './integrations.js';"),'Kids Drive owner OAuth must retain the existing session user resolver import');
 assert.ok(!kids.includes("await ensureTables(env);\n if(request.method==='OPTIONS')"),'Kids public media routes must not run DDL per request');
 assert.ok(credentials.includes('runtimeVaultRows'),'credential overlay reads must have a DDL-free runtime path');
