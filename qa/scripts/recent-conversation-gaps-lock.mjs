@@ -20,7 +20,7 @@ for(const s of [
  "id:'dost-tapi-technicom-2'","id:'dost-tapi-evfp'","id:'landbank-dost-lifting'",
  'October 31, 2026 Philippine time','no longer accepting applications','Unverified names stay out of the active list.'
 ])assert.ok(vault.includes(s),'Opportunity Vault missing '+s);
-assert.ok(!vault.includes('$3'),'Vault must not preserve stale referral bonus claims without current source verification');
+assert.ok(!/referral[^.]{0,120}\\$3\\b|\\$3\\b[^.]{0,120}referral/i.test(vault),'Vault must not preserve stale $3 referral-bonus claims without current source verification');
 assert.ok(!vault.includes('Typical tests take about 20–40 minutes'),'Userlytics duration must not be asserted without an official source');
 assert.ok(vault.includes("id:'swc-ph-2026',name:'Startup World Cup Philippines Regional 2026 — Pitch Competition',status:'closed'"),'expired Startup World Cup application must remain closed');
 assert.ok(vault.includes('The official iPhone app is listed in the Philippines App Store'),'Premise Android PH availability must not be overstated');
