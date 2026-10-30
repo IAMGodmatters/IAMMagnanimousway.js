@@ -3,7 +3,7 @@ import {useState} from 'react';
 
 type Opportunity={
  id:string;name:string;status:'active-ph'|'location-check'|'waitlist'|'closed';
- badge:string;summary:string;requirements:string[];examples?:string[];official:string;secondary?:string;secondaryLabel?:string;tertiary?:string;tertiaryLabel?:string;cta:string;referral?:string;verified:string;
+ badge:string;summary:string;requirements:string[];examples?:string[];official:string;secondary?:string;secondaryLabel?:string;tertiary?:string;tertiaryLabel?:string;quaternary?:string;quaternaryLabel?:string;cta:string;referral?:string;verified:string;
 };
 
 const opportunities:Opportunity[]=[
@@ -14,6 +14,10 @@ const opportunities:Opportunity[]=[
   examples:['Official tasks include folding laundry, washing dishes, watering plants and wiping counters','Pay is per approved hour; no universal country rate is published','Withdrawal threshold: USD $10 after 5 approved hours, according to the current official site'],
   official:'https://www.atlascapture.io/opportunities',
   secondary:'https://apps.apple.com/ph/app/atlas-capture/id6755671397',
+  tertiary:'https://www.scamadviser.com/check-website/atlascapture.io',
+  tertiaryLabel:'ScamAdviser automated domain-risk review (not proof of fraud)',
+  quaternary:'https://www.trustpilot.com/review/atlascapture.io',
+  quaternaryLabel:'Independent user reviews; individual reports are unverified',
   cta:'Open official opportunities',
   referral:'2PDR9UXD',
   verified:'2026-10-31'
@@ -304,13 +308,15 @@ const opportunities:Opportunity[]=[
   },
   {
    id:'innodata-ph-domain-experts',name:'Innodata — Senior AI Domain Expert Projects',status:'location-check',badge:'PHILIPPINES • PART-TIME • WORK ARRANGEMENT / PAY TO CONFIRM',
-   summary:'Innodata has current company-recruiter-posted Philippines listings for Senior Engineering Domain Expert, Senior Energy & Environmental Systems Domain Expert, and Quantitative Social Scientist / Causal Inference Statistician / Biostatistician Expert. These are specialist AI-training, benchmarking and technical-evaluation projects; compensation is not disclosed and each posting does not clearly state the work arrangement.',
-   requirements:['Engineering role: degree in a relevant engineering discipline and 3+ years of professional or advanced research experience; specialist areas include electrical, mechanical, civil, chemical, aerospace, industrial and related engineering','Energy/environment role: relevant degree and 3+ years of professional or academic research in energy systems, hydrology, atmospheric science, environmental systems, wildfire science or petroleum engineering','Quantitative social-science role: Master’s or PhD in a relevant quantitative discipline and 3+ years of research/professional experience with SEM, causal inference, econometrics, psychometrics or biostatistics','All roles require strong technical writing, evidence evaluation and subject-matter expertise; no pay range is disclosed','Confirm remote eligibility from your location, expected hours, project duration, compensation, assessment and payment terms before applying','Innodata states it never asks applicants for payment, banking details or sensitive personal information; use the official company-posted job and careers channels'],
+   summary:'Innodata has current company-recruiter-posted Philippines part-time listings for Senior Engineering Domain Expert, Senior Computing & IT Domain Expert, Senior Energy & Environmental Systems Domain Expert, and Quantitative Social Scientist / Causal Inference Statistician / Biostatistician Expert. The postings describe a flexible remote-friendly work environment; confirm that the specific project can be performed fully remotely from your location. Compensation is not disclosed.',
+   requirements:['Engineering role: degree in a relevant engineering discipline and 3+ years of professional or advanced research experience; specialist areas include electrical, mechanical, civil, chemical, aerospace, industrial and related engineering','Computing & IT role: relevant computing/engineering degree and 3+ years in performance engineering, networking, digital hardware, distributed systems or high-performance computing','Energy/environment role: relevant degree and 3+ years of professional or academic research in energy systems, hydrology, atmospheric science, environmental systems, wildfire science or petroleum engineering','Quantitative social-science role: Master’s or PhD in a relevant quantitative discipline and 3+ years of research/professional experience with SEM, causal inference, econometrics, psychometrics or biostatistics','All roles are part-time, require specialist subject-matter expertise and describe a flexible remote-friendly environment; confirm full remote availability from your location, expected hours, project duration, compensation, assessment and payment terms before applying','Innodata states it never asks applicants for payment, banking details or sensitive personal information; use the official company-posted job and careers channels'],
    official:'https://ph.linkedin.com/jobs/view/senior-engineering-domain-expert-ai-training-benchmarking-technical-evaluation-at-innodata-inc-4481426805',
    secondary:'https://ph.linkedin.com/jobs/view/senior-energy-environmental-systems-domain-expert-ai-training-benchmarking-technical-evaluation-at-innodata-inc-4481438265',
    secondaryLabel:'Senior Energy & Environmental Systems Expert listing',
    tertiary:'https://ph.linkedin.com/jobs/view/quantitative-social-scientist-causal-inference-statistician-people-analytics-scientist-or-biostatistician-expert-ai-training-benchmarking-technical-evaluation-at-innodata-inc-4481432662',
    tertiaryLabel:'Quantitative Social Scientist / Statistician Expert listing',
+   quaternary:'https://ph.linkedin.com/jobs/view/senior-computing-it-domain-expert-ai-training-benchmarking-technical-evaluation-at-innodata-inc-4481430713',
+   quaternaryLabel:'Senior Computing & IT Domain Expert listing',
    cta:'Review Innodata specialist roles',
    verified:'2026-10-31'
   },
@@ -447,7 +453,7 @@ export default function OpportunityVault(){
     <h3>Current facts</h3><ul>{o.requirements.map(x=><li key={x}>{x}</li>)}</ul>
     {o.examples?.length?<><h3>Examples seen in the current official listing</h3><ul>{o.examples.map(x=><li key={x}>{x}</li>)}</ul></>:null}
     {o.referral&&<div className="ref"><span>Optional referral code supplied by I AM Magnanimous Way™</span><b>{o.referral}</b><button onClick={()=>copy(o.referral!)}>Copy code</button><small>No bonus amount is promised here; current referral terms must be checked in the app.</small></div>}
-    <div className="actions"><a href={o.official} target="_blank" rel="noreferrer">{o.cta}</a>{o.secondary&&<a href={o.secondary} target="_blank" rel="noreferrer">{o.secondaryLabel||'Open secondary source'}</a>}{o.tertiary&&<a href={o.tertiary} target="_blank" rel="noreferrer">{o.tertiaryLabel||'Open third source'}</a>}</div>
+    <div className="actions"><a href={o.official} target="_blank" rel="noreferrer">{o.cta}</a>{o.secondary&&<a href={o.secondary} target="_blank" rel="noreferrer">{o.secondaryLabel||'Open secondary source'}</a>}{o.tertiary&&<a href={o.tertiary} target="_blank" rel="noreferrer">{o.tertiaryLabel||'Open third source'}</a>}{o.quaternary&&<a href={o.quaternary} target="_blank" rel="noreferrer">{o.quaternaryLabel||'Open fourth source'}</a>}</div>
     <footer>Last source verification: {o.verified}</footer>
    </article>)}
   </section>
