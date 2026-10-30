@@ -147,7 +147,7 @@ const opportunities:Opportunity[]=[
  },
  {
   id:'userlytics-ph-usability',name:'Userlytics — Paid Website & App Usability Tests',status:'active-ph',badge:'PHILIPPINES • PAYPAL • DESKTOP & MOBILE STUDIES',
-  summary:'Userlytics accepts testers in countries where PayPal can receive payments; PayPal’s official country feature list includes the Philippines. Its official tester page advertises USD $10–$50 per study, with the reward shown before a test begins. Typical tests take about 20–40 minutes, but invitations are limited and selected randomly; no test volume or income is guaranteed.',
+  summary:'Userlytics says testers in countries where PayPal is supported can participate; PayPal’s current official payout-country table includes the Philippines. Its official tester page advertises USD $10–$50 per study, with the reward shown before a test begins. Study length and invitations vary; tests are selected from the contributor pool and no test volume or income is guaranteed.',
   requirements:['Free tester registration; Philippines eligibility depends on maintaining a working PayPal account able to receive payments','The official Userlytics page advertises USD $10–$50 per study; actual reward depends on the specific invitation and is shown before starting','Tests may require a Windows or Mac computer, high-speed internet, headphones, microphone and sometimes webcam; selected studies can use iOS or Android phones','Approved-test payments are made every 15 days; the September 2026 tester terms allow up to 30 days after full completion','Important privacy/rights warning: tests may record your screen, voice and face; the current terms allow use of generated data to train/improve AI and assign copyright in recordings and test content to Userlytics. Read the terms before joining','No application fee. Never provide passwords, card details or government ID during a test unless the official study explicitly requires a legitimate and necessary verification step'],
   official:'https://www.userlytics.com/user-experience-research/paid-ux-testing/',
   secondary:'https://www.userlytics.com/user-experience-research/legal-resources/terms-of-service-testers/',
@@ -173,6 +173,18 @@ const opportunities:Opportunity[]=[
   secondary:'https://apps.apple.com/ph/app/yougov/id1154082222',
   secondaryLabel:'Official iPhone app',tertiary:'https://play.google.com/store/apps/details?id=com.yougov.mobile.online',tertiaryLabel:'Official Android app',
   cta:'Join official Philippines panel',
+  verified:'2026-10-31'
+ },
+ {
+  id:'premise-ph-local-tasks',name:'Premise — Local Photo, Survey & Information Tasks',status:'location-check',badge:'PHILIPPINES APP LISTINGS • LOCAL TASKS VARY BY CITY',
+  summary:'Premise offers free iOS and Android apps for paid local photo/data-collection tasks, surveys and short information-gathering missions. Its official app listings are available in the Philippines stores, but Premise says task availability depends on local research needs and changes frequently. There is no fixed pay rate or guaranteed task volume; check the live task marketplace in your area before spending time.',
+  requirements:['Free to download and join; the Philippines iPhone App Store listing is rated 18+. Google Play displays an Everyone rating, so check the current in-app age and task terms','iPhone and Android apps are available; some tasks use the phone camera and location, so grant only permissions needed for a task','The official contributor site lists PayPal, Payoneer or Bitcoin depending on country. Confirm the actual Philippines payout methods, minimum cashout and any fees in-app before completing tasks','No universal per-task rate or guaranteed supply; tasks are driven by current local research demand','Apple and Google store privacy disclosures include location, personal information and user content such as photos/videos. Avoid faces, children, IDs, addresses, financial records and private property unless the task is legitimate and all required consent is obtained','Recent Google Play reviews report long periods with few or no tasks and difficulty reaching minimum cashout; Premise support replied on June 30, 2026 that it had temporarily redirected research effort to other regions. These are user reports and a company support response, not proof of misconduct, but treat this as low-priority supplemental earning and do not invest time until suitable local tasks appear'],
+  official:'https://contributors.premise.com/',
+  secondary:'https://apps.apple.com/ph/app/premise-earn-money/id1390094962',
+  secondaryLabel:'Official iPhone app (Philippines)',
+  tertiary:'https://play.google.com/store/apps/details?id=com.premise.android.prod',
+  tertiaryLabel:'Official Android app and recent task-availability responses',
+  cta:'Open official contributor program',
   verified:'2026-10-31'
  },
  {
