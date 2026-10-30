@@ -14,7 +14,8 @@ for(const s of [
  'https://www.atlascapture.io/opportunities','https://apps.apple.com/ph/app/atlas-capture/id6755671397',
  'https://jobs.lever.co/weloglobal/?location=Philippines','https://app.outlier.ai/opportunities?hl=en-US',
  'https://www.prolific.com/participants-join-us','2PDR9UXD','NOT CURRENTLY PH-SUPPORTED',
- 'Unverified names stay out of the active list.'
+ 'https://contributors.premise.com/','https://apps.apple.com/ph/app/premise-earn-money/id1390094962','https://play.google.com/store/apps/details?id=com.premise.android.prod',
+ "id:'premise-ph-local-tasks'",'local research demand','minimum cashout','Unverified names stay out of the active list.'
 ])assert.ok(vault.includes(s),'Opportunity Vault missing '+s);
 assert.ok(!vault.includes('$3'),'Vault must not preserve stale referral bonus claims without current source verification');
 assert.ok(catalog.includes("key:'opportunity'"),'interaction catalog must understand Opportunity Vault');
