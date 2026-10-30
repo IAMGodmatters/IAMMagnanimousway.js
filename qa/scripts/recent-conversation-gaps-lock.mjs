@@ -16,6 +16,7 @@ for(const s of [
  'https://www.prolific.com/participants-join-us','2PDR9UXD','NOT CURRENTLY PH-SUPPORTED',
  'https://ph.linkedin.com/jobs/view/ai-conversation-recording-contributor-cebuano-at-rws-4481376934','USD $7/hour',
  'https://contributors.premise.com/','https://apps.apple.com/ph/app/premise-earn-money/id1390094962','https://play.google.com/store/apps/details?id=com.premise.android.prod',
+ 'https://www.scamadviser.com/check-website/atlascapture.io','https://www.trustpilot.com/review/atlascapture.io','https://ph.linkedin.com/jobs/view/senior-computing-it-domain-expert-ai-training-benchmarking-technical-evaluation-at-innodata-inc-4481430713',
  "id:'premise-ph-local-tasks'","id:'rws-cebuano-conversation-recording'","id:'innodata-ph-robotics-annotator'","id:'innodata-ph-domain-experts'",
  "id:'dost-tapi-technicom-2'","id:'dost-tapi-evfp'","id:'landbank-dost-lifting'",
  'October 31, 2026 Philippine time','no longer accepting applications','Unverified names stay out of the active list.'
