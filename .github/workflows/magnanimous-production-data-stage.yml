@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   stage:
-    if: ${{ vars.MAGNANIMOUS_ENABLE_OPTIONAL_RAILWAY == 'true' || vars.MAGNANIMOUS_ENABLE_STANDALONE == 'true' }}
+    if: ${{ vars.MAGNANIMOUS_ENABLE_STANDALONE == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
