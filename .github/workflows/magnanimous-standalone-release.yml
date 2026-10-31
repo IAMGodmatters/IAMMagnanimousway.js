@@ -217,6 +217,7 @@ jobs:
       STANDALONE_HOST: ${{ vars.MAGNANIMOUS_STANDALONE_HOST }}
       STANDALONE_USER: ${{ vars.MAGNANIMOUS_STANDALONE_SSH_USER }}
       DEPLOY_PATH: ${{ vars.MAGNANIMOUS_STANDALONE_DEPLOY_PATH || '/opt/magnanimous' }}
+      SOURCE_SHA: ${{ github.sha }}
       SSH_PRIVATE_KEY: ${{ secrets.MAGNANIMOUS_STANDALONE_SSH_PRIVATE_KEY }}
       SSH_KNOWN_HOSTS: ${{ secrets.MAGNANIMOUS_STANDALONE_SSH_KNOWN_HOSTS }}
     steps:
@@ -252,18 +253,21 @@ jobs:
           scp -i "$HOME/.ssh/id_magnanimous" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
             "dist/$ARCHIVE" "dist/$CHECKSUM" "$STANDALONE_USER@$STANDALONE_HOST:~/"
           ssh -i "$HOME/.ssh/id_magnanimous" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
-            "$STANDALONE_USER@$STANDALONE_HOST" "bash -s -- '$TAG' '$ARCHIVE' '$DEPLOY_PATH'" <<'REMOTE'
+            "$STANDALONE_USER@$STANDALONE_HOST" "bash -s -- '$TAG' '$ARCHIVE' '$DEPLOY_PATH' '$SOURCE_SHA'" <<'REMOTE'
           set -euo pipefail
           TAG="$1"
           ARCHIVE="$2"
           DEPLOY_PATH="$3"
+          SOURCE_SHA="$4"
           cd "$HOME"
           sha256sum -c "$ARCHIVE.sha256"
-          mkdir -p "$DEPLOY_PATH/releases"
-          tar -xzf "$ARCHIVE" -C "$DEPLOY_PATH/releases"
+          sudo mkdir -p "$DEPLOY_PATH/releases"
+          sudo tar -xzf "$ARCHIVE" -C "$DEPLOY_PATH/releases"
           BUNDLE_DIR="$DEPLOY_PATH/releases/magnanimous-standalone-$TAG"
           sudo bash "$BUNDLE_DIR/install-release-bundle.sh" "$BUNDLE_DIR" "$DEPLOY_PATH/.env" "$DEPLOY_PATH"
           sudo docker compose --env-file "$DEPLOY_PATH/.env" -f "$DEPLOY_PATH/docker-compose.release.yml" exec -T magnanimous \
-            node -e "fetch('http://127.0.0.1:8788/__magnanimous_runtime/health').then(async r=>{const x=await r.json(); if(!r.ok||x.deploy_revision!=='$(cat "$BUNDLE_DIR/SOURCE_COMMIT")')process.exit(1); console.log('Standalone deployment health PASS: '+x.deploy_revision)}).catch(()=>process.exit(1))"
+            node -e "fetch('http://127.0.0.1:8788/__magnanimous_runtime/health').then(async r=>{const x=await r.json(); if(!r.ok||x.deploy_revision!=='$SOURCE_SHA')process.exit(1); console.log('Standalone deployment health PASS: '+x.deploy_revision)}).catch(()=>process.exit(1))"
+          mapfile -t old_releases < <(sudo find "$DEPLOY_PATH/releases" -mindepth 1 -maxdepth 1 -type d -name 'magnanimous-standalone-*' -printf '%T@ %p\\n' | sort -nr | awk 'NR>2 { sub(/^[^ ]+ /, ""); print }')
+          for old_release in "${old_releases[@]}"; do sudo rm -rf -- "$old_release"; done
           rm -f "$ARCHIVE" "$ARCHIVE.sha256"
           REMOTE
