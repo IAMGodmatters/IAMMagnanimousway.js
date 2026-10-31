@@ -81,6 +81,59 @@ MAGNANIMOUS_MIGRATION_STAGE_PATH=/app/data/migration/production.sqlite
 EOF
 chmod 600 "$INSTALL_ROOT/.env"
 
+cat > /usr/local/sbin/magnanimous-backup.sh <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="/opt/magnanimous"
+[ -f "$ROOT/docker-compose.release.yml" ] || exit 0
+COMPOSE=(docker compose --env-file "$ROOT/.env" -f "$ROOT/docker-compose.release.yml")
+if ! "${COMPOSE[@]}" ps --services --filter status=running | grep -qx magnanimous; then
+  echo "Magnanimous runtime is not running yet; skipping scheduled backup."
+  exit 0
+fi
+"${COMPOSE[@]}" exec -T magnanimous node /app/magnanimous-runtime/scripts/backup-runtime.mjs
+"${COMPOSE[@]}" exec -T magnanimous node --input-type=module - <<'NODE'
+import fs from 'node:fs/promises';
+import path from 'node:path';
+const root='/app/backups';
+const cutoff=Date.now()-14*24*60*60*1000;
+for(const entry of await fs.readdir(root,{withFileTypes:true})){
+  if(!entry.isDirectory()||!entry.name.startsWith('backup-'))continue;
+  const full=path.join(root,entry.name);
+  const stat=await fs.stat(full);
+  if(stat.mtimeMs<cutoff)await fs.rm(full,{recursive:true,force:true});
+}
+NODE
+EOF
+chmod 700 /usr/local/sbin/magnanimous-backup.sh
+
+cat > /etc/systemd/system/magnanimous-backup.service <<'EOF'
+[Unit]
+Description=Magnanimous standalone persistent data backup
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/magnanimous-backup.sh
+EOF
+
+cat > /etc/systemd/system/magnanimous-backup.timer <<'EOF'
+[Unit]
+Description=Daily Magnanimous standalone backup
+
+[Timer]
+OnCalendar=*-*-* 02:30:00 UTC
+Persistent=true
+RandomizedDelaySec=10m
+
+[Install]
+WantedBy=timers.target
+EOF
+
+systemctl daemon-reload
+systemctl enable --now magnanimous-backup.timer
+
 printf 'Magnanimous host bootstrap ready. Docker Compose: '
 docker compose version --short
 printf 'Persistent install directory: %s\n' "$INSTALL_ROOT"
