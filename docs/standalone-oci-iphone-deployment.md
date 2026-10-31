@@ -26,7 +26,7 @@ Create one Compute instance with:
 - Do not expose 8788, 8791, 8792, 8793, 8794, or port 53 publicly.
 - Outbound internet access: enabled.
 
-If the Console does not mark the selected compute and boot-volume resources Always Free Eligible, stop before creating the instance. Do not upgrade the account.
+If the Console does not mark the selected compute and boot-volume resources Always Free Eligible, stop before creating the instance. Do not upgrade the account. If Singapore reports out-of-host-capacity, wait or try another availability domain in the same home region; do not switch to a paid shape.
 
 ## 2. Bootstrap Docker and persistent secrets
 
@@ -36,7 +36,7 @@ The bootstrap script installs Docker and Compose, enables the host firewall, cre
 
 It refuses to overwrite an existing `.env`.
 
-## 3. Add the standalone DNS record
+## 3. Protect the persistent data\n\nThe Docker database, object-store, migration, and backup paths are mounted on the VM's persistent boot volume. Never run `docker compose down -v` on the live host. Run the application backup script before migration or restore work, and create an OCI boot-volume backup after bootstrap and after any successful data promotion. Always Free includes five boot/block-volume backups combined; rotate within that limit. Keep the current Worker/D1 source untouched until the standalone restore drill passes.\n\nOracle also lists 20 GB of Always Free Object Storage, which can be evaluated as an additional encrypted off-host backup destination if the local backup volume becomes insufficient.\n\n## 4. Add the standalone DNS record
 
 At the domain's existing DNS provider, add:
 
@@ -47,7 +47,7 @@ At the domain's existing DNS provider, add:
 
 This uses a dedicated subdomain. Do not change the apex, `www`, registrar, nameservers, MX, SPF, DKIM, or DMARC records.
 
-## 4. Configure GitHub Actions access
+## 5. Configure GitHub Actions access
 
 In repository Settings → Secrets and variables → Actions, add these repository variables:
 
@@ -66,7 +66,7 @@ Add these repository secrets:
 
 The deployment job runs only on main, only after the standalone switch is explicitly enabled, and only with the pinned host key. It downloads the workflow artifact from the same run, verifies its SHA-256 checksum, transfers it over SSH, installs the images, and checks the exact deployed source revision. No separate public GitHub Release asset is created. Artifact access follows the repository's current visibility.
 
-## 5. Deploy and stage data safely
+## 6. Deploy and stage data safely
 
 After the VM, DNS, variables, and secrets are ready:
 
@@ -80,7 +80,7 @@ Data staging does not switch production traffic or replace the live standalone d
 
 The current logical D1 staging workflow has a 100 MB transfer ceiling. If the snapshot exceeds it, stop and use a separately secured transfer path; do not publish a database export as a public artifact.
 
-## 6. Rollback and preservation
+## 7. Rollback and preservation
 
 - Keep the existing production Worker/D1 deployment untouched during the pilot.
 - Keep the standalone SQLite, object-store, secrets, and backup directories on the persistent Docker data volume.
@@ -88,3 +88,8 @@ The current logical D1 staging workflow has a 100 MB transfer ceiling. If the sn
 - Never run `docker compose down -v` on the live host; it deletes persistent volumes.
 - Keep the GitHub SSH deployment key scoped to this repository and rotate it if access is no longer needed.
 - Do not switch the production apex or registrar as part of this setup.
+
+
+## Repository visibility and CI cost
+
+GitHub's standard ARM64 runners are free and unlimited for public repositories. For private repositories, ARM64 jobs use the account's included Actions minutes and are billed if that allowance is exceeded. The repository is currently public, so its source and workflow artifacts follow public-repository visibility. After standalone deployment is verified, the repository can be made private as previously planned; before doing so, set the GitHub Actions spending limit to $0 and confirm the private ARM64 runner can complete the build within the included minutes. Do not enable paid overage.
