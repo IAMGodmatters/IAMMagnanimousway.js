@@ -109,6 +109,21 @@ for (const [workflow, requiredCommand] of alwaysOnWorkflows) {
   assert(runCommands.some(command => command.includes(requiredCommand)), `${workflow} must invoke its security guard from an executable run step: ${requiredCommand}`);
 }
 
+// Keep deployment credentials narrow: source inspection needs no OIDC;
+// only the authenticated deploy job may request a token for revision proof.
+const productionDeploy = read('.github/workflows/deploy.yml');
+const productionDeployPermissions = permissionBlocks(productionDeploy).find(block => block.indent === 0);
+assert.deepEqual(productionDeployPermissions?.lines, ['contents: read'], 'Production deploy must use read-only workflow token permissions.');
+const productionOidcScopes = permissionBlocks(productionDeploy).filter(block => block.lines.includes('id-token: write'));
+assert.equal(productionOidcScopes.length, 1, 'Only the deployment job may request GitHub OIDC.');
+assert.equal(productionOidcScopes[0].indent, 4, 'OIDC must be scoped to the deploy job.');
+const productionCheckouts = (productionDeploy.match(/uses:\\s*actions\\/checkout@v6/g) || []).length;
+const disabledCredentialPersistence = (productionDeploy.match(/^\\s*persist-credentials:\\s*false\\s*$/gm) || []).length;
+assert.equal(productionCheckouts, 2, 'Review every production checkout for implicit Git credentials.');
+assert.equal(disabledCredentialPersistence, productionCheckouts, 'Every production checkout must discard persisted Git credentials.');
+assert(/\\bACTIONS_ID_TOKEN_REQUEST_(?:URL|TOKEN)\\b/.test(productionDeploy), 'Exact-revision smoke still requires OIDC proof.');
+assert(!executableRunCommands(productionDeploy).some(command => /\\bgit\\s+push\\b/.test(command)), 'Deployment must not require persisted write-capable Git credentials.');
+
 const cloneWatch = read('.github/workflows/clone-exposure-watch.yml');
 assert(cloneWatch.includes('schedule:'), 'Clone exposure watch must keep its scheduled scan.');
 assert(cloneWatch.includes('workflow_dispatch:'), 'Clone exposure watch must remain manually runnable.');
