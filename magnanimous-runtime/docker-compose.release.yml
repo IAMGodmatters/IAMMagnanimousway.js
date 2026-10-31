@@ -11,6 +11,14 @@ services:
       HOST: "0.0.0.0"
       NODE_ENV: "production"
       MAGNANIMOUS_RUNTIME: "standalone-node"
+      MAGNANIMOUS_DEPLOY_REVISION: "${MAGNANIMOUS_DEPLOY_REVISION:-}"
+      MAGNANIMOUS_GITHUB_MIGRATION_ENABLED: "${MAGNANIMOUS_GITHUB_MIGRATION_ENABLED:-false}"
+      MAGNANIMOUS_GITHUB_MIGRATION_REPOSITORY: "${MAGNANIMOUS_GITHUB_MIGRATION_REPOSITORY:-IAMGodmatters/IAMMagnanimousway.js}"
+      MAGNANIMOUS_GITHUB_MIGRATION_AUDIENCE: "${MAGNANIMOUS_GITHUB_MIGRATION_AUDIENCE:-magnanimous-production-data-stage}"
+      MAGNANIMOUS_RUNTIME_SECRETS_ROOT: "/app/data/secrets"
+      MAGNANIMOUS_RUNTIME_SECRETS_FILE: "/app/data/secrets/runtime.json"
+      MAGNANIMOUS_MIGRATION_ROOT: "/app/data/migration"
+      MAGNANIMOUS_MIGRATION_STAGE_PATH: "/app/data/migration/production.sqlite"
       MAGNANIMOUS_DB_PATH: "/app/data/iam-magnanimous.sqlite"
       MAGNANIMOUS_OBJECTS_PATH: "/app/data/object-store"
       MAGNANIMOUS_BACKUP_DIR: "/app/backups"
@@ -142,6 +150,7 @@ services:
       - "443:443"
     environment:
       MAGNANIMOUS_ACME_EMAIL: "${MAGNANIMOUS_ACME_EMAIL}"
+      MAGNANIMOUS_DOMAIN: "${MAGNANIMOUS_DOMAIN}"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

@@ -1,0 +1,8 @@
+#cloud-config
+# Paste this into OCI's Cloud-init / user-data field when creating the
+# Always Free VM.Standard.A1.Flex instance. The script creates persistent
+# runtime secrets and prepares Docker; it does not deploy or switch production.
+runcmd:
+  - [bash, -lc, "curl -fsSL https://raw.githubusercontent.com/IAMGodmatters/IAMMagnanimousway.js/main/magnanimous-runtime/scripts/oci-host-bootstrap.sh -o /usr/local/sbin/magnanimous-oci-bootstrap.sh"]
+  - [bash, -lc, "chmod 700 /usr/local/sbin/magnanimous-oci-bootstrap.sh"]
+  - [bash, -lc, "/usr/local/sbin/magnanimous-oci-bootstrap.sh standalone.iammagnanimousway.com godmattersinc@iammagnanimousway.com"]

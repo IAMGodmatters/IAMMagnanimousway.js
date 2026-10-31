@@ -38,6 +38,13 @@ const videoGateway=read('video-gateway/src/index.js');
 const telecomApi=read('telecom-core/control-api/app/main.py');
 const runtimeServer=read('magnanimous-runtime/src/server.mjs');
 const envExample=read('.env.example');
+const standaloneCompose=read('magnanimous-runtime/docker-compose.yml');
+const standalonePreflight=read('magnanimous-runtime/scripts/standalone-host-preflight.sh');
+const standaloneBootstrap=read('magnanimous-runtime/scripts/oci-host-bootstrap.sh');
+
+has(standaloneCompose,'MAGNANIMOUS_DOMAIN: "${MAGNANIMOUS_DOMAIN}"','standard Caddy service receives the dedicated standalone hostname');
+has(standalonePreflight,'domain_lc="${domain,,}"','standalone preflight rejects production hostnames case-insensitively');
+has(standaloneBootstrap,'DOMAIN_LC="${DOMAIN,,}"','OCI bootstrap rejects production hostnames case-insensitively');
 
 has(entry,"import { handleContactCenter } from './contact-center-runtime.js';",'live Worker imports Contact Center');
 has(entry,'env=await getProviderRuntimeEnv(env);','live Worker overlays protected Provider Vault credentials');

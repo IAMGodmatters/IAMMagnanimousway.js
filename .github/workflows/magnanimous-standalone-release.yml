@@ -29,12 +29,25 @@ permissions:
 
 jobs:
   build-verify-bundle:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
+    outputs:
+      release_tag: ${{ steps.release-tag.outputs.tag }}
     steps:
       - uses: actions/checkout@v6
+      - name: Resolve release tag
+        id: release-tag
+        shell: bash
+        run: echo "tag=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@v6
         with:
           node-version: 24
+
+      - name: Verify native ARM64 release target
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = "aarch64"
+          echo "Standalone release target: linux/arm64"
 
       - name: Verify source cloud-independence contracts
         run: node qa/scripts/magnanimous-cloud-exit-lock.mjs
@@ -52,6 +65,11 @@ jobs:
           docker build -f magnanimous-runtime/Dockerfile.media -t "iammagnanimous/media:$TAG" .
           docker pull caddy:2
           docker pull coredns/coredns:1.12.4
+          docker run --rm \
+            -e MAGNANIMOUS_DOMAIN=standalone.iammagnanimousway.com \
+            -e MAGNANIMOUS_ACME_EMAIL=release-proof@example.invalid \
+            -v "$PWD/magnanimous-runtime/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            caddy:2 caddy validate --config /etc/caddy/Caddyfile
 
       - name: Assemble offline release bundle
         shell: bash
@@ -71,16 +89,20 @@ jobs:
           cp magnanimous-runtime/scripts/import-d1-export.mjs "$OUT/import-d1-export.mjs"
           cp magnanimous-runtime/scripts/verify-data-parity.mjs "$OUT/verify-data-parity.mjs"
           cp magnanimous-runtime/scripts/prepare-dns-zone.mjs "$OUT/prepare-dns-zone.mjs"
+          cp magnanimous-runtime/scripts/oci-host-bootstrap.sh "$OUT/oci-host-bootstrap.sh"
+          cp magnanimous-runtime/oci-cloud-init.yaml "$OUT/oci-cloud-init.yaml"
           printf '%s\n' "$TAG" > "$OUT/RELEASE_TAG"
+          printf '%s\n' 'linux/arm64' > "$OUT/PLATFORM"
           printf '%s\n' "$GITHUB_SHA" > "$OUT/SOURCE_COMMIT"
-          chmod 700 "$OUT/standalone-host-preflight.sh" "$OUT/install-release-bundle.sh"
+          chmod 700 "$OUT/standalone-host-preflight.sh" "$OUT/install-release-bundle.sh" "$OUT/oci-host-bootstrap.sh"
+          bash -n "$OUT/standalone-host-preflight.sh" "$OUT/install-release-bundle.sh" "$OUT/oci-host-bootstrap.sh"
           (
             cd "$OUT"
             find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
             sha256sum -c SHA256SUMS
           )
           tar -C dist -czf "dist/magnanimous-standalone-$TAG.tar.gz" "magnanimous-standalone-$TAG"
-          sha256sum "dist/magnanimous-standalone-$TAG.tar.gz" > "dist/magnanimous-standalone-$TAG.tar.gz.sha256"
+          (cd dist && sha256sum "magnanimous-standalone-$TAG.tar.gz" > "magnanimous-standalone-$TAG.tar.gz.sha256")
 
       - name: Prove bundle reloads without source builds
         shell: bash
@@ -96,6 +118,7 @@ jobs:
           SESSION_SECRET=release-proof-session-secret-2026
           INTEGRATION_CREDENTIALS_KEY=release-proof-integration-key-2026
           MAGNANIMOUS_ACME_EMAIL=release-proof@example.invalid
+          MAGNANIMOUS_DOMAIN=standalone.iammagnanimousway.com
           EOF
           MAGNANIMOUS_RELEASE_TAG="$TAG" docker compose --env-file "$OUT/.env" -f "$OUT/docker-compose.release.yml" config -q
           MAGNANIMOUS_RELEASE_TAG="$TAG" docker compose --env-file "$OUT/.env" -f "$OUT/docker-compose.release.yml" up -d sandbox browser-egress browser media magnanimous
@@ -179,4 +202,94 @@ jobs:
             dist/magnanimous-standalone-${{ env.MAGNANIMOUS_RELEASE_TAG }}.tar.gz
             dist/magnanimous-standalone-${{ env.MAGNANIMOUS_RELEASE_TAG }}.tar.gz.sha256
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 1
+
+
+  deploy-standalone:
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.MAGNANIMOUS_ENABLE_STANDALONE == 'true' }}
+    needs: build-verify-bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      actions: write
+      contents: read
+    env:
+      STANDALONE_HOST: ${{ vars.MAGNANIMOUS_STANDALONE_HOST }}
+      STANDALONE_ORIGIN: ${{ vars.MAGNANIMOUS_STANDALONE_ORIGIN }}
+      STANDALONE_USER: ${{ vars.MAGNANIMOUS_STANDALONE_SSH_USER }}
+      DEPLOY_PATH: ${{ vars.MAGNANIMOUS_STANDALONE_DEPLOY_PATH || '/opt/magnanimous' }}
+      SOURCE_SHA: ${{ github.sha }}
+      SSH_PRIVATE_KEY: ${{ secrets.MAGNANIMOUS_STANDALONE_SSH_PRIVATE_KEY }}
+      SSH_KNOWN_HOSTS: ${{ secrets.MAGNANIMOUS_STANDALONE_SSH_KNOWN_HOSTS }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: magnanimous-standalone-${{ needs.build-verify-bundle.outputs.release_tag }}
+          path: dist
+
+      - name: Validate pinned host access and prepare SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ -n "$STANDALONE_HOST" ] || { echo "::error::Set repository variable MAGNANIMOUS_STANDALONE_HOST."; exit 1; }
+          case "$STANDALONE_ORIGIN" in https://*) ;; *) echo "::error::Set MAGNANIMOUS_STANDALONE_ORIGIN to the HTTPS standalone hostname."; exit 1 ;; esac
+          [ -n "$STANDALONE_USER" ] || { echo "::error::Set repository variable MAGNANIMOUS_STANDALONE_SSH_USER (normally ubuntu)."; exit 1; }
+          [ -n "$SSH_PRIVATE_KEY" ] || { echo "::error::Set secret MAGNANIMOUS_STANDALONE_SSH_PRIVATE_KEY."; exit 1; }
+          [ -n "$SSH_KNOWN_HOSTS" ] || { echo "::error::Set secret MAGNANIMOUS_STANDALONE_SSH_KNOWN_HOSTS to the verified host key entry."; exit 1; }
+          case "$DEPLOY_PATH" in /*) ;; *) echo "::error::Deploy path must be absolute."; exit 1 ;; esac
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/id_magnanimous"
+          printf '%s\\n' "$SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/id_magnanimous" "$HOME/.ssh/known_hosts"
+          ssh-keygen -y -f "$HOME/.ssh/id_magnanimous" >/dev/null
+
+      - name: Transfer and install verified offline release
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ needs.build-verify-bundle.outputs.release_tag }}"
+          ARCHIVE="magnanimous-standalone-$TAG.tar.gz"
+          CHECKSUM="$ARCHIVE.sha256"
+          test -s "dist/$ARCHIVE"
+          test -s "dist/$CHECKSUM"
+          scp -i "$HOME/.ssh/id_magnanimous" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            "dist/$ARCHIVE" "dist/$CHECKSUM" "$STANDALONE_USER@$STANDALONE_HOST:~/"
+          ssh -i "$HOME/.ssh/id_magnanimous" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            "$STANDALONE_USER@$STANDALONE_HOST" "bash -s -- '$TAG' '$ARCHIVE' '$DEPLOY_PATH' '$SOURCE_SHA'" <<'REMOTE'
+          set -euo pipefail
+          TAG="$1"
+          ARCHIVE="$2"
+          DEPLOY_PATH="$3"
+          SOURCE_SHA="$4"
+          cd "$HOME"
+          sha256sum -c "$ARCHIVE.sha256"
+          sudo mkdir -p "$DEPLOY_PATH/releases"
+          sudo tar -xzf "$ARCHIVE" -C "$DEPLOY_PATH/releases"
+          BUNDLE_DIR="$DEPLOY_PATH/releases/magnanimous-standalone-$TAG"
+          sudo touch "$BUNDLE_DIR"
+          sudo bash "$BUNDLE_DIR/install-release-bundle.sh" "$BUNDLE_DIR" "$DEPLOY_PATH/.env" "$DEPLOY_PATH"
+          sudo docker compose --env-file "$DEPLOY_PATH/.env" -f "$DEPLOY_PATH/docker-compose.release.yml" exec -T magnanimous \
+            node -e "fetch('http://127.0.0.1:8788/__magnanimous_runtime/health').then(async r=>{const x=await r.json(); if(!r.ok||x.deploy_revision!=='$SOURCE_SHA')process.exit(1); console.log('Standalone deployment health PASS: '+x.deploy_revision)}).catch(()=>process.exit(1))"
+          mapfile -t old_releases < <(sudo find "$DEPLOY_PATH/releases" -mindepth 1 -maxdepth 1 -type d -name 'magnanimous-standalone-*' -printf '%T@ %p\\n' | sort -nr | awk 'NR>2 { sub(/^[^ ]+ /, ""); print }')
+          for old_release in "${old_releases[@]}"; do
+            old_tag="$(sudo cat "$old_release/RELEASE_TAG" 2>/dev/null || true)"
+            if [ -n "$old_tag" ]; then
+              sudo docker image rm "iammagnanimous/runtime:$old_tag" "iammagnanimous/sandbox:$old_tag" "iammagnanimous/browser:$old_tag" "iammagnanimous/browser-egress:$old_tag" "iammagnanimous/media:$old_tag" || true
+            fi
+            sudo rm -rf -- "$old_release"
+          done
+          rm -f "$ARCHIVE" "$ARCHIVE.sha256"
+          REMOTE
+          curl --fail --silent --show-error --retry 20 --retry-delay 5 --retry-all-errors "$STANDALONE_ORIGIN/__magnanimous_runtime/health" >/dev/null
+
+      - name: Delete deployed workflow artifact to minimize storage
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_NAME: magnanimous-standalone-${{ needs.build-verify-bundle.outputs.release_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact_id="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" --jq ".artifacts[] | select(.name == \"$ARTIFACT_NAME\") | .id" | head -n 1)"
+          if [ -n "$artifact_id" ]; then
+            gh api --method DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id"
+          fi

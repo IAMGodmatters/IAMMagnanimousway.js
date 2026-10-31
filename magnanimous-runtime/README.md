@@ -78,6 +78,8 @@ cd magnanimous-standalone-<tag>
 
 The installer verifies `SHA256SUMS`, loads the bundled images locally, installs the release topology and migration/DNS tools, starts the standalone services, and verifies runtime plus internal-service health. No container registry is required after the bundle has been transferred to the host.
 
+For the iPhone-first OCI Always Free ARM64 host and private GitHub Actions deployment path, see [standalone-oci-iphone-deployment.md](../docs/standalone-oci-iphone-deployment.md).
+
 ## Backup and migration
 
 Create a consistent SQLite/object-store backup:
