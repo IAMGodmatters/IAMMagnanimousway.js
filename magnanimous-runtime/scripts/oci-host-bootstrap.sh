@@ -24,11 +24,30 @@ case "$ACME_EMAIL" in *@*.*) ;; *) echo "A valid ACME contact email is required.
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y ca-certificates curl docker.io docker-compose-v2 openssl ufw
+apt-get install -y ca-certificates curl docker.io docker-compose-v2 openssl ufw fail2ban unattended-upgrades
 
 systemctl enable --now docker
 docker version >/dev/null
 docker compose version >/dev/null
+# Enforce key-only SSH and basic brute-force protection before enabling the host firewall.
+install -d -m 755 /etc/ssh/sshd_config.d
+cat > /etc/ssh/sshd_config.d/99-magnanimous-hardening.conf <<'EOF'
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitRootLogin no
+PubkeyAuthentication yes
+EOF
+sshd -t
+systemctl reload ssh
+cat > /etc/fail2ban/jail.d/magnanimous-sshd.local <<'EOF'
+[sshd]
+enabled = true
+maxretry = 5
+findtime = 10m
+bantime = 1h
+EOF
+systemctl enable --now fail2ban
+systemctl enable --now unattended-upgrades || true
 
 # OCI network security rules remain the outer firewall. Keep the host firewall
 # limited to SSH and the public HTTPS reverse proxy; never expose app containers.
