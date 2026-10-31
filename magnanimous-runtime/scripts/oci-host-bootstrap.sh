@@ -14,7 +14,8 @@ if [[ ! "$DOMAIN" =~ ^([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2
   echo "A valid fully qualified hostname is required." >&2
   exit 1
 fi
-case "$DOMAIN" in
+DOMAIN_LC="${DOMAIN,,}"
+case "$DOMAIN_LC" in
   iammagnanimousway.com|www.iammagnanimousway.com)
     echo "The production apex and www hostname must remain on the existing site." >&2
     exit 1
