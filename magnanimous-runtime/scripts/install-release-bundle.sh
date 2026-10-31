@@ -59,6 +59,8 @@ cp "$BUNDLE_DIR/restore-runtime.mjs" "$INSTALL_ROOT/scripts/restore-runtime.mjs"
 cp "$BUNDLE_DIR/import-d1-export.mjs" "$INSTALL_ROOT/scripts/import-d1-export.mjs"
 cp "$BUNDLE_DIR/verify-data-parity.mjs" "$INSTALL_ROOT/scripts/verify-data-parity.mjs"
 cp "$BUNDLE_DIR/prepare-dns-zone.mjs" "$INSTALL_ROOT/scripts/prepare-dns-zone.mjs"
+cp "$BUNDLE_DIR/oci-host-bootstrap.sh" "$INSTALL_ROOT/scripts/oci-host-bootstrap.sh"
+cp "$BUNDLE_DIR/oci-cloud-init.yaml" "$INSTALL_ROOT/oci-cloud-init.yaml"
 cp "$BUNDLE_DIR/RELEASE_TAG" "$INSTALL_ROOT/RELEASE_TAG"
 cp "$BUNDLE_DIR/PLATFORM" "$INSTALL_ROOT/PLATFORM"
 [ ! -f "$BUNDLE_DIR/SOURCE_COMMIT" ] || cp "$BUNDLE_DIR/SOURCE_COMMIT" "$INSTALL_ROOT/SOURCE_COMMIT"
@@ -67,7 +69,7 @@ if [ "$ENV_SOURCE" != "$INSTALL_ROOT/.env" ]; then
   cp "$ENV_SOURCE" "$INSTALL_ROOT/.env"
 fi
 chmod 600 "$INSTALL_ROOT/.env"
-chmod 700 "$INSTALL_ROOT/scripts/standalone-host-preflight.sh"
+chmod 700 "$INSTALL_ROOT/scripts/standalone-host-preflight.sh" "$INSTALL_ROOT/scripts/oci-host-bootstrap.sh"
 
 upsert_env_key() {
   local file="$1"
