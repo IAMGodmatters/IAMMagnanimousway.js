@@ -1,0 +1,27 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {describeAgentIntegrationPermission} from '../../worker/src/agent-mesh-runtime.js';
+
+const connection={provider:'example-crm',display_name:'Example CRM',access_token:'SECRET_MUST_NOT_APPEAR'};
+const legacy=describeAgentIntegrationPermission(connection,null);
+assert.equal(legacy.permission_source,'legacy-default-needs-review');
+assert.equal(legacy.can_read,true);
+assert.equal(legacy.can_write,true);
+assert.equal(legacy.require_confirmation,true);
+assert.equal(legacy.consequential_actions_require_separate_approval,true);
+assert(!JSON.stringify(legacy).includes(connection.access_token));
+const denied=describeAgentIntegrationPermission(connection,{can_read:0,can_write:0,require_confirmation:1});
+assert.equal(denied.permission_source,'explicit-owner-policy');
+assert.equal(denied.can_read,false);
+assert.equal(denied.can_write,false);
+const allowed=describeAgentIntegrationPermission(connection,{can_read:1,can_write:1,require_confirmation:1});
+assert.equal(allowed.permission_source,'explicit-owner-policy');
+assert.equal(allowed.consequential_actions_require_separate_approval,true);
+const mesh=readFileSync(new URL('../../worker/src/agent-mesh-runtime.js',import.meta.url),'utf8');
+const policy=readFileSync(new URL('../../worker/src/assistant-action-policy.js',import.meta.url),'utf8');
+assert(mesh.includes('unique.push(describeAgentIntegrationPermission(row,p))'));
+assert(mesh.includes('Connected accounts are an inventory, never an independent agent execution grant.'));
+assert(mesh.includes("x.permission_source||'not-recorded'"));
+assert(policy.includes("CONFIRM_TTL_SECONDS=900"));
+assert(policy.includes('isApprovedAssistantActionRequest(request)'));
+console.log('Faction-inspired agent permission provenance PASS.');
