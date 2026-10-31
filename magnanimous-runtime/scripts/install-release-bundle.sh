@@ -84,6 +84,11 @@ upsert_env_key() {
 # Persist the exact proven image set so future compose operations and host
 # restarts do not silently fall back to the non-existent "local" release tag.
 upsert_env_key "$INSTALL_ROOT/.env" "MAGNANIMOUS_RELEASE_TAG" "$RELEASE_TAG"
+if [ -f "$BUNDLE_DIR/SOURCE_COMMIT" ]; then
+  SOURCE_COMMIT="$(tr -d '\\r\\n' < "$BUNDLE_DIR/SOURCE_COMMIT")"
+  [ -n "$SOURCE_COMMIT" ] || { echo "SOURCE_COMMIT is empty." >&2; exit 1; }
+  upsert_env_key "$INSTALL_ROOT/.env" "MAGNANIMOUS_DEPLOY_REVISION" "$SOURCE_COMMIT"
+fi
 
 "$INSTALL_ROOT/scripts/standalone-host-preflight.sh" "$INSTALL_ROOT" "$INSTALL_ROOT/.env" "$INSTALL_ROOT/docker-compose.release.yml"
 
