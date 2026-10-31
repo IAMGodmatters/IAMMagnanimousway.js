@@ -13,7 +13,7 @@ for(const s of ['/opportunity-vault','Opportunity Vault'])assert.ok(home.include
 for(const s of [
  'https://www.atlascapture.io/opportunities','https://apps.apple.com/ph/app/atlas-capture/id6755671397',
  'https://jobs.lever.co/weloglobal/?location=Philippines','https://app.outlier.ai/opportunities?hl=en-US',
- 'https://www.prolific.com/participants-join-us','2PDR9UXD','NOT CURRENTLY PH-SUPPORTED',
+ 'https://www.prolific.com/participants-join-us','2PDR9UXD','task availability vary by country',
  'Unverified names stay out of the active list.'
 ])assert.ok(vault.includes(s),'Opportunity Vault missing '+s);
 assert.ok(!vault.includes('$3'),'Vault must not preserve stale referral bonus claims without current source verification');
