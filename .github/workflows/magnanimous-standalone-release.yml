@@ -271,7 +271,13 @@ jobs:
           sudo docker compose --env-file "$DEPLOY_PATH/.env" -f "$DEPLOY_PATH/docker-compose.release.yml" exec -T magnanimous \
             node -e "fetch('http://127.0.0.1:8788/__magnanimous_runtime/health').then(async r=>{const x=await r.json(); if(!r.ok||x.deploy_revision!=='$SOURCE_SHA')process.exit(1); console.log('Standalone deployment health PASS: '+x.deploy_revision)}).catch(()=>process.exit(1))"
           mapfile -t old_releases < <(sudo find "$DEPLOY_PATH/releases" -mindepth 1 -maxdepth 1 -type d -name 'magnanimous-standalone-*' -printf '%T@ %p\\n' | sort -nr | awk 'NR>2 { sub(/^[^ ]+ /, ""); print }')
-          for old_release in "${old_releases[@]}"; do sudo rm -rf -- "$old_release"; done
+          for old_release in "${old_releases[@]}"; do
+            old_tag="$(sudo cat "$old_release/RELEASE_TAG" 2>/dev/null || true)"
+            if [ -n "$old_tag" ]; then
+              sudo docker image rm "iammagnanimous/runtime:$old_tag" "iammagnanimous/sandbox:$old_tag" "iammagnanimous/browser:$old_tag" "iammagnanimous/browser-egress:$old_tag" "iammagnanimous/media:$old_tag" || true
+            fi
+            sudo rm -rf -- "$old_release"
+          done
           rm -f "$ARCHIVE" "$ARCHIVE.sha256"
           REMOTE
           curl --fail --silent --show-error --retry 20 --retry-delay 5 --retry-all-errors "$STANDALONE_ORIGIN/__magnanimous_runtime/health" >/dev/null
