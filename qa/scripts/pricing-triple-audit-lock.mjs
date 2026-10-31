@@ -15,7 +15,6 @@ if(!deploy.includes('{\"plan\":\"plus\",\"termsAccepted\":true,\"termsVersion\":
 if(!deploy.includes("parts[0] == 'iams1' and parts[1] == tenant and parts[2] == 'plan' and parts[3] == 'plus'")||!deploy.includes("len(parts[4]) == 64"))throw Error('Plus production smoke must validate the signed hosted-payment reference instead of accepting the legacy unsigned reference.');
 if(deploy.includes("parts[3].lower()")||deploy.includes("parts[4].lower()"))throw Error('signed hosted-payment references must reject uppercase HMAC digests exactly as production verification does.');
 if(!deploy.includes("DELETE FROM billing_checkout_consents WHERE tenant_id='${tenant_id}';"))throw Error('production smoke cleanup must remove checkout consent rows before deleting the smoke tenant.');
-const selfImpact='\\.github/workflows/deploy\\.yml
+const selfImpact='\\.github/workflows/deploy\\.yml$';if(deploy.split(selfImpact).length-1<1)throw Error('deploy workflow changes must remain covered by the standalone/session-plane impact detector');
 console.log('Pricing triple-audit passed with owner-private internal margin math and deploy-smoke alignment.');
-;if(deploy.split(selfImpact).length-1<1)throw Error('deploy workflow changes must remain covered by the standalone/session-plane impact detector');
 console.log('Pricing triple-audit passed with owner-private internal margin math and deploy-smoke alignment.');
