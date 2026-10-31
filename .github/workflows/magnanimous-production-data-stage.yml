@@ -23,7 +23,7 @@ jobs:
       OIDC_AUDIENCE: magnanimous-production-data-stage
       MAGNANIMOUS_D1_PAGE_SIZE: "1000"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
         with:
           node-version: 24
