@@ -64,7 +64,7 @@ Add these repository secrets:
 - `MAGNANIMOUS_STANDALONE_SSH_PRIVATE_KEY`: the private SSH key downloaded when creating the OCI instance.
 - `MAGNANIMOUS_STANDALONE_SSH_KNOWN_HOSTS`: the verified SSH host-key entry for the VM. Verify the fingerprint from a trusted session before pinning it; do not trust an unverified scan.
 
-The deployment job runs only on main, only after the standalone switch is explicitly enabled, and only with the pinned host key. It downloads the workflow artifact from the same run, verifies its SHA-256 checksum, transfers it over SSH, installs the images, and checks the exact deployed source revision. No separate public GitHub Release asset is created. Artifact access follows the repository's current visibility.
+The deployment job runs only on main, only after the standalone switch is explicitly enabled, and only with the pinned host key. It downloads the workflow artifact from the same run, verifies its SHA-256 checksum, transfers it over SSH, installs the images, and checks the exact deployed source revision. No separate public GitHub Release asset is created. Artifact access follows the repository's current visibility. The artifact is retained for one day when deployment is not enabled and is deleted after a successful deployment to limit storage usage; rerun the release workflow if it expires before the VM is ready.
 
 ## 6. Deploy and stage data safely
 
