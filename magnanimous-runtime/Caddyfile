@@ -2,7 +2,7 @@
   email {$MAGNANIMOUS_ACME_EMAIL}
 }
 
-iammagnanimousway.com {
+{$MAGNANIMOUS_DOMAIN} {
   encode zstd gzip
   reverse_proxy magnanimous:8788
 
@@ -19,8 +19,4 @@ iammagnanimousway.com {
     output stdout
     format json
   }
-}
-
-www.iammagnanimousway.com {
-  redir https://iammagnanimousway.com{uri} permanent
 }
