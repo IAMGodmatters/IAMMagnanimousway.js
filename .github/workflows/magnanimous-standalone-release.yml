@@ -215,6 +215,7 @@ jobs:
       contents: read
     env:
       STANDALONE_HOST: ${{ vars.MAGNANIMOUS_STANDALONE_HOST }}
+      STANDALONE_ORIGIN: ${{ vars.MAGNANIMOUS_STANDALONE_ORIGIN }}
       STANDALONE_USER: ${{ vars.MAGNANIMOUS_STANDALONE_SSH_USER }}
       DEPLOY_PATH: ${{ vars.MAGNANIMOUS_STANDALONE_DEPLOY_PATH || '/opt/magnanimous' }}
       SOURCE_SHA: ${{ github.sha }}
@@ -231,6 +232,7 @@ jobs:
         run: |
           set -euo pipefail
           [ -n "$STANDALONE_HOST" ] || { echo "::error::Set repository variable MAGNANIMOUS_STANDALONE_HOST."; exit 1; }
+          case "$STANDALONE_ORIGIN" in https://*) ;; *) echo "::error::Set MAGNANIMOUS_STANDALONE_ORIGIN to the HTTPS standalone hostname."; exit 1 ;; esac
           [ -n "$STANDALONE_USER" ] || { echo "::error::Set repository variable MAGNANIMOUS_STANDALONE_SSH_USER (normally ubuntu)."; exit 1; }
           [ -n "$SSH_PRIVATE_KEY" ] || { echo "::error::Set secret MAGNANIMOUS_STANDALONE_SSH_PRIVATE_KEY."; exit 1; }
           [ -n "$SSH_KNOWN_HOSTS" ] || { echo "::error::Set secret MAGNANIMOUS_STANDALONE_SSH_KNOWN_HOSTS to the verified host key entry."; exit 1; }
@@ -264,6 +266,7 @@ jobs:
           sudo mkdir -p "$DEPLOY_PATH/releases"
           sudo tar -xzf "$ARCHIVE" -C "$DEPLOY_PATH/releases"
           BUNDLE_DIR="$DEPLOY_PATH/releases/magnanimous-standalone-$TAG"
+          sudo touch "$BUNDLE_DIR"
           sudo bash "$BUNDLE_DIR/install-release-bundle.sh" "$BUNDLE_DIR" "$DEPLOY_PATH/.env" "$DEPLOY_PATH"
           sudo docker compose --env-file "$DEPLOY_PATH/.env" -f "$DEPLOY_PATH/docker-compose.release.yml" exec -T magnanimous \
             node -e "fetch('http://127.0.0.1:8788/__magnanimous_runtime/health').then(async r=>{const x=await r.json(); if(!r.ok||x.deploy_revision!=='$SOURCE_SHA')process.exit(1); console.log('Standalone deployment health PASS: '+x.deploy_revision)}).catch(()=>process.exit(1))"
@@ -271,3 +274,4 @@ jobs:
           for old_release in "${old_releases[@]}"; do sudo rm -rf -- "$old_release"; done
           rm -f "$ARCHIVE" "$ARCHIVE.sha256"
           REMOTE
+          curl --fail --silent --show-error --retry 20 --retry-delay 5 --retry-all-errors "$STANDALONE_ORIGIN/__magnanimous_runtime/health" >/dev/null
