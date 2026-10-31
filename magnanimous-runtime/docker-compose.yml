@@ -151,6 +151,7 @@ services:
       - "443:443"
     environment:
       MAGNANIMOUS_ACME_EMAIL: "${MAGNANIMOUS_ACME_EMAIL}"
+      MAGNANIMOUS_DOMAIN: "${MAGNANIMOUS_DOMAIN}"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
