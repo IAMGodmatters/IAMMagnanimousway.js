@@ -50,7 +50,7 @@ jobs:
             echo "standalone_changed=false" >> "$GITHUB_OUTPUT"
             echo "No Worker-native session-plane-sensitive files changed; Worker deployment may use the bounded Worker-only smoke path."
           fi
-          if grep -Eq '^(\.github/workflows/deploy\.yml$|magnanimous-runtime/|worker/|frontend/|video-gateway/|api/|package\.json$|package-lock\.json$)' /tmp/magnanimous-deploy-changed-files.txt; then
+          if grep -Eq '^(worker/|frontend/|video-gateway/|api/|package\.json$|package-lock\.json$)' /tmp/magnanimous-deploy-changed-files.txt; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
             echo "Runtime-impacting files changed; production deployment required."
           else
