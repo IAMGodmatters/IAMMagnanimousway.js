@@ -29,12 +29,19 @@ permissions:
 
 jobs:
   build-verify-bundle:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
           node-version: 24
+
+      - name: Verify native ARM64 release target
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = "aarch64"
+          echo "Standalone release target: linux/arm64"
 
       - name: Verify source cloud-independence contracts
         run: node qa/scripts/magnanimous-cloud-exit-lock.mjs
@@ -72,6 +79,7 @@ jobs:
           cp magnanimous-runtime/scripts/verify-data-parity.mjs "$OUT/verify-data-parity.mjs"
           cp magnanimous-runtime/scripts/prepare-dns-zone.mjs "$OUT/prepare-dns-zone.mjs"
           printf '%s\n' "$TAG" > "$OUT/RELEASE_TAG"
+          printf '%s\n' 'linux/arm64' > "$OUT/PLATFORM"
           printf '%s\n' "$GITHUB_SHA" > "$OUT/SOURCE_COMMIT"
           chmod 700 "$OUT/standalone-host-preflight.sh" "$OUT/install-release-bundle.sh"
           (
