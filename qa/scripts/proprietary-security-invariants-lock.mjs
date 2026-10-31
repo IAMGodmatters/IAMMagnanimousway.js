@@ -109,6 +109,22 @@ for (const [workflow, requiredCommand] of alwaysOnWorkflows) {
   assert(runCommands.some(command => command.includes(requiredCommand)), `${workflow} must invoke its security guard from an executable run step: ${requiredCommand}`);
 }
 
+// Production deployments use scoped Cloudflare secrets and job-local OIDC for
+// exact-revision smoke checks, but never need persisted Git credentials.
+// Do not leave a repository token readable by builds or package installs.
+const productionDeploy = read('.github/workflows/deploy.yml');
+const productionDeployPermissions = permissionBlocks(productionDeploy).find(block => block.indent === 0);
+assert.deepEqual(productionDeployPermissions?.lines, ['contents: read'], 'Production deploy must use only read-only GitHub token permissions.');
+const productionOidcScopes = permissionBlocks(productionDeploy).filter(block => block.lines.includes('id-token: write'));
+assert.equal(productionOidcScopes.length, 1, 'Only the authenticated deployment-smoke job may request GitHub OIDC.');
+assert.equal(productionOidcScopes[0].indent, 4, 'OIDC must be scoped to the deploy job, never the workflow.');
+const productionCheckouts = (productionDeploy.match(/uses:\s*actions\/checkout@v6/g) || []).length;
+const disabledCredentialPersistence = (productionDeploy.match(/^\s*persist-credentials:\s*false\s*$/gm) || []).length;
+assert.equal(productionCheckouts, 2, 'Review additional deployment checkouts before allowing implicit Git credentials.');
+assert.equal(disabledCredentialPersistence, productionCheckouts, 'Every production checkout must discard persisted Git credentials.');
+assert(/\bACTIONS_ID_TOKEN_REQUEST_(?:URL|TOKEN)\b/.test(productionDeploy), 'Exact-revision authenticated deployment smoke still needs its OIDC proof.');
+assert(!executableRunCommands(productionDeploy).some(command => /\bgit\s+push\b/.test(command)), 'Deployment must not need a persisted write-capable Git token.');
+
 const cloneWatch = read('.github/workflows/clone-exposure-watch.yml');
 assert(cloneWatch.includes('schedule:'), 'Clone exposure watch must keep its scheduled scan.');
 assert(cloneWatch.includes('workflow_dispatch:'), 'Clone exposure watch must remain manually runnable.');
