@@ -17,4 +17,3 @@ if(deploy.includes("parts[3].lower()")||deploy.includes("parts[4].lower()"))thro
 if(!deploy.includes("DELETE FROM billing_checkout_consents WHERE tenant_id='${tenant_id}';"))throw Error('production smoke cleanup must remove checkout consent rows before deleting the smoke tenant.');
 const selfImpact='\\.github/workflows/deploy\\.yml$';if(deploy.split(selfImpact).length-1<1)throw Error('deploy workflow changes must remain covered by the standalone/session-plane impact detector');
 console.log('Pricing triple-audit passed with owner-private internal margin math and deploy-smoke alignment.');
-console.log('Pricing triple-audit passed with owner-private internal margin math and deploy-smoke alignment.');
