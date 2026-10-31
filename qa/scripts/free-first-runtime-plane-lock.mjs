@@ -22,6 +22,7 @@ const checks=[
   ['Worker-first routing covers Reels proxy and runtime control',wrangler.includes('\"/reels-proxy/*\"')&&wrangler.includes('\"/__magnanimous_runtime/*\"')],
   ['production gate verifies the canonical Worker origin',deploy.includes('STANDALONE_ORIGIN: https://iammagnanimousway.com')],
   ['Worker deployment publishes the exact Git revision',deploy.includes('wrangler deploy --var MAGNANIMOUS_DEPLOY_REVISION:$GITHUB_SHA')],
+  ['standalone-only runtime changes do not trigger Worker/D1 production deploy',!deploy.includes("if grep -Eq '^(\\.github/workflows/deploy\\.yml$|magnanimous-runtime/|worker/")&&deploy.includes("if grep -Eq '^(worker/|frontend/|video-gateway/|api/")],
   ['runtime health and smoke control are Worker-native',security.includes('handleMagnanimousRuntimeControl')&&runtime.includes("runtime:'cloudflare-worker'")&&runtime.includes("database:'cloudflare-d1'")],
   ['smoke control is OIDC-bound to deploy workflow',runtime.includes("audience:'magnanimous-deploy-smoke'")&&runtime.includes("workflowFile:'.github/workflows/deploy.yml'")&&oidc.includes("allowedEvents=['push']")],
   ['Railway exact-commit deployment is manual opt-in only',!railway.includes('  push:\n')&&railway.includes("MAGNANIMOUS_ENABLE_OPTIONAL_RAILWAY == 'true'")],
