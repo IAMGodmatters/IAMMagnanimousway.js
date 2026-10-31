@@ -20,13 +20,11 @@ const opportunities:Opportunity[]=[
  },
  {
   id:'kled-iphone-data-tasks',name:'Kled — iPhone Photo/Video Data Tasks',status:'location-check',badge:'IPHONE ONLY • CONFIRM LIVE PH TASKS',
-  summary:'The free Kled app is listed in the Philippines App Store and offers paid photo/video uploads and special data-collection tasks for AI training. Earnings for ordinary uploads vary by content value and demand; a Kled task listing advertises USD $0.30 per accepted photo for one specific task in supported Southeast Asian countries, including the Philippines. Confirm the task is still available in-app before relying on that rate.',
-  requirements:['iPhone only and 18+; the official App Store listing is available in the Philippines','The app lists PayPal, Venmo or Solana wallet payouts; a developer response states a USD $25 minimum cashout. Confirm PayPal availability and all payout/identity requirements in-app before uploading','Uploads are reviewed and may be licensed to AI companies for training. Do not upload private/family photos, children, IDs, financial information or images of people without consent','Specific tasks are piecework: the USD $0.30 figure applies only to the named task and accepted photos; rejected submissions are unpaid and general camera-roll uploads have no fixed rate','Do not pay a joining fee or share OTPs, passwords or crypto recovery phrases; avoid crypto payouts unless you understand the risks'],
+  summary:'The free Kled app is listed in the Philippines App Store and offers paid photo/video uploads and special data-collection tasks for AI training. Earnings vary by content value, uniqueness, quality and buyer demand; the official public listing does not promise a fixed per-photo rate. A third-party job-board post recently claimed a Weather-Degraded Scenes task paid USD $0.30 per accepted photo in the Philippines, but I could not corroborate that task or rate in Kled’s official public materials. Treat it as unverified unless the same task and exact amount appear inside the official app before recording.',
+  requirements:['iPhone only and 18+; the official App Store listing is available in the Philippines','The app lists PayPal, Venmo or Solana wallet payouts; a developer response states a USD $25 minimum cashout. Confirm PayPal availability and all payout/identity requirements in-app before uploading','The developer says ordinary upload value depends on uniqueness, diversity, quality and current buyer demand; no universal per-photo or hourly rate is promised','Uploads are reviewed and accepted contributions may be licensed to AI companies for training with contributor consent. Do not upload private/family photos, children, IDs, financial information or images of people without consent','Specific tasks are piecework: only rely on the amount displayed in the official in-app task brief before you begin; rejected submissions are unpaid','Do not pay a joining fee or share OTPs, passwords or crypto recovery phrases; avoid crypto payouts unless you understand the risks'],
   official:'https://apps.apple.com/ph/app/kled/id6752585718',
-  secondary:'https://ph.linkedin.com/jobs/view/transit-departure-boards-paid-data-task-remote-contract-at-kled-ai-4484264268',
-  secondaryLabel:'Example task details from Kled listing',
   cta:'Open official App Store listing',
-  verified:'2026-10-29'
+  verified:'2026-10-31'
  },
 
  {
@@ -52,7 +50,7 @@ const opportunities:Opportunity[]=[
   requirements:['Philippines is explicitly eligible on the official listing','Strong written English, careful observation and ability to follow structured annotation rules','Prior annotation experience is helpful but not required','Computer and reliable internet are appropriate for this video-labeling work; verify onboarding requirements before accepting'],
   official:'https://jobs.lever.co/weloglobal/c5c69abd-d960-42d6-ba72-0cba79615418',
   cta:'Apply on official Welo listing',
-  verified:'2026-10-23'
+  verified:'2026-10-31'
  },
  {
   id:'welo-cursa-qc',name:'Welo Data — Project Cursa Video Annotation QC (V2)',status:'active-ph',badge:'PHILIPPINES • REMOTE • QUALITY REVIEW',
@@ -115,6 +113,19 @@ const opportunities:Opportunity[]=[
   cta:'Browse official XConnect roles',
   verified:'2026-10-31'
  },
+
+ {
+  id:'dost-pcieerd-dut-2026',name:'DOST-PCIEERD — Driving Urban Transition (DUT) 2026 Grant',status:'location-check',badge:'PHILIPPINES • INTERNATIONAL RESEARCH CONSORTIUM • DEADLINE NOV 17, 2026',
+  summary:'An official open DOST-PCIEERD concept-proposal call under the Driving Urban Transition Partnership. It supports transnational urban research/innovation, not unrestricted startup operating cash. The call allocates up to PHP 25,000,000 for a maximum of three projects over three years (the allocation is for the whole program/project duration, not PHP 25 million per applicant).',
+  requirements:['Concept proposal deadline: November 17, 2026 at 5:00 PM Philippine time through the DOST Project Management Information System (DPMISv2). Late submissions are not accepted','Consortium must include at least three partners from three participating countries; at least two partners must be from countries eligible for EC co-funding','Eligible Philippine proponents include Filipino public or private entities with proven competence. Filipino researchers should be connected to public/private universities or colleges, Research and Development Institutes, or qualified startups, especially DOST-supported Technology Business Incubators. The Philippine Principal Investigator must hold at least a relevant master’s degree and provide capability/track-record evidence and institutional endorsement','Projects must address one of the specified topics: (1) innovative maintenance of urban green and blue spaces; (2) positive-energy-district solutions in private housing; or (3) sustainable positive energy districts, energy-system flexibility and integrated technologies','For startup proponents, the call requests authenticated DTI registration or SEC incorporation documents and latest GIS, business permit and licenses, latest income tax returns, audited financial statements and other financial reports, disclosure of other businesses, and required sworn affidavits from owners/officers','Required proposal materials include the DOST proposal form, workplan, agency-head endorsement, Gender and Development score sheet, letter of intent/cooperation and consortium proposal. The official pre-proposal template and submission guidelines are linked below','The call says the grant covers 100% of project cost while the applicant organization must provide at least 15% counterpart funding in cash or kind, except for public-good projects. Confirm the exact budget treatment with DOST-PCIEERD before preparing figures','Capital/infrastructure costs and master’s/PhD student stipends are excluded. Only concept proposals approved in this stage may proceed to full proposals, scheduled February 2027 to April 15, 2027','This is a demanding R&D consortium opportunity. A normal software or AI startup is not eligible unless its project genuinely fits the urban-transition topics and it can meet the Filipino-PI, institutional, consortium and counterpart requirements'],
+  official:'https://pcieerd.dost.gov.ph/work-with-us/2026-dost-pcieerd-dut-call-for-proposal-concept-proposal/',
+  secondary:'https://pcieerd.dost.gov.ph/wp-content/uploads/2026/09/DUT-Call-2026_Preproposal-template.docx',
+  secondaryLabel:'Official pre-proposal template',
+  tertiary:'https://dpmisv2.dost.gov.ph/',
+  tertiaryLabel:'DOST e-Proposal portal',
+  cta:'Review official grant and eligibility',
+  verified:'2026-10-31'
+ },
  {
   id:'ndc-svf',name:'NDC — Startup Venture Fund (equity investment)',status:'location-check',badge:'PHILIPPINES • REGISTERED STARTUPS • EQUITY, NOT A GRANT',
   summary:'The Philippine National Development Company currently provides an official Startup Venture Fund application form. SVF invests in eligible innovative startups from seed through Series B; it is EQUITY FINANCING, not free grant money, and investment is not guaranteed. No fixed award amount or 2026 deadline is shown on the official application.',
@@ -124,6 +135,17 @@ const opportunities:Opportunity[]=[
   secondaryLabel:'Official eligibility and investment terms',
   cta:'Review official SVF application',
   verified:'2026-10-27'
+ },
+
+ {
+  id:'dost-pcieerd-hrdp-2027-closed',name:'DOST-PCIEERD — HRDP 2027 Funding Call (Closed)',status:'closed',badge:'CLOSED • OCTOBER 31, 2026 AT 5:00 PM PH TIME',
+  summary:'The official DOST-PCIEERD Human Resources Development Program call for 2027 funding closed on October 31, 2026 at 5:00 PM Philippine time. This is research-capability support for eligible Filipino researchers, students, academic/research institutions and project personnel—not a general startup grant. The deadline has passed; this listing is retained only as a closure record and guide for future cycles.',
+  requirements:['The official submission window was October 1–31, 2026 through DOST’s e-Proposal portal. Do not submit to this expired call','Components included research dissemination, visiting experts, research attachments, RIEETOOL training, PROSPPER graduate support for personnel on PCIEERD-funded projects, and DOST Facilities and Laboratory Access Grant (FLAG)','Eligibility depends on the component and a connection to qualifying Filipino academic/research institutions, DOST-funded projects, or PCIEERD priority sectors including AI, semiconductors, synthetic biology, marine/maritime, quantum and nuclear science and technology','The call required the DOST GIA Form 4.B Non-R&D proposal, endorsement from the authorized institutional head and component-specific supporting documents through DPMIS','The DOST FLAG component described an outright research subsidy of up to PHP 250,000 for eligible testing and analysis fees at identified DOST or DOST-funded facilities; this is not unrestricted cash for a startup','Check the official PCIEERD call page for any future cycle; no late applications are accepted'],
+  official:'https://pcieerd.dost.gov.ph/work-with-us/dost-pcieerd-human-resources-development-program-hrdp-for-2027-funding-cfp/',
+  secondary:'https://dpmisv2.dost.gov.ph/',
+  secondaryLabel:'Official DOST e-Proposal portal (this call is closed)',
+  cta:'Review closed call and future-cycle details',
+  verified:'2026-10-31'
  },
  {
   id:'swc-ph-2026',name:'Startup World Cup Philippines Regional 2026 — Pitch Competition',status:'closed',badge:'PHILIPPINE STARTUPS • APPLICATION DEADLINE PASSED OCT 30, 2026 • LINK MISMATCH',
@@ -144,6 +166,19 @@ const opportunities:Opportunity[]=[
   secondaryLabel:'Official Google Play app',
   cta:'Review operator claims and eligibility',
   verified:'2026-10-27'
+ },
+
+ {
+  id:'playtestcloud-ph-global',name:'PlaytestCloud — Mobile Game & App Playtesting',status:'active-ph',badge:'GLOBAL PANEL • PHILIPPINES CAN JOIN • FEWER INVITES',
+  summary:'PlaytestCloud’s official tester FAQ says people outside the USA, UK and Canada can join its panel from anywhere in the world, including the Philippines, but they should expect fewer invitations. This is occasional paid game/app testing and research, not employment or dependable income.',
+  requirements:['Free to join; PlaytestCloud says it never charges a subscription or joining fee. Initial playtester onboarding is unpaid','A typical 15-minute playtest plus survey generally pays USD $5–$9; the exact one-time reward is stated in each invitation. Payment requires completing the full test well','Android: Android 10 or newer; excluded devices include Amazon Fire tablets, Android Go, Samsung Galaxy A15 and Motorola G devices. iPhone/iPad: iOS 16 or newer; iPhone 8 or newer. Headphones/earphones and Wi-Fi are required','Rewards are issued through Tremendous; available options depend on country and may include PayPal, virtual cards or gift cards. No minimum payout threshold; payment is generally sent within 3 days after a well-completed test','Tremendous currently charges a 6% processing fee on PayPal rewards; virtual cards and gift cards have no Tremendous processing fee. Check which options are actually available in the Philippines before redeeming','Playtests may record your screen and voice. Turn on Do Not Disturb, keep private messages and personal information off-screen, follow the NDA, and never make real in-game purchases unless the test explicitly supplies safe test credentials','The official FAQ says international players can register but receive fewer invites than players in the USA, UK and Canada; task volume is not guaranteed'],
+  official:'https://players.playtestcloud.com/article/138-can-i-become-a-playtester-if-im-not-from-the-usa-uk-or-canada',
+  secondary:'https://apps.apple.com/ph/app/playtestcloud-be-a-playtester/id6443780122',
+  secondaryLabel:'Official iPhone/iPad app',
+  tertiary:'https://play.google.com/store/apps/details?id=com.playtestcloud.tester',
+  tertiaryLabel:'Official Android app',
+  cta:'Join official tester panel',
+  verified:'2026-10-31'
  },
  {
   id:'userlytics-ph-usability',name:'Userlytics — Paid Website & App Usability Tests',status:'active-ph',badge:'PHILIPPINES • PAYPAL • DESKTOP & MOBILE STUDIES',
