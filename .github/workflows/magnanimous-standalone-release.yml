@@ -10,6 +10,7 @@ on:
       - 'worker/package-lock.json'
       - 'frontend/**'
       - 'qa/scripts/magnanimous-cloud-*.mjs'
+      - 'qa/scripts/recent-conversation-gaps-lock.mjs'
       - '.github/workflows/magnanimous-standalone-release.yml'
   push:
     branches: [main]
@@ -20,6 +21,7 @@ on:
       - 'worker/package-lock.json'
       - 'frontend/**'
       - 'qa/scripts/magnanimous-cloud-*.mjs'
+      - 'qa/scripts/recent-conversation-gaps-lock.mjs'
       - '.github/workflows/magnanimous-standalone-release.yml'
 
 permissions:
