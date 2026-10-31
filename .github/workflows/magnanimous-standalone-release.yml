@@ -89,10 +89,13 @@ jobs:
           cp magnanimous-runtime/scripts/import-d1-export.mjs "$OUT/import-d1-export.mjs"
           cp magnanimous-runtime/scripts/verify-data-parity.mjs "$OUT/verify-data-parity.mjs"
           cp magnanimous-runtime/scripts/prepare-dns-zone.mjs "$OUT/prepare-dns-zone.mjs"
+          cp magnanimous-runtime/scripts/oci-host-bootstrap.sh "$OUT/oci-host-bootstrap.sh"
+          cp magnanimous-runtime/oci-cloud-init.yaml "$OUT/oci-cloud-init.yaml"
           printf '%s\n' "$TAG" > "$OUT/RELEASE_TAG"
           printf '%s\n' 'linux/arm64' > "$OUT/PLATFORM"
           printf '%s\n' "$GITHUB_SHA" > "$OUT/SOURCE_COMMIT"
-          chmod 700 "$OUT/standalone-host-preflight.sh" "$OUT/install-release-bundle.sh"
+          chmod 700 "$OUT/standalone-host-preflight.sh" "$OUT/install-release-bundle.sh" "$OUT/oci-host-bootstrap.sh"
+          bash -n "$OUT/standalone-host-preflight.sh" "$OUT/install-release-bundle.sh" "$OUT/oci-host-bootstrap.sh"
           (
             cd "$OUT"
             find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
