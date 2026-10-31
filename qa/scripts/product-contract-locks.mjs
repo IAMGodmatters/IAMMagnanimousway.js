@@ -54,7 +54,9 @@ includes(deployWorkflow, 'id: impact', 'deploy: runtime impact detector remains 
 includes(deployWorkflow, "if: needs.runtime-impact.outputs.changed == 'true'", 'deploy: production mutation work stays gated by runtime impact');
 includes(deployWorkflow, 'No production runtime files changed; skipping Worker/Railway deployment and D1 mutation work.', 'deploy: docs/control-plane commits explicitly skip production mutation work');
 includes(deployWorkflow, 'Manual production deployment requested.', 'deploy: workflow_dispatch still forces an explicit production deployment');
-matches(deployWorkflow, /magnanimous-runtime\/\|worker\/\|frontend\/\|video-gateway\/\|api\//, 'deploy: runtime impact detector covers all standalone web runtime paths');
+const standaloneRuntimeRule=deployWorkflow.match(/if grep -Eq '([^']+)' \/tmp\/magnanimous-deploy-changed-files\.txt; then\n\s*echo "standalone_changed=true"/);
+const productionRuntimeRule=deployWorkflow.match(/if grep -Eq '([^']+)' \/tmp\/magnanimous-deploy-changed-files\.txt; then\n\s*echo "changed=true"/);
+must(standaloneRuntimeRule?.[1]?.includes('magnanimous-runtime/')&&!productionRuntimeRule?.[1]?.includes('magnanimous-runtime/')&&productionRuntimeRule?.[1]?.includes('worker/'),'deploy: standalone runtime changes are tracked separately and do not trigger Worker/D1 production deployment');
 
 // 1) Standalone Magnanimous AI lock.
 includes(standaloneLayout, "title:'Magnanimous AI™ — Standalone'", 'standalone: branded metadata title remains locked');
