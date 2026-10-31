@@ -20,6 +20,7 @@ INSTALL_ROOT="${3:-$DEFAULT_ROOT}"
 [ -f "$BUNDLE_DIR/SHA256SUMS" ] || { echo "Missing SHA256SUMS" >&2; exit 1; }
 [ -f "$BUNDLE_DIR/magnanimous-images.tar" ] || { echo "Missing magnanimous-images.tar" >&2; exit 1; }
 [ -f "$BUNDLE_DIR/RELEASE_TAG" ] || { echo "Missing RELEASE_TAG" >&2; exit 1; }
+[ -f "$BUNDLE_DIR/PLATFORM" ] || { echo "Missing PLATFORM" >&2; exit 1; }
 [ -f "$ENV_SOURCE" ] || { echo "Missing production env file: $ENV_SOURCE" >&2; exit 1; }
 
 (
@@ -28,6 +29,11 @@ INSTALL_ROOT="${3:-$DEFAULT_ROOT}"
 )
 
 RELEASE_TAG="$(tr -d '\r\n' < "$BUNDLE_DIR/RELEASE_TAG")"
+PLATFORM="$(tr -d '\r\n' < "$BUNDLE_DIR/PLATFORM")"
+case "$PLATFORM:$(uname -m)" in
+  linux/arm64:aarch64|linux/amd64:x86_64) ;;
+  *) echo "Bundle platform $PLATFORM does not match host architecture $(uname -m)." >&2; exit 1 ;;
+esac
 [ -n "$RELEASE_TAG" ] || { echo "Release tag is empty." >&2; exit 1; }
 
 mkdir -p "$INSTALL_ROOT"
@@ -54,6 +60,7 @@ cp "$BUNDLE_DIR/import-d1-export.mjs" "$INSTALL_ROOT/scripts/import-d1-export.mj
 cp "$BUNDLE_DIR/verify-data-parity.mjs" "$INSTALL_ROOT/scripts/verify-data-parity.mjs"
 cp "$BUNDLE_DIR/prepare-dns-zone.mjs" "$INSTALL_ROOT/scripts/prepare-dns-zone.mjs"
 cp "$BUNDLE_DIR/RELEASE_TAG" "$INSTALL_ROOT/RELEASE_TAG"
+cp "$BUNDLE_DIR/PLATFORM" "$INSTALL_ROOT/PLATFORM"
 [ ! -f "$BUNDLE_DIR/SOURCE_COMMIT" ] || cp "$BUNDLE_DIR/SOURCE_COMMIT" "$INSTALL_ROOT/SOURCE_COMMIT"
 
 if [ "$ENV_SOURCE" != "$INSTALL_ROOT/.env" ]; then
