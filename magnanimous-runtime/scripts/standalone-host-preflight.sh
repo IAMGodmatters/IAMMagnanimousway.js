@@ -32,7 +32,8 @@ domain="$(read_env MAGNANIMOUS_DOMAIN)"
 if [[ ! "$domain" =~ ^([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$ ]]; then
   fail "MAGNANIMOUS_DOMAIN must be a valid fully qualified domain name."
 fi
-case "$domain" in
+domain_lc="${domain,,}"
+case "$domain_lc" in
   iammagnanimousway.com|www.iammagnanimousway.com) fail "Use a dedicated standalone subdomain; keep the production apex and www host on the existing site." ;;
 esac
 
