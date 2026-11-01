@@ -51,7 +51,7 @@ const opportunities:Opportunity[]=[
   tertiaryLabel:'Closed predecessor posting — USD $6.50/hour',
   cta:'View current employer LinkedIn listing',
   verified:'2026-11-01'
- }
+ },
  {
   id:'innodata-technical-ai-evaluation',name:'Innodata Knowledge Services — Technical AI Evaluation Specialist',status:'active-ph',badge:'PHILIPPINES • REMOTE/WFH • PROJECT-BASED • 3 MONTHS • PAY NOT DISCLOSED',
   summary:'The employer’s LinkedIn listing seeks technical evaluators to review AI-generated code and software-engineering outputs, checking quality, accuracy and functionality. It specifies Philippines remote/WFH, full-time project-based contract work for about three months. Compensation is not disclosed.',
@@ -350,8 +350,7 @@ const opportunities:Opportunity[]=[
   official:'https://www.prolific.com/participants-join-us',
   cta:'View official participant information',
   verified:'2026-09-25'
- }
-
+ },
  {
   id:'alignerr-ai-training-specialist',name:'Alignerr — AI Training / Data Labeling Specialist',status:'active-ph',badge:'PHILIPPINES • REMOTE CONTRACT • USD $40–$120/HR ADVERTISED',
   summary:'Alignerr’s official job page advertises a fully remote freelance AI-training role at USD $40–$120/hour; its Philippines LinkedIn listing identifies the role as open to applicants in the Philippines. Work includes labeling, rating and evaluating AI-generated text, image and audio. The rate range is employer-provided; actual pay depends on skills, experience and the specific assignment, and task volume is not guaranteed.',
