@@ -3,7 +3,7 @@ import {useState} from 'react';
 
 type Opportunity={
  id:string;name:string;status:'active-ph'|'location-check'|'waitlist'|'closed';
- badge:string;summary:string;requirements:string[];examples?:string[];official:string;secondary?:string;secondaryLabel?:string;tertiary?:string;tertiaryLabel?:string;cta:string;referral?:string;verified:string;
+ badge:string;summary:string;requirements:string[];examples?:string[];official:string;secondary?:string;secondaryLabel?:string;tertiary?:string;tertiaryLabel?:string;moreLinks?:{label:string;url:string}[];cta:string;referral?:string;verified:string;
 };
 
 const opportunities:Opportunity[]=[
@@ -354,12 +354,20 @@ const opportunities:Opportunity[]=[
   verified:'2026-09-25'
  },
  {
-  id:'alignerr-ai-training-specialist',name:'Alignerr — AI Training / Data Labeling Specialist',status:'active-ph',badge:'PHILIPPINES • REMOTE CONTRACT • USD $40–$120/HR ADVERTISED',
-  summary:'Alignerr’s official job page advertises a fully remote freelance AI-training role at USD $40–$120/hour; its Philippines LinkedIn listing identifies the role as open to applicants in the Philippines. Work includes labeling, rating and evaluating AI-generated text, image and audio. The rate range is employer-provided; actual pay depends on skills, experience and the specific assignment, and task volume is not guaranteed.',
-  requirements:['Philippines is explicitly named on the employer’s LinkedIn listing; work is remote and contract-based','The employer advertises 10–40 hours per week, but actual hours and project availability are not guaranteed','No prior AI, technical or data-labeling experience is required; strong written English, attention to detail and consistent instruction-following are essential','Work is completed through web-based tools and may involve rating or labeling text, image and audio outputs','The official employer page advertises USD $40–$120/hour and weekly payouts; confirm the exact rate, payment terms and available project before starting','Apply only through Alignerr’s official job page. Never pay an application, screening, equipment or release fee; ignore anyone requesting crypto deposits or account credentials'],
+  id:'alignerr-ai-training-specialist',name:'Alignerr — AI Training, Data Labeling & Evaluation Roles',status:'active-ph',badge:'PHILIPPINES-LISTED ROLES • REMOTE CONTRACT • USD $40–$120/HR ADVERTISED',
+  summary:'Alignerr has an employer-posted Philippines Data Labeling Specialist listing and additional Philippines LinkedIn postings for several remote AI-evaluation roles. Its official job pages advertise USD $40–$120/hour, 10–40 hours/week and weekly payouts. The headline range is not a guaranteed rate or workload: actual pay, project matching, paid hours and availability depend on skills and the assignment. Some linked official pages are labeled Remote/General rather than Philippines-specific, so confirm that the project accepts a Philippines-based contractor before completing assessments.',
+  requirements:['The Data Labeling Specialist has a Philippines-specific employer LinkedIn listing. Additional Philippines postings have been found for Film Scene Description Specialist, Audio Quality Reviewer, Document Review Specialist, Social Media Content Evaluator and AI Data Quality Analyst; their official job pages say Remote/General, so confirm country eligibility at application','The employer advertises USD $40–$120/hour, 10–40 hours/week and weekly payouts on its official pages; this is a posted range, not a promise of the maximum rate, paid hours or continuing assignments','Several roles require no prior AI experience. Skills vary: careful visual observation and structured writing for film scenes; headphones and attentive listening for audio review; strong reading comprehension for document review; current social-media knowledge for content evaluation; and analytical English writing for AI quality review','Work is remote contract work using web-based tools. A reliable computer, internet connection and ability to follow detailed guidelines are expected; the audio role specifically asks for headphones or earbuds','Ask the official recruiter to confirm the actual project rate, whether screening/training is paid, payment terms, contractor eligibility from the Philippines and current task volume before accepting','Apply only through the official Alignerr job pages or the employer’s verified LinkedIn postings. Never pay an application, screening, training, equipment or release fee; never send passwords, OTPs or crypto recovery phrases'],
+  examples:['Data Labeling Specialist — text, image and audio classification (Philippines-specific LinkedIn listing)','Film Scene Description Specialist — structured descriptions of camera movement, framing, blocking, pacing and mood','Audio Quality Reviewer — listen for clarity, distortion, pronunciation and transcript accuracy','Document Review Specialist — classify and extract structured information from documents','Social Media Content Evaluator — assess AI-generated posts for tone, relevance and cultural fit','AI Data Quality Analyst — evaluate AI outputs for accuracy, relevance and consistency'],
   official:'https://www.alignerr.com/jobs/65cbb1b3-c9b7-423c-bae0-31cc2e9d56c6',
   secondary:'https://ph.linkedin.com/jobs/view/data-labeling-specialist-at-alignerr-4477616131',
   secondaryLabel:'Employer LinkedIn listing — Philippines',
+  moreLinks:[
+   {label:'Film Scene Description Specialist — official role',url:'https://www.alignerr.com/jobs/3e485d8d-c344-4ff7-81df-32aa94e3b239'},
+   {label:'Audio Quality Reviewer — official role',url:'https://www.alignerr.com/jobs/d6719c38-9661-4832-8e33-acc9ecab784d'},
+   {label:'Document Review Specialist — official role',url:'https://www.alignerr.com/jobs/6b997e72-0b4d-42ca-87a9-1e6429339379'},
+   {label:'Social Media Content Evaluator — official role',url:'https://www.alignerr.com/jobs/7bd5c2d0-2ca2-48b1-8464-cf88618a3036'},
+   {label:'AI Data Quality Analyst — official role',url:'https://www.alignerr.com/jobs/a4e5f9ee-7041-41c3-ae66-85587cbe42e0'}
+  ],
   cta:'Apply through official Alignerr job page',
   verified:'2026-11-01'
  },
@@ -462,7 +470,7 @@ export default function OpportunityVault(){
     <h3>Current facts</h3><ul>{o.requirements.map(x=><li key={x}>{x}</li>)}</ul>
     {o.examples?.length?<><h3>Examples seen in the current official listing</h3><ul>{o.examples.map(x=><li key={x}>{x}</li>)}</ul></>:null}
     {o.referral&&<div className="ref"><span>Optional referral code supplied by I AM Magnanimous Way™</span><b>{o.referral}</b><button onClick={()=>copy(o.referral!)}>Copy code</button><small>No bonus amount is promised here; current referral terms must be checked in the app.</small></div>}
-    <div className="actions"><a href={o.official} target="_blank" rel="noreferrer">{o.cta}</a>{o.secondary&&<a href={o.secondary} target="_blank" rel="noreferrer">{o.secondaryLabel||'Open secondary source'}</a>}{o.tertiary&&<a href={o.tertiary} target="_blank" rel="noreferrer">{o.tertiaryLabel||'Open third source'}</a>}</div>
+    <div className="actions"><a href={o.official} target="_blank" rel="noreferrer">{o.cta}</a>{o.secondary&&<a href={o.secondary} target="_blank" rel="noreferrer">{o.secondaryLabel||'Open secondary source'}</a>}{o.tertiary&&<a href={o.tertiary} target="_blank" rel="noreferrer">{o.tertiaryLabel||'Open third source'}</a>}{o.moreLinks?.map(link=><a key={link.url} href={link.url} target="_blank" rel="noreferrer">{link.label}</a>)}</div>
     <footer>Last source verification: {o.verified}</footer>
    </article>)}
   </section>
