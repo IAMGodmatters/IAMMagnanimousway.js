@@ -28,5 +28,8 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/verify-main-protection.mjs
 
+      - name: Lock exact main ruleset verification contract
+        run: node qa/scripts/main-ruleset-verification-lock.mjs
+
       - name: Lock descendant-safe Railway deployment behavior
         run: node qa/scripts/railway-descendant-safe-deploy-lock.mjs
