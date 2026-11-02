@@ -96,8 +96,8 @@ async function tenantAccess(env, user) {
   ]);
   const platformOwner = Boolean(row?.slug === 'owner' || (env.ADMIN_EMAIL && String(user.email || '').toLowerCase() === String(env.ADMIN_EMAIL).toLowerCase()));
   // Only Stripe-confirmed active subscriptions enable paid carrier entitlements.
-  // Annual Business and White Label tiers rank above monthly Business.
-  const business = subscription.status === 'active' && subscription.limits.rank >= PLAN_LIMITS.business.rank && subscription.limits.pstn_minutes > 0;
+  // CRM and higher paid tiers with an explicit PSTN-minute entitlement may use carrier calling.
+  const business = subscription.status === 'active' && subscription.limits.rank >= PLAN_LIMITS.crm.rank && subscription.limits.pstn_minutes > 0;
   return { row, business, platformOwner };
 }
 
@@ -213,7 +213,7 @@ async function aiReply(env, agent, history, callerText) {
 async function createTwilioCall(request, env, user, body, internalContext = {}) {
   if (!twilioReady(env)) return json({ detail: 'Twilio is not configured yet.', code: 'TWILIO_NOT_CONFIGURED' }, 503);
   const access = await tenantAccess(env, user);
-  if (!access.business && !access.platformOwner) return json({ detail: 'AI telephone calling is included with Full Business.', code: 'BUSINESS_PLAN_REQUIRED' }, 402);
+  if (!access.business && !access.platformOwner) return json({ detail: 'AI telephone calling requires an active paid plan with PSTN minutes.', code: 'BUSINESS_PLAN_REQUIRED' }, 402);
   if (body.consent_confirmed !== true || body.ai_disclosure_accepted !== true) {
     return json({ detail: 'Confirm that the recipient may be contacted and that the call will disclose it is automated AI before placing the call.', code: 'CALL_CONSENT_REQUIRED' }, 400);
   }
@@ -377,8 +377,28 @@ async function twilioIncoming(request, env) {
   const sid = String(form.get('CallSid') || '');
   const from = normPhone(form.get('From'));
   const to = normPhone(form.get('To'));
-  let tenantId = String(env.TWILIO_DEFAULT_TENANT_ID || '').trim();
-  if (!tenantId) {
+  let tenantId = '';
+  if (to) {
+    try {
+      await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_carrier_numbers(
+        e164 TEXT PRIMARY KEY,owner_tenant_id TEXT NOT NULL,source TEXT NOT NULL DEFAULT 'upstream',interconnect_id INTEGER,
+        status TEXT NOT NULL DEFAULT 'inventory',assigned_tenant_id TEXT NOT NULL DEFAULT '',label TEXT NOT NULL DEFAULT '',
+        voice_enabled INTEGER NOT NULL DEFAULT 1,sms_enabled INTEGER NOT NULL DEFAULT 0,emergency_registered INTEGER NOT NULL DEFAULT 0,
+        porting_status TEXT NOT NULL DEFAULT '',metadata_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL
+      )`).run();
+      const number = await env.DB.prepare('SELECT assigned_tenant_id,status,voice_enabled FROM magnanimous_carrier_numbers WHERE e164=?').bind(to).first();
+      if (number) {
+        if (String(number.status) !== 'assigned' || Number(number.voice_enabled) !== 1 || !String(number.assigned_tenant_id || '').trim()) {
+          return xml(goodbyeTwiml('This telephone number is not assigned for service.'), 404);
+        }
+        tenantId = String(number.assigned_tenant_id);
+      }
+    } catch (_) {
+      return xml(goodbyeTwiml('Telephone number routing could not be verified.'), 503);
+    }
+  }
+  if (!tenantId) tenantId = String(env.TWILIO_DEFAULT_TENANT_ID || '').trim();
+  if (!tenantId && to && to === normPhone(env.TWILIO_PHONE_NUMBER)) {
     const owner = await env.DB.prepare("SELECT id FROM tenants WHERE slug='owner' LIMIT 1").first();
     tenantId = String(owner?.id || '');
   }
