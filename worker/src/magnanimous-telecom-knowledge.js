@@ -3,6 +3,7 @@
 // Magnanimous AI remains the brain and public identity. External systems are optional,
 // replaceable adapters and do not grant regulatory authority, numbering rights,
 // emergency-service access, carrier status, or permission to copy proprietary code.
+import { MAGNANIMOUS_VOICE_ENGINE_KNOWLEDGE } from './magnanimous-voice-engine-knowledge.js';
 
 export const TELECOM_ARCHITECTURE_VERSION='2026-10-17';
 
@@ -90,6 +91,7 @@ export const TELECOM_KNOWLEDGE=Object.freeze({
   supervision:'Listen/whisper/barge and recording controls require role authorization, call-scope validation, policy/consent checks and audit.',
   ai_actions:'AI may not bypass user permissions, tenant boundaries, payment approval, compliance gates or server-side tool policy.'
  },
+ voice_engine:MAGNANIMOUS_VOICE_ENGINE_KNOWLEDGE,
  references:[
   {name:'SIP',url:'https://www.rfc-editor.org/info/rfc3261/'},
   {name:'SRTP',url:'https://www.rfc-editor.org/info/rfc3711/'},
