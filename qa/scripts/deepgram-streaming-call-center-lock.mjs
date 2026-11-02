@@ -144,7 +144,7 @@ assert.match(ui, /deepgram_voice_agent/);
 assert.match(wrangler, /DEEPGRAM_VOICE_DAILY_MINUTES_CAP": "30"/);
 assert.match(wrangler, /DEEPGRAM_VOICE_MONTHLY_MINUTES_CAP": "300"/);
 assert.match(docs, /press 1/i);
-assert.match(docs, /20 minutes per calendar month/);
+assert.match(docs, /300 minutes per calendar month/);
 assert.match(docs, /30 days/);
 assert.match(knowledge, /Deepgram Voice Agent API/);
 
