@@ -106,6 +106,26 @@ export async function publishSocialPostForTenant(env,tenantId,provider,body,expe
  return {...result,ai_transparency:transparency};
 }
 
+export async function pollTikTokPublishStatus(env,tenantId,expectedExternalId,publishId){
+ await ensureSchema(env);
+ const row=await connection(env,String(tenantId),'tiktok');
+ if(!row)throw new Error('TikTok is no longer connected. Reconnect before checking this publish receipt.');
+ if(expectedExternalId&&String(row.external_id||'')!==String(expectedExternalId))throw new Error('The connected TikTok account changed. This receipt belongs to the previous account.');
+ if(!String(publishId||'').trim())throw new Error('TikTok publish receipt is missing its publish ID.');
+ const token=await tokenFor(env,row,'tiktok');
+ const response=await fetch('https://open.tiktokapis.com/v2/post/publish/status/fetch/',{
+  method:'POST',
+  headers:{authorization:`Bearer ${token}`,'content-type':'application/json; charset=UTF-8'},
+  body:JSON.stringify({publish_id:String(publishId)})
+ });
+ const data=await responseJson(response,'TikTok publish status');
+ const code=String(data?.error?.code||'ok');
+ if(code!=='ok')throw new Error(data?.error?.message||`TikTok publish status check returned ${code}.`);
+ const status=String(data?.data?.status||'');
+ if(!['PROCESSING_UPLOAD','PROCESSING_DOWNLOAD','SEND_TO_USER_INBOX','PUBLISH_COMPLETE','FAILED'].includes(status))throw new Error('TikTok returned an unrecognized publish status. Manual verification is required.');
+ return{ok:true,provider:'tiktok',publish_id:String(publishId),status,fail_reason:String(data?.data?.fail_reason||''),post_ids:Array.isArray(data?.data?.publicaly_available_post_id)?data.data.publicaly_available_post_id:[],provider_data:data?.data||{}};
+}
+
 export async function handleSocialPublishing(request,env){
  const url=new URL(request.url);if(!url.pathname.startsWith('/api/social-connect'))return null;if(!env?.DB)return json({detail:'Database binding is not configured.'},503);
  try{
