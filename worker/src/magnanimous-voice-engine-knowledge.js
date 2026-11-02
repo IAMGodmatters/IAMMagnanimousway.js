@@ -83,7 +83,7 @@ export const MAGNANIMOUS_VOICE_ENGINE_KNOWLEDGE = Object.freeze({
   cost: Object.freeze({
     default: 'local_or_private_first',
     paid_providers: 'Deepgram Voice Agent is an approved capped pilot; keep provider auto-load disabled and use free credits first; no paid activation occurs until the DEEPGRAM_API_KEY secret is present',
-    protections: ['platform_wide_daily_monthly_minute_caps', 'per_call_duration_limit', 'global_concurrency_limit', '30_handshakes_per_ip_per_minute', '30_think_requests_per_call_per_minute', 'durable_usage_ledger', 'stop_when_cap_reached'],
+    protections: ['platform_wide_daily_monthly_minute_caps', 'per_workspace_daily_monthly_minute_caps', 'per_call_duration_limit', 'global_and_workspace_concurrency_limits', '30_handshakes_per_ip_per_minute', '30_think_requests_per_call_per_minute', 'durable_usage_ledger', 'stop_when_cap_reached'],
     provider_account_requirements: Object.freeze(['auto_load_disabled', 'use_free_credits_first', 'no_payment_method_until_owner_approval']),
     infrastructure: 'No new paid host or always-on service without a separate cost and capacity review.'
   }),
