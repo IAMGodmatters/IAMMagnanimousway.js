@@ -1,10 +1,10 @@
 // Research-backed realtime voice-engine architecture for Magnanimous Call Center.
-// This is a design/knowledge contract; it does not activate an external runtime.
+// Runtime activation is fail-closed until the provider secret is present and live call tests pass.
 // Magnanimous AI remains the owner of identity, memory, reasoning, policy and authorization.
 
 export const MAGNANIMOUS_VOICE_ENGINE_KNOWLEDGE = Object.freeze({
   version: '2026-11-02',
-  status: 'design-approved-pending-runtime-and-e2e-verification',
+  status: 'runtime-implemented-pending-provider-secret-and-live-e2e-verification',
   identity: Object.freeze({
     brain: 'Magnanimous AI',
     service: 'Magnanimous Telecom',
@@ -13,9 +13,23 @@ export const MAGNANIMOUS_VOICE_ENGINE_KNOWLEDGE = Object.freeze({
     memory_policy: 'Customer identity, durable memory, business knowledge, billing and audit remain in Magnanimous-owned services.'
   }),
   current_gap: Object.freeze({
-    existing_voice_path: 'The current Worker voice-agent path uses request/response speech collection through Twilio Gather and text turns through Workers AI.',
-    missing_capability: 'A production-proven full-duplex streaming media-to-speech-agent runtime.',
-    truth_boundary: 'Source support for a framework or protocol is not evidence that a production media adapter is deployed or live.'
+    existing_voice_path: 'The existing Worker path retains Twilio Gather as a fallback; the new streaming adapter is added behind readiness checks.',
+    missing_capability: 'Provider-secret activation and live public-host inbound/outbound call verification with measured Filipino/Tagalog quality.',
+    truth_boundary: 'Source code and green unit checks do not prove a live PSTN call; real inbound/outbound media tests are still required.'
+  }),
+  immediate_pstn_voice_adapter: Object.freeze({
+    provider: 'Deepgram Voice Agent API',
+    transport: 'Existing Twilio bidirectional Media Streams over WebSocket; no new PBX or phone number',
+    speech_recognition: 'Deepgram Nova-3 multilingual listen provider with language=multi for English/Filipino code-switching',
+    speech_synthesis: 'Deepgram-managed Cartesia Sonic 3.6, language=multi, public Customer Support Man voice preset',
+    reasoning_brain: 'Magnanimous AI through the authenticated OpenAI-compatible think endpoint backed by the existing Workers AI binding',
+    ownership: 'Deepgram is speech/transport infrastructure only; Magnanimous AI owns prompts, reasoning, tenant context and policy',
+    consent: 'Caller hears speech-processing/transcript disclosure and must press 1 before a media stream is opened',
+    human_handoff: 'Per-agent E.164 number, tenant-scoped; DTMF 0 redirects the active Twilio call only when configured',
+    transcript_policy: 'No raw audio persisted; new transcript rows expire after 30 days; legacy rows without expiry are unchanged',
+    cost_controls: Object.freeze({ max_concurrent_calls: 1, max_call_seconds: 300, daily_minutes: 5, monthly_minutes: 20, usage_scope: 'platform-wide pilot cap' }),
+    activation: 'DEEPGRAM_API_KEY Worker secret only; no separate Cartesia API key; fail-closed until key and existing Workers AI binding are available',
+    status: 'implemented-on-branch; pending provider secret, CI and live PSTN acceptance tests'
   }),
   selected_architecture: Object.freeze({
     pbx: 'Existing Magnanimous Telecom Asterisk 22.11.0 remains the authoritative SIP/PBX/call lifecycle service.',
@@ -67,7 +81,7 @@ export const MAGNANIMOUS_VOICE_ENGINE_KNOWLEDGE = Object.freeze({
   }),
   cost: Object.freeze({
     default: 'local_or_private_first',
-    paid_providers: 'disabled_until_explicitly_enabled_and_prepaid',
+    paid_providers: 'Deepgram Voice Agent is an approved capped pilot; keep provider auto-load disabled and use free credits first; no paid activation occurs until the DEEPGRAM_API_KEY secret is present',
     protections: ['per_tenant_budget', 'per_call_limit', 'concurrency_cap', 'idempotent_usage_ledger', 'hard_stop_on_unfunded_usage'],
     infrastructure: 'No new paid host or always-on service without a separate cost and capacity review.'
   }),
