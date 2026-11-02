@@ -147,15 +147,19 @@ async function handleCreate(request,env,user){
  const disclosure=disclosureIssue(provider,payload);if(disclosure)return json({detail:disclosure,code:'AI_DISCLOSURE_REQUIRED'},409);
  const serialized=JSON.stringify(payload);
  if(new TextEncoder().encode(serialized).byteLength>MAX_PAYLOAD_BYTES)return json({detail:'Scheduled post content is too large.'},413);
- const id=crypto.randomUUID(),key=String(body.idempotency_key||crypto.randomUUID()).trim().slice(0,100);
- if(!key)return json({detail:'An idempotency key is required.'},400);
+ const id=crypto.randomUUID(),key=String(body.idempotency_key||crypto.randomUUID()).trim();
+ if(!key||key.length>100)return json({detail:'Use a non-empty idempotency key of at most 100 characters.'},400);
  const ts=now();
  try{
   await env.DB.prepare(`INSERT INTO social_scheduled_posts(id,tenant_id,created_by,provider,external_id,payload_json,scheduled_at,timezone,status,idempotency_key,created_at,updated_at)
    VALUES(?,?,?,?,?,?,?,?, 'draft',?,?,?)`).bind(id,String(user.tenant_id),String(user.id),provider,String(account.external_id),serialized,scheduledAt,tz,key,ts,ts).run();
  }catch(error){
   const existing=await env.DB.prepare('SELECT * FROM social_scheduled_posts WHERE tenant_id=? AND idempotency_key=?').bind(String(user.tenant_id),key).first().catch(()=>null);
-  if(existing)return json({item:publicRow(existing),idempotent:true});
+  if(existing){
+   const same=String(existing.provider)===provider&&String(existing.external_id)===String(account.external_id)&&String(existing.payload_json)===serialized&&Number(existing.scheduled_at)===scheduledAt&&String(existing.timezone)===tz;
+   if(!same)return json({detail:'This idempotency key already belongs to a different post. Start a new draft with a new key.',code:'IDEMPOTENCY_KEY_CONFLICT'},409);
+   return json({item:publicRow(existing),idempotent:true});
+  }
   throw error;
  }
  const row=await getTenantRow(env,user.tenant_id,id);
@@ -225,8 +229,9 @@ export async function scheduledSocialPublishing(env){
  const {results=[]}=await env.DB.prepare(`SELECT * FROM social_scheduled_posts
   WHERE status='scheduled' AND scheduled_at<=? AND approval_hash IS NOT NULL
   ORDER BY scheduled_at ASC LIMIT 1`).bind(ts).all();
- let published=0,failed=0,outcomeUnknown=0,claimed=0;
+ let published=0,failed=0,outcomeUnknown=0,claimed=0,processed=0;
  for(const row of results){
+  processed++;
   const payload=parsePayload(row);
   const expected=await approvalHash(row,payload);
   if(expected!==String(row.approval_hash||'')){
@@ -252,5 +257,5 @@ export async function scheduledSocialPublishing(env){
    if(uncertain)outcomeUnknown++;else failed++;
   }
  }
- return{ok:true,claimed,published,failed,outcome_unknown:outcomeUnknown,processed:claimed+failed};
+ return{ok:true,claimed,published,failed,outcome_unknown:outcomeUnknown,processed};
 }
