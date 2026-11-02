@@ -46,8 +46,14 @@ export async function recordWhiteLabelBrainClaim(env,user,{clientId='',app='plat
  let claimId,status,supersedes=null;
  if(existing&&String(existing.claim_text)===claimText){
   claimId=String(existing.id);status=String(existing.status);
-  await env.DB.prepare('UPDATE white_label_brain_claims SET updated_at=?,confidence=MAX(confidence,?) WHERE id=? AND tenant_id=?')
-   .bind(ts,confidence,claimId,tenant).run();
+  if(correction){
+   await env.DB.prepare(`UPDATE white_label_brain_claims SET status='superseded',updated_at=?
+    WHERE tenant_id=? AND client_id=? AND app=? AND claim_key=? AND id<>? AND status IN ('active','conflicted')`)
+    .bind(ts,tenant,client,application,claimKey,claimId).run();
+   status='active';
+  }
+  await env.DB.prepare('UPDATE white_label_brain_claims SET status=?,updated_at=?,confidence=MAX(confidence,?) WHERE id=? AND tenant_id=?')
+   .bind(status,ts,confidence,claimId,tenant).run();
  }else{
   if(existing){
    supersedes=correction?String(existing.id):null;
