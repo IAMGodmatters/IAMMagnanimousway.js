@@ -5,7 +5,7 @@ const read=path=>fs.readFileSync(path,'utf8');
 const scheduling=read('worker/src/social-scheduling-runtime.js');
 const publishing=read('worker/src/social-publishing-runtime.js');
 const operations=read('worker/src/operations-entrypoint.js');
-const migration=read('worker/migrations/0108_social_scheduled_posts.sql');
+const migration=read('worker/migrations/0111_social_scheduled_posts.sql');
 const page=read('frontend/app/social-calendar/page.tsx');
 const socialStudio=read('frontend/app/social-media/page.tsx');
 const wrangler=read('worker/wrangler.jsonc');
