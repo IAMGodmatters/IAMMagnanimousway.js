@@ -18,7 +18,7 @@ for(const text of [
  'const explicitAudit = process.env.MAGNANIMOUS_VERIFY_PROTECTION === \'true\';',
  "repository?.default_branch !== 'main'",
  "const rulesets = await githubJson",
- "const explicitAudit = process.env.MAGNANIOUS_VERIFY_PROTECTION === 'true';",
+ "const explicitAudit = process.env.MAGNANIMOUS_VERIFY_PROTECTION === 'true';",
  "Read-only ruleset audit completed with findings.",
  "if (explicitAudit) {",
  "process.exit(1);",
