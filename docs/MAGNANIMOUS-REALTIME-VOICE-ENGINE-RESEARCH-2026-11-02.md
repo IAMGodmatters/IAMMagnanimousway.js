@@ -11,11 +11,11 @@ The Facebook Reel's caption/source metadata was subsequently retrieved and ident
 
 The supplied Reel specifically promotes Microsoft's `microsoft/call-center-ai` repository. Its clean-room feature, code-path, Apache-2.0 license and Azure-dependency review is recorded in `docs/MICROSOFT-CALL-CENTER-AI-CLEAN-ROOM-RESEARCH-2026-11-02.md`. Absorb its structured call-state, bidirectional media, event idempotency, customer task capture, human handoff and post-call quality patterns; do not adopt its Azure stack as a mandatory dependency.
 
-Do not replace the owned Magnanimous Telecom Core and do not add a second PBX. Keep Magnanimous AI as the only identity, memory, reasoning, policy and orchestration brain. Keep Asterisk as the authoritative SIP/PBX/call lifecycle layer. Evaluate Pipecat as the realtime speech-pipeline worker, connected through Asterisk's native WebSocket media channel. Do not add LiveKit as a second media/PBX stack by default; retain it as an alternate transport/agent framework if later measured requirements justify it.
+Do not replace the owned Magnanimous Telecom Core and do not add a second PBX. Keep Magnanimous AI as the only identity, memory, reasoning, policy and orchestration brain. Keep Asterisk as the authoritative SIP/PBX/call lifecycle layer. For immediate PSTN operation, add a guarded Deepgram Voice Agent adapter behind the existing Twilio bidirectional Media Streams path; Deepgram handles streaming speech while its custom LLM endpoint calls Magnanimous AI. Use Deepgram-managed Cartesia Sonic 3.6 for multilingual speech. This replaces only the old Twilio Gather turn loop when readiness checks pass. Keep Pipecat as the future Asterisk-native media pipeline candidate; do not add LiveKit as a second media/PBX stack by default.
 
-This is an architecture decision and test plan, not a production activation. The current repository does not yet contain a deployed Pipecat adapter or prove a live public PSTN voice-agent call.
+The current implementation branch adds the guarded Worker streaming adapter, consent gate, custom Magnanimous LLM endpoint, per-agent human handoff and usage ledger. It is not yet deployed or live-tested; the Deepgram secret is not configured, so the runtime readiness check remains false and the existing Gather path remains active.
 
-## What the current repository actually has
+## Existing systems preserved from the main-branch baseline
 
 The reviewed main branch contains:
 - An Asterisk 22.11.0 image in telecom-core/asterisk/Dockerfile.
@@ -24,11 +24,26 @@ The reviewed main branch contains:
 - A provider-neutral Worker carrier bridge.
 - Tenant-local included AI receptionist, customer-support, sales and appointment profiles.
 - A current Twilio voice path in worker/src/voice-agent-runtime.js. It uses Twilio <Gather input="speech"> turn collection, receives a SpeechResult webhook, calls Cloudflare Workers AI with the text history, and returns another TwiML Gather response. This is a request/response speech-turn loop, not a full-duplex streaming voice pipeline.
+- This implementation branch adds worker/src/deepgram-voice-agent-runtime.js. It opens a Twilio bidirectional Media Stream only after DTMF consent, bridges 8 kHz mu-law audio to Deepgram Voice Agent, and routes every reasoning turn to Magnanimous AI through a short-lived call-scoped HMAC token. The legacy Gather route remains the fail-closed fallback until the provider is ready.
 - No Pipecat service in telecom-core/docker-compose.yml and no verified production Pipecat-to-Asterisk media adapter.
 
 The source also preserves fail-closed gates for carrier readiness, outbound consent, AI disclosure, Do Not Call checks, automated campaign policy, recording controls, emergency calling and public Telecom host activation. Those gates must remain intact.
 
 ## Research findings and licensing
+
+### Immediate Twilio/Deepgram runtime — first operational path
+
+The existing Twilio carrier is retained. The Worker returns a consent TwiML prompt first; only a caller pressing 1 receives a short-lived, call-bound stream token and a bidirectional `<Connect><Stream>` session. Twilio sends 8 kHz mu-law frames to the Worker, the Worker bridges them to Deepgram Voice Agent, and returned audio is sent back to the same Twilio stream.
+
+- Deepgram authentication uses its documented WebSocket `token` subprotocol.
+- Nova-3 uses `language: "multi"` for English/Filipino code-switching. Cartesia Sonic 3.6 uses the multilingual TTS mode; its supported language list includes Tagalog/Filipino. Actual phone-audio quality still requires a measured test.
+- Deepgram's custom OpenAI-compatible think endpoint is `/api/voice-agent/think`. It validates a short-lived HMAC token bound to the call, tenant and agent, then invokes the existing Workers AI binding. No Deepgram-managed LLM is selected.
+- The bridge handles Twilio media frames, Deepgram binary audio, barge-in clear events, DTMF 0 handoff, caller opt-out and caller hangup. Human handoff numbers are stored per voice agent and tenant.
+- The new stream is not used until the server-side `DEEPGRAM_API_KEY` secret and the existing AI binding are ready. No key is embedded in source, browser code or Wrangler vars.
+- The usage ledger enforces one concurrent session platform-wide, five minutes per day, twenty minutes per calendar month and five minutes per call. New transcripts expire after thirty days; no raw audio is persisted by this adapter.
+- The first pilot uses the existing Twilio carrier and the existing Workers AI binding. No new PBX, phone number, separate Cartesia account, Cartesia API key, LLM key, container or host is required.
+
+Deepgram currently lists $0.059/minute for its Custom BYO LLM tier and $0.075/minute for Standard; twenty minutes therefore bounds the Deepgram portion to approximately $1.18–$1.50 per month if promotional credits are exhausted. Deepgram currently advertises a $200 starting credit with no credit card required and no expiration for Pay-As-You-Go credits. Keep auto-load disabled. Twilio carrier minutes and any human-transfer leg remain separate costs.
 
 ### Asterisk media path — selected integration boundary
 
@@ -129,7 +144,13 @@ The same Magnanimous AI brain handles both public-telephone and browser/WebRTC i
 - CallKit: https://callkit.dev/
 - Microsoft Call Center AI: https://github.com/microsoft/call-center-ai
 - Microsoft Call Center AI clean-room review: `docs/MICROSOFT-CALL-CENTER-AI-CLEAN-ROOM-RESEARCH-2026-11-02.md`
+- Deepgram Voice Agent API and custom think endpoint: https://developers.deepgram.com/docs/voice-agent
+- Deepgram multilingual Voice Agent configuration: https://developers.deepgram.com/docs/voice-agent-multilingual
+- Deepgram Voice Agent pricing and starting credits: https://deepgram.com/pricing
+- Deepgram WebSocket authentication: https://developers.deepgram.com/docs/voice-agent
+- Twilio bidirectional Media Streams: https://www.twilio.com/docs/voice/media-streams
+- Cartesia language support: https://www.cartesia.ai/languages
 
 ## Current status
 
-Research reviewed and architecture decision recorded. No Pipecat dependency, voice worker, container, deployment, carrier charge, paid speech provider, public number or production readiness flag has been activated by this change.
+Research reviewed and the Deepgram streaming adapter added on the feature branch. No Deepgram API key is configured and no provider session, paid speech call, new phone number or production deployment has been activated. CI and live public-host acceptance tests remain outstanding; the legacy Twilio Gather path remains the active fallback.
