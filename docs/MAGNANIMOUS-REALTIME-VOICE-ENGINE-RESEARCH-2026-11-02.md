@@ -36,7 +36,7 @@ The source also preserves fail-closed gates for carrier readiness, outbound cons
 The existing Twilio carrier is retained. The Worker returns a consent TwiML prompt first; only a caller pressing 1 receives a short-lived, call-bound stream token and a bidirectional `<Connect><Stream>` session. Twilio sends 8 kHz mu-law frames to the Worker, the Worker bridges them to Deepgram Voice Agent, and returned audio is sent back to the same Twilio stream.
 
 - Deepgram Voice Agent authentication uses the documented WebSocket subprotocols `token` and the API key.
-- Nova-3 uses `language: "multi"` for English/Filipino code-switching. Cartesia Sonic 3.5 uses the multilingual TTS mode; its supported language list includes Tagalog/Filipino. Actual phone-audio quality still requires a measured test.
+- Nova-3 uses `language: "multi"` for English/Filipino code-switching. Cartesia Sonic 3.5 uses the multilingual TTS mode; its supported language list includes Tagalog/Filipino. Actual phone-audio quality still requires a measured test. Cebuano/Bisaya is not included in this first adapter's verified language scope. Google Cloud Speech-to-Text lists `ceb-PH` for selected regions, but that would require a separate streaming STT/TTS integration and billing credentials; it is not silently enabled here.
 - Deepgram's custom OpenAI-compatible think endpoint is `/api/voice-agent/think`. It validates a short-lived HMAC token bound to the call, tenant and agent, then invokes the existing Workers AI binding. No Deepgram-managed LLM is selected.
 - The bridge handles Twilio media frames, Deepgram binary audio, barge-in clear events, DTMF 0 handoff, caller opt-out and caller hangup. Human handoff numbers are stored per voice agent and tenant.
 - The new stream is not used until the server-side `DEEPGRAM_API_KEY` secret and the existing AI binding are ready. No key is embedded in source, browser code or Wrangler vars.
@@ -145,11 +145,11 @@ The same Magnanimous AI brain handles both public-telephone and browser/WebRTC i
 - Microsoft Call Center AI: https://github.com/microsoft/call-center-ai
 - Microsoft Call Center AI clean-room review: `docs/MICROSOFT-CALL-CENTER-AI-CLEAN-ROOM-RESEARCH-2026-11-02.md`
 - Deepgram Voice Agent API and custom think endpoint: https://developers.deepgram.com/docs/voice-agent
-- Deepgram multilingual Voice Agent configuration: https://developers.deepgram.com/docs/voice-agent-multilingual
+- Deepgram multilingual Voice Agent configuration: https://developers.deepgram.com/docs/voice-agent-multilingual\n- Deepgram Nova-3 language prompting and supported languages: https://developers.deepgram.com/docs/nova-3-language-prompting
 - Deepgram Voice Agent pricing and starting credits: https://deepgram.com/pricing
 - Deepgram WebSocket authentication: https://developers.deepgram.com/docs/voice-agent
 - Twilio bidirectional Media Streams: https://www.twilio.com/docs/voice/media-streams
-- Cartesia language support: https://www.cartesia.ai/languages
+- Cartesia Sonic language support: https://docs.cartesia.ai/build-with-cartesia/tts-models/latest#language-support\n- Google Cloud Speech-to-Text language availability: https://docs.cloud.google.com/speech-to-text/docs/speech-to-text-supported-languages
 
 ## Current status
 
