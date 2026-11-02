@@ -151,6 +151,9 @@ jobs:
       - name: Lock cinematic 3-D homepage module marks
         run: node qa/scripts/home-3d-module-marks-lock.mjs
 
+      - name: Lock Magnanimous native scheduled social publishing
+        run: node qa/scripts/social-scheduling-lock.mjs
+
       - name: Frontend typecheck and production build
         working-directory: frontend
         run: |
