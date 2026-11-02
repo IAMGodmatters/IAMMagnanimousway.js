@@ -25,6 +25,14 @@ export const MAGNANIMOUS_VOICE_ENGINE_KNOWLEDGE = Object.freeze({
     handoff: 'Transfer to existing Magnanimous Call Center queues with a scoped call summary and reason.',
     livekit: 'Alternative WebRTC/agent stack; not added by default because it would duplicate parts of the existing owned media plane.'
   }),
+  reference_implementation: Object.freeze({
+    project: 'Microsoft Call Center AI',
+    repository: 'https://github.com/microsoft/call-center-ai',
+    license: 'Apache-2.0; preserve license, copyright, NOTICE and modification notices when redistributing adapted source.',
+    absorb_patterns: ['bidirectional telephone audio', 'per-call authenticated WebSocket lifecycle', 'idempotent event processing', 'structured customer case/task capture', 'human fallback', 'SMS follow-up with consent', 'post-call synthesis and quality review', 'tenant-scoped RAG with source grounding'],
+    avoid_lock_in: 'Do not import Azure Communication Services, Event Grid, Queue Storage, Cosmos DB or Azure OpenAI as mandatory dependencies. Keep Magnanimous Telecom provider-neutral.',
+    evidence_doc: 'docs/MICROSOFT-CALL-CENTER-AI-CLEAN-ROOM-RESEARCH-2026-11-02.md'
+  }),
   adapter_contract: Object.freeze({
     protocol: 'Asterisk chan_websocket; binary frames for media and text frames for control/events.',
     channel: 'Private TLS-protected connection with per-call authentication and strict session binding.',
@@ -75,6 +83,7 @@ export const MAGNANIMOUS_VOICE_ENGINE_KNOWLEDGE = Object.freeze({
   references: Object.freeze([
     'https://docs.asterisk.org/Configuration/Channel-Drivers/WebSocket/',
     'https://docs.asterisk.org/Development/Reference-Information/Asterisk-Framework-and-API-Examples/External-Media-and-ARI/',
+    'https://github.com/microsoft/call-center-ai',
     'https://github.com/pipecat-ai/pipecat',
     'https://docs.pipecat.ai/api-reference/server/services/transport/websocket-server',
     'https://github.com/livekit/agents',
