@@ -290,7 +290,7 @@ export async function handleDeepgramVoiceAgentRoutes(request,env,url=new URL(req
         }
         if(speaker==="caller"&&transcript){
          const lower=transcript.toLowerCase();
-         if(/\b(stop calling|do not call|don't call|do not contact|don't contact|remove me|opt out|unsubscribe|take me off)\b/.test(lower)){
+         if(/\b(stop calling|stop contacting|never call|do not call|don't call|do not contact|don't contact|remove me|opt out|unsubscribe|take me off)\b/.test(lower)){
           const phone=String(state.call.direction==="outbound"?state.call.callee:state.call.caller||"").replace(/[\s().-]/g,"");
           if(e164(phone))await env.DB.prepare("INSERT OR REPLACE INTO voice_do_not_call(tenant_id,phone,reason,created_at) VALUES(?,?,?,?)").bind(state.call.tenant_id,phone,"caller opt-out",now()).run().catch(()=>null);
           state.pendingEndMessage="I have recorded your request not to be contacted again";
