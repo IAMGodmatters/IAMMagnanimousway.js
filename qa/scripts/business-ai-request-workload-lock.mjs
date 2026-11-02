@@ -23,7 +23,10 @@ const create=handler.indexOf("if(u.pathname==='/api/business-ai/jobs'&&request.m
 assert.ok(list>=0&&detail>list&&execute>detail&&verify>execute&&create>verify,'Business AI job route order must remain intact');
 assert.ok(handler.slice(list,detail).includes('await claimLegacyJobs(env,user)'),'Legacy jobs must be claimed for the signed-in user when listing jobs');
 assert.ok(handler.slice(detail,execute).includes('await claimLegacyJobs(env,user)'),'Legacy jobs must be claimed for a signed-in user on direct job reads');
-assert.ok(!handler.slice(execute).includes('claimLegacyJobs(env,user)'),'Ordinary execute, verify and create requests must not re-run legacy backfill');
+assert.ok(handler.slice(execute,verify).includes('await claimLegacyJob(env,user,jobMatch[1])'),'Direct execution must claim only the requested legacy job for its real owner');
+assert.ok(handler.slice(verify,create).includes('await claimLegacyJob(env,user,jobMatch[1])'),'Verification must claim only the requested legacy job for its real owner');
+assert.ok(handler.slice(create).includes("'POST'")&&!handler.slice(create).includes('claimLegacyJobs(env,user)'),'Ordinary job creation must not re-run legacy backfill');
+assert.ok(source.includes('async function claimLegacyJob(env,user,id)'),'Legacy direct links must use one-ID ownership backfill');
 assert.ok(handler.includes('WHERE tenant_id=? AND user_id=? ORDER BY updated_at DESC LIMIT 100'),'Job lists remain tenant and user scoped and bounded');
 assert.ok(handler.includes('WHERE id=? AND tenant_id=? AND user_id=?'),'Single job reads remain tenant and user scoped');
 console.log('Business AI request-workload lock passed: D1 schema setup is cached, legacy ownership backfill is read-scoped, and tenant/user boundaries remain.');
