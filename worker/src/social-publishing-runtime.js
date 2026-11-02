@@ -86,7 +86,7 @@ export async function publishSocialPostForTenant(env,tenantId,provider,body,expe
  });
  if(transparency.visible_disclosure.required_for_this_context){
   const caption=String(provider==='linkedin'?body.text:provider==='youtube'?body.description:body.title||'');
-  const labelled=/\\b(?:AI[ -]generated|AI[ -]altered|artificially generated|synthetic (?:media|video|audio)|created with AI)\\b/i.test(caption);
+  const labelled=/\b(?:AI[ -]generated|AI[ -]altered|artificially generated|synthetic (?:media|video|audio)|created with AI)\b/i.test(caption);
   if(body.ai_disclosure_confirmed!==true||!labelled)throw Object.assign(new Error('The approved post needs a clear AI-generated/AI-altered disclosure in its caption.'),{preflight:true});
   if(provider!=='linkedin'&&body.visible_media_disclosure_confirmed!==true)throw Object.assign(new Error('Confirm that the video itself carries an appropriate visible or audible AI disclosure.'),{preflight:true});
  }
