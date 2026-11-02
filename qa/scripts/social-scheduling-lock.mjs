@@ -21,6 +21,12 @@ has(scheduling,'validTimezone(body.timezone)','Schedule must validate an IANA ti
 has(scheduling,'explicit UTC offset','Schedule datetime must carry an explicit UTC offset');
 has(scheduling,'new TextEncoder().encode(raw).byteLength>20000','Schedule request body must be bounded');
 has(scheduling,'UNIQUE(tenant_id,idempotency_key)','Idempotency must be unique within a tenant');
+has(scheduling,'const socialScheduleSchemaReady = new WeakMap();','Scheduled-post D1 schema checks must be cached per Worker isolate');
+has(scheduling,'socialScheduleSchemaReady.get(db)','Concurrent calendar requests must share the same schema setup');
+has(scheduling,'socialScheduleSchemaReady.delete(db)','Failed calendar schema setup must be retriable');
+has(publishing,'const socialConnectionSchemaReady = new WeakMap();','Existing social connection D1 schema checks must be cached per Worker isolate');
+has(publishing,'socialConnectionSchemaReady.get(db)','Concurrent social connection requests must share the same schema setup');
+has(publishing,'socialConnectionSchemaReady.delete(db)','Failed social connection schema setup must be retriable');
 has(scheduling,'if(existing){','Duplicate schedule submissions must inspect an existing idempotency key');
 has(scheduling,'String(existing.provider)===provider&&String(existing.external_id)===String(account.external_id)','Idempotency reuse must match provider and connected account');
 has(scheduling,'String(existing.payload_json)===serialized&&Number(existing.scheduled_at)===scheduledAt&&String(existing.timezone)===tz','Idempotency reuse must match exact content and scheduled time');
