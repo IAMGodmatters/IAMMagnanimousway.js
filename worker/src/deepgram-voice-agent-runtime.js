@@ -224,10 +224,10 @@ export async function handleDeepgramVoiceAgentRoutes(request,env,url=new URL(req
  if(!deepgramVoiceEnabled(env))return json({detail:"Realtime voice service is not configured.",readiness:deepgramVoiceReadiness(env)},503);
  if(typeof WebSocketPair!=="function")return json({detail:"This runtime does not support WebSocket media streams."},501);
  const pair=new WebSocketPair(),client=pair[0],server=pair[1];server.accept();
- const state={twilio:server,deepgram:null,call:null,agent:null,streamSid:"",ready:false,pendingAudio:[],audioChunks:[],audioBytes:0,audioFlushTimer:null,closed:false,sessionReserved:false,endAfterAudio:false,waitingEndMark:false,pendingEndMessage:"",maxCallTimer:null,startTimer:null,welcomeTimer:null,keepAliveTimer:null};
+ const state={twilio:server,deepgram:null,call:null,agent:null,streamSid:"",ready:false,pendingAudio:[],audioChunks:[],audioBytes:0,audioFlushTimer:null,closed:false,sessionReserved:false,endAfterAudio:false,waitingEndMark:false,pendingEndMessage:"",endFallbackTimer:null,maxCallTimer:null,startTimer:null,welcomeTimer:null,keepAliveTimer:null};
  const cleanup=async(reason="Call session closed",closeTwilio=true)=>{
   if(state.closed)return;state.closed=true;
-  for(const timer of [state.maxCallTimer,state.startTimer,state.welcomeTimer,state.keepAliveTimer,state.audioFlushTimer])if(timer)clearTimeout(timer);
+  for(const timer of [state.maxCallTimer,state.startTimer,state.welcomeTimer,state.keepAliveTimer,state.audioFlushTimer,state.endFallbackTimer])if(timer)clearTimeout(timer);
   safeClose(state.deepgram,1000,reason);if(closeTwilio)safeClose(state.twilio,1000,reason);
   if(state.sessionReserved&&state.call?.id)await finishUsage(env,state.call.id);
  };
@@ -294,10 +294,12 @@ export async function handleDeepgramVoiceAgentRoutes(request,env,url=new URL(req
           const phone=String(state.call.direction==="outbound"?state.call.callee:state.call.caller||"").replace(/[\s().-]/g,"");
           if(e164(phone))await env.DB.prepare("INSERT OR REPLACE INTO voice_do_not_call(tenant_id,phone,reason,created_at) VALUES(?,?,?,?)").bind(state.call.tenant_id,phone,"caller opt-out",now()).run().catch(()=>null);
           state.pendingEndMessage="I have recorded your request not to be contacted again";
-          if(state.deepgram?.readyState===1)state.deepgram.send(JSON.stringify({type:"InjectAgentMessage",message:"Understood. I have recorded your request not to be contacted again. I will end the call now.",behavior:"queue"}));
+          state.endFallbackTimer=setTimeout(async()=>{if(!state.closed){await updateTwilioCall(env,state.call?.provider_call_id,hangupTwiml());await cleanup("Caller opt-out confirmed and call ended");}},8000);
+          if(state.deepgram?.readyState===1)state.deepgram.send(JSON.stringify({type:"InjectAgentMessage",message:"Understood. I have recorded your request not to be contacted again. I will end the call now.",behavior:"interrupt"}));
          }else if(/\b(goodbye|bye|hang up|end call)\b/.test(lower)){
           state.pendingEndMessage="Thank you for speaking with me";
-          if(state.deepgram?.readyState===1)state.deepgram.send(JSON.stringify({type:"InjectAgentMessage",message:"Thank you for speaking with me. Goodbye.",behavior:"queue"}));
+          state.endFallbackTimer=setTimeout(async()=>{if(!state.closed){await updateTwilioCall(env,state.call?.provider_call_id,hangupTwiml());await cleanup("Caller ended the conversation");}},8000);
+          if(state.deepgram?.readyState===1)state.deepgram.send(JSON.stringify({type:"InjectAgentMessage",message:"Thank you for speaking with me. Goodbye.",behavior:"interrupt"}));
          }
         }
        }else if(eventMessage.type==="AgentAudioDone"&&state.endAfterAudio&&!state.waitingEndMark){
@@ -324,8 +326,8 @@ export async function handleDeepgramVoiceAgentRoutes(request,env,url=new URL(req
     if(e164(handoff)&&state.call?.provider_call_id){
      const moved=await updateTwilioCall(env,state.call.provider_call_id,humanHandoffTwiml(handoff));
      if(moved){twilioSend({event:"clear",streamSid:state.streamSid});await cleanup("Caller transferred to human representative");}
-     else if(state.deepgram?.readyState===1){twilioSend({event:"clear",streamSid:state.streamSid});state.deepgram.send(JSON.stringify({type:"InjectAgentMessage",message:"I could not connect the live representative right now. I can take a message instead.",behavior:"queue"}));}
-    }else if(state.deepgram?.readyState===1){twilioSend({event:"clear",streamSid:state.streamSid});state.deepgram.send(JSON.stringify({type:"InjectAgentMessage",message:"A live representative is not configured for this assistant. I can take a message or explain how to contact the team.",behavior:"queue"}));}
+     else if(state.deepgram?.readyState===1){twilioSend({event:"clear",streamSid:state.streamSid});state.deepgram.send(JSON.stringify({type:"InjectAgentMessage",message:"I could not connect the live representative right now. I can take a message instead.",behavior:"interrupt"}));}
+    }else if(state.deepgram?.readyState===1){twilioSend({event:"clear",streamSid:state.streamSid});state.deepgram.send(JSON.stringify({type:"InjectAgentMessage",message:"A live representative is not configured for this assistant. I can take a message or explain how to contact the team.",behavior:"interrupt"}));}
    }else if(message.event==="mark"&&message.mark?.name==="magnanimous-end-call"&&state.endAfterAudio){
     await updateTwilioCall(env,state.call?.provider_call_id,hangupTwiml());
     await cleanup("Caller requested the call to end");
