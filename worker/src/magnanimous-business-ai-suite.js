@@ -64,7 +64,7 @@ async function ensure(env){
    await db.prepare('SELECT user_id FROM magnanimous_business_ai_jobs LIMIT 0').all();
   }catch(error){
    const message=String(error?.message||error||'');
-   if(!/no such column[^\\n]*user_id|no column named user_id/i.test(message))throw error;
+   if(!/no such column.*user_id|no column named user_id/i.test(message))throw error;
    await db.prepare("ALTER TABLE magnanimous_business_ai_jobs ADD COLUMN user_id TEXT NOT NULL DEFAULT ''").run();
   }
   await db.prepare('CREATE INDEX IF NOT EXISTS idx_business_ai_user ON magnanimous_business_ai_jobs(tenant_id,user_id,updated_at DESC)').run();
