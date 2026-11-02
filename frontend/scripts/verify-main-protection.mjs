@@ -92,12 +92,16 @@ if (statusRule.parameters?.strict_required_status_checks_policy !== true) {
   process.exit(1);
 }
 
-const integrationBypasses = applicable.flatMap(item => item.bypass_actors || [])
+const visibleBypassPolicies = applicable.filter(item => Array.isArray(item.bypass_actors));
+const integrationBypasses = visibleBypassPolicies.flatMap(item => item.bypass_actors)
   .filter(actor => actor.actor_type === 'Integration' && actor.bypass_mode === 'always');
 if (integrationBypasses.length) {
   console.error('::error::PRODUCTION DEPLOYMENT BLOCKED: an integration can bypass main branch protections.');
-  console.error('Remove always-bypass integration actors; retain only the documented emergency owner/admin path if necessary.');
+  console.error('Remove always-bypass integration actors; retain only a documented emergency owner/admin path if necessary.');
   process.exit(1);
 }
+if (visibleBypassPolicies.length !== applicable.length) {
+  console.warn('::warning::Main ruleset review, approval and status-check rules are verified. GitHub hides bypass-actor details from this read-only token; a repository administrator must verify that no integration has always-bypass access.');
+}
 
-console.log('Main branch protection gate: PASS — active rulesets require a reviewed pull request, exact Full Platform QA and Magnanimous Command Lock checks, strict latest-head validation, and no always-bypass integration actor.');
+console.log('Main branch protection gate: PASS — active rulesets require a reviewed pull request and exact Full Platform QA and Magnanimous Command Lock checks with strict latest-head validation. Bypass actors are checked only when GitHub exposes their definitions to this token.');
