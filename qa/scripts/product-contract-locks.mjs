@@ -48,7 +48,7 @@ const knowledgeRuntime = read('worker/src/knowledge-runtime.js');
 const progressEntrypoint = read('worker/src/progress-entrypoint-base.js');
 const chatTransport = read('frontend/lib/magnanimous-chat-transport.ts');
 const standaloneServer = read('magnanimous-runtime/src/server.mjs');
-const deployWorkflow = read('.github/workflows/deploy.yml');
+const deployWorkflow = read('.github/workflows/deploy.yml').replace(/\r\n/g, '\n');
 
 includes(deployWorkflow, 'id: impact', 'deploy: runtime impact detector remains versioned');
 includes(deployWorkflow, "if: needs.runtime-impact.outputs.changed == 'true'", 'deploy: production mutation work stays gated by runtime impact');
