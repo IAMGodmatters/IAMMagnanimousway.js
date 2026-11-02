@@ -217,12 +217,12 @@ export async function handleDeepgramVoiceAgentRoutes(request,env,url=new URL(req
         if(transcript&&state.call?.id)await env.DB.prepare("INSERT INTO voice_agent_turns(tenant_id,call_id,provider_call_id,speaker,text,created_at) VALUES(?,?,?,?,?,?)").bind(state.call.tenant_id,state.call.id,String(state.call.provider_call_id||""),speaker,transcript,now()).run().catch(()=>null);
         if(speaker==="caller"&&transcript){
          const lower=transcript.toLowerCase();
-         if(/\\b(stop calling|do not call|don't call|do not contact|don't contact|remove me|opt out|unsubscribe|take me off)\\b/.test(lower)){
-          const phone=String(state.call.direction==="outbound"?state.call.callee:state.call.caller||"").replace(/[\\s().-]/g,"");
+         if(/\b(stop calling|do not call|don't call|do not contact|don't contact|remove me|opt out|unsubscribe|take me off)\b/.test(lower)){
+          const phone=String(state.call.direction==="outbound"?state.call.callee:state.call.caller||"").replace(/[\s().-]/g,"");
           if(e164(phone))await env.DB.prepare("INSERT OR REPLACE INTO voice_do_not_call(tenant_id,phone,reason,created_at) VALUES(?,?,?,?)").bind(state.call.tenant_id,phone,"caller opt-out",now()).run().catch(()=>null);
           state.endAfterAudio=true;
           if(state.deepgram?.readyState===1)state.deepgram.send(JSON.stringify({type:"InjectAgentMessage",message:"Understood. I have recorded your request not to be contacted again. I will end the call now.",behavior:"interrupt"}));
-         }else if(/\\b(goodbye|bye|hang up|end call)\\b/.test(lower)){
+         }else if(/\b(goodbye|bye|hang up|end call)\b/.test(lower)){
           state.endAfterAudio=true;
           if(state.deepgram?.readyState===1)state.deepgram.send(JSON.stringify({type:"InjectAgentMessage",message:"Thank you for speaking with me. Goodbye.",behavior:"interrupt"}));
          }
@@ -244,7 +244,7 @@ export async function handleDeepgramVoiceAgentRoutes(request,env,url=new URL(req
     if(state.ready&&state.deepgram?.readyState===1){try{state.deepgram.send(decodeBase64(message.media.payload));}catch{await fail("Caller audio could not be forwarded");}}
     else{if(state.pendingAudio.length>=60){await fail("Voice setup could not keep up with caller audio");return;}state.pendingAudio.push(String(message.media.payload));}
    }else if(message.event==="dtmf"&&String(message.dtmf?.digit||"")==="0"){
-    const handoff=String(state.agent?.handoff_phone||"").replace(/[\\s().-]/g,"");
+    const handoff=String(state.agent?.handoff_phone||"").replace(/[\s().-]/g,"");
     if(e164(handoff)&&state.call?.provider_call_id){
      const moved=await updateTwilioCall(env,state.call.provider_call_id,humanHandoffTwiml(handoff));
      if(moved){twilioSend({event:"clear",streamSid:state.streamSid});await cleanup("Caller transferred to human representative");}
