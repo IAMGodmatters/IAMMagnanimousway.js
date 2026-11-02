@@ -1,5 +1,5 @@
 import { currentUser } from './integrations.js';
-import { ensureSocialPublishingSchema, publishSocialPostForTenant } from './social-publishing-runtime.js';
+import { ensureSocialPublishingSchema, publishSocialPostForTenant, pollTikTokPublishStatus } from './social-publishing-runtime.js';
 import { assessAiTransparency } from './ai-transparency.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
@@ -23,7 +23,7 @@ async function ensureSchema(env){
     payload_json TEXT NOT NULL,
     scheduled_at INTEGER NOT NULL,
     timezone TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','scheduled','publishing','published','failed','outcome_unknown','cancelled')),
+    status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','scheduled','publishing','processing','published','failed','outcome_unknown','cancelled')),
     idempotency_key TEXT NOT NULL,
     approval_hash TEXT,
     approved_at INTEGER,
@@ -236,6 +236,43 @@ export async function scheduledSocialPublishing(env){
  // A worker that died after claiming a post must never cause an automatic duplicate.
  await env.DB.prepare(`UPDATE social_scheduled_posts SET status='outcome_unknown',last_error='The worker stopped after claiming this post. The provider outcome must be checked before any new attempt.',updated_at=?
   WHERE status='publishing' AND updated_at<?`).bind(ts,ts-1800).run();
+ let processingCount=0;
+ const {results:pendingTikTok=[]}=await env.DB.prepare(`SELECT * FROM social_scheduled_posts
+  WHERE provider='tiktok' AND status='processing' AND updated_at<=?
+  ORDER BY updated_at ASC LIMIT 1`).bind(ts-60).all();
+ for(const item of pendingTikTok){
+  if(Number(item.created_at)<ts-48*3600){
+   await env.DB.prepare(`UPDATE social_scheduled_posts SET status='outcome_unknown',last_error='TikTok has not returned a final status within 48 hours. Check TikTok directly before creating another post.',updated_at=?
+    WHERE id=? AND tenant_id=? AND status='processing'`).bind(ts,item.id,item.tenant_id).run();
+   outcomeUnknown++;continue;
+  }
+  let publishId='';
+  try{publishId=String(JSON.parse(item.provider_receipt_json||'{}').publish_id||'')}catch{}
+  try{
+   const result=await pollTikTokPublishStatus(env,item.tenant_id,item.external_id,publishId);
+   if(result.status==='PUBLISH_COMPLETE'){
+    await env.DB.prepare(`UPDATE social_scheduled_posts SET status='published',provider_receipt_json=?,last_error='',updated_at=?
+     WHERE id=? AND tenant_id=? AND status='processing'`).bind(JSON.stringify(result).slice(0,12000),now(),item.id,item.tenant_id).run();
+    published++;
+   }else if(result.status==='FAILED'){
+    await env.DB.prepare(`UPDATE social_scheduled_posts SET status='failed',provider_receipt_json=?,last_error=?,updated_at=?
+     WHERE id=? AND tenant_id=? AND status='processing'`).bind(JSON.stringify(result).slice(0,12000),String(result.fail_reason||'TikTok rejected or failed to process this post.').slice(0,1000),now(),item.id,item.tenant_id).run();
+    failed++;
+   }else if(result.status==='SEND_TO_USER_INBOX'){
+    await env.DB.prepare(`UPDATE social_scheduled_posts SET status='outcome_unknown',provider_receipt_json=?,last_error='TikTok routed this content to the creator inbox rather than confirming a direct post. Complete or inspect it in TikTok before taking further action.',updated_at=?
+     WHERE id=? AND tenant_id=? AND status='processing'`).bind(JSON.stringify(result).slice(0,12000),now(),item.id,item.tenant_id).run();
+    outcomeUnknown++;
+   }else{
+    await env.DB.prepare(`UPDATE social_scheduled_posts SET provider_receipt_json=?,last_error='',updated_at=?
+     WHERE id=? AND tenant_id=? AND status='processing'`).bind(JSON.stringify(result).slice(0,12000),now(),item.id,item.tenant_id).run();
+    processingCount++;
+   }
+  }catch(error){
+   await env.DB.prepare(`UPDATE social_scheduled_posts SET last_error=?,updated_at=?
+    WHERE id=? AND tenant_id=? AND status='processing'`).bind(String(error?.message||'TikTok status check failed.').slice(0,1000),now(),item.id,item.tenant_id).run();
+   processingCount++;
+  }
+ }
  const {results=[]}=await env.DB.prepare(`SELECT * FROM social_scheduled_posts
   WHERE status='scheduled' AND scheduled_at<=? AND approval_hash IS NOT NULL
   ORDER BY scheduled_at ASC LIMIT 1`).bind(ts).all();
@@ -255,9 +292,10 @@ export async function scheduledSocialPublishing(env){
   claimed++;
   try{
    const receipt=await publishSocialPostForTenant(env,row.tenant_id,row.provider,payload,row.external_id);
-   await env.DB.prepare(`UPDATE social_scheduled_posts SET status='published',provider_receipt_json=?,last_error='',updated_at=?
-    WHERE id=? AND tenant_id=? AND status='publishing'`).bind(JSON.stringify(receipt).slice(0,12000),now(),row.id,row.tenant_id).run();
-   published++;
+   const acceptedStatus=row.provider==='tiktok'?'processing':'published';
+   await env.DB.prepare(`UPDATE social_scheduled_posts SET status=?,provider_receipt_json=?,last_error=?,updated_at=?
+    WHERE id=? AND tenant_id=? AND status='publishing'`).bind(acceptedStatus,JSON.stringify(receipt).slice(0,12000),acceptedStatus==='processing'?'TikTok accepted the request. Waiting for TikTok to confirm final publication.':'',now(),row.id,row.tenant_id).run();
+   if(acceptedStatus==='published')published++;
   }catch(error){
    const uncertain=error?.preflight!==true;
    const status=uncertain?'outcome_unknown':'failed';
@@ -267,5 +305,5 @@ export async function scheduledSocialPublishing(env){
    if(uncertain)outcomeUnknown++;else failed++;
   }
  }
- return{ok:true,claimed,published,failed,outcome_unknown:outcomeUnknown,processed};
+ return{ok:true,claimed,published,processing:processingCount,failed,outcome_unknown:outcomeUnknown,processed};
 }
