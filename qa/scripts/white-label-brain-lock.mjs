@@ -11,6 +11,8 @@ function includes(source,needle,msg){must(source.includes(needle),msg)}
 function notMatches(source,re,msg){must(!re.test(source),msg)}
 
 const runtime=read('worker/src/white-label-brain-runtime.js');
+const provenance=read('worker/src/white-label-brain-provenance.js');
+const provenanceMigration=read('worker/migrations/0091_white_label_brain_provenance.sql');
 const operations=read('worker/src/operations-entrypoint.js');
 const securityEntry=read('worker/src/security-entrypoint.js');
 const wrangler=read('worker/wrangler.jsonc');
@@ -37,6 +39,27 @@ includes(operations,'const response=await operationsFetch(request,env,ctx)','rel
 includes(runtime,"role:'shared brain for every White Label app'",'brain: Magnanimous is explicitly the shared White Label brain');
 includes(runtime,'CREATE TABLE IF NOT EXISTS white_label_brain_memory','learning: durable private White Label memory exists');
 includes(runtime,'CREATE TABLE IF NOT EXISTS white_label_brain_signals','learning: durable White Label outcome signals exist');
+includes(runtime,"from './white-label-brain-provenance.js'",'provenance: existing White Label brain delegates to the native claim ledger');
+includes(runtime,'recordWhiteLabelBrainClaim','provenance: explicit teaching is recorded as a source-linked claim');
+includes(runtime,'listWhiteLabelBrainClaims','provenance: sourced claims are available to retrieval');
+includes(runtime,"/api/white-label/brain/claims",'provenance: authenticated claim listing route exists');
+includes(runtime,'SOURCE-BACKED CLAIMS','provenance: assistant receives claim status and source references');
+includes(provenance,'CREATE TABLE IF NOT EXISTS white_label_brain_sources','provenance: source records are durable');
+includes(provenance,'CREATE TABLE IF NOT EXISTS white_label_brain_claims','provenance: factual claims are stored separately from lessons');
+includes(provenance,'CREATE TABLE IF NOT EXISTS white_label_brain_claim_sources','provenance: claims retain source links');
+includes(provenance,"'user_explicit_teaching'",'provenance: authenticated user teaching has an explicit origin type');
+includes(provenance,"'user_asserted'",'provenance: source trust tier is explicit');
+includes(provenance,"status IN ('active','conflicted','superseded','withdrawn')",'provenance: claim lifecycle preserves conflicts and corrections');
+includes(provenance,"correction?'superseded':'conflicted'",'provenance: conflicting claims are retained unless explicitly corrected');
+includes(provenance,"status='superseded'",'provenance: explicit correction resolves competing claims');
+includes(provenance,"status='active'",'provenance: explicitly corrected claim becomes active again');
+includes(provenance,"WHERE tenant_id=? AND client_id=? AND app=? AND claim_key=?",'privacy: conflict resolution is tenant/client/app scoped');
+includes(provenance,"WHERE c.tenant_id=? AND (c.client_id=? OR c.client_id='')",'privacy: claim retrieval is tenant and client scoped');
+includes(provenance,'s.deleted_at IS NULL','privacy: deleted sources are excluded from retrieval');
+includes(provenance,'Math.min(30,Number(limit)||12)','reliability: claim retrieval is bounded');
+includes(provenanceMigration,'CREATE TABLE IF NOT EXISTS white_label_brain_sources','database: provenance source migration is versioned');
+includes(provenanceMigration,'CREATE TABLE IF NOT EXISTS white_label_brain_claims','database: provenance claim migration is versioned');
+includes(provenanceMigration,'CREATE TABLE IF NOT EXISTS white_label_brain_claim_sources','database: provenance links migration is versioned');
 includes(runtime,'magnanimous_outcomes','learning: White Label outcomes feed the central Magnanimous learning system');
 includes(runtime,"capability,provider,task",'learning: central outcome records retain capability metadata');
 includes(runtime,"`white-label:${a}`",'learning: White Label outcomes are namespaced in Magnanimous outcomes');

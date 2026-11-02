@@ -1,5 +1,6 @@
 import {currentUser} from './integrations.js';
 import {isPlatformOwnerUser} from './agent-branch-intelligence.js';
+import {ensureWhiteLabelBrainProvenance,recordWhiteLabelBrainClaim,listWhiteLabelBrainClaims} from './white-label-brain-provenance.js';
 
 const now=()=>Math.floor(Date.now()/1000);
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
@@ -45,6 +46,7 @@ async function ensure(env){
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,capability TEXT NOT NULL,provider TEXT NOT NULL DEFAULT 'native',task TEXT NOT NULL DEFAULT '',success INTEGER NOT NULL DEFAULT 0,quality REAL NOT NULL DEFAULT 0,cost_hint REAL NOT NULL DEFAULT 0,latency_ms INTEGER NOT NULL DEFAULT 0,notes TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL
  )`).run();
+ await ensureWhiteLabelBrainProvenance(env);
 }
 
 async function agencyPlan(env,user){
@@ -118,8 +120,10 @@ async function assist(request,env,ctx,downstream,user,plan){
  const b=await request.json().catch(()=>({})),app=appId(b.app),goal=clip(b.goal,12000),context=clip(b.context,12000);if(!goal)return json({detail:'Tell Magnanimous what you want help with.'},400);
  const client=await clientContext(env,user,b.client_id);if(!client.ok)return json({detail:client.detail},404);
  const memory=await memoryFor(env,user,{clientId:client.id,app,limit:18});
+ const claims=await listWhiteLabelBrainClaims(env,user,{clientId:client.id,app,limit:18});
  const learned=memory.map((x,i)=>`${i+1}. ${clip(x.lesson_key,160)}: ${clip(x.lesson_value,1500)}`).join('\n')||'(No client-specific lessons saved yet.)';
- const simple=`You are Magnanimous AI, the central brain for this White Label business platform. You are helping inside the ${app} app. Make the answer so simple that a young child could follow the steps, while keeping business details accurate. Use short steps, plain words, and concrete field values when useful. Never expose outside model/provider names. Never mix another client's private information into this client. Never claim a connected account action happened unless an authorized tool result proves it. If the user is drafting something, give ready-to-paste copy. If the user is configuring something, give the exact values and the next button to press.\n\nWHITE LABEL CLIENT CONTEXT\n${client.text}\n\nCLIENT/APP LESSONS MAGNANIMOUS HAS LEARNED\n${learned}\n\nCURRENT APP CONTEXT\n${context||'(none supplied)'}\n\nUSER GOAL\n${goal}`;
+ const sourcedClaims=claims.map((x,i)=>`${i+1}. [claim:${x.id}] ${x.text} (status: ${x.status}; source: ${x.source?.id||'missing'}; trust: ${x.source?.trust||'unknown'})`).join('\n')||'(No source-backed claims saved yet.)';
+ const simple=`You are Magnanimous AI, the central brain for this White Label business platform. You are helping inside the ${app} app. Make the answer so simple that a young child could follow the steps, while keeping business details accurate. Use short steps, plain words, and concrete field values when useful. Never expose outside model/provider names. Never mix another client's private information into this client. Never claim a connected account action happened unless an authorized tool result proves it. If the user is drafting something, give ready-to-paste copy. If the user is configuring something, give the exact values and the next button to press.\n\nWHITE LABEL CLIENT CONTEXT\n${client.text}\n\nCLIENT/APP LESSONS MAGNANIMOUS HAS LEARNED\n${learned}\n\nSOURCE-BACKED CLAIMS (cite [claim:id] when using these; disclose conflicts)\n${sourcedClaims}\n\nCURRENT APP CONTEXT\n${context||'(none supplied)'}\n\nUSER GOAL\n${goal}`;
  const headers=new Headers(request.headers);headers.set('content-type','application/json');
  const forwarded=new Request(new URL('/api/chat',request.url).toString(),{method:'POST',headers,body:JSON.stringify({message:simple,provider:'auto',use_knowledge:true,live_search:false,news:false,specialist_routing:true})});
  const response=await downstream.fetch(forwarded,env,ctx);const data=await response.clone().json().catch(()=>({}));
@@ -132,11 +136,19 @@ async function learn(request,env,user){
  const b=await request.json().catch(()=>({})),app=appId(b.app),client=await clientContext(env,user,b.client_id);if(!client.ok)return json({detail:client.detail},404);
  const raw=clip(b.lesson,12000);if(!raw)return json({detail:'Add the lesson Magnanimous should remember.'},400);rejectSecrets(raw);
  const value=redactPii(raw);const key=clip(b.key||`approved-${app}-${now()}`,160),evidence=redactPii(b.evidence||'Explicit White Label workspace teaching'),score=Math.max(.5,Math.min(1,Number(b.score??.85))),ts=now();
- await ensure(env);await env.DB.prepare(`INSERT INTO white_label_brain_memory(tenant_id,user_id,client_id,app,lesson_key,lesson_value,evidence,score,created_at,updated_at)
+ await ensure(env);
+ const provenance=await recordWhiteLabelBrainClaim(env,user,{clientId:client.id,app,key,value,evidence,score,correction:b.correction===true});
+ await env.DB.prepare(`INSERT INTO white_label_brain_memory(tenant_id,user_id,client_id,app,lesson_key,lesson_value,evidence,score,created_at,updated_at)
  VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(tenant_id,user_id,client_id,app,lesson_key) DO UPDATE SET lesson_value=excluded.lesson_value,evidence=excluded.evidence,score=MAX(white_label_brain_memory.score,excluded.score),updated_at=excluded.updated_at`)
  .bind(String(user.tenant_id),String(user.id),client.id,app,key,value,clip(evidence,3000),score,ts,ts).run();
  await addSignal(env,user,{clientId:client.id,app,eventType:'brain.lesson-approved',route:'/api/white-label/brain/learn',success:true,httpStatus:201,quality:score});
- return json({ok:true,brain:'Magnanimous AI',app,client_id:client.id||null,key,score,scope:'tenant+client isolated',global:false},201);
+ return json({ok:true,brain:'Magnanimous AI',app,client_id:client.id||null,key,score,scope:'tenant+client isolated',global:false,...provenance},201);
+}
+
+async function claims(env,user,clientId,app){
+ const client=await clientContext(env,user,clientId);if(!client.ok)return json({detail:client.detail},404);
+ const rows=await listWhiteLabelBrainClaims(env,user,{clientId:client.id,app:appId(app),limit:30});
+ return json({ok:true,brain:'Magnanimous AI',client_id:client.id||null,claims:rows,tenant_isolated:true,raw_source_content_included:false});
 }
 
 async function feedback(request,env,user){
@@ -160,6 +172,7 @@ export async function handleWhiteLabelBrain(request,env,ctx,downstream){
   if(url.pathname==='/api/white-label/brain/insights'&&request.method==='GET')return insights(env,user);
   const plan=await agencyPlan(env,user);if(!plan)return json({detail:'An active White Label Agency plan is required.'},403);
   if(url.pathname==='/api/white-label/brain/status'&&request.method==='GET')return json(await status(env,user,plan));
+  if(url.pathname==='/api/white-label/brain/claims'&&request.method==='GET')return claims(env,user,url.searchParams.get('client_id'),url.searchParams.get('app'));
   if(url.pathname==='/api/white-label/brain/assist'&&request.method==='POST')return assist(request,env,ctx,downstream,user,plan);
   if(url.pathname==='/api/white-label/brain/learn'&&request.method==='POST')return learn(request,env,user);
   if(url.pathname==='/api/white-label/brain/feedback'&&request.method==='POST')return feedback(request,env,user);
