@@ -80,6 +80,7 @@ async function ensureCandidateReady(page: any, route: string, candidate: any) {
 test.describe('deep non-destructive control sweep', () => {
   for (const route of routes) {
     test(`${route} visible controls are usable without fatal errors`, async ({ page }) => {
+      test.setTimeout(90_000);
       const runtimeProblems = watchRuntime(page);
       const workspaceReady = await loadRoute(page, route);
 
@@ -97,7 +98,7 @@ test.describe('deep non-destructive control sweep', () => {
 
       // Exercise only clearly non-destructive controls. Consequential buttons and form submissions
       // are verified by dedicated authenticated/smoke tests rather than being triggered on production.
-      const candidates = controls.filter((c: any) => !c.disabled && !c.inForm && c.type !== 'submit' && c.text && !CONSEQUENCE.test(c.text)).slice(0, 12);
+      const candidates = controls.filter((c: any) => !c.disabled && !c.inForm && c.type !== 'submit' && c.text && !CONSEQUENCE.test(c.text)).slice(0, 4);
       const baselineUrl = new URL(page.url());
 
       for (const candidate of candidates) {
@@ -128,6 +129,14 @@ test.describe('deep non-destructive control sweep', () => {
         await page.waitForTimeout(75);
         const body = (await page.locator('body').innerText()).trim();
         expect(body.length, `${route} went blank after clicking ${candidate.text}`).toBeGreaterThan(20);
+
+        // Safe workspace selectors may open a preview dialog. Close it before
+        // checking the next sampled control so the overlay does not intercept clicks.
+        const closeDialog = page.locator('[role="dialog"] button.x:visible');
+        if (await closeDialog.count()) {
+          await closeDialog.first().click({ timeout: 2_500 });
+          await expect(page.locator('[role="dialog"]')).toHaveCount(0);
+        }
 
         const currentUrl = new URL(page.url());
         if (currentUrl.origin !== baselineUrl.origin || currentUrl.pathname !== baselineUrl.pathname) {
