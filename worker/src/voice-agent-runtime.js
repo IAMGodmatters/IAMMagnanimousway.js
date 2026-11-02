@@ -77,9 +77,11 @@ async function ensureSchema(env) {
   await env.DB.prepare("ALTER TABLE voice_agents ADD COLUMN handoff_phone TEXT NOT NULL DEFAULT ''").run().catch(() => {});
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS voice_agent_turns (
     id INTEGER PRIMARY KEY AUTOINCREMENT, tenant_id TEXT NOT NULL, call_id INTEGER,
-    provider_call_id TEXT, speaker TEXT NOT NULL, text TEXT NOT NULL, created_at INTEGER NOT NULL
+    provider_call_id TEXT, speaker TEXT NOT NULL, text TEXT NOT NULL, created_at INTEGER NOT NULL, expires_at INTEGER
   )`).run();
   await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_voice_agent_turns_call ON voice_agent_turns(call_id,id)').run();
+  await env.DB.prepare('ALTER TABLE voice_agent_turns ADD COLUMN expires_at INTEGER').run().catch(() => {});
+  await env.DB.prepare('DELETE FROM voice_agent_turns WHERE expires_at IS NOT NULL AND expires_at<=?').bind(now()).run().catch(() => {});
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS voice_do_not_call (
     tenant_id TEXT NOT NULL, phone TEXT NOT NULL, reason TEXT NOT NULL DEFAULT 'opt-out',
     created_at INTEGER NOT NULL, PRIMARY KEY(tenant_id,phone)
@@ -263,8 +265,8 @@ async function createTwilioCall(request, env, user, body, internalContext = {}) 
   await env.DB.prepare('UPDATE phone_calls SET provider_call_id=?,status=?,updated_at=? WHERE id=? AND tenant_id=?')
     .bind(String(data.sid), String(data.status || 'queued'), now(), callId, user.tenant_id).run();
   if (!deepgramVoiceEnabled(env)) {
-    await env.DB.prepare('INSERT INTO voice_agent_turns(tenant_id,call_id,provider_call_id,speaker,text,created_at) VALUES(?,?,?,?,?,?)')
-      .bind(user.tenant_id, callId, String(data.sid), 'assistant', opening, now()).run();
+    await env.DB.prepare('INSERT INTO voice_agent_turns(tenant_id,call_id,provider_call_id,speaker,text,created_at,expires_at) VALUES(?,?,?,?,?,?,?)')
+      .bind(user.tenant_id, callId, String(data.sid), 'assistant', opening, now(), now() + 30 * 86400).run();
   }
   return json({ call_id: callId, provider_call_id: data.sid, status: data.status || 'queued', provider: 'twilio-ai', agent: { id: agent.id, name: agent.name }, route_id: internalContext.selectedRoute?.route_id || null, interconnect_id: internalContext.selectedRoute?.interconnect_id || null, selected_route_applied: Boolean(internalContext.selectedRoute) }, 201);
 }
@@ -284,8 +286,8 @@ async function twilioTurn(request, env, url) {
   const voice = String(agent?.twilio_voice || '');
   if (!speech) return xml(gatherTwiml(request.url, 'I did not catch that. Please say that again.', voice));
 
-  await env.DB.prepare('INSERT INTO voice_agent_turns(tenant_id,call_id,provider_call_id,speaker,text,created_at) VALUES(?,?,?,?,?,?)')
-    .bind(call.tenant_id, call.id, providerCallId, 'caller', speech, now()).run();
+  await env.DB.prepare('INSERT INTO voice_agent_turns(tenant_id,call_id,provider_call_id,speaker,text,created_at,expires_at) VALUES(?,?,?,?,?,?,?)')
+    .bind(call.tenant_id, call.id, providerCallId, 'caller', speech, now(), now() + 30 * 86400).run();
 
   const lower = speech.toLowerCase();
   if (/\b(stop calling|do not call|don't call|remove me|opt out|unsubscribe)\b/.test(lower)) {
@@ -293,8 +295,8 @@ async function twilioTurn(request, env, url) {
     if (phone) await env.DB.prepare("INSERT OR REPLACE INTO voice_do_not_call(tenant_id,phone,reason,created_at) VALUES(?,?,?,?)")
       .bind(call.tenant_id, phone, 'caller opt-out', now()).run();
     const message = 'Understood. This number has been placed on the do-not-call list. Goodbye.';
-    await env.DB.prepare('INSERT INTO voice_agent_turns(tenant_id,call_id,provider_call_id,speaker,text,created_at) VALUES(?,?,?,?,?,?)')
-      .bind(call.tenant_id, call.id, providerCallId, 'assistant', message, now()).run();
+    await env.DB.prepare('INSERT INTO voice_agent_turns(tenant_id,call_id,provider_call_id,speaker,text,created_at,expires_at) VALUES(?,?,?,?,?,?,?)')
+      .bind(call.tenant_id, call.id, providerCallId, 'assistant', message, now(), now() + 30 * 86400).run();
     return xml(goodbyeTwiml(message, voice));
   }
   if (/\b(goodbye|bye|hang up|end call)\b/.test(lower)) return xml(goodbyeTwiml('Thank you for speaking with me. Goodbye.', voice));
@@ -302,8 +304,8 @@ async function twilioTurn(request, env, url) {
   const { results } = await env.DB.prepare('SELECT speaker,text FROM voice_agent_turns WHERE call_id=? ORDER BY id DESC LIMIT 12').bind(call.id).all();
   const history = (results || []).reverse().slice(0, -1);
   const reply = await aiReply(env, agent, history, speech);
-  await env.DB.prepare('INSERT INTO voice_agent_turns(tenant_id,call_id,provider_call_id,speaker,text,created_at) VALUES(?,?,?,?,?,?)')
-    .bind(call.tenant_id, call.id, providerCallId, 'assistant', reply, now()).run();
+  await env.DB.prepare('INSERT INTO voice_agent_turns(tenant_id,call_id,provider_call_id,speaker,text,created_at,expires_at) VALUES(?,?,?,?,?,?,?)')
+    .bind(call.tenant_id, call.id, providerCallId, 'assistant', reply, now(), now() + 30 * 86400).run();
   return xml(gatherTwiml(request.url, reply, voice));
 }
 
@@ -393,8 +395,8 @@ async function twilioIncoming(request, env) {
     const consentAction = `${origin}/api/voice-agent/twilio/consent?call_id=${call.id}`;
     return xml(buildDeepgramConsentTwiml(consentAction));
   }
-  await env.DB.prepare('INSERT INTO voice_agent_turns(tenant_id,call_id,provider_call_id,speaker,text,created_at) VALUES(?,?,?,?,?,?)')
-    .bind(tenantId, call.id, sid, 'assistant', opening, now()).run();
+  await env.DB.prepare('INSERT INTO voice_agent_turns(tenant_id,call_id,provider_call_id,speaker,text,created_at,expires_at) VALUES(?,?,?,?,?,?,?)')
+    .bind(tenantId, call.id, sid, 'assistant', opening, now(), now() + 30 * 86400).run();
   return xml(gatherTwiml(action, opening, agent.twilio_voice));
 }
 
