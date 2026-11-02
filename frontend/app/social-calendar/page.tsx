@@ -31,6 +31,7 @@ export default function SocialCalendar(){
  const [items,setItems]=useState<Item[]>([]);
  const [provider,setProvider]=useState<Provider>("youtube");
  const [scheduledLocal,setScheduledLocal]=useState("");
+ const [minimumTime,setMinimumTime]=useState("");
  const [idempotencyKey,setIdempotencyKey]=useState("");
  const [timezone,setTimezone]=useState("UTC");
  const [videoUrl,setVideoUrl]=useState("");
@@ -49,13 +50,13 @@ export default function SocialCalendar(){
  const [approvals,setApprovals]=useState<Record<string,boolean>>({});
  const supported=useMemo(()=>connections.filter(c=>["youtube","tiktok","linkedin"].includes(c.id)&&c.connected),[connections]);
  const activeConnection=supported.find(c=>c.id===provider);
- const minimumTime=localInputValue(new Date(Date.now()+16*60*1000));
  useEffect(()=>{
   const t=getPlatformAuthToken();
   if(!t){location.replace("/login");return;}
   setToken(t);
   try{setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone||"UTC");}catch{setTimezone("UTC");}
   setScheduledLocal(localInputValue(new Date(Date.now()+45*60*1000)));
+  setMinimumTime(localInputValue(new Date(Date.now()+16*60*1000)));
   setIdempotencyKey(crypto.randomUUID());
   void load(t);
  },[]);
