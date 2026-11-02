@@ -21,7 +21,7 @@ export const MAGNANIMOUS_VOICE_ENGINE_KNOWLEDGE = Object.freeze({
     provider: 'Deepgram Voice Agent API',
     transport: 'Existing Twilio bidirectional Media Streams over WebSocket; no new PBX or phone number',
     speech_recognition: 'Deepgram Nova-3 multilingual listen provider with language=multi for English/Filipino code-switching; Cebuano/Bisaya is not claimed',
-    speech_synthesis: 'Deepgram-managed Cartesia Sonic 3.5, language=multi, public Customer Support Man voice preset; Tagalog is in the supported language list',
+    speech_synthesis: 'Deepgram-managed Cartesia Sonic 3.5, language=multi, public Cartesia preset voice ID from the Deepgram integration example; Tagalog is in the supported language list',
     reasoning_brain: 'Magnanimous AI through the authenticated OpenAI-compatible think endpoint backed by the existing Workers AI binding',
     ownership: 'Deepgram is speech/transport infrastructure only; Magnanimous AI owns prompts, reasoning, tenant context and policy',
     consent: 'Caller hears speech-processing/transcript disclosure and must press 1 before a media stream is opened',
