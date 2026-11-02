@@ -112,7 +112,7 @@ function normalizedPayload(provider,body){
 }
 function parsePayload(row){try{return JSON.parse(row.payload_json||'{}')}catch{return{}}}
 function publicRow(row){
- const {payload_json,...safe}=row;
+ const {payload_json,tenant_id,created_by,approved_by,approval_hash,idempotency_key,...safe}=row;
  return {...safe,payload:parsePayload(row)};
 }
 async function sha256(value){
