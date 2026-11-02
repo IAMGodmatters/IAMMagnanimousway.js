@@ -1,6 +1,7 @@
 import { currentUser } from './integrations.js';
 import { ensureSocialPublishingSchema, publishSocialPostForTenant, pollTikTokPublishStatus } from './social-publishing-runtime.js';
 import { assessAiTransparency } from './ai-transparency.js';
+import { validIanaTimezone, timezoneOffsetMatches } from './social-timezone.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
@@ -43,26 +44,6 @@ async function ensureSchema(env){
  }
  try{await pending}catch(error){socialSchedulingSchemaReady.delete(db);throw error}
 }
-function validTimezone(value){
- const tz=String(value||'').trim();
- if(!tz||tz.length>80)return '';
- try{new Intl.DateTimeFormat('en-US',{timeZone:tz}).format(new Date());return tz}catch{return ''}
-}
-function timezoneOffsetMatches(value,timezone){
- const raw=String(value||'').trim();
- const match=raw.match(/(Z|([+-])(\d{2}):(\d{2}))$/i);
- if(!match)return false;
- const date=new Date(raw),ms=date.getTime();
- if(!Number.isFinite(ms))return false;
- const supplied=match[1].toUpperCase()==='Z'?0:(match[2]==='-'?-1:1)*(Number(match[3])*60+Number(match[4]));
- try{
-  const parts=new Intl.DateTimeFormat('en-US',{timeZone:timezone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(date);
-  const v=Object.fromEntries(parts.filter(x=>x.type!=='literal').map(x=>[x.type,Number(x.value)]));
-  const localAsUtc=Date.UTC(v.year,v.month-1,v.day,v.hour,v.minute,v.second);
-  const actual=Math.round((localAsUtc-Math.floor(ms/1000)*1000)/60000);
-  return actual===supplied;
- }catch{return false}
-}
 function parseSchedule(value){
  const raw=String(value||'').trim();
   if(!/(?:Z|[+-]\d{2}:\d{2})$/i.test(raw))return 0;
@@ -74,7 +55,7 @@ function publicHttpsUrl(value){
   const u=new URL(String(value||''));
   if(u.protocol!=='https:'||u.username||u.password)return false;
   const h=u.hostname.toLowerCase();
-   if(!h||h==='localhost'||h.endsWith('.localhost')||h.endsWith('.local')||h.endsWith('.internal')||h.endsWith('.test')||h.includes(':')||/^\d{1,3}(?:\.\d{1,3}){3}$/.test(h)||/^10\./.test(h)||/^192\.168\./.test(h)||/^169\.254\./.test(h)||/^172\.(1[6-9]|2\d|3[01])\./.test(h))return false;
+   if(!h||h==='localhost'||h.endsWith('.localhost')||h.endsWith('.local')||h.endsWith('.internal')||h.endsWith('.test')||h.endsWith('.invalid')||h.includes(':')||/^\d{1,3}(?:\.\d{1,3}){3}$/.test(h)||/^10\./.test(h)||/^192\.168\./.test(h)||/^169\.254\./.test(h)||/^172\.(1[6-9]|2\d|3[01])\./.test(h))return false;
   return true;
  }catch{return false}
 }
@@ -160,7 +141,7 @@ async function handleCreate(request,env,user){
  if(!body||typeof body!=='object'||Array.isArray(body))return json({detail:'A JSON schedule draft is required.'},400);
  if(!PROVIDERS.has(String(body.provider||'')))return json({detail:'Choose a supported connected provider: YouTube, TikTok or LinkedIn.'},400);
  const provider=String(body.provider);
- const scheduledAt=parseSchedule(body.scheduled_at),tz=validTimezone(body.timezone);
+ const scheduledAt=parseSchedule(body.scheduled_at),tz=validIanaTimezone(body.timezone);
  if(!scheduledAt||!tz)return json({detail:'Use a valid date/time with an explicit UTC offset and a valid IANA timezone.'},400);
  if(!timezoneOffsetMatches(body.scheduled_at,tz))return json({detail:'The UTC offset does not match the selected timezone at that date and time. This can happen during a daylight-saving change; choose a valid local time.'},400);
  if(scheduledAt<now()+900)return json({detail:'Schedule at least 15 minutes ahead. The free Worker scheduler checks every 15 minutes.'},400);
