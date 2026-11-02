@@ -313,7 +313,7 @@ async function twilioTurn(request, env, url) {
 
 async function twilioConsent(request, env, url) {
   if (!await validateTwilioRequest(request, env)) return xml(goodbyeTwiml('This call could not be authenticated.'), 403);
-  if (!await deepgramVoiceEnabled(env)) return xml(goodbyeTwiml('The realtime AI service is not configured.'), 503);
+  if (!await deepgramVoiceEnabled(env)) return xml(goodbyeTwiml('The realtime AI service is not configured. Please call again later.'));
   const callId = Number(url.searchParams.get('call_id') || 0);
   const call = callId ? await env.DB.prepare('SELECT * FROM phone_calls WHERE id=?').bind(callId).first() : null;
   if (!call) return xml(goodbyeTwiml('This call session is unavailable.'), 404);
