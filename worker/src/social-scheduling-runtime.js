@@ -236,12 +236,13 @@ export async function scheduledSocialPublishing(env){
  // A worker that died after claiming a post must never cause an automatic duplicate.
  await env.DB.prepare(`UPDATE social_scheduled_posts SET status='outcome_unknown',last_error='The worker stopped after claiming this post. The provider outcome must be checked before any new attempt.',updated_at=?
   WHERE status='publishing' AND updated_at<?`).bind(ts,ts-1800).run();
- let processingCount=0;
+ let published=0,failed=0,outcomeUnknown=0,claimed=0,processed=0,processingCount=0;
  const {results:pendingTikTok=[]}=await env.DB.prepare(`SELECT * FROM social_scheduled_posts
   WHERE provider='tiktok' AND status='processing' AND updated_at<=?
   ORDER BY updated_at ASC LIMIT 1`).bind(ts-60).all();
  for(const item of pendingTikTok){
-  if(Number(item.created_at)<ts-48*3600){
+  processed++;
+  if(Number(item.locked_at||item.updated_at)<ts-48*3600){
    await env.DB.prepare(`UPDATE social_scheduled_posts SET status='outcome_unknown',last_error='TikTok has not returned a final status within 48 hours. Check TikTok directly before creating another post.',updated_at=?
     WHERE id=? AND tenant_id=? AND status='processing'`).bind(ts,item.id,item.tenant_id).run();
    outcomeUnknown++;continue;
@@ -276,7 +277,6 @@ export async function scheduledSocialPublishing(env){
  const {results=[]}=await env.DB.prepare(`SELECT * FROM social_scheduled_posts
   WHERE status='scheduled' AND scheduled_at<=? AND approval_hash IS NOT NULL
   ORDER BY scheduled_at ASC LIMIT 1`).bind(ts).all();
- let published=0,failed=0,outcomeUnknown=0,claimed=0,processed=0;
  for(const row of results){
   processed++;
   const payload=parsePayload(row);
