@@ -96,7 +96,7 @@ assert.match(runtime, /ai_voice_consent/);
 assert.match(runtime, /createDeepgramVoiceStreamToken/);
 assert.match(runtime, /handoff_phone/);
 assert.match(runtime, /expires_at/);
-assert.match(bridge, /sec-websocket-protocol/);
+assert.match(bridge, /authorization:"Token "\+apiKey/);
 assert.match(bridge, /voice_provider_sessions/);
 assert.match(bridge, /DEEPGRAM_VOICE_MONTHLY_MINUTES_CAP/);
 assert.match(bridge, /AgentAudioDone/);
