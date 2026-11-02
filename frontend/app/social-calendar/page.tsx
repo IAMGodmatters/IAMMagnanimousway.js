@@ -6,7 +6,7 @@ const api=process.env.NEXT_PUBLIC_API_BASE_URL||"";
 type Provider="youtube"|"tiktok"|"linkedin";
 type Connection={id:string;name:string;connected:boolean;display_name:string;external_id:string};
 type Item={
- id:string;provider:Provider;external_id:string;scheduled_at:number;timezone:string;status:string;
+ id:string;provider:Provider;external_id:string;account_display_name?:string;scheduled_at:number;timezone:string;status:string;
  payload:Record<string,unknown>;last_error?:string;created_at:number;approved_at?:number;
  provider_receipt_json?:string;
 };
@@ -180,9 +180,11 @@ export default function SocialCalendar(){
    <div className="sectionHeading"><div><small>YOUR WORKSPACE</small><h2>Scheduled posts and drafts</h2></div><button className="refresh" type="button" onClick={()=>void load(token)} disabled={loading}>Refresh</button></div>
    {loading?<p className="hint">Loading the publishing calendar…</p>:items.length===0?<div className="empty">No scheduled posts yet. Your saved drafts and approved posts will appear here.</div>:<div className="items">
     {items.map(item=><article className="item" key={item.id}>
-     <div className="itemTop"><strong>{item.provider.toUpperCase()}</strong><span className={"status "+item.status}>{item.status.replaceAll("_"," ")}</span></div>
+     <div className="itemTop"><strong>{item.provider.toUpperCase()} · {item.account_display_name||"Connected account"}</strong><span className={"status "+item.status}>{item.status.replaceAll("_"," ")}</span></div>
      <p className="preview">{content(item)}</p>
-     <div className="meta">{readDate(item.scheduled_at,item.timezone)} · {item.timezone}</div>
+     {Boolean(item.payload.video_url)&&<p className="meta">Media to publish: <a href={String(item.payload.video_url)} target="_blank" rel="noreferrer">{String(item.payload.video_url)}</a></p>}
+     {Boolean(item.payload.description)&&<p className="meta">Description: {String(item.payload.description)}</p>}
+     <div className="meta">Visibility: {String(item.payload.privacy_status||item.payload.privacy_level||"LinkedIn public post")} · {readDate(item.scheduled_at,item.timezone)} · {item.timezone}</div>
      {item.status==="draft"&&<div className="approval">
       <label className="check"><input type="checkbox" checked={Boolean(approvals[item.id])} onChange={e=>setApprovals(old=>({...old,[item.id]:e.target.checked}))} /> I approve this exact content, connected account and publishing time for automatic posting.</label>
       <button className="primary" type="button" disabled={!approvals[item.id]||busy==="approve-"+item.id} onClick={()=>void approve(item)}>{busy==="approve-"+item.id?"Approving…":"Approve and schedule"}</button>
