@@ -26,7 +26,7 @@ export function deepgramVoiceReadiness(env={}){
  else if(!["deepgram","cartesia"].includes(tts))missing.push("supported TTS provider (deepgram or cartesia)");
  return {enabled:flag(env.DEEPGRAM_VOICE_AGENT_ENABLED),ready:missing.length===0,provider:"Deepgram Voice Agent + Magnanimous AI",tts_provider:tts,language,missing};
 }
-export function deepgramVoiceEnabled(env={}){return deepgramVoiceReadiness(env).ready;}
+export async function deepgramVoiceEnabled(env={}){return (await deepgramVoiceRuntimeReadiness(env)).ready;}
 export async function createDeepgramVoiceStreamToken(env,call,agent){
  if(!call?.id||!call?.tenant_id||!agent?.id)throw new Error("VOICE_CALL_SCOPE_REQUIRED");
  return signToken(env,{scope:"stream",call_id:Number(call.id),tenant_id:String(call.tenant_id),agent_id:String(agent.id),exp:now()+600,nonce:crypto.randomUUID()});
@@ -248,8 +248,7 @@ export async function handleDeepgramVoiceAgentRoutes(request,env,url=new URL(req
  if(url.pathname==="/api/voice-agent/think")return handleThink(request,env);
  if(url.pathname!=="/api/voice-agent/twilio/stream")return null;
  if(request.method!=="GET"||String(request.headers.get("upgrade")||"").toLowerCase()!=="websocket")return json({detail:"A secure WebSocket upgrade is required."},426);
- if(!deepgramVoiceEnabled(env))return json({detail:"Realtime voice service is not configured.",readiness:deepgramVoiceReadiness(env)},503);
- if(!await signingSecret(env))return json({detail:"The voice-session signing secret is not configured."},503);
+ if(!await deepgramVoiceEnabled(env))return json({detail:"Realtime voice service is not configured.",readiness:await deepgramVoiceRuntimeReadiness(env)},503);
  if(!await rateLimitStreamHandshake(env,request))return json({detail:"Voice stream connection limit reached."},429);
  if(typeof WebSocketPair!=="function")return json({detail:"This runtime does not support WebSocket media streams."},501);
  const pair=new WebSocketPair(),client=pair[0],server=pair[1];server.accept();
