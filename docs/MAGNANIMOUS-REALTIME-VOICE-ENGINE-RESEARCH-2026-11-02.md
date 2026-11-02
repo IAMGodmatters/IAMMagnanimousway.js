@@ -9,6 +9,8 @@ The supplied Facebook Reel URL could not be retrieved by the research tools: Fac
 
 ## Executive decision
 
+The supplied Reel specifically promotes Microsoft's `microsoft/call-center-ai` repository. Its clean-room feature, code-path, Apache-2.0 license and Azure-dependency review is recorded in `docs/MICROSOFT-CALL-CENTER-AI-CLEAN-ROOM-RESEARCH-2026-11-02.md`. Absorb its structured call-state, bidirectional media, event idempotency, customer task capture, human handoff and post-call quality patterns; do not adopt its Azure stack as a mandatory dependency.
+
 Do not replace the owned Magnanimous Telecom Core and do not add a second PBX. Keep Magnanimous AI as the only identity, memory, reasoning, policy and orchestration brain. Keep Asterisk as the authoritative SIP/PBX/call lifecycle layer. Evaluate Pipecat as the realtime speech-pipeline worker, connected through Asterisk's native WebSocket media channel. Do not add LiveKit as a second media/PBX stack by default; retain it as an alternate transport/agent framework if later measured requirements justify it.
 
 This is an architecture decision and test plan, not a production activation. The current repository does not yet contain a deployed Pipecat adapter or prove a live public PSTN voice-agent call.
@@ -125,6 +127,8 @@ The same Magnanimous AI brain handles both public-telephone and browser/WebRTC i
 - whisper.cpp: https://github.com/ggml-org/whisper.cpp
 - Kokoro-82M model card: https://huggingface.co/hexgrad/Kokoro-82M
 - CallKit: https://callkit.dev/
+- Microsoft Call Center AI: https://github.com/microsoft/call-center-ai
+- Microsoft Call Center AI clean-room review: `docs/MICROSOFT-CALL-CENTER-AI-CLEAN-ROOM-RESEARCH-2026-11-02.md`
 
 ## Current status
 
