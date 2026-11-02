@@ -5,7 +5,7 @@ Base commit reviewed: 524737c53e57d8013e5c945621b30710d582b990 (main)
 
 ## Evidence boundary
 
-The supplied Facebook Reel URL could not be retrieved by the research tools: Facebook returned a cache/fetch failure and searches for the share identifier returned no indexed transcript. This document therefore records independently verified voice/contact-center research and a repository audit. It does not claim to summarize the Reel's spoken content. The Reel itself still needs a file upload, screen recording or transcript for claim-by-claim verification.
+The Facebook Reel's caption/source metadata was subsequently retrieved and identified Microsoft's `microsoft/call-center-ai` project. The Reel itself was not available as a playable audiovisual asset or transcript, so this document does not claim to quote or verify its spoken narration. The exact repository, README, LICENSE and implementation files were inspected; the clean-room audit is recorded in `docs/MICROSOFT-CALL-CENTER-AI-CLEAN-ROOM-RESEARCH-2026-11-02.md`.
 
 ## Executive decision
 
