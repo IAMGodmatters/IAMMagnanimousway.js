@@ -80,10 +80,14 @@ export async function listWhiteLabelBrainClaims(env,user,{clientId='',app='platf
    AND (c.app=? OR c.app='platform') AND c.status IN ('active','conflicted')
   ORDER BY CASE WHEN c.client_id=? THEN 0 ELSE 1 END,
    CASE WHEN c.app=? THEN 0 ELSE 1 END,c.updated_at DESC LIMIT ?`)
-  .bind(tenant,client,application,client,application,cap).all();
- return results.map(row=>({
-  id:String(row.id),key:String(row.claim_key),text:String(row.claim_text),type:String(row.claim_type),
-  status:String(row.status),confidence:Number(row.confidence||0),observed_at:Number(row.observed_at||0),
-  source:row.source_id?{id:String(row.source_id),type:String(row.source_type),label:String(row.source_label||''),trust:String(row.trust_tier),captured_at:Number(row.captured_at||0)}:null
- }));
+  .bind(tenant,client,application,client,application,Math.min(120,cap*4)).all();
+ const seen=new Set(),out=[];
+ for(const row of results){
+  const claimId=String(row.id||'');if(!claimId||seen.has(claimId))continue;seen.add(claimId);
+  out.push({id:claimId,key:String(row.claim_key),text:String(row.claim_text),type:String(row.claim_type),
+   status:String(row.status),confidence:Number(row.confidence||0),observed_at:Number(row.observed_at||0),
+   source:row.source_id?{id:String(row.source_id),type:String(row.source_type),label:String(row.source_label||''),trust:String(row.trust_tier),captured_at:Number(row.captured_at||0)}:null});
+  if(out.length>=cap)break;
+ }
+ return out;
 }
