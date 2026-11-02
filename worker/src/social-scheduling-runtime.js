@@ -183,7 +183,7 @@ export async function handleSocialScheduling(request,env){
    return json({items:results.map(publicRow),scheduler:{enabled:true,interval_minutes:15,automatic_retry:false}});
   }
   if(path==='/api/social-schedule'&&request.method==='POST')return await handleCreate(request,env,user);
-  const match=path.match(/^\\/api\\/social-schedule\\/([a-f0-9-]{36})\\/(approve|cancel)$/i);
+  const match=path.match(/^\/api\/social-schedule\/([a-f0-9-]{36})\/(approve|cancel)$/i);
   if(match&&request.method==='POST'){
    const id=match[1],action=match[2];
    return action==='approve'?await handleApprove(request,env,user,id):await handleCancel(request,env,user,id);
