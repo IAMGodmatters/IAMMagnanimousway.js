@@ -2,6 +2,7 @@ name: Deepgram Streaming Call Center Lock
 
 on:
   push:
+    branches: [main]
     paths:
       - 'worker/src/deepgram-voice-agent-runtime.js'
       - 'worker/src/voice-agent-runtime.js'
