@@ -85,15 +85,21 @@ async function reserveUsage(env,call){
  const callId=Number(call.id);
  const existing=await env.DB.prepare("SELECT * FROM voice_provider_sessions WHERE call_id=? AND provider='deepgram'").bind(callId).first();
  if(existing)return{ok:false,reason:"call_session_already_reserved"};
- const ts=now(),dayStart=Math.floor(ts/86400)*86400;
+ const ts=now(),dayStart=Math.floor(ts/86400)*86400,monthStart=Math.floor(ts/2592000)*2592000;
  await env.DB.prepare("INSERT INTO voice_provider_sessions(call_id,tenant_id,provider,started_at,ended_at,billed_seconds) VALUES(?,?,'deepgram',?,NULL,0)").bind(callId,String(call.tenant_id),ts).run();
  const maxConcurrent=Math.min(4,Math.max(1,Number(env.DEEPGRAM_VOICE_MAX_CONCURRENT_CALLS||1)||1));
  const active=await env.DB.prepare("SELECT COUNT(*) AS n FROM voice_provider_sessions WHERE provider='deepgram' AND ended_at IS NULL").first();
  if(Number(active?.n||0)>maxConcurrent){await finishUsage(env,callId);return{ok:false,reason:"concurrency_limit"};}
- const dailyCap=Math.min(240,Math.max(1,Number(env.DEEPGRAM_VOICE_DAILY_MINUTES_CAP||30)||30));
- const usage=await env.DB.prepare("SELECT COALESCE(SUM(CASE WHEN ended_at IS NULL THEN MAX(0,?-started_at) ELSE billed_seconds END),0) AS seconds FROM voice_provider_sessions WHERE provider='deepgram' AND started_at>=?").bind(ts,dayStart).first();
- if(Number(usage?.seconds||0)>dailyCap*60){await finishUsage(env,callId);return{ok:false,reason:"daily_usage_limit"};}
- return{ok:true,max_call_seconds:Math.min(1800,Math.max(60,Number(env.DEEPGRAM_VOICE_MAX_CALL_SECONDS||900)||900))};
+ const usageSql="SELECT COALESCE(SUM(CASE WHEN ended_at IS NULL THEN MAX(0,?-started_at) ELSE billed_seconds END),0) AS seconds FROM voice_provider_sessions WHERE provider='deepgram' AND started_at>=?";
+ const dailyCap=Math.min(240,Math.max(1,Number(env.DEEPGRAM_VOICE_DAILY_MINUTES_CAP||5)||5));
+ const monthlyCap=Math.min(1440,Math.max(1,Number(env.DEEPGRAM_VOICE_MONTHLY_MINUTES_CAP||20)||20));
+ const daily=await env.DB.prepare(usageSql).bind(ts,dayStart).first();
+ const monthly=await env.DB.prepare(usageSql).bind(ts,monthStart).first();
+ const dailyRemaining=dailyCap*60-Number(daily?.seconds||0),monthlyRemaining=monthlyCap*60-Number(monthly?.seconds||0);
+ const remaining=Math.min(dailyRemaining,monthlyRemaining);
+ if(remaining<30){await finishUsage(env,callId);return{ok:false,reason:dailyRemaining<30?"daily_usage_limit":"monthly_usage_limit"};}
+ const configuredMax=Math.min(1800,Math.max(60,Number(env.DEEPGRAM_VOICE_MAX_CALL_SECONDS||300)||300));
+ return{ok:true,max_call_seconds:Math.min(configuredMax,remaining)};
 }
 async function connectDeepgram(env){
  const response=await fetch("https://agent.deepgram.com/v1/agent/converse",{headers:{authorization:"Token "+String(env.DEEPGRAM_API_KEY||""),upgrade:"websocket"}});
@@ -122,7 +128,8 @@ async function handleThink(request,env){
  const messages=supplied.slice(-14).map(item=>{const role=["user","assistant"].includes(String(item?.role))?String(item.role):null;const content=typeof item?.content==="string"?item.content.slice(0,4000):"";return role&&content?{role,content}:null;}).filter(Boolean);
  if(!messages.length)return json({error:{message:"No caller speech was supplied."}},400);
  const system=["You are Magnanimous AI. This is a live telephone conversation.",String(agent.instructions||""),"Keep answers concise, natural, truthful, and easy to understand aloud.","Mirror the caller's language, including English and Filipino/Tagalog code-switching.","Do not invent business facts, availability, prices, account access, or completed actions.","Do not claim that you transferred a caller or completed an external action unless call control confirms it.","Never request payment card numbers, bank passwords, authentication secrets, or government identification numbers.","If uncertain, ask a short clarifying question or say a human representative must confirm."].filter(Boolean).join("\n");
- const promptMessages=[{role:"system",content:system},...messages];
+ const providerSystem=supplied.filter(item=>String(item?.role)==="system").slice(0,2).map(item=>String(item?.content||"").slice(0,5000)).filter(Boolean).join("\n");
+ const promptMessages=[{role:"system",content:system+"\n"+providerSystem},...messages];
  const models=[...new Set([String(env.CLOUDFLARE_AI_MODEL||"").trim(),"@cf/meta/llama-3.1-8b-instruct-fast","@cf/meta/llama-3.2-1b-instruct"].filter(Boolean))];
  let answer="";
  for(const model of models){try{const result=await env.AI.run(model,{messages:promptMessages,max_tokens:180});answer=String(result?.response||result?.result?.response||result?.result||"").trim();if(answer)break;}catch{}}
@@ -142,7 +149,7 @@ async function reserveCallContext(env,streamToken,callSid){
  const agent=await env.DB.prepare("SELECT * FROM voice_agents WHERE id=? AND tenant_id=? AND active=1").bind(String(claims.agent_id),String(claims.tenant_id)).first();
  if(!agent)throw new Error("VOICE_AGENT_NOT_AVAILABLE");
  const usage=await reserveUsage(env,call);if(!usage.ok)throw new Error("VOICE_PROVIDER_"+usage.reason.toUpperCase());
- return{claims,call,agent,usage};
+ return{claims,call,agent:{...agent,opening_message:String(metadata.voice_opening_message||agent.opening_message||"")},usage};
 }
 
 export async function handleDeepgramVoiceAgentRoutes(request,env,url=new URL(request.url)){
