@@ -51,6 +51,8 @@ includes(provenance,"'user_explicit_teaching'",'provenance: authenticated user t
 includes(provenance,"'user_asserted'",'provenance: source trust tier is explicit');
 includes(provenance,"status IN ('active','conflicted','superseded','withdrawn')",'provenance: claim lifecycle preserves conflicts and corrections');
 includes(provenance,"correction?'superseded':'conflicted'",'provenance: conflicting claims are retained unless explicitly corrected');
+includes(provenance,"status='superseded'",'provenance: explicit correction resolves competing claims');
+includes(provenance,"status='active'",'provenance: explicitly corrected claim becomes active again');
 includes(provenance,"WHERE tenant_id=? AND client_id=? AND app=? AND claim_key=?",'privacy: conflict resolution is tenant/client/app scoped');
 includes(provenance,"WHERE c.tenant_id=? AND (c.client_id=? OR c.client_id='')",'privacy: claim retrieval is tenant and client scoped');
 includes(provenance,'s.deleted_at IS NULL','privacy: deleted sources are excluded from retrieval');
