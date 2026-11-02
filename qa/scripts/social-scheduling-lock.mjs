@@ -37,7 +37,7 @@ has(scheduling,'Only the workspace owner or administrator can approve','Approval
 has(scheduling,'Only the workspace owner or administrator can cancel','Cancellation API must enforce the same workspace manager boundary');
 has(page,'/api/auth/me','Calendar must load current workspace role before showing approval controls');
 has(page,'The workspace owner or administrator must review','Non-owner members must see an explicit approval-required state');
-has(scheduling,'validTimezone(body.timezone)','Schedule must validate an IANA timezone');
+has(scheduling,'validIanaTimezone(body.timezone)','Schedule must validate an IANA timezone through the shared tested helper');
 has(scheduling,'explicit UTC offset','Schedule datetime must carry an explicit UTC offset');
 has(scheduling,'new TextEncoder().encode(raw).byteLength>20000','Schedule request body must be bounded');
 has(scheduling,'UNIQUE(tenant_id,idempotency_key)','Idempotency must be unique within a tenant');
