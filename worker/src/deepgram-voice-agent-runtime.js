@@ -99,12 +99,12 @@ export async function deepgramVoiceRuntimeReadiness(env={}){
  return {...base,ready:missing.length===0,missing};
 }
 async function finishUsage(env,callId){
- try{const ts=now(),max=Math.min(1800,Math.max(60,Number(env.DEEPGRAM_VOICE_MAX_CALL_SECONDS||600)||600));await env.DB.prepare("UPDATE voice_provider_sessions SET ended_at=COALESCE(ended_at,?),billed_seconds=MAX(billed_seconds,MIN(?,MAX(0,?-started_at))) WHERE call_id=? AND provider='deepgram'").bind(ts,max,ts,Number(callId)).run();}catch{}
+ try{const ts=now(),max=Math.min(600,Math.max(60,Number(env.DEEPGRAM_VOICE_MAX_CALL_SECONDS||600)||600));await env.DB.prepare("UPDATE voice_provider_sessions SET ended_at=COALESCE(ended_at,?),billed_seconds=MAX(billed_seconds,MIN(?,MAX(0,?-started_at))) WHERE call_id=? AND provider='deepgram'").bind(ts,max,ts,Number(callId)).run();}catch{}
 }
 async function reserveUsage(env,call){
  await ensureUsageSchema(env);
  const callId=Number(call.id),tenantId=String(call.tenant_id),ts=now();
- const configuredMax=Math.min(1800,Math.max(60,Number(env.DEEPGRAM_VOICE_MAX_CALL_SECONDS||600)||600));
+ const configuredMax=Math.min(600,Math.max(60,Number(env.DEEPGRAM_VOICE_MAX_CALL_SECONDS||600)||600));
  const staleBefore=ts-configuredMax-120;
  await env.DB.prepare("UPDATE voice_provider_sessions SET ended_at=COALESCE(ended_at,?),billed_seconds=MAX(billed_seconds,MIN(?,MAX(0,?-started_at))) WHERE provider='deepgram' AND ended_at IS NULL AND started_at<?")
   .bind(ts,configuredMax,ts,staleBefore).run();
@@ -112,7 +112,7 @@ async function reserveUsage(env,call){
  if(existing)return{ok:false,reason:"call_session_already_reserved"};
  const dayStart=Math.floor(ts/86400)*86400,monthDate=new Date(ts*1000),monthStart=Math.floor(Date.UTC(monthDate.getUTCFullYear(),monthDate.getUTCMonth(),1)/1000);
  await env.DB.prepare("INSERT INTO voice_provider_sessions(call_id,tenant_id,provider,started_at,ended_at,billed_seconds) VALUES(?,?,'deepgram',?,NULL,0)").bind(callId,tenantId,ts).run();
- const maxConcurrent=Math.min(4,Math.max(1,Number(env.DEEPGRAM_VOICE_MAX_CONCURRENT_CALLS||2)||2));
+ const maxConcurrent=Math.min(2,Math.max(1,Number(env.DEEPGRAM_VOICE_MAX_CONCURRENT_CALLS||2)||2));
  const tenantMaxConcurrent=Math.min(maxConcurrent,Math.max(1,Number(env.DEEPGRAM_VOICE_TENANT_MAX_CONCURRENT_CALLS||1)||1));
  const active=await env.DB.prepare("SELECT COUNT(*) AS n FROM voice_provider_sessions WHERE provider='deepgram' AND ended_at IS NULL").first();
  if(Number(active?.n||0)>maxConcurrent){await finishUsage(env,callId);return{ok:false,reason:"platform_concurrency_limit"};}
@@ -120,8 +120,8 @@ async function reserveUsage(env,call){
  if(Number(tenantActive?.n||0)>tenantMaxConcurrent){await finishUsage(env,callId);return{ok:false,reason:"workspace_concurrency_limit"};}
  const usageSql="SELECT COALESCE(SUM(CASE WHEN ended_at IS NULL THEN MIN(?,MAX(0,?-started_at)) ELSE billed_seconds END),0) AS seconds FROM voice_provider_sessions WHERE provider='deepgram' AND started_at>=?";
  const tenantUsageSql="SELECT COALESCE(SUM(CASE WHEN ended_at IS NULL THEN MIN(?,MAX(0,?-started_at)) ELSE billed_seconds END),0) AS seconds FROM voice_provider_sessions WHERE provider='deepgram' AND tenant_id=? AND started_at>=?";
- const dailyCap=Math.min(240,Math.max(1,Number(env.DEEPGRAM_VOICE_DAILY_MINUTES_CAP||30)||30));
- const monthlyCap=Math.min(1440,Math.max(1,Number(env.DEEPGRAM_VOICE_MONTHLY_MINUTES_CAP||300)||300));
+ const dailyCap=Math.min(30,Math.max(1,Number(env.DEEPGRAM_VOICE_DAILY_MINUTES_CAP||30)||30));
+ const monthlyCap=Math.min(300,Math.max(1,Number(env.DEEPGRAM_VOICE_MONTHLY_MINUTES_CAP||300)||300));
  const tenantDailyCap=Math.min(dailyCap,Math.max(1,Number(env.DEEPGRAM_VOICE_TENANT_DAILY_MINUTES_CAP||20)||20));
  const tenantMonthlyCap=Math.min(monthlyCap,Math.max(1,Number(env.DEEPGRAM_VOICE_TENANT_MONTHLY_MINUTES_CAP||150)||150));
  const [daily,monthly,tenantDaily,tenantMonthly]=await Promise.all([
