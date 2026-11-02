@@ -66,6 +66,7 @@ const BUILTIN=Object.freeze([
 11. After a provider receipt, report the actual provider receipt and result. A queued or approved item is not a published post.
 12. Never send/publish before the separate approval step; never accept paid infrastructure or metered API costs without the owner's funding authorization.`
  },
+ {
   name:'ai-transparency-review',
   description:'Review AI-generated text, video, images and audio for truthful first-exposure disclosures and publication evidence. Use for EU AI Act Article 50, deepfake labels, content provenance, and AI media/social publishing.',
   triggers:['EU AI Act','article 50','synthetic content','AI-generated disclosure','deepfake label','content provenance','C2PA','AI transparency','public-interest AI post'],
