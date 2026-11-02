@@ -17,5 +17,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
+      - name: Verify native social scheduling, approval and tenant isolation
+        run: node qa/scripts/social-scheduling-lock.mjs
       - name: Verify universal social login and consent contracts
         run: node qa/scripts/universal-social-hub-lock.mjs
