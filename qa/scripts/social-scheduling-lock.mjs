@@ -40,6 +40,10 @@ has(scheduling,'publishSocialPostForTenant(env,row.tenant_id,row.provider,payloa
 has(scheduling,'uncertain?\'outcome_unknown\':\'failed\'','Ambiguous provider results must not be automatically retried');
 
 has(publishing,'export async function ensureSocialPublishingSchema','Scheduler must reuse first-party social account schema');
+has(publishing,'const socialPublishingSchemaReady=new WeakMap()','Social OAuth schema DDL must be cached per D1 binding');
+has(publishing,'socialPublishingSchemaReady.get(db)','Concurrent social OAuth requests must share schema setup');
+has(scheduling,'const socialSchedulingSchemaReady=new WeakMap()','Social scheduler DDL must be cached per D1 binding');
+has(scheduling,'socialSchedulingSchemaReady.get(db)','Concurrent scheduling requests must share schema setup');
 has(publishing,'export async function publishSocialPostForTenant','Scheduler must reuse first-party social provider adapters');
 has(publishing,'assessAiTransparency','Scheduled posts must retain AI-transparency checks');
 has(publishing,'expectedExternalId','Scheduled post must reject a changed connected account');
