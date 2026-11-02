@@ -11,7 +11,7 @@ const socialStudio=read('frontend/app/social-media/page.tsx');
 const wrangler=read('worker/wrangler.jsonc');
 const has=(source,needle,message)=>assert.ok(source.includes(needle),message);
 
-for(const provider of ["'youtube'","'tiktok'","'linkedin'"])has(scheduling,provider,`Scheduler must explicitly allow ${provider}`);
+for(const provider of ["youtube:{name:'YouTube'","tiktok:{name:'TikTok'","linkedin:{name:'LinkedIn'"])has(publishing,provider,`First-party social publisher must support ${provider.split(':')[0]}`);
 has(scheduling,'WHERE id=? AND tenant_id=?','Post detail reads must be tenant-scoped');
 has(scheduling,'WHERE tenant_id=? ORDER BY scheduled_at DESC LIMIT ?','Calendar list must be tenant-scoped and bounded');
 has(scheduling,"if(!user)return json({detail:'Sign in to manage scheduled social posts.'},401)",'Scheduler routes must require an authenticated user');
@@ -36,7 +36,6 @@ has(scheduling,'uncertain?\'outcome_unknown\':\'failed\'','Ambiguous provider re
 
 has(publishing,'export async function ensureSocialPublishingSchema','Scheduler must reuse first-party social account schema');
 has(publishing,'export async function publishSocialPostForTenant','Scheduler must reuse first-party social provider adapters');
-has(publishing,"'youtube','tiktok','linkedin'","First-party adapter still supports the approved provider family");
 has(publishing,'assessAiTransparency','Scheduled posts must retain AI-transparency checks');
 has(publishing,'expectedExternalId','Scheduled post must reject a changed connected account');
 has(publishing,'body.explicit_consent!==true','Publishing adapters must preserve explicit provider consent');
