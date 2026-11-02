@@ -35,7 +35,7 @@ The source also preserves fail-closed gates for carrier readiness, outbound cons
 
 The existing Twilio carrier is retained. The Worker returns a consent TwiML prompt first; only a caller pressing 1 receives a short-lived, call-bound stream token and a bidirectional `<Connect><Stream>` session. Twilio sends 8 kHz mu-law frames to the Worker, the Worker bridges them to Deepgram Voice Agent, and returned audio is sent back to the same Twilio stream.
 
-- Deepgram authentication uses its documented WebSocket `token` subprotocol.
+- Deepgram authentication uses the documented server-side `Authorization: Token` header.
 - Nova-3 uses `language: "multi"` for English/Filipino code-switching. Cartesia Sonic 3.6 uses the multilingual TTS mode; its supported language list includes Tagalog/Filipino. Actual phone-audio quality still requires a measured test.
 - Deepgram's custom OpenAI-compatible think endpoint is `/api/voice-agent/think`. It validates a short-lived HMAC token bound to the call, tenant and agent, then invokes the existing Workers AI binding. No Deepgram-managed LLM is selected.
 - The bridge handles Twilio media frames, Deepgram binary audio, barge-in clear events, DTMF 0 handoff, caller opt-out and caller hangup. Human handoff numbers are stored per voice agent and tenant.
