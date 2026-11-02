@@ -316,6 +316,14 @@ async function twilioConsent(request, env, url) {
   const call = callId ? await env.DB.prepare('SELECT * FROM phone_calls WHERE id=?').bind(callId).first() : null;
   if (!call) return xml(goodbyeTwiml('This call session is unavailable.'), 404);
   const form = await request.formData();
+  const callbackCallSid = String(form.get('CallSid') || '');
+  if (!callbackCallSid || (call.provider_call_id && String(call.provider_call_id) !== callbackCallSid)) {
+    return xml(goodbyeTwiml('This call session could not be verified.'), 403);
+  }
+  if (!call.provider_call_id) {
+    await env.DB.prepare("UPDATE phone_calls SET provider_call_id=?,updated_at=? WHERE id=? AND tenant_id=? AND (provider_call_id IS NULL OR provider_call_id='')")
+      .bind(callbackCallSid, now(), call.id, call.tenant_id).run();
+  }
   if (String(form.get('Digits') || '') !== '1') {
     let metadata = {};
     try { metadata = JSON.parse(call.metadata_json || '{}'); } catch {}
@@ -327,6 +335,7 @@ async function twilioConsent(request, env, url) {
   }
   let metadata = {};
   try { metadata = JSON.parse(call.metadata_json || '{}'); } catch {}
+  if (metadata.ai_disclosure !== true) return xml(goodbyeTwiml('The required AI disclosure is unavailable. Goodbye.'), 403);
   const agent = metadata.voice_agent_id
     ? await env.DB.prepare('SELECT * FROM voice_agents WHERE id=? AND tenant_id=? AND active=1').bind(String(metadata.voice_agent_id), call.tenant_id).first()
     : await ensureDefaultAgent(env, call.tenant_id);
