@@ -33,6 +33,15 @@
     "STRIPE_PAYMENT_LINK_AGENCY_PRO": "https://buy.stripe.com/3cI9AS77f9Qw2D04psbV60d",
     "STRIPE_PAYMENT_LINK_USAGE_TOPUP": "https://buy.stripe.com/7sYaEWgHP5Ag7Xk4psbV60s",
     "ENABLE_METERED_PROVIDERS": "false",
+    // Approved realtime call-center pilot. The adapter remains fail-closed until all server secrets are present.
+    "DEEPGRAM_VOICE_AGENT_ENABLED": "true",
+    "DEEPGRAM_VOICE_LANGUAGE": "multi",
+    "DEEPGRAM_TTS_PROVIDER": "cartesia",
+    "DEEPGRAM_CARTESIA_MODEL": "sonic-3.6",
+    "DEEPGRAM_VOICE_MAX_CALL_SECONDS": "300",
+    "DEEPGRAM_VOICE_DAILY_MINUTES_CAP": "5",
+    "DEEPGRAM_VOICE_MONTHLY_MINUTES_CAP": "20",
+    "DEEPGRAM_VOICE_MAX_CONCURRENT_CALLS": "1",
     // Magnanimous AI remains the platform brain. These are internal execution helpers only.
     "CLOUDFLARE_AI_MODEL": "@cf/zai-org/glm-4.7-flash",
     // Agent Mesh starts with a fast reasoning worker; the runtime retains bounded GLM/Gemma/Nemotron fallbacks beneath Magnanimous.
