@@ -24,7 +24,8 @@ export function deepgramVoiceReadiness(env={}){
  if(tts==="cartesia"&&!String(env.DEEPGRAM_CARTESIA_VOICE_ID||"").trim())missing.push("DEEPGRAM_CARTESIA_VOICE_ID configuration");
  else if(tts==="deepgram"&&language!=="en")missing.push("Cartesia TTS for Filipino/Tagalog or multilingual speech");
  else if(!["deepgram","cartesia"].includes(tts))missing.push("supported TTS provider (deepgram or cartesia)");
- return {enabled:flag(env.DEEPGRAM_VOICE_AGENT_ENABLED),ready:missing.length===0,provider:"Deepgram Voice Agent + Magnanimous AI",tts_provider:tts,language,missing};
+ const limits={max_concurrent_calls:Math.min(4,Math.max(1,Number(env.DEEPGRAM_VOICE_MAX_CONCURRENT_CALLS||2)||2)),max_call_seconds:Math.min(1800,Math.max(60,Number(env.DEEPGRAM_VOICE_MAX_CALL_SECONDS||600)||600)),daily_minutes:Math.min(240,Math.max(1,Number(env.DEEPGRAM_VOICE_DAILY_MINUTES_CAP||30)||30)),monthly_minutes:Math.min(1440,Math.max(1,Number(env.DEEPGRAM_VOICE_MONTHLY_MINUTES_CAP||300)||300))};
+ return {enabled:flag(env.DEEPGRAM_VOICE_AGENT_ENABLED),ready:missing.length===0,provider:"Deepgram Voice Agent + Magnanimous AI",tts_provider:tts,language,limits,missing};
 }
 export async function deepgramVoiceEnabled(env={}){return (await deepgramVoiceRuntimeReadiness(env)).ready;}
 export async function createDeepgramVoiceStreamToken(env,call,agent){
