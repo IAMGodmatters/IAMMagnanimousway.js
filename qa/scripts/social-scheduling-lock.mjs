@@ -18,6 +18,13 @@ has(scheduling,'const {payload_json,tenant_id,created_by,approved_by,approval_ha
 has(scheduling,'WHERE tenant_id=? ORDER BY scheduled_at DESC LIMIT ?','Calendar list must be tenant-scoped and bounded');
 has(scheduling,"if(!user)return json({detail:'Sign in to manage scheduled social posts.'},401)",'Scheduler routes must require an authenticated user');
 has(scheduling,'scheduledAt<now()+900','Schedule must respect the existing 15-minute Worker cron');
+has(scheduling,'timezoneOffsetMatches(body.scheduled_at,tz)','Schedule API must verify UTC offset against its IANA timezone at the chosen instant');
+has(scheduling,'This can happen during a daylight-saving change','Invalid daylight-saving wall times must receive an actionable validation error');
+has(scheduling,"function canManageSchedules(user){return ['owner','admin'].includes(String(user?.role||'').toLowerCase())}",'Only workspace owners/admins may authorize automatic social publishing');
+has(scheduling,'Only the workspace owner or administrator can approve','Approval API must fail closed for ordinary workspace members');
+has(scheduling,'Only the workspace owner or administrator can cancel','Cancellation API must enforce the same workspace manager boundary');
+has(page,'/api/auth/me','Calendar must load current workspace role before showing approval controls');
+has(page,'The workspace owner or administrator must review','Non-owner members must see an explicit approval-required state');
 has(scheduling,'validTimezone(body.timezone)','Schedule must validate an IANA timezone');
 has(scheduling,'explicit UTC offset','Schedule datetime must carry an explicit UTC offset');
 has(scheduling,'new TextEncoder().encode(raw).byteLength>20000','Schedule request body must be bounded');
