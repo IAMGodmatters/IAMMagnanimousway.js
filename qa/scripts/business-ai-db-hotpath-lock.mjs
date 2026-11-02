@@ -10,6 +10,7 @@ assert.ok(business.includes('BUSINESS_AI_SCHEMA_STATES.get(db)'),'Business AI mu
 assert.ok(business.includes('magnanimous_business_ai_migrations'),'Business AI legacy user backfill must have a persistent migration marker.');
 assert.ok(business.includes('await db.batch(['),'The one-time Business AI backfill and marker must commit as one D1 batch.');
 assert.ok(business.includes('NOT EXISTS(SELECT 1 FROM magnanimous_business_ai_migrations'),'The legacy backfill must not repeat after its marker is committed.');
+assert.ok((business.match(/json_valid\\(magnanimous_business_ai_jobs\\.output_json\\)/g)||[]).length>=2,'Legacy JSON extraction must be guarded against malformed historical job payloads.');
 assert.ok(!business.includes('async function claimLegacyJobs'),'Per-request legacy job ownership updates must be removed.');
 assert.ok(business.includes('await ensureWorkSchema(env);await ensure(env);'),'Work Engine schema must exist before the one-time Business AI backfill.');
 assert.ok(business.includes("WHERE id=? AND tenant_id=? AND user_id=?"),'Business AI job reads and writes must remain tenant- and user-scoped.');
