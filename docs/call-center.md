@@ -166,7 +166,8 @@ The initial pilot is deliberately small:
 - Maximum 30 Magnanimous AI think requests per minute for each call.
 - Maximum 30 minutes per day and 300 minutes per calendar month.
 - Maximum 10 minutes per call.
-- At Deepgram's current listed Custom BYO LLM rate of $0.059/minute, 300 minutes is approximately $17.70; if the session is billed at the Standard rate of $0.075/minute, the same cap is $22.50. The advertised $200 starting credit would cover roughly 9–11 months at the full monthly cap, if the account is eligible.
+- Per workspace: one concurrent call, 20 minutes per day and 150 minutes per month. The platform-wide ceiling remains higher so multiple workspaces can share the pilot fairly.
+- At Deepgram's current listed Custom BYO LLM rate of $0.059/minute, 300 minutes is approximately $17.70; if the session is billed at the Standard rate of $0.075/minute, the same cap is $22.50. The advertised $200 starting credit would cover roughly 9–11 months at the full monthly cap, if the account is eligible. A single workspace reaching its 150-minute cap would use approximately $8.85–$11.25 of Deepgram service before credits.
 - Existing Twilio carrier minutes, caller ID and any transfer leg are separate carrier charges. The usage cap here does not pretend to cover them.
 - Workers AI uses the existing Magnanimous binding; no new paid LLM key or model subscription is introduced by this adapter.
 
