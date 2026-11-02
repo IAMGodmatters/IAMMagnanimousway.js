@@ -142,7 +142,7 @@ assert.match(ui, /handoff_phone/);
 assert.match(ui, /deepgram_voice_agent/);
 assert.match(wrangler, /DEEPGRAM_VOICE_DAILY_MINUTES_CAP": "5"/);
 assert.match(wrangler, /DEEPGRAM_VOICE_MONTHLY_MINUTES_CAP": "20"/);
-assert.match(docs, /Press 1/);
+assert.match(docs, /press 1/i);
 assert.match(docs, /20 minutes per calendar month/);
 assert.match(docs, /30 days/);
 assert.match(knowledge, /Deepgram Voice Agent API/);
