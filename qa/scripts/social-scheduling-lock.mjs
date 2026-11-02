@@ -90,6 +90,11 @@ has(page,'type="datetime-local"','Calendar must collect a local publishing time'
 has(page,'Intl.DateTimeFormat().resolvedOptions().timeZone','Calendar must use the browser IANA timezone');
 has(socialStudio,'href="/social-calendar"','Social Studio must link to the publishing calendar');
 has(skills,"name:'social-publishing-calendar-operator'",'Magnanimous Agent Skills must expose the first-party social calendar operator');
+has(skills,'/api/social-connect/providers','Social calendar skill must discover provider readiness before acting');
+has(skills,'/api/social-connect/connections','Social calendar skill must check the tenant authorized connections');
+has(skills,'PUBLISH_COMPLETE','Social skill must require confirmed TikTok completion');
+has(skills,'SEND_TO_USER_INBOX','Social skill must distinguish TikTok inbox uploads from direct publication');
+has(skills,'missing metric','Social skill must not interpret unavailable metrics as zero');
 assert.ok(!page.includes('Postiz'),'UI must remain Magnanimous-branded, not third-party branded');
 
 console.log('Magnanimous native social scheduling lock passed.');
