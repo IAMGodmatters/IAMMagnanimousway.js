@@ -43,6 +43,9 @@
     "DEEPGRAM_VOICE_DAILY_MINUTES_CAP": "30",
     "DEEPGRAM_VOICE_MONTHLY_MINUTES_CAP": "300",
     "DEEPGRAM_VOICE_MAX_CONCURRENT_CALLS": "2",
+    "DEEPGRAM_VOICE_TENANT_MAX_CONCURRENT_CALLS": "1",
+    "DEEPGRAM_VOICE_TENANT_DAILY_MINUTES_CAP": "20",
+    "DEEPGRAM_VOICE_TENANT_MONTHLY_MINUTES_CAP": "150",
     // Magnanimous AI remains the platform brain. These are internal execution helpers only.
     "CLOUDFLARE_AI_MODEL": "@cf/zai-org/glm-4.7-flash",
     // Agent Mesh starts with a fast reasoning worker; the runtime retains bounded GLM/Gemma/Nemotron fallbacks beneath Magnanimous.
