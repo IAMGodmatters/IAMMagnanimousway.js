@@ -1,5 +1,6 @@
 import { currentUser } from './integrations.js';
 import { ensureSocialPublishingSchema, publishSocialPostForTenant } from './social-publishing-runtime.js';
+import { assessAiTransparency } from './ai-transparency.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
@@ -48,9 +49,25 @@ function publicHttpsUrl(value){
   const u=new URL(String(value||''));
   if(u.protocol!=='https:'||u.username||u.password)return false;
   const h=u.hostname.toLowerCase();
-  if(!h||h==='localhost'||h.endsWith('.local')||h==='127.0.0.1'||h==='0.0.0.0'||h==='::1'||/^10\\./.test(h)||/^192\\.168\\./.test(h)||/^169\\.254\\./.test(h)||/^172\\.(1[6-9]|2\\d|3[01])\\./.test(h))return false;
+  if(!h||h==='localhost'||h.endsWith('.localhost')||h.endsWith('.local')||h.endsWith('.internal')||h.endsWith('.test')||h.includes(':')||/^\\d{1,3}(?:\\.\\d{1,3}){3}$/.test(h)||/^10\\./.test(h)||/^192\\.168\\./.test(h)||/^169\\.254\\./.test(h)||/^172\\.(1[6-9]|2\\d|3[01])\\./.test(h))return false;
   return true;
  }catch{return false}
+}
+function disclosureIssue(provider,payload){
+ const transparency=assessAiTransparency({
+  kind:provider==='linkedin'?'text':'video',
+  ai_generated:payload.ai_generated===true||payload.deepfake===true||payload.public_interest===true,
+  deepfake:payload.deepfake===true,
+  public_interest:payload.public_interest===true,
+  human_reviewed:payload.human_reviewed===true,
+  editorial_responsibility:payload.editorial_responsibility===true
+ });
+ if(!transparency.visible_disclosure.required_for_this_context)return '';
+ const caption=String(provider==='linkedin'?payload.text:provider==='youtube'?payload.description:payload.title||'');
+ const labelled=/\b(?:AI[ -]generated|AI[ -]altered|artificially generated|synthetic (?:media|video|audio)|created with AI)\b/i.test(caption);
+ if(payload.ai_disclosure_confirmed!==true||!labelled)return 'Add a clear AI-generated/AI-altered disclosure to the post and confirm it.';
+ if(provider!=='linkedin'&&payload.visible_media_disclosure_confirmed!==true)return 'Confirm the video itself carries an appropriate visible or audible AI disclosure.';
+ return '';
 }
 function normalizedPayload(provider,body){
  const common={
@@ -112,7 +129,9 @@ async function getTenantRow(env,tenantId,id){
  return env.DB.prepare('SELECT * FROM social_scheduled_posts WHERE id=? AND tenant_id=?').bind(String(id),String(tenantId)).first();
 }
 async function handleCreate(request,env,user){
- const body=await request.json().catch(()=>null);
+ const raw=await request.text();
+ if(new TextEncoder().encode(raw).byteLength>20000)return json({detail:'Scheduled post request is too large.'},413);
+ let body=null;try{body=JSON.parse(raw)}catch{}
  if(!body||typeof body!=='object'||Array.isArray(body))return json({detail:'A JSON schedule draft is required.'},400);
  if(!PROVIDERS.has(String(body.provider||'')))return json({detail:'Choose a supported connected provider: YouTube, TikTok or LinkedIn.'},400);
  const provider=String(body.provider);
@@ -125,6 +144,7 @@ async function handleCreate(request,env,user){
  if((provider==='youtube'||provider==='tiktok')&&!publicHttpsUrl(payload.video_url))return json({detail:'Video publishing requires a public HTTPS video URL. Private, local and insecure URLs are not accepted.'},400);
  if(provider==='linkedin'&&!payload.text)return json({detail:'LinkedIn post text is required.'},400);
  if(payload.deepfake||payload.public_interest)payload.ai_generated=true;
+ const disclosure=disclosureIssue(provider,payload);if(disclosure)return json({detail:disclosure,code:'AI_DISCLOSURE_REQUIRED'},409);
  const serialized=JSON.stringify(payload);
  if(new TextEncoder().encode(serialized).byteLength>MAX_PAYLOAD_BYTES)return json({detail:'Scheduled post content is too large.'},413);
  const id=crypto.randomUUID(),key=String(body.idempotency_key||crypto.randomUUID()).trim().slice(0,100);
@@ -164,7 +184,7 @@ async function handleCancel(request,env,user,id){
  if(!['draft','scheduled'].includes(String(row.status)))return json({detail:'This post can no longer be cancelled from its current state.'},409);
  if(String(row.status)==='scheduled'&&Number(row.scheduled_at)<=now())return json({detail:'The publishing worker may already be claiming this post. Check its result before taking another action.'},409);
  const changed=await env.DB.prepare(`UPDATE social_scheduled_posts SET status='cancelled',approval_hash=NULL,updated_at=?
-  WHERE id=? AND tenant_id=? AND status IN ('draft','scheduled') AND scheduled_at>?`).bind(now(),String(id),String(user.tenant_id),now()).run();
+  WHERE id=? AND tenant_id=? AND ((status='draft') OR (status='scheduled' AND scheduled_at>?) )`).bind(now(),String(id),String(user.tenant_id),now()).run();
  if(Number(changed?.meta?.changes||0)!==1)return json({detail:'The post could not be cancelled because its state changed. Reload the calendar.'},409);
  return json({ok:true,id,status:'cancelled'});
 }
@@ -178,7 +198,7 @@ export async function handleSocialScheduling(request,env){
   await ensureSchema(env);
   await ensureSocialPublishingSchema(env);
   if(path==='/api/social-schedule'&&request.method==='GET'){
-   const limit=Math.min(100,Math.max(1,Number(url.searchParams.get('limit')||60)));
+   const requestedLimit=Number(url.searchParams.get('limit')||60),limit=Number.isFinite(requestedLimit)?Math.min(100,Math.max(1,requestedLimit)):60;
    const {results=[]}=await env.DB.prepare('SELECT * FROM social_scheduled_posts WHERE tenant_id=? ORDER BY scheduled_at DESC LIMIT ?').bind(String(user.tenant_id),limit).all();
    return json({items:results.map(publicRow),scheduler:{enabled:true,interval_minutes:15,automatic_retry:false}});
   }
