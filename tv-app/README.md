@@ -15,3 +15,9 @@ This v0.6 **does not fix a corrupt or incomplete browser download**. Check file 
 **IMPORTANT**: CI signs debug builds with temporary keys. Uninstall any previously installed test build before installing a new one; do not treat debug builds as stable production releases.
 
 Build action: .github/workflows/build-drive-tv-apk.yml. Source only on branch drive-tv-android-build-20261023; production website main unchanged.
+
+## Compatibility build verification
+
+The TV APK must contain both a valid v1 JAR signature and v2 APK signature. The CI job checks the manifest package, Android TV launcher category, minimum SDK 23, and the v2 signature. It then explicitly verifies the v1 signature with `apksigner verify --min-sdk-version 23`, because the default verifier uses the APK's embedded SDK metadata and can omit the legacy-scheme check. The workflow uploads the APK only after every verification passes.
+
+A green build proves the APK was built and its package/signatures were inspected; it does not prove installation or playback on the physical Astron television. USB playback and automatic startup still require on-device testing.
