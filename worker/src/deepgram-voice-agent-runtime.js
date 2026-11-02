@@ -224,16 +224,33 @@ export async function handleDeepgramVoiceAgentRoutes(request,env,url=new URL(req
  if(!deepgramVoiceEnabled(env))return json({detail:"Realtime voice service is not configured.",readiness:deepgramVoiceReadiness(env)},503);
  if(typeof WebSocketPair!=="function")return json({detail:"This runtime does not support WebSocket media streams."},501);
  const pair=new WebSocketPair(),client=pair[0],server=pair[1];server.accept();
- const state={twilio:server,deepgram:null,call:null,agent:null,streamSid:"",ready:false,pendingAudio:[],closed:false,sessionReserved:false,endAfterAudio:false,waitingEndMark:false,pendingEndMessage:"",maxCallTimer:null,startTimer:null,welcomeTimer:null,keepAliveTimer:null};
+ const state={twilio:server,deepgram:null,call:null,agent:null,streamSid:"",ready:false,pendingAudio:[],audioChunks:[],audioBytes:0,audioFlushTimer:null,closed:false,sessionReserved:false,endAfterAudio:false,waitingEndMark:false,pendingEndMessage:"",maxCallTimer:null,startTimer:null,welcomeTimer:null,keepAliveTimer:null};
  const cleanup=async(reason="Call session closed",closeTwilio=true)=>{
   if(state.closed)return;state.closed=true;
-  for(const timer of [state.maxCallTimer,state.startTimer,state.welcomeTimer,state.keepAliveTimer])if(timer)clearTimeout(timer);
+  for(const timer of [state.maxCallTimer,state.startTimer,state.welcomeTimer,state.keepAliveTimer,state.audioFlushTimer])if(timer)clearTimeout(timer);
   safeClose(state.deepgram,1000,reason);if(closeTwilio)safeClose(state.twilio,1000,reason);
   if(state.sessionReserved&&state.call?.id)await finishUsage(env,state.call.id);
  };
  const twilioSend=payload=>{if(state.twilio?.readyState===1)state.twilio.send(JSON.stringify(payload));};
- const flushAudio=()=>{if(!state.ready||!state.deepgram||state.deepgram.readyState!==1)return;for(const frame of state.pendingAudio.splice(0)){try{state.deepgram.send(decodeBase64(frame));}catch{void cleanup("Audio stream failed");return;}}};
  const fail=reason=>cleanup(reason||"Voice service unavailable");
+ const flushAudioBuffer=()=>{
+  if(!state.ready||!state.deepgram||state.deepgram.readyState!==1||!state.audioChunks.length)return;
+  if(state.audioFlushTimer){clearTimeout(state.audioFlushTimer);state.audioFlushTimer=null;}
+  const merged=new Uint8Array(state.audioBytes);let offset=0;
+  for(const chunk of state.audioChunks){merged.set(chunk,offset);offset+=chunk.length;}
+  state.audioChunks=[];state.audioBytes=0;
+  try{state.deepgram.send(merged);}catch{void fail("Caller audio could not be forwarded");}
+ };
+ const queueAudio=payload=>{
+  const bytes=decodeBase64(payload);state.audioChunks.push(bytes);state.audioBytes+=bytes.length;
+  if(state.audioBytes>=1600){flushAudioBuffer();return;}
+  if(!state.audioFlushTimer)state.audioFlushTimer=setTimeout(flushAudioBuffer,200);
+ };
+ const flushAudio=()=>{
+  if(!state.ready||!state.deepgram||state.deepgram.readyState!==1)return;
+  for(const frame of state.pendingAudio.splice(0)){try{queueAudio(frame);}catch{void fail("Buffered caller audio could not be decoded");return;}}
+  flushAudioBuffer();
+ };
  server.addEventListener("close",()=>{void cleanup("Caller disconnected",false);});
  server.addEventListener("error",()=>{void cleanup("Caller media connection failed",false);});
  server.addEventListener("message",event=>{
@@ -299,16 +316,16 @@ export async function handleDeepgramVoiceAgentRoutes(request,env,url=new URL(req
     return;
    }
    if(message.event==="media"&&message.media?.payload){
-    if(!state.call)return;
-    if(state.ready&&state.deepgram?.readyState===1){try{state.deepgram.send(decodeBase64(message.media.payload));}catch{await fail("Caller audio could not be forwarded");}}
+    if(!state.call|| (message.media.track&&message.media.track!=="inbound"))return;
+    if(state.ready&&state.deepgram?.readyState===1){try{queueAudio(message.media.payload);}catch{await fail("Caller audio could not be forwarded");}}
     else{if(state.pendingAudio.length>=60){await fail("Voice setup could not keep up with caller audio");return;}state.pendingAudio.push(String(message.media.payload));}
    }else if(message.event==="dtmf"&&String(message.dtmf?.digit||"")==="0"){
     const handoff=String(state.agent?.handoff_phone||"").replace(/[\s().-]/g,"");
     if(e164(handoff)&&state.call?.provider_call_id){
      const moved=await updateTwilioCall(env,state.call.provider_call_id,humanHandoffTwiml(handoff));
      if(moved){twilioSend({event:"clear",streamSid:state.streamSid});await cleanup("Caller transferred to human representative");}
-     else if(state.deepgram?.readyState===1)state.deepgram.send(JSON.stringify({type:"InjectAgentMessage",message:"I could not connect the live representative right now. I can take a message instead.",behavior:"interrupt"}));
-    }else if(state.deepgram?.readyState===1)state.deepgram.send(JSON.stringify({type:"InjectAgentMessage",message:"A live representative is not configured for this assistant. I can take a message or explain how to contact the team.",behavior:"interrupt"}));
+     else if(state.deepgram?.readyState===1){twilioSend({event:"clear",streamSid:state.streamSid});state.deepgram.send(JSON.stringify({type:"InjectAgentMessage",message:"I could not connect the live representative right now. I can take a message instead.",behavior:"queue"}));}
+    }else if(state.deepgram?.readyState===1){twilioSend({event:"clear",streamSid:state.streamSid});state.deepgram.send(JSON.stringify({type:"InjectAgentMessage",message:"A live representative is not configured for this assistant. I can take a message or explain how to contact the team.",behavior:"queue"}));}
    }else if(message.event==="mark"&&message.mark?.name==="magnanimous-end-call"&&state.endAfterAudio){
     await updateTwilioCall(env,state.call?.provider_call_id,hangupTwiml());
     await cleanup("Caller requested the call to end");
