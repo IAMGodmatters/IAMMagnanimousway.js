@@ -202,6 +202,7 @@ export default function SocialCalendar(){
       <button className="primary" type="button" disabled={!approvals[item.id]||busy==="approve-"+item.id} onClick={()=>void approve(item)}>{busy==="approve-"+item.id?"Approving…":"Approve and schedule"}</button>
      </div>}
      {item.status==="scheduled"&&<p className="hint">Waiting for the next Worker scheduler run. It checks every 15 minutes; the post may publish after the selected time.</p>}
+     {item.status==="processing"&&<p className="hint">TikTok accepted the request. Magnanimous is checking TikTok for the final result. This is not marked published until TikTok confirms it.</p>}
      {item.status==="outcome_unknown"&&<p className="error small">The provider result could not be confirmed. It was not retried to prevent duplicate publishing. Check the connected account before creating another post.</p>}
      {item.last_error&&item.status!=="outcome_unknown"&&<p className="error small">{item.last_error}</p>}
      {["draft","scheduled"].includes(item.status)&&<button className="cancel" type="button" disabled={busy==="cancel-"+item.id} onClick={()=>void cancel(item)}>{busy==="cancel-"+item.id?"Cancelling…":"Cancel"}</button>}
@@ -231,7 +232,7 @@ export default function SocialCalendar(){
    .item{border:1px solid rgba(231,189,117,.33);border-radius:16px;background:rgba(3,15,35,.74);padding:17px;min-width:0}
    .itemTop{display:flex;justify-content:space-between;align-items:center;gap:10px}.itemTop strong{color:#9feaff;font-size:12px;letter-spacing:.12em}
    .status{font-size:11px;font-weight:900;text-transform:uppercase;border:1px solid rgba(186,212,239,.38);border-radius:999px;padding:6px 9px;color:#e1edfc}
-   .status.published{color:#8cf0c2;border-color:#4b9e79}.status.failed,.status.outcome_unknown{color:#ffb3a7;border-color:#ba625c}.status.scheduled{color:#ffdda3;border-color:#ad8447}
+   .status.published{color:#8cf0c2;border-color:#4b9e79}.status.failed,.status.outcome_unknown{color:#ffb3a7;border-color:#ba625c}.status.scheduled{color:#ffdda3;border-color:#ad8447}.status.processing{color:#9feaff;border-color:#4e8eae}
    .preview{font-size:14px;line-height:1.5;overflow-wrap:anywhere;color:#eff6ff;white-space:pre-wrap}
    .reviewDetails{display:grid;gap:8px;margin:12px 0;padding:12px;border:1px solid rgba(157,205,255,.22);border-radius:12px;background:rgba(2,12,29,.5)}
    .reviewDetails p{display:grid;gap:4px;margin:0;font-size:12px;line-height:1.45;overflow-wrap:anywhere}
