@@ -65,7 +65,17 @@ async function ensure(env){
   }catch(error){
    const message=String(error?.message||error||'');
    if(!/no such column.*user_id|no column named user_id/i.test(message))throw error;
-   await db.prepare("ALTER TABLE magnanimous_business_ai_jobs ADD COLUMN user_id TEXT NOT NULL DEFAULT ''").run();
+   try{
+    await db.prepare("ALTER TABLE magnanimous_business_ai_jobs ADD COLUMN user_id TEXT NOT NULL DEFAULT ''").run();
+   }catch(alterError){
+    // Another cold isolate may have won the same ALTER race. Ignore the error
+    // only when a fresh schema probe proves that the column now exists.
+    try{
+     await db.prepare('SELECT user_id FROM magnanimous_business_ai_jobs LIMIT 0').all();
+    }catch{
+     throw alterError;
+    }
+   }
   }
   await db.prepare('CREATE INDEX IF NOT EXISTS idx_business_ai_user ON magnanimous_business_ai_jobs(tenant_id,user_id,updated_at DESC)').run();
   await db.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_business_ai_migrations(migration_key TEXT PRIMARY KEY,applied_at INTEGER NOT NULL)`).run();
