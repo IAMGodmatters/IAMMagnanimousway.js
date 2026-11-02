@@ -202,6 +202,7 @@ async function handleThink(request,env){
  if(metadata.ai_voice_consent!==true||String(metadata.voice_agent_id||"")!==String(claims.agent_id))return json({error:{message:"Call consent or agent scope is invalid."}},403);
  const agent=await env.DB.prepare("SELECT * FROM voice_agents WHERE id=? AND tenant_id=? AND active=1").bind(String(claims.agent_id),String(claims.tenant_id)).first();
  if(!agent)return json({error:{message:"Voice agent is unavailable."}},404);
+ if(!await rateLimitThink(env,call.id))return json({error:{message:"Voice turn rate limit reached for this call."}},429);
  if(!env.AI||typeof env.AI.run!=="function")return json({error:{message:"Magnanimous AI is temporarily unavailable."}},503);
  const body=await request.json().catch(()=>({})),supplied=Array.isArray(body.messages)?body.messages:[];
  const messages=supplied.slice(-14).map(item=>{const role=["user","assistant"].includes(String(item?.role))?String(item.role):null;const content=typeof item?.content==="string"?item.content.slice(0,4000):"";return role&&content?{role,content}:null;}).filter(Boolean);
@@ -248,6 +249,8 @@ export async function handleDeepgramVoiceAgentRoutes(request,env,url=new URL(req
  if(url.pathname!=="/api/voice-agent/twilio/stream")return null;
  if(request.method!=="GET"||String(request.headers.get("upgrade")||"").toLowerCase()!=="websocket")return json({detail:"A secure WebSocket upgrade is required."},426);
  if(!deepgramVoiceEnabled(env))return json({detail:"Realtime voice service is not configured.",readiness:deepgramVoiceReadiness(env)},503);
+ if(!await signingSecret(env))return json({detail:"The voice-session signing secret is not configured."},503);
+ if(!await rateLimitStreamHandshake(env,request))return json({detail:"Voice stream connection limit reached."},429);
  if(typeof WebSocketPair!=="function")return json({detail:"This runtime does not support WebSocket media streams."},501);
  const pair=new WebSocketPair(),client=pair[0],server=pair[1];server.accept();
  const state={twilio:server,deepgram:null,call:null,agent:null,streamSid:"",ready:false,pendingAudio:[],audioChunks:[],audioBytes:0,audioFlushTimer:null,closed:false,sessionReserved:false,endAfterAudio:false,waitingEndMark:false,pendingEndMessage:"",endFallbackTimer:null,maxCallTimer:null,startTimer:null,welcomeTimer:null,keepAliveTimer:null};
