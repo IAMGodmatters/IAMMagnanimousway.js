@@ -70,6 +70,8 @@ export function buildDeepgramSettings({env={},agent={},origin="https://iammagnan
 async function ensureUsageSchema(env){
  await env.DB.prepare("CREATE TABLE IF NOT EXISTS voice_provider_sessions (call_id INTEGER PRIMARY KEY,tenant_id TEXT NOT NULL,provider TEXT NOT NULL,started_at INTEGER NOT NULL,ended_at INTEGER,billed_seconds INTEGER NOT NULL DEFAULT 0)").run();
  await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_voice_provider_sessions_day ON voice_provider_sessions(provider,started_at,ended_at)").run();
+ await env.DB.prepare("CREATE TABLE IF NOT EXISTS voice_stream_handshake_limits (ip_hash TEXT NOT NULL,window_start INTEGER NOT NULL,attempts INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(ip_hash,window_start))").run();
+ await env.DB.prepare("CREATE TABLE IF NOT EXISTS voice_think_request_limits (call_id INTEGER NOT NULL,window_start INTEGER NOT NULL,requests INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(call_id,window_start))").run();
 }
 async function finishUsage(env,callId){
  try{const ts=now(),max=Math.min(1800,Math.max(60,Number(env.DEEPGRAM_VOICE_MAX_CALL_SECONDS||300)||300));await env.DB.prepare("UPDATE voice_provider_sessions SET ended_at=COALESCE(ended_at,?),billed_seconds=MAX(billed_seconds,MIN(?,MAX(0,?-started_at))) WHERE call_id=? AND provider='deepgram'").bind(ts,max,ts,Number(callId)).run();}catch{}
