@@ -489,7 +489,7 @@ async function agentRoutes(request, env, user, path, internalContext = {}) {
         String(body.name ?? agent.name).slice(0, 120), String(body.instructions ?? agent.instructions).slice(0, 10000),
         String(body.opening_message ?? agent.opening_message).slice(0, 1500), String(body.twilio_voice ?? agent.twilio_voice).slice(0, 100),
         String(body.tavus_replica_id ?? agent.tavus_replica_id).slice(0, 100), String(body.tavus_persona_id ?? agent.tavus_persona_id).slice(0, 100),
-        handoffPhone, body.active === false ? 0 : 1, now(), agent.id, user.tenant_id
+        handoffPhone, body.active === undefined ? Number(agent.active || 0) : (body.active === false ? 0 : 1), now(), agent.id, user.tenant_id
       ).run();
     return json({ ok: true });
   }
