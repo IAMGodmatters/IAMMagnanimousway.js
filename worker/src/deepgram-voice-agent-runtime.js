@@ -107,6 +107,42 @@ function decodeBase64(value){const binary=atob(String(value||""));const bytes=ne
 function encodeBase64(value){const bytes=value instanceof Uint8Array?value:new Uint8Array(value);let binary="";for(const byte of bytes)binary+=String.fromCharCode(byte);return btoa(binary);}
 function safeClose(socket,code=1000,reason="Call session closed"){try{if(socket&&socket.readyState<2)socket.close(code,reason.slice(0,120));}catch{}}
 function parseJson(value){try{return JSON.parse(value);}catch{return null;}}
+function openAIStreamFromWorkersAI(upstream,callId,model){
+ const reader=upstream.getReader(),decoder=new TextDecoder(),encoder=new TextEncoder();
+ const id="magnanimous-voice-"+String(callId),created=now();
+ const body=new ReadableStream({
+  async start(controller){
+   let buffer="";
+   const emit=(content,finishReason=null)=>{
+    const chunk={id,object:"chat.completion.chunk",created,model,choices:[{index:0,delta:content?{content}:{},finish_reason:finishReason}]};
+    controller.enqueue(encoder.encode("data: "+JSON.stringify(chunk)+"\n\n"));
+   };
+   const consume=line=>{
+    const trimmed=String(line||"").trim();
+    if(!trimmed.startsWith("data:"))return;
+    const data=trimmed.slice(5).trim();
+    if(!data||data==="[DONE]")return;
+    const payload=parseJson(data);if(!payload)return;
+    const content=payload.response??payload.choices?.[0]?.delta?.content??payload.choices?.[0]?.message?.content??payload.result?.response??"";
+    if(typeof content==="string"&&content)emit(content);
+   };
+   try{
+    while(true){
+     const item=await reader.read();if(item.done)break;
+     buffer+=decoder.decode(item.value,{stream:true});
+     const lines=buffer.split(/\r?\n/);buffer=lines.pop()||"";
+     for(const line of lines)consume(line);
+    }
+    buffer+=decoder.decode();if(buffer)consume(buffer);
+    emit("", "stop");
+    controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+    controller.close();
+   }catch(error){controller.error(error);}
+  },
+  cancel(reason){return reader.cancel(reason);}
+ });
+ return new Response(body,{status:200,headers:{"content-type":"text/event-stream; charset=utf-8","cache-control":"no-cache, no-store","connection":"keep-alive","x-accel-buffering":"no"}});
+}
 async function updateTwilioCall(env,callSid,twiml){
  const sid=String(callSid||"");
  if(!sid||!env.TWILIO_ACCOUNT_SID||!env.TWILIO_AUTH_TOKEN)return false;
@@ -144,6 +180,18 @@ async function handleThink(request,env){
  const providerSystem=supplied.filter(item=>String(item?.role)==="system").slice(0,2).map(item=>String(item?.content||"").slice(0,5000)).filter(Boolean).join("\n");
  const promptMessages=[{role:"system",content:system+"\n"+providerSystem},...messages];
  const models=[...new Set([String(env.CLOUDFLARE_AI_MODEL||"").trim(),"@cf/meta/llama-3.1-8b-instruct-fast","@cf/meta/llama-3.2-1b-instruct"].filter(Boolean))];
+ if(body.stream===true){
+  for(const model of models){
+   try{
+    const upstream=await env.AI.run(model,{messages:promptMessages,max_tokens:180,stream:true});
+    const stream=upstream?.body?.getReader?upstream.body:upstream;
+    if(stream&&typeof stream.getReader==="function")return openAIStreamFromWorkersAI(stream,call.id,model);
+    const streamedAnswer=String(upstream?.response||upstream?.result?.response||upstream?.result||"").trim();
+    if(streamedAnswer)return json({id:"magnanimous-voice-"+String(call.id),object:"chat.completion",created:now(),model:"magnanimous-voice-v1",choices:[{index:0,message:{role:"assistant",content:streamedAnswer.slice(0,1200)},finish_reason:"stop"}]});
+   }catch{}
+  }
+  return json({error:{message:"Magnanimous AI streaming is temporarily unavailable."}},503);
+ }
  let answer="";
  for(const model of models){try{const result=await env.AI.run(model,{messages:promptMessages,max_tokens:180});answer=String(result?.response||result?.result?.response||result?.result||"").trim();if(answer)break;}catch{}}
  if(!answer)return json({error:{message:"Magnanimous AI could not produce a response."}},503);
