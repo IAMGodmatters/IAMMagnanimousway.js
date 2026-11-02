@@ -40,7 +40,7 @@ function validTimezone(value){
 }
 function parseSchedule(value){
  const raw=String(value||'').trim();
- if(!/(?:Z|[+-]\\d{2}:\\d{2})$/i.test(raw))return 0;
+  if(!/(?:Z|[+-]\d{2}:\d{2})$/i.test(raw))return 0;
  const ms=Date.parse(raw);
  return Number.isFinite(ms)?Math.floor(ms/1000):0;
 }
@@ -49,7 +49,7 @@ function publicHttpsUrl(value){
   const u=new URL(String(value||''));
   if(u.protocol!=='https:'||u.username||u.password)return false;
   const h=u.hostname.toLowerCase();
-  if(!h||h==='localhost'||h.endsWith('.localhost')||h.endsWith('.local')||h.endsWith('.internal')||h.endsWith('.test')||h.includes(':')||/^\\d{1,3}(?:\\.\\d{1,3}){3}$/.test(h)||/^10\\./.test(h)||/^192\\.168\\./.test(h)||/^169\\.254\\./.test(h)||/^172\\.(1[6-9]|2\\d|3[01])\\./.test(h))return false;
+   if(!h||h==='localhost'||h.endsWith('.localhost')||h.endsWith('.local')||h.endsWith('.internal')||h.endsWith('.test')||h.includes(':')||/^\d{1,3}(?:\.\d{1,3}){3}$/.test(h)||/^10\./.test(h)||/^192\.168\./.test(h)||/^169\.254\./.test(h)||/^172\.(1[6-9]|2\d|3[01])\./.test(h))return false;
   return true;
  }catch{return false}
 }
