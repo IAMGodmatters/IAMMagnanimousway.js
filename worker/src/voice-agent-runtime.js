@@ -81,6 +81,7 @@ async function ensureSchema(env) {
   )`).run();
   await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_voice_agent_turns_call ON voice_agent_turns(call_id,id)').run();
   await env.DB.prepare('ALTER TABLE voice_agent_turns ADD COLUMN expires_at INTEGER').run().catch(() => {});
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_voice_agent_turns_expiry ON voice_agent_turns(expires_at)').run();
   await env.DB.prepare('DELETE FROM voice_agent_turns WHERE expires_at IS NOT NULL AND expires_at<=?').bind(now()).run().catch(() => {});
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS voice_do_not_call (
     tenant_id TEXT NOT NULL, phone TEXT NOT NULL, reason TEXT NOT NULL DEFAULT 'opt-out',
