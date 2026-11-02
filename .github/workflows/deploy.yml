@@ -1679,6 +1679,22 @@ jobs:
           assert verification.get('action_ready') is False, d
           PY
 
+          # Exercise the exact historical production failure route. The smoke test
+          # uses an isolated test job and verifies that it remains non-complete.
+          status=$(curl -sS -o /tmp/business-ai-verify.json -w '%{http_code}' -X POST "$BASE_URL/api/business-ai/jobs/$business_ai_job_id/verify" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then echo "Business AI verification endpoint returned HTTP $status"; cat /tmp/business-ai-verify.json || true; exit 1; fi
+          python - "$business_ai_job_id" <<'PY'
+          import json,sys
+          job_id=sys.argv[1];d=json.load(open('/tmp/business-ai-verify.json'))
+          assert d.get('id') == job_id, d
+          verification=d.get('verification') or {}
+          assert verification.get('workflow_complete') is False, d
+          assert verification.get('status') == 'not_verified', d
+          assert verification.get('action_ready') is False, d
+          assert d.get('status') == 'working', d
+          PY
+          echo "Business AI POST /verify returned 200 and preserved the unverified/action-not-ready boundary."
+
           status=$(curl -sS -o /tmp/data-studio-create.json -w '%{http_code}' -X POST "$BASE_URL/api/data-studio/workbooks" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"title":"Deployment Data Smoke","columns":["Name","Value"],"rows":[["Alpha","10"],["Beta","20"]],"visibility":"private"}')
           if [ "$status" != "201" ]; then echo "Data Studio create returned HTTP $status"; cat /tmp/data-studio-create.json || true; exit 1; fi
           data_workbook_id=$(python - <<'PY'
