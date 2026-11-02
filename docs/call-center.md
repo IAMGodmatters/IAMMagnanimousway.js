@@ -155,7 +155,7 @@ The adapter is fail-closed until the Deepgram secret is present. Do not paste AP
 
 4. The AI Receptionist page shows the realtime voice readiness check. Calls use streaming only when the secret, existing Workers AI binding and required runtime settings are all present.
 
-No Cartesia account or key is needed for the managed TTS configuration. The initial multilingual voice preset uses Cartesia Sonic 3.6 with the public Customer Support Man voice ID. Test English, Filipino/Tagalog and code-switching with real phone audio before enabling this for customer traffic.
+No Cartesia account or key is needed for the managed TTS configuration. The initial multilingual voice preset uses Cartesia Sonic 3.5 with the public Customer Support Man voice ID. Test English, Filipino/Tagalog and code-switching with real phone audio before enabling this for customer traffic.
 
 ### Cost guardrails
 
