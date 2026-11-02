@@ -27,6 +27,7 @@ function authHeaders(token:string){
 }
 export default function SocialCalendar(){
  const [token,setToken]=useState("");
+ const [role,setRole]=useState("");
  const [connections,setConnections]=useState<Connection[]>([]);
  const [items,setItems]=useState<Item[]>([]);
  const [provider,setProvider]=useState<Provider>("youtube");
@@ -66,13 +67,15 @@ export default function SocialCalendar(){
   try{
    const results=await Promise.all([
     fetch(api+"/api/social-connect/connections",{headers:{Authorization:"Bearer "+t},cache:"no-store"}),
-    fetch(api+"/api/social-schedule?limit=80",{headers:{Authorization:"Bearer "+t},cache:"no-store"})
+    fetch(api+"/api/social-schedule?limit=80",{headers:{Authorization:"Bearer "+t},cache:"no-store"}),
+    fetch(api+"/api/auth/me",{headers:{Authorization:"Bearer "+t},cache:"no-store"})
    ]);
-   const c=await read(results[0]),s=await read(results[1]);
+   const c=await read(results[0]),s=await read(results[1]),me=await read(results[2]);
    if(!results[0].ok)throw new Error(c.detail||"Could not read connected social accounts.");
    if(!results[1].ok)throw new Error(s.detail||"Could not load the publishing calendar.");
+   if(!results[2].ok)throw new Error(me.detail||"Could not verify workspace permissions.");
    const connected=(c.connections||[]).filter((item:Connection)=>["youtube","tiktok","linkedin"].includes(item.id)&&item.connected);
-   setConnections(c.connections||[]);setItems(s.items||[]);
+   setConnections(c.connections||[]);setItems(s.items||[]);setRole(String(me?.user?.role||"").toLowerCase());
    setProvider(current=>connected.some((item:Connection)=>item.id===current)?current:(connected[0]?.id||"youtube") as Provider);
   }catch(e:any){setError(e?.message||"The publishing calendar could not be loaded.");}
   finally{setLoading(false);}
@@ -198,15 +201,16 @@ export default function SocialCalendar(){
       {item.provider==='linkedin'&&<p><span>LinkedIn visibility</span><strong>Public · Main feed</strong></p>}
      </div>
      <div className="meta">Approval is bound to this exact content, account and scheduled time.</div>
-     {item.status==="draft"&&<div className="approval">
+     {item.status==="draft"&&(role==="owner"||role==="admin")&&<div className="approval">
       <label className="check"><input type="checkbox" checked={Boolean(approvals[item.id])} onChange={e=>setApprovals(old=>({...old,[item.id]:e.target.checked}))} /> I approve this exact content, connected account and publishing time for automatic posting.</label>
       <button className="primary" type="button" disabled={!approvals[item.id]||busy==="approve-"+item.id} onClick={()=>void approve(item)}>{busy==="approve-"+item.id?"Approving…":"Approve and schedule"}</button>
      </div>}
+     {item.status==="draft"&&role!=="owner"&&role!=="admin"&&<p className="hint">Draft saved. The workspace owner or administrator must review and approve this exact post before automatic publishing.</p>}
      {item.status==="scheduled"&&<p className="hint">Waiting for the next Worker scheduler run. It checks every 15 minutes; the post may publish after the selected time.</p>}
      {item.status==="processing"&&<p className="hint">TikTok accepted the request. Magnanimous is checking TikTok for the final result. This is not marked published until TikTok confirms it.</p>}
      {item.status==="outcome_unknown"&&<p className="error small">The provider result could not be confirmed. It was not retried to prevent duplicate publishing. Check the connected account before creating another post.</p>}
      {item.last_error&&item.status!=="outcome_unknown"&&<p className="error small">{item.last_error}</p>}
-     {["draft","scheduled"].includes(item.status)&&<button className="cancel" type="button" disabled={busy==="cancel-"+item.id} onClick={()=>void cancel(item)}>{busy==="cancel-"+item.id?"Cancelling…":"Cancel"}</button>}
+     {(role==="owner"||role==="admin")&&["draft","scheduled"].includes(item.status)&&<button className="cancel" type="button" disabled={busy==="cancel-"+item.id} onClick={()=>void cancel(item)}>{busy==="cancel-"+item.id?"Cancelling…":"Cancel"}</button>}
     </article>)}
    </div>}
   </section>
