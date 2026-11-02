@@ -453,7 +453,7 @@ async function agentRoutes(request, env, user, path, internalContext = {}) {
     const name = String(body.name || '').trim();
     if (!name) return json({ detail: 'Agent name is required.' }, 400);
     const handoffPhone = normPhone(body.handoff_phone || '');
-    if (handoffPhone && !/^\\+[1-9]\\d{7,14}$/.test(handoffPhone)) return json({ detail: 'Human handoff must use E.164 format, such as +639171234567.' }, 400);
+    if (handoffPhone && !/^\+[1-9]\d{7,14}$/.test(handoffPhone)) return json({ detail: 'Human handoff must use E.164 format, such as +639171234567.' }, 400);
     const id = crypto.randomUUID(), ts = now();
     await env.DB.prepare(`INSERT INTO voice_agents(
       id,tenant_id,name,instructions,opening_message,twilio_voice,tavus_replica_id,tavus_persona_id,handoff_phone,active,created_at,updated_at
@@ -471,7 +471,7 @@ async function agentRoutes(request, env, user, path, internalContext = {}) {
     const agent = await env.DB.prepare('SELECT * FROM voice_agents WHERE id=? AND tenant_id=?').bind(agentMatch[1], user.tenant_id).first();
     if (!agent) return json({ detail: 'Agent not found.' }, 404);
     const handoffPhone = body.handoff_phone === undefined ? String(agent.handoff_phone || '') : normPhone(body.handoff_phone || '');
-    if (handoffPhone && !/^\\+[1-9]\\d{7,14}$/.test(handoffPhone)) return json({ detail: 'Human handoff must use E.164 format, such as +639171234567.' }, 400);
+    if (handoffPhone && !/^\+[1-9]\d{7,14}$/.test(handoffPhone)) return json({ detail: 'Human handoff must use E.164 format, such as +639171234567.' }, 400);
     await env.DB.prepare(`UPDATE voice_agents SET name=?,instructions=?,opening_message=?,twilio_voice=?,tavus_replica_id=?,tavus_persona_id=?,handoff_phone=?,active=?,updated_at=? WHERE id=? AND tenant_id=?`)
       .bind(
         String(body.name ?? agent.name).slice(0, 120), String(body.instructions ?? agent.instructions).slice(0, 10000),
