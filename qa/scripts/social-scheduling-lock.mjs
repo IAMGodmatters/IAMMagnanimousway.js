@@ -64,6 +64,12 @@ has(page,'/api/social-connect/connections','Calendar must use the existing first
 has(page,'/api/social-schedule','Calendar must use the Magnanimous native scheduler API');
 has(page,'Approve and schedule','Calendar must require explicit user approval');
 has(page,'I approve this exact content, connected account and publishing time','Approval must identify the exact content/account/time');
+has(page,'function accountName(item:Item)','Calendar must resolve the exact target account identity');
+has(page,'A different account is now connected','Calendar must warn when the connected target changed after draft creation');
+has(page,'Video source','The exact media source must be visible before approval');
+has(page,'Video description','The complete YouTube description must be visible before approval');
+has(page,'Visibility','YouTube visibility must be visible before approval');
+has(page,'TikTok privacy','TikTok privacy must be visible before approval');
 has(page,'outcome_unknown','Calendar must explain uncertain provider outcomes and duplicate protection');
 has(page,'SELF_ONLY','TikTok defaults to private posting');
 has(page,'type="datetime-local"','Calendar must collect a local publishing time');
