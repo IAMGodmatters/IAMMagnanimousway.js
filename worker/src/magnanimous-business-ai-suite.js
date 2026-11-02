@@ -2,6 +2,8 @@ import {currentUser} from './integrations.js';
 import {ensureWorkSchema,createWork,addWorkStep,getWork,updateWorkStep} from './work-engine-runtime.js';
 import {handleMediaLibrary} from './media-library-runtime.js';
 const json=(d,s=200)=>Response.json(d,{status:s,headers:{'cache-control':'no-store'}}),now=()=>Math.floor(Date.now()/1000),txt=(v,n=12000)=>String(v||'').trim().slice(0,n);
+const BUSINESS_AI_SCHEMA_STATES=new WeakMap();
+const BUSINESS_AI_LEGACY_BACKFILL='business_ai_jobs_user_scope_v1';
 export const BUSINESS_AI_SUITE=[
 ['video-ads','AI Video Ads','Generate video-ad briefs, scripts, scenes, hooks, CTAs and production jobs','video'],
 ['academy-wizard','Learning Academy Builder','Build branded academies, courses, lessons and learning paths','education'],
@@ -52,19 +54,50 @@ export const BUSINESS_AI_SUITE=[
 ['open-media-library','Open-License Image Library','Search open-license images, preserve attribution and track source/license verification','creative']
 ];
 async function ensure(env){
- await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_business_ai_jobs(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL DEFAULT '',tool_id TEXT NOT NULL,title TEXT NOT NULL,input_json TEXT NOT NULL DEFAULT '{}',output_json TEXT NOT NULL DEFAULT '{}',status TEXT NOT NULL DEFAULT 'draft',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`).run();
- try{await env.DB.prepare("ALTER TABLE magnanimous_business_ai_jobs ADD COLUMN user_id TEXT NOT NULL DEFAULT ''").run()}catch{}
- try{await env.DB.prepare("UPDATE magnanimous_business_ai_jobs SET user_id=COALESCE((SELECT user_id FROM magnanimous_work_items w WHERE w.tenant_id=magnanimous_business_ai_jobs.tenant_id AND w.id=CAST(json_extract(magnanimous_business_ai_jobs.output_json,'$.work_id') AS INTEGER) LIMIT 1),'') WHERE user_id=''").run()}catch{}
- await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_business_ai_user ON magnanimous_business_ai_jobs(tenant_id,user_id,updated_at DESC)').run();
-}
-async function claimLegacyJobs(env,user){
- const tenant=String(user.tenant_id),userId=String(user.id);
- await env.DB.prepare(`UPDATE magnanimous_business_ai_jobs
- SET user_id=?
- WHERE tenant_id=? AND user_id=''
- AND CAST(json_extract(output_json,'$.work_id') AS INTEGER) IN (
-   SELECT id FROM magnanimous_work_items WHERE tenant_id=? AND user_id=?
- )`).bind(userId,tenant,tenant,userId).run();
+ const db=env?.DB;if(!db)return;
+ const cached=BUSINESS_AI_SCHEMA_STATES.get(db);
+ if(cached?.ready)return;
+ if(cached?.promise)return cached.promise;
+ const promise=(async()=>{
+  await db.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_business_ai_jobs(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL DEFAULT '',tool_id TEXT NOT NULL,title TEXT NOT NULL,input_json TEXT NOT NULL DEFAULT '{}',output_json TEXT NOT NULL DEFAULT '{}',status TEXT NOT NULL DEFAULT 'draft',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`).run();
+  try{
+   await db.prepare('SELECT user_id FROM magnanimous_business_ai_jobs LIMIT 0').all();
+  }catch(error){
+   const message=String(error?.message||error||'');
+   if(!/no such column.*user_id|no column named user_id/i.test(message))throw error;
+   try{
+    await db.prepare("ALTER TABLE magnanimous_business_ai_jobs ADD COLUMN user_id TEXT NOT NULL DEFAULT ''").run();
+   }catch(alterError){
+    // Another cold isolate may have won the same ALTER race. Ignore the error
+    // only when a fresh schema probe proves that the column now exists.
+    try{
+     await db.prepare('SELECT user_id FROM magnanimous_business_ai_jobs LIMIT 0').all();
+    }catch{
+     throw alterError;
+    }
+   }
+  }
+  await db.prepare('CREATE INDEX IF NOT EXISTS idx_business_ai_user ON magnanimous_business_ai_jobs(tenant_id,user_id,updated_at DESC)').run();
+  await db.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_business_ai_migrations(migration_key TEXT PRIMARY KEY,applied_at INTEGER NOT NULL)`).run();
+  // D1 batch is transactional: the one-time backfill and its marker commit together.
+  // The NOT EXISTS guard prevents concurrent cold isolates from repeating the work.
+  await db.batch([
+   db.prepare(`UPDATE magnanimous_business_ai_jobs
+    SET user_id=COALESCE((SELECT w.user_id FROM magnanimous_work_items w WHERE w.tenant_id=magnanimous_business_ai_jobs.tenant_id AND w.id=CAST(CASE WHEN json_valid(magnanimous_business_ai_jobs.output_json) THEN json_extract(magnanimous_business_ai_jobs.output_json,'$.work_id') ELSE NULL END AS INTEGER) LIMIT 1),'')
+    WHERE user_id=''
+    AND EXISTS(SELECT 1 FROM magnanimous_work_items w WHERE w.tenant_id=magnanimous_business_ai_jobs.tenant_id AND w.id=CAST(CASE WHEN json_valid(magnanimous_business_ai_jobs.output_json) THEN json_extract(magnanimous_business_ai_jobs.output_json,'$.work_id') ELSE NULL END AS INTEGER))
+    AND NOT EXISTS(SELECT 1 FROM magnanimous_business_ai_migrations WHERE migration_key=?)`).bind(BUSINESS_AI_LEGACY_BACKFILL),
+   db.prepare('INSERT OR IGNORE INTO magnanimous_business_ai_migrations(migration_key,applied_at) VALUES(?,?)').bind(BUSINESS_AI_LEGACY_BACKFILL,now())
+  ]);
+ })();
+ BUSINESS_AI_SCHEMA_STATES.set(db,{promise});
+ try{
+  await promise;
+  BUSINESS_AI_SCHEMA_STATES.set(db,{ready:true});
+ }catch(error){
+  BUSINESS_AI_SCHEMA_STATES.delete(db);
+  throw error;
+ }
 }
 const CAPABILITY_ROUTES={
 'video-ads':{surface:'/video-agents',accessibility:['script','storyboard','captions','9:16 and 16:9'],dependencies:['video-agents','renderer']},
@@ -442,7 +475,7 @@ if(executionProbe&&request.method==='GET'){
  if(!tool)return json({detail:'Business AI tool not found.'},404);
  return json(executionPathProbe(id));
 }
-await ensure(env);await ensureWorkSchema(env);await claimLegacyJobs(env,user);
+await ensureWorkSchema(env);await ensure(env);
 if(u.pathname==='/api/business-ai/jobs'&&request.method==='GET'){const{results=[]}=await env.DB.prepare('SELECT * FROM magnanimous_business_ai_jobs WHERE tenant_id=? AND user_id=? ORDER BY updated_at DESC LIMIT 100').bind(tenant,userId).all();const items=[];for(const row of results)items.push(await jobView(env,user,row));return json({items})}
 const jobMatch=u.pathname.match(/^\/api\/business-ai\/jobs\/([^/]+)(?:\/(verify|execute))?$/);
 if(jobMatch&&request.method==='GET'){const row=await env.DB.prepare('SELECT * FROM magnanimous_business_ai_jobs WHERE id=? AND tenant_id=? AND user_id=?').bind(jobMatch[1],tenant,userId).first();if(!row)return json({detail:'Business AI job not found.'},404);return json(await jobView(env,user,row))}

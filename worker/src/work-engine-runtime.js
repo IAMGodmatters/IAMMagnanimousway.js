@@ -3,9 +3,15 @@ const clip=(v,n=12000)=>String(v??'').slice(0,n);
 const scope=(u)=>[String(u?.tenant_id||''),String(u?.id||'')];
 const parse=(v)=>{try{return JSON.parse(String(v||'{}'))}catch{return{}}};
 
+const WORK_SCHEMA_STATES=new WeakMap();
 export async function ensureWorkSchema(env){
- if(!env?.DB)return;
- await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_work_items (
+ const db=env?.DB;if(!db)return;
+ const cached=WORK_SCHEMA_STATES.get(db);
+ if(cached?.ready)return;
+ if(cached?.promise)return cached.promise;
+ const promise=(async()=>{
+
+ await db.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_work_items (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   tenant_id TEXT NOT NULL,
   user_id TEXT NOT NULL,
@@ -19,8 +25,8 @@ export async function ensureWorkSchema(env){
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
  )`).run();
- await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_magnanimous_work_user ON magnanimous_work_items(tenant_id,user_id,updated_at DESC)').run();
- await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_work_steps (
+ await db.prepare('CREATE INDEX IF NOT EXISTS idx_magnanimous_work_user ON magnanimous_work_items(tenant_id,user_id,updated_at DESC)').run();
+ await db.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_work_steps (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   work_id INTEGER NOT NULL,
   tenant_id TEXT NOT NULL,
@@ -33,7 +39,16 @@ export async function ensureWorkSchema(env){
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
  )`).run();
- await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_magnanimous_work_steps ON magnanimous_work_steps(tenant_id,user_id,work_id,id)').run();
+ await db.prepare('CREATE INDEX IF NOT EXISTS idx_magnanimous_work_steps ON magnanimous_work_steps(tenant_id,user_id,work_id,id)').run();
+ })();
+ WORK_SCHEMA_STATES.set(db,{promise});
+ try{
+  await promise;
+  WORK_SCHEMA_STATES.set(db,{ready:true});
+ }catch(error){
+  WORK_SCHEMA_STATES.delete(db);
+  throw error;
+ }
 }
 
 function row(value,steps=[]){return{...value,progress:Number(value.progress||0),metadata:parse(value.metadata),steps}}
