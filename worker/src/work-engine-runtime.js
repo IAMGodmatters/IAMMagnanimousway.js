@@ -39,8 +39,6 @@ export async function ensureWorkSchema(env){
   updated_at INTEGER NOT NULL
  )`).run();
  await db.prepare('CREATE INDEX IF NOT EXISTS idx_magnanimous_work_steps ON magnanimous_work_steps(tenant_id,user_id,work_id,id)').run();
-}
-
  })();
  WORK_SCHEMA_STATES.set(db,{promise});
  try{
