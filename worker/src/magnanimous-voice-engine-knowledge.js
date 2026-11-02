@@ -14,18 +14,19 @@ export const MAGNANIMOUS_VOICE_ENGINE_KNOWLEDGE = Object.freeze({
   }),
   current_gap: Object.freeze({
     existing_voice_path: 'The existing Worker path retains Twilio Gather as a fallback; the new streaming adapter is added behind readiness checks.',
-    missing_capability: 'Provider-secret activation and live public-host inbound/outbound call verification with measured Filipino/Tagalog quality.',
+    missing_capability: 'Provider-secret activation and live public-host inbound/outbound call verification with measured English/Filipino quality; Cebuano/Bisaya is outside this adapter scope.',
     truth_boundary: 'Source code and green unit checks do not prove a live PSTN call; real inbound/outbound media tests are still required.'
   }),
   immediate_pstn_voice_adapter: Object.freeze({
     provider: 'Deepgram Voice Agent API',
     transport: 'Existing Twilio bidirectional Media Streams over WebSocket; no new PBX or phone number',
-    speech_recognition: 'Deepgram Nova-3 multilingual listen provider with language=multi for English/Filipino code-switching',
-    speech_synthesis: 'Deepgram-managed Cartesia Sonic 3.5, language=multi, public Customer Support Man voice preset',
+    speech_recognition: 'Deepgram Nova-3 multilingual listen provider with language=multi for English/Filipino code-switching; Cebuano/Bisaya is not claimed',
+    speech_synthesis: 'Deepgram-managed Cartesia Sonic 3.5, language=multi, public Customer Support Man voice preset; Tagalog is in the supported language list',
     reasoning_brain: 'Magnanimous AI through the authenticated OpenAI-compatible think endpoint backed by the existing Workers AI binding',
     ownership: 'Deepgram is speech/transport infrastructure only; Magnanimous AI owns prompts, reasoning, tenant context and policy',
     consent: 'Caller hears speech-processing/transcript disclosure and must press 1 before a media stream is opened',
     human_handoff: 'Per-agent E.164 number, tenant-scoped; DTMF 0 redirects the active Twilio call only when configured',
+    language_scope: 'English and Filipino/Tagalog are the initial target; Cebuano/Bisaya requires a separately tested streaming speech provider and is not silently enabled',
     transcript_policy: 'No raw audio persisted; new transcript rows expire after 30 days; legacy rows without expiry are unchanged',
     cost_controls: Object.freeze({ max_concurrent_calls: 1, max_call_seconds: 300, daily_minutes: 5, monthly_minutes: 20, usage_scope: 'platform-wide pilot cap' }),
     activation: 'DEEPGRAM_API_KEY Worker secret only; no separate Cartesia API key; fail-closed until key and existing Workers AI binding are available',
@@ -82,7 +83,8 @@ export const MAGNANIMOUS_VOICE_ENGINE_KNOWLEDGE = Object.freeze({
   cost: Object.freeze({
     default: 'local_or_private_first',
     paid_providers: 'Deepgram Voice Agent is an approved capped pilot; keep provider auto-load disabled and use free credits first; no paid activation occurs until the DEEPGRAM_API_KEY secret is present',
-    protections: ['per_tenant_budget', 'per_call_limit', 'concurrency_cap', 'idempotent_usage_ledger', 'hard_stop_on_unfunded_usage'],
+    protections: ['platform_wide_daily_monthly_minute_caps', 'per_call_duration_limit', 'global_concurrency_limit', 'durable_usage_ledger', 'stop_when_cap_reached'],
+    provider_account_requirements: Object.freeze(['auto_load_disabled', 'use_free_credits_first', 'no_payment_method_until_owner_approval']),
     infrastructure: 'No new paid host or always-on service without a separate cost and capacity review.'
   }),
   readiness: Object.freeze([
@@ -91,8 +93,9 @@ export const MAGNANIMOUS_VOICE_ENGINE_KNOWLEDGE = Object.freeze({
     'Prove loopback two-way media, interruption and hangup cleanup.',
     'Prove human warm-transfer and provider-outage fallback.',
     'Measure English and Filipino/Tagalog separately before enabling each language.',
+    'Verify 200 ms Twilio audio batching, barge-in, streaming OpenAI-compatible SSE and Deepgram provider outage behavior.',
     'Prove tenant isolation, disclosure, consent, DNC, retention and tool-policy invariants.',
-    'Pass Telecom Core, WebRTC, voice, full-platform and real public-host verification before changing any live flag.'
+    'Pass Telecom Core, WebRTC, voice, full-platform and real public-host verification before routing customer traffic; provider secret remains a separate activation gate.'
   ]),
   references: Object.freeze([
     'https://docs.asterisk.org/Configuration/Channel-Drivers/WebSocket/',
@@ -100,6 +103,13 @@ export const MAGNANIMOUS_VOICE_ENGINE_KNOWLEDGE = Object.freeze({
     'https://github.com/microsoft/call-center-ai',
     'https://github.com/pipecat-ai/pipecat',
     'https://docs.pipecat.ai/api-reference/server/services/transport/websocket-server',
+    'https://developers.deepgram.com/docs/voice-agent',
+    'https://developers.deepgram.com/docs/voice-agent-multilingual',
+    'https://developers.deepgram.com/docs/nova-3-language-prompting',
+    'https://deepgram.com/pricing',
+    'https://www.twilio.com/docs/voice/media-streams',
+    'https://docs.cartesia.ai/build-with-cartesia/tts-models/latest#language-support',
+    'https://docs.cloud.google.com/speech-to-text/docs/speech-to-text-supported-languages',
     'https://github.com/livekit/agents',
     'https://github.com/k2-fsa/sherpa-onnx',
     'https://github.com/ggml-org/whisper.cpp',
