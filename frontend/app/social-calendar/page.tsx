@@ -195,6 +195,7 @@ export default function SocialCalendar(){
       {Boolean(item.payload?.description)&&<p className="detailText"><span>Video description</span><strong>{String(item.payload.description)}</strong></p>}
       {Boolean(item.payload?.privacy_status)&&<p><span>Visibility</span><strong>{String(item.payload.privacy_status)}</strong></p>}
       {Boolean(item.payload?.privacy_level)&&<p><span>TikTok privacy</span><strong>{String(item.payload.privacy_level)}</strong></p>}
+      {item.provider==='linkedin'&&<p><span>LinkedIn visibility</span><strong>Public · Main feed</strong></p>}
      </div>
      <div className="meta">Approval is bound to this exact content, account and scheduled time.</div>
      {item.status==="draft"&&<div className="approval">
