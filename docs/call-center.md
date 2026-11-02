@@ -162,6 +162,8 @@ No Cartesia account or key is needed for the managed TTS configuration. The init
 The initial pilot is deliberately small:
 
 - One concurrent Deepgram voice session platform-wide.
+- Maximum 30 WebSocket handshakes per minute per source IP, stored as a keyed hash rather than a raw IP address.
+- Maximum 30 Magnanimous AI think requests per minute for each call.
 - Maximum 5 minutes per day and 20 minutes per calendar month.
 - Maximum 5 minutes per call.
 - At Deepgram's current listed Custom BYO LLM rate of $0.059/minute, 20 minutes is approximately $1.18; if the session is billed at the Standard rate of $0.075/minute, the same cap is $1.50. The advertised starting credit covers the initial test when available.
