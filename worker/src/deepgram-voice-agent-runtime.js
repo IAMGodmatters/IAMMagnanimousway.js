@@ -36,7 +36,7 @@ export async function createDeepgramVoiceStreamToken(env,call,agent){
  return signToken(env,{scope:"stream",call_id:Number(call.id),tenant_id:String(call.tenant_id),agent_id:String(agent.id),exp:now()+600,nonce:crypto.randomUUID()});
 }
 export function buildDeepgramConsentTwiml(actionUrl){
- const prompt="This call uses an AI assistant and automated speech processing to understand and respond. A text transcript may be created to support this conversation. Press 1 to agree and continue. Otherwise, hang up.";
+ const prompt="This call uses an AI assistant. Your voice is processed by an external speech provider to understand and respond. A text transcript may be stored for up to 30 days. Press 1 to agree and continue. Otherwise, hang up.";
  return '<?xml version="1.0" encoding="UTF-8"?><Response><Gather input="dtmf" numDigits="1" timeout="8" actionOnEmptyResult="true" action="'+escapeXml(actionUrl)+'" method="POST"><Say>'+escapeXml(prompt)+'</Say></Gather><Say>No consent was received. Goodbye.</Say><Hangup/></Response>';
 }
 export function buildDeepgramStreamTwiml(streamUrl,token){
