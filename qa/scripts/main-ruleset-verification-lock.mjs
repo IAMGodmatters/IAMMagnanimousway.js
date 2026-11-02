@@ -30,6 +30,7 @@ assert.ok(workflow.includes("MAGNANIMOUS_VERIFY_PROTECTION: 'true'"),
   'PR ruleset audit must explicitly exercise live ruleset checks rather than a reserved GITHUB_* skip path.');
 assert.ok(!verifier.includes('repository?.protected'),
   'Do not read a nonexistent repository-level protected flag; use active branch rulesets.');
+assert.ok(verifier.includes('bypass-actor details were hidden from this read-only token'), 'Never claim bypass actors were verified when GitHub did not expose them.');
 assert.ok(!verifier.includes('Main branch protection gate: PASS — GitHub reports main as protected.'),
   'The verifier must never equate protected:true with required review and status-check policy.');
 
