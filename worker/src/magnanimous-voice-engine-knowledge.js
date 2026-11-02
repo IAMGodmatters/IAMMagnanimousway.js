@@ -28,7 +28,7 @@ export const MAGNANIMOUS_VOICE_ENGINE_KNOWLEDGE = Object.freeze({
     human_handoff: 'Per-agent E.164 number, tenant-scoped; DTMF 0 redirects the active Twilio call only when configured',
     language_scope: 'English and Filipino/Tagalog are the initial target; Cebuano/Bisaya requires a separately tested streaming speech provider and is not silently enabled',
     transcript_policy: 'No raw audio persisted; new transcript rows expire after 30 days; legacy rows without expiry are unchanged',
-    cost_controls: Object.freeze({ max_concurrent_calls: 1, max_call_seconds: 300, daily_minutes: 5, monthly_minutes: 20, usage_scope: 'platform-wide pilot cap' }),
+    cost_controls: Object.freeze({ max_concurrent_calls: 2, max_call_seconds: 600, daily_minutes: 30, monthly_minutes: 300, usage_scope: 'platform-wide pilot cap' }),
     activation: 'DEEPGRAM_API_KEY Worker secret only; no separate Cartesia API key; fail-closed until key and existing Workers AI binding are available',
     status: 'implemented-on-branch; pending provider secret, CI and live PSTN acceptance tests'
   }),
