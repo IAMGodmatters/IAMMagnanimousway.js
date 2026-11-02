@@ -44,6 +44,17 @@ has(publishing,'export async function ensureSocialPublishingSchema','Scheduler m
 has(publishing,'const socialPublishingSchemaReady=new WeakMap()','Social OAuth schema DDL must be cached per D1 binding');
 has(publishing,'socialPublishingSchemaReady.get(db)','Concurrent social OAuth requests must share schema setup');
 has(scheduling,'const socialSchedulingSchemaReady=new WeakMap()','Social scheduler DDL must be cached per D1 binding');
+has(scheduling,"status IN ('draft','scheduled','publishing','processing','published','failed','outcome_unknown','cancelled')",'D1 schema must model asynchronous TikTok processing separately from confirmed publication');
+has(scheduling,'pollTikTokPublishStatus(env,item.tenant_id,item.external_id,publishId)','Worker must poll the same tenant/account TikTok publish receipt');
+has(scheduling,"result.status==='PUBLISH_COMPLETE'",'TikTok may only become published after a provider completion status');
+has(scheduling,"result.status==='FAILED'",'TikTok terminal failures must be recorded as failed');
+has(scheduling,"result.status==='SEND_TO_USER_INBOX'",'Unexpected inbox delivery must not be mislabeled as a direct published post');
+has(scheduling,"status='processing'",'Accepted TikTok requests must remain in a processing state until confirmation');
+has(scheduling,'ts-48*3600','Stuck TikTok processing must become outcome-unknown without a duplicate retry');
+has(publishing,'/v2/post/publish/status/fetch/','TikTok status polling must use its official status endpoint');
+has(publishing,'const publishId=String(d?.data?.publish_id||\'\')','TikTok direct post must retain a publish receipt ID for reconciliation');
+has(page,'Magnanimous is checking TikTok for the final result','The UI must distinguish accepted from confirmed publishing');
+has(page,'This is not marked published until TikTok confirms it','The UI must not claim final publication before provider confirmation');
 has(scheduling,'socialSchedulingSchemaReady.get(db)','Concurrent scheduling requests must share schema setup');
 has(publishing,'export async function publishSocialPostForTenant','Scheduler must reuse first-party social provider adapters');
 has(publishing,'assessAiTransparency','Scheduled posts must retain AI-transparency checks');
