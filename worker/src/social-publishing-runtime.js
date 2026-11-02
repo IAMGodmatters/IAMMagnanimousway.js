@@ -62,6 +62,40 @@ async function tiktokCreator(token){return responseJson(await fetch('https://ope
 async function tiktokPublish(env,row,body){if(body.explicit_consent!==true)throw new Error('TikTok publishing requires the user to explicitly consent before the video is sent.');const videoUrl=publicHttpUrl(body.video_url);if(!videoUrl)throw new Error('TikTok PULL_FROM_URL requires a public HTTPS video URL under a domain/prefix approved in the TikTok developer app.');const token=await tokenFor(env,row,'tiktok'),creator=await tiktokCreator(token),options=creator?.data?.privacy_level_options||[];const privacy=String(body.privacy_level||'SELF_ONLY');if(!options.includes(privacy))throw new Error(`Choose a privacy level allowed by this TikTok account: ${options.join(', ')||'none returned'}.`);const payload={post_info:{title:String(body.title||'').slice(0,2200),privacy_level:privacy,disable_duet:body.allow_duet===false,disable_comment:body.allow_comment===false,disable_stitch:body.allow_stitch===false},source_info:{source:'PULL_FROM_URL',video_url:videoUrl.toString()}};const d=await responseJson(await fetch('https://open.tiktokapis.com/v2/post/publish/video/init/',{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json; charset=UTF-8'},body:JSON.stringify(payload)}),'TikTok direct post');if(d?.error?.code&&d.error.code!=='ok')throw new Error(d.error.message||d.error.code);return{ok:true,provider:'tiktok',publish_id:d?.data?.publish_id||'',creator:creator?.data||{},note:'TikTok may take time to process the post. Unaudited API clients can be restricted to private visibility.'}}
 async function linkedinPublish(env,row,body){const text=String(body.text||'').trim();if(!text)throw new Error('LinkedIn post text is required.');if(body.explicit_consent!==true)throw new Error('LinkedIn publishing requires explicit user confirmation.');const token=await tokenFor(env,row,'linkedin'),author=`urn:li:person:${row.external_id}`;const payload={author,commentary:text.slice(0,3000),visibility:'PUBLIC',distribution:{feedDistribution:'MAIN_FEED',targetEntities:[],thirdPartyDistributionChannels:[]},lifecycleState:'PUBLISHED',isReshareDisabledByAuthor:false};const r=await fetch('https://api.linkedin.com/rest/posts',{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json','Linkedin-Version':String(env.LINKEDIN_VERSION||'202608'),'X-Restli-Protocol-Version':'2.0.0'},body:JSON.stringify(payload)});if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d?.message||`LinkedIn post failed (${r.status}). The app/account may still need LinkedIn product approval.`)}return{ok:true,provider:'linkedin',post_id:r.headers.get('x-restli-id')||'',author}}
 
+export async function ensureSocialPublishingSchema(env){
+ await ensureSchema(env);
+}
+
+export async function publishSocialPostForTenant(env,tenantId,provider,body,expectedExternalId=''){
+ await ensureSchema(env);
+ if(!Object.prototype.hasOwnProperty.call(PROVIDERS,provider))throw Object.assign(new Error('Unsupported social publishing provider.'),{preflight:true});
+ const row=await connection(env,String(tenantId),provider);
+ if(!row)throw Object.assign(new Error('The connected social account is no longer available. Reconnect it before publishing.'),{preflight:true});
+ if(expectedExternalId&&String(row.external_id||'')!==String(expectedExternalId))throw Object.assign(new Error('The connected social account changed after approval. Create and approve a new scheduled post.'),{preflight:true});
+ if(provider==='youtube'||provider==='tiktok'){
+  if(!publicHttpUrl(body.video_url))throw Object.assign(new Error('Video publishing requires a public HTTPS video URL.'),{preflight:true});
+ }else if(!String(body.text||'').trim())throw Object.assign(new Error('LinkedIn post text is required.'),{preflight:true});
+ if((provider==='tiktok'||provider==='linkedin')&&body.explicit_consent!==true)throw Object.assign(new Error('Publishing requires explicit approval of this exact scheduled post.'),{preflight:true});
+ const transparency=assessAiTransparency({
+  kind:provider==='linkedin'?'text':'video',
+  ai_generated:body.ai_generated===true||body.deepfake===true||body.public_interest===true,
+  deepfake:body.deepfake===true,
+  public_interest:body.public_interest===true,
+  human_reviewed:body.human_reviewed===true,
+  editorial_responsibility:body.editorial_responsibility===true
+ });
+ if(transparency.visible_disclosure.required_for_this_context){
+  const caption=String(provider==='linkedin'?body.text:provider==='youtube'?body.description:body.title||'');
+  const labelled=/\b(?:AI[ -]generated|AI[ -]altered|artificially generated|synthetic (?:media|video|audio)|created with AI)\b/i.test(caption);
+  if(body.ai_disclosure_confirmed!==true||!labelled)throw Object.assign(new Error('The approved post needs a clear AI-generated/AI-altered disclosure in its caption.'),{preflight:true});
+  if(provider!=='linkedin'&&body.visible_media_disclosure_confirmed!==true)throw Object.assign(new Error('Confirm that the video itself carries an appropriate visible or audible AI disclosure.'),{preflight:true});
+ }
+ // Once a provider write begins, a network or provider error can be ambiguous.
+ // The scheduler deliberately records that result without an automatic retry.
+ const result=provider==='youtube'?await youtubePublish(env,row,body):provider==='tiktok'?await tiktokPublish(env,row,body):await linkedinPublish(env,row,body);
+ return {...result,ai_transparency:transparency};
+}
+
 export async function handleSocialPublishing(request,env){
  const url=new URL(request.url);if(!url.pathname.startsWith('/api/social-connect'))return null;if(!env?.DB)return json({detail:'Database binding is not configured.'},503);
  try{
