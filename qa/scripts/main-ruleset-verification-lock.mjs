@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
 const verifier=fs.readFileSync('frontend/scripts/verify-main-protection.mjs','utf8');
+const workflow=fs.readFileSync('.github/workflows/branch-protection-gate-check.yml','utf8');
 for(const text of [
  "https://api.github.com/repos/${repo}/rulesets?per_page=100",
  "item?.target === 'branch' && item?.enforcement === 'active'",
@@ -13,7 +14,11 @@ for(const text of [
  "const visibleBypassPolicies = applicable.filter(item => Array.isArray(item.bypass_actors));",
  "actor.actor_type === 'Integration' && actor.bypass_mode === 'always'",
  "GitHub hides bypass-actor details from this read-only token",
+ 'const explicitAudit = process.env.MAGNANIMOUS_VERIFY_PROTECTION === \'true\';',
+ "repository?.default_branch !== 'main'",
+ "const rulesets = await githubJson",
  "Production deployment is blocked closed for safety."
 ])assert.ok(verifier.includes(text),`main protection gate missing actual ruleset check: ${text}`);
 assert.ok(!verifier.includes("Main branch protection gate: PASS — GitHub reports main as protected."),'Gate must not treat protected:true as full governance proof.');
+assert.ok(workflow.includes("MAGNANIMOUS_VERIFY_PROTECTION: 'true'"),'PR branch protection verification must explicitly exercise the live ruleset audit, not the production-only skip path.');
 console.log('Main ruleset gate lock passed: reviewed PR, exact checks, strict latest-head policy and no integration bypass are inspected.');
