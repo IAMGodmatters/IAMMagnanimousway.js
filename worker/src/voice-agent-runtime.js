@@ -1,5 +1,5 @@
 import { tenantPlan, PLAN_LIMITS } from './usage-guard.js';
-import { deepgramVoiceEnabled, deepgramVoiceReadiness, createDeepgramVoiceStreamToken, buildDeepgramConsentTwiml, buildDeepgramStreamTwiml, handleDeepgramVoiceAgentRoutes } from './deepgram-voice-agent-runtime.js';
+import { deepgramVoiceEnabled, deepgramVoiceReadiness, deepgramVoiceRuntimeReadiness, createDeepgramVoiceStreamToken, buildDeepgramConsentTwiml, buildDeepgramStreamTwiml, handleDeepgramVoiceAgentRoutes } from './deepgram-voice-agent-runtime.js';
 
 const now = () => Math.floor(Date.now() / 1000);
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
@@ -447,7 +447,7 @@ async function agentRoutes(request, env, user, path, internalContext = {}) {
       ai_engine: Boolean(env.AI),
       twilio_configured: twilioReady(env),
       tavus_configured: tavusReady(env),
-      deepgram_voice_agent: deepgramVoiceReadiness(env),
+      deepgram_voice_agent: await deepgramVoiceRuntimeReadiness(env),
       full_business: access.business,
       platform_owner: access.platformOwner,
       inbound_twilio_webhook: `${new URL(request.url).origin}/api/voice-agent/twilio/incoming`,
