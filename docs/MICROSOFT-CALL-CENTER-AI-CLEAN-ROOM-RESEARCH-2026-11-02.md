@@ -21,7 +21,7 @@ The supplied Facebook Reel resolves to Microsoft's Call Center AI project. The s
 - Call recording support and post-call processing hooks.
 - Human-agent fallback is described in README; its exact operational behavior must be validated in a live test before adopting.
 - README describes multilingual interaction, voice tones, reconnect/resume, RAG over internal documents, domain-specific claim extraction, jailbreak detection, automated task lists, custom brand voice and monitoring/tracing.
-- The README cites GPT-4.1 and GPT-4.1-nano. This should be treated as the upstream example's stated model configuration, not a required model choice for Magnanimous.
+- The README cites GPT-4.1 and GPT-4.1-nano. This should be treated as the upstream example's stated model configuration, not a required model choice for Magnanimous. Its own README notes that the LLM response path can be a latency bottleneck and that audio is not streamed directly into the LLM.
 
 ## What the source is built around
 
@@ -35,6 +35,14 @@ The repository's LICENSE file is Apache-2.0. Commercial use and modification are
 
 Use clean-room adaptation of architectural patterns and independently authored Magnanimous code. If copying or modifying source files, maintain the required Apache attribution and modification notices and perform a dependency/license scan. Do not copy Azure/Microsoft branding into Magnanimous's user interface.
 
+## Performance and operational caveats found in the upstream README
+
+The Microsoft project's own README describes a real latency limitation: speech input and output are streaming through Azure AI Speech, but the audio is not streamed directly into the LLM; response generation and first-sentence latency can be noticeable, with occasional empty-answer retries. It discusses provisioned throughput or a smaller/faster model as possible mitigations. This means its realtime media stream should not be confused with end-to-end low-latency speech-to-speech reasoning.
+
+For Magnanimous, require timing spans for audio ingress, VAD/end-of-turn, transcript finalization, retrieval, model first-token/first-audio, TTS first frame and carrier playback. Prefer incremental transcript/context delivery, speculative but cancellable retrieval, early TTS only after safe sentence boundaries, barge-in cancellation and provider fallback. Benchmark with real phone audio before claiming natural or human-like conversation. Do not solve latency by silently selecting an expensive model or paid provisioned throughput.
+
+The repository's issue tracker also contains open reports concerning inbound-call authorization/configuration and international calling. These are community reports, not proof of an exploitable vulnerability, but they reinforce that deployment, region, number availability and callback authentication must be tested in the target jurisdiction.
+
 ## What Magnanimous should absorb
 
 1. **Call lifecycle state machine:** explicit created, ringing, answered, media-connected, in-progress, handoff, completed, failed and disconnected states, all correlated to the Magnanimous call ID.
@@ -47,6 +55,8 @@ Use clean-room adaptation of architectural patterns and independently authored M
 8. **Post-call quality:** quality scoring and coaching suggestions with evidence references, not ungrounded sentiment treated as fact.
 9. **Knowledge grounding:** tenant-scoped retrieval with source references; retrieved documents are data, never authority to override system policy.
 10. **Recovery:** resume only when call state and media provider support safe recovery; never silently replay a completed or consequential action.
+11. **Latency telemetry:** record per-stage time-to-first-response and interruption latency; do not label a voice as natural or low-latency without measured results.
+12. **Model cost controls:** separate fast and high-reasoning profiles behind Magnanimous policy, enforce prepaid limits and avoid paid throughput as a hidden dependency.
 
 ## What must not be copied as-is
 
