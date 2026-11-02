@@ -51,7 +51,8 @@ assert.ok(incompleteRuntime.missing.includes('SESSION_SECRET or auth_config.sess
 
 const consent = buildDeepgramConsentTwiml('https://example.test/api/voice-agent/twilio/consent?call_id=42');
 assert.match(consent, /Press 1 to agree and continue/);
-assert.match(consent, /text transcript may be created/);
+assert.match(consent, /external speech provider/);
+assert.match(consent, /text transcript may be stored for up to 30 days/);
 assert.doesNotMatch(consent, /<Connect>|<Stream>/, 'no audio stream starts before affirmative consent');
 
 const streamTwiml = buildDeepgramStreamTwiml('wss://example.test/api/voice-agent/twilio/stream', 'signed-call-token');
