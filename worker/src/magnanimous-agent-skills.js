@@ -1,6 +1,7 @@
 import { MAGNANIMOUS_CLOUD_SECURITY_PLAYBOOKS } from './magnanimous-cloud-security-playbooks.js';
 import { MAGNANIMOUS_ENGINEERING_SKILLS } from './magnanimous-ecc-engineering.js';
 import { MAGNANIMOUS_MODEL_ARENA_SKILLS } from './magnanimous-model-arena-skills.js';
+import { MAGNANIMOUS_BRAIN_MEMORY_SKILLS } from './magnanimous-brain-memory-skills.js';
 const clip=(value,max=120000)=>String(value??'').replace(/\r\n/g,'\n').slice(0,max);
 const uniq=(items)=>[...new Set(items.filter(Boolean))];
 const MAX_SKILL_SOURCE_LENGTH=160000;
@@ -162,7 +163,8 @@ const BUILTIN=Object.freeze([
  },
  ...MAGNANIMOUS_CLOUD_SECURITY_PLAYBOOKS,
  ...MAGNANIMOUS_ENGINEERING_SKILLS,
- ...MAGNANIMOUS_MODEL_ARENA_SKILLS
+ ...MAGNANIMOUS_MODEL_ARENA_SKILLS,
+ ...MAGNANIMOUS_BRAIN_MEMORY_SKILLS
 ]);
 
 function normalizeName(value){return clip(value,80).trim();}
