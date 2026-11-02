@@ -91,7 +91,7 @@ Magnanimous Call Center now carries the following explicit target contract:
 - SIP trunk health checks, TLS/SRTP, SBC/site-edge and NAT/firewall diagnostics
 - dependency/firmware/security hotfix discipline
 
-See `docs/3CX-CLEAN-ROOM-CAPABILITY-STUDY-2026-10-17.md` for the current public-source research and clean-room boundary.
+See `docs/3CX-CLEAN-ROOM-CAPABILITY-STUDY-2026-10-17.md` for the current public-source research and clean-room boundary. See `docs/MAGNANIMOUS-REALTIME-VOICE-ENGINE-RESEARCH-2026-11-02.md` for the Asterisk WebSocket + Pipecat evaluation, speech-engine options, licensing, localization tests and runtime acceptance gates. This is a researched design; no Pipecat runtime or new paid voice service is enabled.
 
 ## Carrier bridge configuration
 
