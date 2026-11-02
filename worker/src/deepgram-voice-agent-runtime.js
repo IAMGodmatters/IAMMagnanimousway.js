@@ -21,10 +21,8 @@ export function deepgramVoiceReadiness(env={}){
  if(!flag(env.DEEPGRAM_VOICE_AGENT_ENABLED))missing.push("DEEPGRAM_VOICE_AGENT_ENABLED=true");
  if(!String(env.DEEPGRAM_API_KEY||"").trim())missing.push("DEEPGRAM_API_KEY secret");
  if(!env.AI||typeof env.AI.run!=="function")missing.push("Magnanimous Workers AI binding");
- if(tts==="cartesia"){
-  if(!String(env.DEEPGRAM_CARTESIA_API_KEY||"").trim())missing.push("DEEPGRAM_CARTESIA_API_KEY secret");
-  if(!String(env.DEEPGRAM_CARTESIA_VOICE_ID||"").trim())missing.push("DEEPGRAM_CARTESIA_VOICE_ID secret");
- }else if(tts==="deepgram"&&language!=="en")missing.push("Cartesia TTS for Filipino/Tagalog or multilingual speech");
+ if(tts==="cartesia"&&!String(env.DEEPGRAM_CARTESIA_VOICE_ID||"").trim())missing.push("DEEPGRAM_CARTESIA_VOICE_ID configuration");
+ else if(tts==="deepgram"&&language!=="en")missing.push("Cartesia TTS for Filipino/Tagalog or multilingual speech");
  else if(!["deepgram","cartesia"].includes(tts))missing.push("supported TTS provider (deepgram or cartesia)");
  return {enabled:flag(env.DEEPGRAM_VOICE_AGENT_ENABLED),ready:missing.length===0,provider:"Deepgram Voice Agent + Magnanimous AI",tts_provider:tts,language,missing};
 }
@@ -49,7 +47,7 @@ export function buildDeepgramSettings({env={},agent={},origin="https://iammagnan
  const tts=String(env.DEEPGRAM_TTS_PROVIDER||(language==="en"?"deepgram":"cartesia")).trim().toLowerCase();
  let speak;
  if(tts==="cartesia"){
-  speak={provider:{type:"cartesia",model_id:String(env.DEEPGRAM_CARTESIA_MODEL||"sonic-3.6"),voice:{mode:"id",id:String(env.DEEPGRAM_CARTESIA_VOICE_ID||"")}},endpoint:{url:"https://api.cartesia.ai/tts/bytes",headers:{"x-api-key":String(env.DEEPGRAM_CARTESIA_API_KEY||"")}}};
+  speak={provider:{type:"cartesia",model_id:String(env.DEEPGRAM_CARTESIA_MODEL||"sonic-3.6"),voice:{mode:"id",id:String(env.DEEPGRAM_CARTESIA_VOICE_ID||"a167e0f3-df7e-4d52-a9c3-f949145efdab")},language:"multi"}};
  }else speak={provider:{type:"deepgram",model:"aura-2-thalia-en"}};
  const prompt=[
   "You are Magnanimous AI, the voice assistant for I AM MAGNANIMOUS WAY. Magnanimous AI is the reasoning and decision-making authority; speech services are only audio infrastructure.",
@@ -102,7 +100,9 @@ async function reserveUsage(env,call){
  return{ok:true,max_call_seconds:Math.min(configuredMax,remaining)};
 }
 async function connectDeepgram(env){
- const response=await fetch("https://agent.deepgram.com/v1/agent/converse",{headers:{authorization:"Token "+String(env.DEEPGRAM_API_KEY||""),upgrade:"websocket"}});
+ const apiKey=String(env.DEEPGRAM_API_KEY||"").trim();
+ if(!apiKey)throw new Error("DEEPGRAM_API_KEY_NOT_CONFIGURED");
+ const response=await fetch("https://agent.deepgram.com/v1/agent/converse",{headers:{upgrade:"websocket","sec-websocket-protocol":"token, "+apiKey}});
  if(response.status!==101||!response.webSocket)throw new Error("DEEPGRAM_WEBSOCKET_HANDSHAKE_FAILED");
  response.webSocket.accept();return response.webSocket;
 }
