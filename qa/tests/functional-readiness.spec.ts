@@ -30,16 +30,18 @@ for (const route of criticalTools) {
   });
 }
 
-test('visible forms expose a submit path instead of trapping user input', async ({ page }) => {
-  const formRoutes = criticalTools.filter((route) => /login|support|email|crm|ai|magnanimous|business|contact|phone|billing/i.test(route));
-  for (const route of formRoutes) {
+const formRoutes = criticalTools.filter((route) => /login|support|email|crm|ai|magnanimous|business|contact|phone|billing/i.test(route));
+for (const route of formRoutes) {
+  test(`${route} visible forms expose a submit path instead of trapping user input`, async ({ page }) => {
     const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
-    if (!response || response.status() === 404 || response.status() >= 500) continue;
+    // Reachability and server errors are asserted in the separate per-route test above.
+    if (!response || response.status() === 404 || response.status() >= 500) return;
+    await page.locator('body').waitFor({ state: 'visible', timeout: 10_000 });
     const forms = page.locator('form:visible');
     for (let i = 0; i < await forms.count(); i++) {
       const form = forms.nth(i);
       const submitters = form.locator('button[type="submit"], input[type="submit"], button:not([type])');
       expect.soft(await submitters.count(), `${route} has a visible form with no submit control`).toBeGreaterThan(0);
     }
-  }
-});
+  });
+}
