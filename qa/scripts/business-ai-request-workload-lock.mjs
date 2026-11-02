@@ -22,7 +22,7 @@ const verify=handler.indexOf("if(jobMatch&&jobMatch[2]==='verify'");
 const create=handler.indexOf("if(u.pathname==='/api/business-ai/jobs'&&request.method==='POST')");
 assert.ok(list>=0&&detail>list&&execute>detail&&verify>execute&&create>verify,'Business AI job route order must remain intact');
 assert.ok(handler.slice(list,detail).includes('await claimLegacyJobs(env,user)'),'Legacy jobs must be claimed for the signed-in user when listing jobs');
-assert.ok(handler.slice(detail,execute).includes('await claimLegacyJobs(env,user)'),'Legacy jobs must be claimed for a signed-in user on direct job reads');
+assert.ok(handler.slice(detail,execute).includes('await claimLegacyJob(env,user,jobMatch[1])'),'Legacy jobs must be claimed only for the requested signed-in user job on direct reads');
 assert.ok(handler.slice(execute,verify).includes('await claimLegacyJob(env,user,jobMatch[1])'),'Direct execution must claim only the requested legacy job for its real owner');
 assert.ok(handler.slice(verify,create).includes('await claimLegacyJob(env,user,jobMatch[1])'),'Verification must claim only the requested legacy job for its real owner');
 assert.ok(handler.slice(create).includes("'POST'")&&!handler.slice(create).includes('claimLegacyJobs(env,user)'),'Ordinary job creation must not re-run legacy backfill');
