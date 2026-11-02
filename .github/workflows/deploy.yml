@@ -105,6 +105,7 @@ jobs:
           node qa/scripts/magnanimous-logistics-erp-lock.mjs
           node qa/scripts/magnanimous-public-api-lock.mjs
           node qa/scripts/magnanimous-software-directive-lock.mjs
+          node qa/scripts/business-ai-db-hotpath-lock.mjs
 
       - name: Install Worker dependencies
         working-directory: worker
