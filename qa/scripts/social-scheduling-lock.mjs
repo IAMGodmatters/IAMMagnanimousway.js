@@ -82,6 +82,8 @@ has(page,'Video source','The exact media source must be visible before approval'
 has(page,'Video description','The complete YouTube description must be visible before approval');
 has(page,'Visibility','YouTube visibility must be visible before approval');
 has(page,'TikTok privacy','TikTok privacy must be visible before approval');
+has(page,'LinkedIn visibility','LinkedIn public feed visibility must be visible before approval');
+has(publishing,'h.endsWith(\'.invalid\')','Shared media URL validation must reject reserved invalid hostnames');
 has(page,'outcome_unknown','Calendar must explain uncertain provider outcomes and duplicate protection');
 has(page,'SELF_ONLY','TikTok defaults to private posting');
 has(page,'type="datetime-local"','Calendar must collect a local publishing time');
