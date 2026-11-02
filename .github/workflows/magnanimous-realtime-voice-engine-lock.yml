@@ -1,0 +1,38 @@
+name: Magnanimous Realtime Voice Engine Architecture Lock
+
+on:
+  push:
+    paths:
+      - 'worker/src/magnanimous-voice-engine-knowledge.js'
+      - 'worker/src/voice-agent-runtime.js'
+      - 'telecom-core/asterisk/Dockerfile'
+      - 'telecom-core/docker-compose.yml'
+      - 'docs/MAGNANIMOUS-REALTIME-VOICE-ENGINE-RESEARCH-2026-11-02.md'
+      - 'docs/call-center.md'
+      - 'qa/scripts/magnanimous-realtime-voice-engine-lock.mjs'
+      - '.github/workflows/magnanimous-realtime-voice-engine-lock.yml'
+  pull_request:
+    paths:
+      - 'worker/src/magnanimous-voice-engine-knowledge.js'
+      - 'worker/src/voice-agent-runtime.js'
+      - 'telecom-core/asterisk/Dockerfile'
+      - 'telecom-core/docker-compose.yml'
+      - 'docs/MAGNANIMOUS-REALTIME-VOICE-ENGINE-RESEARCH-2026-11-02.md'
+      - 'docs/call-center.md'
+      - 'qa/scripts/magnanimous-realtime-voice-engine-lock.mjs'
+      - '.github/workflows/magnanimous-realtime-voice-engine-lock.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  architecture-lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - name: Verify voice-engine research and safety contracts
+        run: node qa/scripts/magnanimous-realtime-voice-engine-lock.mjs
