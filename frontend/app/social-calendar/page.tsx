@@ -133,7 +133,13 @@ export default function SocialCalendar(){
  }
  function content(item:Item){
   const p=item.payload||{};
-  return String(p.text||p.title||p.description||p.video_url||"Scheduled post");
+  return String(p.text||p.title||"Scheduled post");
+ }
+ function accountName(item:Item){
+  const current=connections.find(c=>c.id===item.provider&&c.connected);
+  if(!current)return "Not connected";
+  if(String(current.external_id||"")!==String(item.external_id||""))return "A different account is now connected";
+  return current.display_name||"Connected account";
  }
  return <main className="socialCalendar">
   <header className="top">
@@ -182,7 +188,15 @@ export default function SocialCalendar(){
     {items.map(item=><article className="item" key={item.id}>
      <div className="itemTop"><strong>{item.provider.toUpperCase()}</strong><span className={"status "+item.status}>{item.status.replaceAll("_"," ")}</span></div>
      <p className="preview">{content(item)}</p>
-     <div className="meta">{readDate(item.scheduled_at,item.timezone)} · {item.timezone}</div>
+     <div className="reviewDetails">
+      <p><span>Account</span><strong>{accountName(item)}</strong></p>
+      <p><span>Publish time</span><strong>{readDate(item.scheduled_at,item.timezone)} · {item.timezone}</strong></p>
+      {Boolean(item.payload?.video_url)&&<p><span>Video source</span><a href={String(item.payload.video_url)} target="_blank" rel="noopener noreferrer">{String(item.payload.video_url)}</a></p>}
+      {Boolean(item.payload?.description)&&<p className="detailText"><span>Video description</span><strong>{String(item.payload.description)}</strong></p>}
+      {Boolean(item.payload?.privacy_status)&&<p><span>Visibility</span><strong>{String(item.payload.privacy_status)}</strong></p>}
+      {Boolean(item.payload?.privacy_level)&&<p><span>TikTok privacy</span><strong>{String(item.payload.privacy_level)}</strong></p>}
+     </div>
+     <div className="meta">Approval is bound to this exact content, account and scheduled time.</div>
      {item.status==="draft"&&<div className="approval">
       <label className="check"><input type="checkbox" checked={Boolean(approvals[item.id])} onChange={e=>setApprovals(old=>({...old,[item.id]:e.target.checked}))} /> I approve this exact content, connected account and publishing time for automatic posting.</label>
       <button className="primary" type="button" disabled={!approvals[item.id]||busy==="approve-"+item.id} onClick={()=>void approve(item)}>{busy==="approve-"+item.id?"Approving…":"Approve and schedule"}</button>
@@ -219,6 +233,12 @@ export default function SocialCalendar(){
    .status{font-size:11px;font-weight:900;text-transform:uppercase;border:1px solid rgba(186,212,239,.38);border-radius:999px;padding:6px 9px;color:#e1edfc}
    .status.published{color:#8cf0c2;border-color:#4b9e79}.status.failed,.status.outcome_unknown{color:#ffb3a7;border-color:#ba625c}.status.scheduled{color:#ffdda3;border-color:#ad8447}
    .preview{font-size:14px;line-height:1.5;overflow-wrap:anywhere;color:#eff6ff;white-space:pre-wrap}
+   .reviewDetails{display:grid;gap:8px;margin:12px 0;padding:12px;border:1px solid rgba(157,205,255,.22);border-radius:12px;background:rgba(2,12,29,.5)}
+   .reviewDetails p{display:grid;gap:4px;margin:0;font-size:12px;line-height:1.45;overflow-wrap:anywhere}
+   .reviewDetails span{color:#9eb6d0;font-weight:800;text-transform:uppercase;font-size:10px;letter-spacing:.06em}
+   .reviewDetails strong{color:#f0f6ff;font-weight:650;white-space:pre-wrap}
+   .reviewDetails a{color:#8ce8ff;overflow-wrap:anywhere;font-weight:650}
+   .detailText{padding-top:6px;border-top:1px solid rgba(157,205,255,.15)}
    .meta{font-size:11px;color:#a9c5e3}.approval{display:grid;gap:12px;margin-top:16px;padding-top:13px;border-top:1px solid rgba(222,185,121,.25)}
    .notice,.error{max-width:1180px;margin:12px auto;padding:12px 15px;border-radius:12px;line-height:1.45}.notice{border:1px solid #5e9e7a;color:#c7f7df;background:rgba(17,64,54,.45)}
    .error{border:1px solid #a95c5c;color:#ffd5d2;background:rgba(74,24,32,.48)}.small{font-size:12px;padding:10px}
