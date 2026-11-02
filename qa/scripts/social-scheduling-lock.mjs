@@ -14,6 +14,7 @@ const has=(source,needle,message)=>assert.ok(source.includes(needle),message);
 
 for(const provider of ["youtube:{name:'YouTube'","tiktok:{name:'TikTok'","linkedin:{name:'LinkedIn'"])has(publishing,provider,`First-party social publisher must support ${provider.split(':')[0]}`);
 has(scheduling,'WHERE id=? AND tenant_id=?','Post detail reads must be tenant-scoped');
+has(scheduling,'const {payload_json,tenant_id,created_by,approved_by,approval_hash,idempotency_key,...safe}=row','Public calendar responses must omit tenant IDs, creator IDs, approval hashes and idempotency keys');
 has(scheduling,'WHERE tenant_id=? ORDER BY scheduled_at DESC LIMIT ?','Calendar list must be tenant-scoped and bounded');
 has(scheduling,"if(!user)return json({detail:'Sign in to manage scheduled social posts.'},401)",'Scheduler routes must require an authenticated user');
 has(scheduling,'scheduledAt<now()+900','Schedule must respect the existing 15-minute Worker cron');
