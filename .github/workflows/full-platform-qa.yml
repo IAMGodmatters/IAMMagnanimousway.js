@@ -70,6 +70,9 @@ jobs:
       - name: Lock free-first software directive
         run: node qa/scripts/magnanimous-software-directive-lock.mjs
 
+      - name: Prevent repeated Business AI and Work Engine D1 schema work
+        run: node qa/scripts/business-ai-db-hotpath-lock.mjs
+
       - name: Exercise free-first runtime D1 schema safeguards
         run: node qa/scripts/free-first-runtime-plane-lock.mjs
 
