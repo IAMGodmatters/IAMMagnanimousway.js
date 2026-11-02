@@ -37,7 +37,7 @@ export function buildDeepgramConsentTwiml(actionUrl){
 }
 export function buildDeepgramStreamTwiml(streamUrl,token){
  const stream='<Connect><Stream url="'+escapeXml(streamUrl)+'"><Parameter name="voice_token" value="'+escapeXml(token)+'"/></Stream></Connect>';
- return '<?xml version="1.0" encoding="UTF-8"?><Response>'+stream+'<Say>The automated assistant is unavailable. Please call again later. Goodbye.</Say><Hangup/></Response>';
+ return '<?xml version="1.0" encoding="UTF-8"?><Response>'+stream+'<Say>The AI voice session has ended. Goodbye.</Say><Hangup/></Response>';
 }
 export function buildDeepgramSettings({env={},agent={},origin="https://iammagnanimousway.com",thinkToken=""}={}){
  const language=String(env.DEEPGRAM_VOICE_LANGUAGE||"multi").trim().toLowerCase();
@@ -109,13 +109,15 @@ function decodeBase64(value){const binary=atob(String(value||""));const bytes=ne
 function encodeBase64(value){const bytes=value instanceof Uint8Array?value:new Uint8Array(value);let binary="";for(const byte of bytes)binary+=String.fromCharCode(byte);return btoa(binary);}
 function safeClose(socket,code=1000,reason="Call session closed"){try{if(socket&&socket.readyState<2)socket.close(code,reason.slice(0,120));}catch{}}
 function parseJson(value){try{return JSON.parse(value);}catch{return null;}}
-function openAIStreamFromWorkersAI(upstream,callId,model){
+export function openAIStreamFromWorkersAI(upstream,callId,model){
  const reader=upstream.getReader(),decoder=new TextDecoder(),encoder=new TextEncoder();
  const id="magnanimous-voice-"+String(callId),created=now();
  const body=new ReadableStream({
   async start(controller){
    let buffer="";
+   let roleSent=false;
    const emit=(content,finishReason=null)=>{
+    if(!roleSent){const roleChunk={id,object:"chat.completion.chunk",created,model,choices:[{index:0,delta:{role:"assistant"},finish_reason:null}]};controller.enqueue(encoder.encode("data: "+JSON.stringify(roleChunk)+"\n\n"));roleSent=true;}
     const chunk={id,object:"chat.completion.chunk",created,model,choices:[{index:0,delta:content?{content}:{},finish_reason:finishReason}]};
     controller.enqueue(encoder.encode("data: "+JSON.stringify(chunk)+"\n\n"));
    };
@@ -178,9 +180,9 @@ async function handleThink(request,env){
  const body=await request.json().catch(()=>({})),supplied=Array.isArray(body.messages)?body.messages:[];
  const messages=supplied.slice(-14).map(item=>{const role=["user","assistant"].includes(String(item?.role))?String(item.role):null;const content=typeof item?.content==="string"?item.content.slice(0,4000):"";return role&&content?{role,content}:null;}).filter(Boolean);
  if(!messages.length)return json({error:{message:"No caller speech was supplied."}},400);
- const system=["You are Magnanimous AI. This is a live telephone conversation.",String(agent.instructions||""),"Keep answers concise, natural, truthful, and easy to understand aloud.","Mirror the caller's language, including English and Filipino/Tagalog code-switching.","Do not invent business facts, availability, prices, account access, or completed actions.","Do not claim that you transferred a caller or completed an external action unless call control confirms it.","Never request payment card numbers, bank passwords, authentication secrets, or government identification numbers.","If uncertain, ask a short clarifying question or say a human representative must confirm."].filter(Boolean).join("\n");
  const providerSystem=supplied.filter(item=>String(item?.role)==="system").slice(0,2).map(item=>String(item?.content||"").slice(0,5000)).filter(Boolean).join("\n");
- const promptMessages=[{role:"system",content:system+"\n"+providerSystem},...messages];
+ const system=["You are Magnanimous AI. This is a live telephone conversation.",providerSystem||String(agent.instructions||""),"Keep answers concise, natural, truthful, and easy to understand aloud. Aim for one or two short sentences and under 70 words.","Mirror the caller's language, including English and Filipino/Tagalog code-switching.","Do not invent business facts, availability, prices, account access, or completed actions.","Do not claim that you transferred a caller or completed an external action unless call control confirms it.","Never request payment card numbers, bank passwords, authentication secrets, or government identification numbers.","If there is an emergency or immediate danger, tell the caller to contact local emergency services.","If uncertain, ask a short clarifying question or say a human representative must confirm."].filter(Boolean).join("\n");
+ const promptMessages=[{role:"system",content:system},...messages];
  const models=[...new Set([String(env.CLOUDFLARE_AI_MODEL||"").trim(),"@cf/meta/llama-3.1-8b-instruct-fast","@cf/meta/llama-3.2-1b-instruct"].filter(Boolean))];
  if(body.stream===true){
   for(const model of models){
