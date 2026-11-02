@@ -7,6 +7,8 @@ const work=read('worker/src/work-engine-runtime.js');
 
 assert.ok(business.includes('const BUSINESS_AI_SCHEMA_STATES=new WeakMap();'),'Business AI schema readiness must be scoped to the D1 binding.');
 assert.ok(business.includes('BUSINESS_AI_SCHEMA_STATES.get(db)'),'Business AI must reuse its initialized schema for subsequent requests.');
+assert.ok(business.includes('catch(alterError)'),'Business AI must tolerate concurrent legacy-column migration attempts.');
+assert.ok(business.includes("await db.prepare('SELECT user_id FROM magnanimous_business_ai_jobs LIMIT 0').all();"),'Concurrent ALTER errors must be rechecked against the live schema before they are ignored.');
 assert.ok(business.includes('magnanimous_business_ai_migrations'),'Business AI legacy user backfill must have a persistent migration marker.');
 assert.ok(business.includes('await db.batch(['),'The one-time Business AI backfill and marker must commit as one D1 batch.');
 assert.ok(business.includes('NOT EXISTS(SELECT 1 FROM magnanimous_business_ai_migrations'),'The legacy backfill must not repeat after its marker is committed.');
