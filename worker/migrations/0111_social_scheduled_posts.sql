@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS social_scheduled_posts (
   payload_json TEXT NOT NULL,
   scheduled_at INTEGER NOT NULL,
   timezone TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','scheduled','publishing','published','failed','outcome_unknown','cancelled')),
+  status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','scheduled','publishing','processing','published','failed','outcome_unknown','cancelled')),
   idempotency_key TEXT NOT NULL,
   approval_hash TEXT,
   approved_at INTEGER,
