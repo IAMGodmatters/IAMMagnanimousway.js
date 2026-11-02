@@ -180,7 +180,17 @@ const opportunities:Opportunity[]=[
   tertiary:'https://dpmisv2.dost.gov.ph/',
   tertiaryLabel:'DOST e-Proposal portal',
   cta:'Review official grant and eligibility',
-  verified:'2026-10-31'
+  verified:'2026-11-02'
+ },
+ {
+  id:'bettergovph-fellowship-2026',name:'BetterGovPH Fellowship — Civic Technology Pilot Cohort',status:'active-ph',badge:'PHILIPPINES • APPLICATION DEADLINE NOV 17, 2026 • ₱450K SHARED PROJECT FUND',
+  summary:'A three-month civic-technology fellowship jointly organized by BetterGovPH, WeSolve Foundation, the Philippine Open Government Partnership and the Department of Budget and Management, with partner agencies and civil-society groups. Individuals, teams, organizations and informal groups can apply. The official page lists a gross ₱450,000 funding pool shared among selected fellows/projects according to approved budgets; the fund is still being raised, the amount per team is not guaranteed, and this is not employment.',
+  requirements:['Application deadline: November 17, 2026. Pilot cohort runs December 2026–March 2027, with weekly sprints, mentorship, technical consultations, government engagement and Demo Day','Eligible applicants include civic-technology developers, software engineers, data scientists/analysts, product designers/UX specialists, open-data practitioners, researchers, technologists, student developers/academic teams, civic-tech organizations and volunteer groups','Apply as an individual, team, existing organization or informal group. Applicants must demonstrate they can commit time and effort throughout the fellowship period','Selected fellows must deliver a working civic-tech solution, platform enhancement, data tool, dashboard or API service; provide technical/data-schema documentation, source repository and deployment instructions; and participate in the program','Projects address public challenges such as e-government, open data/FOI, budget and procurement, education, infrastructure monitoring, health, energy, gender and development, local-government transparency and accountability','Gross funding pool is PHP 450,000 shared among selected fellows, teams and/or team members based on approved project budgets. Funding is subject to taxes/deductions, does not constitute employment, and the official page says the organizers are still raising the fellowship fund; do not assume a guaranteed stipend or award','Outputs are encouraged to be released under open licenses. If applying with an existing commercial product, clarify IP and licensing terms first and submit only a separately scoped public-interest component you are willing to license as required','The official page links to the application form and guidelines. Do not pay intermediaries or anyone promising selection or a guaranteed share of the pool'],
+  official:'https://fellowship.bettergov.ph/',
+  secondary:'https://docs.google.com/presentation/d/1aQ9yRlwcRfA15OIKaje5XHaPI1-af0fJ85dP313qvUs/htmlpresent',
+  secondaryLabel:'Official fellowship guidelines',
+  cta:'Apply through official BetterGovPH page',
+  verified:'2026-11-02'
  },
  {
   id:'ndc-svf',name:'NDC — Startup Venture Fund (equity investment)',status:'location-check',badge:'PHILIPPINES • REGISTERED STARTUPS • EQUITY, NOT A GRANT',
@@ -398,6 +408,21 @@ const opportunities:Opportunity[]=[
   secondary:'https://ph.linkedin.com/company/aithoth/jobs',
   secondaryLabel:'Thoth AI employer jobs page',
   cta:'Check employer listing and location terms',
+  verified:'2026-11-02'
+ },
+ {
+  id:'rise-data-labs-global-expert-network',name:'Rise Data Labs — Global Expert Network for AI Training & Evaluation',status:'active-ph',badge:'GLOBAL REMOTE CONTRACTS • ADVANCED PROFESSIONAL EXPERTS • USD $50–$150/HR ADVERTISED',
+  summary:'Rise Data Labs’ official expert portal currently lists remote contract projects whose individual role pages explicitly say “Global. All countries welcome.” Open examples include Finance Expert ($50–$100/hour), Legal & Paralegal Expert ($50–$150/hour), Healthcare Expert ($50–$150/hour), and QuickBooks/Sales Operations Expert ($150/hour). The network requires an advanced degree or deep professional experience; prior AI experience is not required. Rates are role-specific, project volume varies, and weekly payment applies only to approved work.',
+  requirements:['The official expert portal says location requirements vary by role; the finance, legal/paralegal, healthcare and QuickBooks/Sales Operations roles linked here each state Global / all countries welcome','Applicants need an advanced degree or deep professional experience. This is not a beginner click-work platform; each role requires established professional expertise in its domain','Finance Expert: USD $50–$100/hour; ideally 40 hours/week for two weeks, minimum 20 hours/week; finance experience such as investment research, asset management, financial modeling, accounting or corporate finance','Legal & Paralegal Expert: USD $50–$150/hour; professional experience as a paralegal, legal researcher, attorney, legal operations or compliance professional; project hours not stated','Healthcare Expert: USD $50–$150/hour; relevant professional experience and qualifications/licensure where applicable; project hours not stated','QuickBooks/Sales Operations Expert: USD $150/hour; requires 3+ years hands-on QuickBooks and 5+ years sales/sales operations/revenue/account management experience; 30–40 hours/week for approximately two weeks','The network application includes a profile, interview and skills assessment. Approval does not guarantee a project; check each project’s rate, hours, deadline and country terms before accepting','The official portal says approved work is paid weekly. No application or release fee is listed; never pay to join, unlock tasks or receive earnings, and never share passwords or OTPs'],
+  official:'https://experts.risedatalabs.com/',
+  secondary:'https://experts.risedatalabs.com/jobs/finance-expert-ai-training-evaluation-cmov7',
+  secondaryLabel:'Finance Expert — USD $50–$100/hour, global',
+  moreLinks:[
+   {label:'Legal & Paralegal Expert — USD $50–$150/hour, global',url:'https://experts.risedatalabs.com/jobs/legal-paralegal-expert-%E2%80%94-ai-training-evaluation-0qn42'},
+   {label:'Healthcare Expert — USD $50–$150/hour, global',url:'https://experts.risedatalabs.com/jobs/healthcare-expert-%E2%80%94-ai-training-evaluation-x5d4n'},
+   {label:'QuickBooks/Sales Operations Expert — USD $150/hour, global',url:'https://experts.risedatalabs.com/jobs/quickbooks-expert-with-sales-operations-experience-l7q1d'}
+  ],
+  cta:'Join official expert network and review projects',
   verified:'2026-11-02'
  },
  {
