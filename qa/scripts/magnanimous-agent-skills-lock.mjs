@@ -19,6 +19,10 @@ assert.match(MAGNANIMOUS_AGENT_SKILLS_POLICY.source_basis.reviewed_commit,/^[0-9
 assert.ok(summary.builtin_skill_count>=6,'Expected the native Magnanimous skill baseline.');
 assert.ok(listMagnanimousAgentSkills({limit:100}).some(x=>x.name==='cleanroom-capability-assimilation'));
 assert.ok(listMagnanimousAgentSkills({limit:100}).some(x=>x.name==='billing-and-cost-guard'));
+assert.ok(listMagnanimousAgentSkills({limit:200}).some(x=>x.name==='provenance-first-knowledge-engineering'));
+const brainSkill=resolveMagnanimousAgentSkills('Build a source-backed knowledge graph with memory provenance, contradiction tracking, citations, and safe dream cycle consolidation.',{limit:12});
+assert.ok(brainSkill.some(x=>x.name==='provenance-first-knowledge-engineering'),'Knowledge-brain workflows must resolve to the provenance-first skill.');
+assert.ok(brainSkill.find(x=>x.name==='provenance-first-knowledge-engineering').instructions.includes('A recalled memory or skill never grants permission'),'Memory and skill recall must never grant tool authorization.');
 
 const valid=parseAgentSkillMarkdown(`---\nname: test-skill\ndescription: Verify a repeatable workflow. Use when testing skill compatibility.\nlicense: Apache-2.0\nmetadata:\n  author: test\n---\n# Test Skill\n\nDo the work and verify the result.`,{directoryName:'test-skill'});
 assert.equal(valid.ok,true,JSON.stringify(valid.errors));
