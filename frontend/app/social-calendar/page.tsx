@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { getPlatformAuthToken } from "../lib/magnanimous-session";
 
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||"";
@@ -30,7 +30,8 @@ export default function SocialCalendar(){
  const [connections,setConnections]=useState<Connection[]>([]);
  const [items,setItems]=useState<Item[]>([]);
  const [provider,setProvider]=useState<Provider>("youtube");
- const [scheduledLocal,setScheduledLocal]=useState(()=>localInputValue(new Date(Date.now()+45*60*1000)));
+ const [scheduledLocal,setScheduledLocal]=useState("");
+ const [idempotencyKey,setIdempotencyKey]=useState("");
  const [timezone,setTimezone]=useState("UTC");
  const [videoUrl,setVideoUrl]=useState("");
  const [title,setTitle]=useState("");
@@ -54,6 +55,8 @@ export default function SocialCalendar(){
   if(!t){location.replace("/login");return;}
   setToken(t);
   try{setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone||"UTC");}catch{setTimezone("UTC");}
+  setScheduledLocal(localInputValue(new Date(Date.now()+45*60*1000)));
+  setIdempotencyKey(crypto.randomUUID());
   void load(t);
  },[]);
  async function load(t=token){
@@ -67,11 +70,13 @@ export default function SocialCalendar(){
    const c=await read(results[0]),s=await read(results[1]);
    if(!results[0].ok)throw new Error(c.detail||"Could not read connected social accounts.");
    if(!results[1].ok)throw new Error(s.detail||"Could not load the publishing calendar.");
+   const connected=(c.connections||[]).filter((item:Connection)=>["youtube","tiktok","linkedin"].includes(item.id)&&item.connected);
    setConnections(c.connections||[]);setItems(s.items||[]);
+   setProvider(current=>connected.some((item:Connection)=>item.id===current)?current:(connected[0]?.id||"youtube") as Provider);
   }catch(e:any){setError(e?.message||"The publishing calendar could not be loaded.");}
   finally{setLoading(false);}
  }
- async function createDraft(e:React.FormEvent){
+ async function createDraft(e:FormEvent<HTMLFormElement>){
   e.preventDefault();if(!token||!activeConnection)return;
   setBusy("create");setNotice("");setError("");
   try{
@@ -80,7 +85,7 @@ export default function SocialCalendar(){
    if(chosen.getTime()<Date.now()+15*60*1000)throw new Error("Choose a time at least 15 minutes ahead.");
    const payload:Record<string,unknown>={
     provider,scheduled_at:chosen.toISOString(),timezone,
-    idempotency_key:crypto.randomUUID(),
+    idempotency_key:idempotencyKey||crypto.randomUUID(),
     ai_generated:aiGenerated,deepfake:false,public_interest:false,
     human_reviewed:humanReviewed,editorial_responsibility:humanReviewed,
     ai_disclosure_confirmed:aiDisclosure,visible_media_disclosure_confirmed:mediaDisclosure
@@ -95,6 +100,7 @@ export default function SocialCalendar(){
    const d=await read(r);
    if(!r.ok)throw new Error(d.detail||"Could not save the draft.");
    setNotice("Draft saved. Review its account, content and time below, then approve it to schedule publishing.");
+   setIdempotencyKey(crypto.randomUUID());
    setApprovals({});
    await load(token);
   }catch(e:any){setError(e?.message||"Could not save the draft.");}
