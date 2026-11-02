@@ -72,7 +72,7 @@ async function ensureUsageSchema(env){
  await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_voice_provider_sessions_day ON voice_provider_sessions(provider,started_at,ended_at)").run();
 }
 async function finishUsage(env,callId){
- try{const ts=now();await env.DB.prepare("UPDATE voice_provider_sessions SET ended_at=COALESCE(ended_at,?),billed_seconds=MAX(billed_seconds,MAX(0,?-started_at)) WHERE call_id=? AND provider='deepgram'").bind(ts,ts,Number(callId)).run();}catch{}
+ try{const ts=now(),max=Math.min(1800,Math.max(60,Number(env.DEEPGRAM_VOICE_MAX_CALL_SECONDS||300)||300));await env.DB.prepare("UPDATE voice_provider_sessions SET ended_at=COALESCE(ended_at,?),billed_seconds=MAX(billed_seconds,MIN(?,MAX(0,?-started_at))) WHERE call_id=? AND provider='deepgram'").bind(ts,max,ts,Number(callId)).run();}catch{}
 }
 async function reserveUsage(env,call){
  await ensureUsageSchema(env);
@@ -264,7 +264,7 @@ export async function handleDeepgramVoiceAgentRoutes(request,env,url=new URL(req
      const context=await reserveCallContext(env,custom.voice_token,start.callSid);
      state.call=context.call;state.agent=context.agent;state.streamSid=String(message.streamSid||start.streamSid||"");state.sessionReserved=true;
      if(!state.streamSid)throw new Error("TWILIO_STREAM_ID_REQUIRED");
-     const thinkToken=await signToken(env,{scope:"think",call_id:Number(context.call.id),tenant_id:String(context.call.tenant_id),agent_id:String(context.agent.id),exp:now()+3600,nonce:crypto.randomUUID()});
+     const thinkToken=await signToken(env,{scope:"think",call_id:Number(context.call.id),tenant_id:String(context.call.tenant_id),agent_id:String(context.agent.id),exp:now()+600,nonce:crypto.randomUUID()});
      const settings=buildDeepgramSettings({env,agent:context.agent,origin:new URL(request.url).origin,thinkToken});
      state.deepgram=await connectDeepgram(env);
      state.deepgram.addEventListener("message",dgEvent=>{
@@ -294,10 +294,12 @@ export async function handleDeepgramVoiceAgentRoutes(request,env,url=new URL(req
           const phone=String(state.call.direction==="outbound"?state.call.callee:state.call.caller||"").replace(/[\s().-]/g,"");
           if(e164(phone))await env.DB.prepare("INSERT OR REPLACE INTO voice_do_not_call(tenant_id,phone,reason,created_at) VALUES(?,?,?,?)").bind(state.call.tenant_id,phone,"caller opt-out",now()).run().catch(()=>null);
           state.pendingEndMessage="I have recorded your request not to be contacted again";
+          if(state.endFallbackTimer)clearTimeout(state.endFallbackTimer);
           state.endFallbackTimer=setTimeout(async()=>{if(!state.closed){await updateTwilioCall(env,state.call?.provider_call_id,hangupTwiml());await cleanup("Caller opt-out confirmed and call ended");}},8000);
           if(state.deepgram?.readyState===1)state.deepgram.send(JSON.stringify({type:"InjectAgentMessage",message:"Understood. I have recorded your request not to be contacted again. I will end the call now.",behavior:"interrupt"}));
          }else if(/\b(goodbye|bye|hang up|end call)\b/.test(lower)){
           state.pendingEndMessage="Thank you for speaking with me";
+          if(state.endFallbackTimer)clearTimeout(state.endFallbackTimer);
           state.endFallbackTimer=setTimeout(async()=>{if(!state.closed){await updateTwilioCall(env,state.call?.provider_call_id,hangupTwiml());await cleanup("Caller ended the conversation");}},8000);
           if(state.deepgram?.readyState===1)state.deepgram.send(JSON.stringify({type:"InjectAgentMessage",message:"Thank you for speaking with me. Goodbye.",behavior:"interrupt"}));
          }
@@ -309,7 +311,7 @@ export async function handleDeepgramVoiceAgentRoutes(request,env,url=new URL(req
         await updateTwilioCall(env,state.call?.provider_call_id,hangupTwiml());
         await cleanup("Caller requested the call to end after injection was refused");
        }else if(eventMessage.type==="Error")await fail("Voice provider returned an error");
-      })();
+      })().catch(()=>{void fail("Deepgram event processing failed");});
      });
      state.deepgram.addEventListener("close",()=>{void cleanup("Voice provider disconnected");});
      state.deepgram.addEventListener("error",()=>{void fail("Voice provider connection failed");});
