@@ -35,7 +35,7 @@ const env = {
   DEEPGRAM_API_KEY: 'test-only-not-a-real-key',
   DEEPGRAM_VOICE_LANGUAGE: 'multi',
   DEEPGRAM_TTS_PROVIDER: 'cartesia',
-  DEEPGRAM_CARTESIA_MODEL: 'sonic-3.6',
+  DEEPGRAM_CARTESIA_MODEL: 'sonic-3.5',
   DEEPGRAM_CARTESIA_VOICE_ID: 'a167e0f3-df7e-4d52-a9c3-f949145efdab',
   AI: { run() {} },
   SESSION_SECRET: 'test-only-session-signing-secret'
@@ -72,7 +72,7 @@ assert.equal(settings.audio.output.sample_rate, 8000);
 assert.equal(settings.agent.listen.provider.model, 'nova-3');
 assert.equal(settings.agent.listen.provider.language, 'multi');
 assert.equal(settings.agent.speak.provider.type, 'cartesia');
-assert.equal(settings.agent.speak.provider.model_id, 'sonic-3.6');
+assert.equal(settings.agent.speak.provider.model_id, 'sonic-3.5');
 assert.equal(settings.agent.speak.provider.language, 'multi');
 assert.equal(settings.agent.think.provider.type, 'open_ai');
 assert.equal(settings.agent.think.provider.model, 'magnanimous-voice-v1');
@@ -114,7 +114,7 @@ assert.match(runtime, /ai_voice_consent/);
 assert.match(runtime, /createDeepgramVoiceStreamToken/);
 assert.match(runtime, /handoff_phone/);
 assert.match(runtime, /expires_at/);
-assert.match(bridge, /authorization:"Token "\+apiKey/);
+assert.match(bridge, /sec-websocket-protocol/);
 assert.match(bridge, /voice_provider_sessions/);
 assert.match(bridge, /DEEPGRAM_VOICE_MONTHLY_MINUTES_CAP/);
 assert.match(bridge, /AgentAudioDone/);
