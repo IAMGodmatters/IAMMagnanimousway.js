@@ -21,7 +21,11 @@ has(scheduling,'validTimezone(body.timezone)','Schedule must validate an IANA ti
 has(scheduling,'explicit UTC offset','Schedule datetime must carry an explicit UTC offset');
 has(scheduling,'new TextEncoder().encode(raw).byteLength>20000','Schedule request body must be bounded');
 has(scheduling,'UNIQUE(tenant_id,idempotency_key)','Idempotency must be unique within a tenant');
-has(scheduling,'existing)return json({item:publicRow(existing),idempotent:true})','Duplicate schedule submissions must return the existing tenant item');
+has(scheduling,'if(existing){','Duplicate schedule submissions must inspect an existing idempotency key');
+has(scheduling,'String(existing.provider)===provider&&String(existing.external_id)===String(account.external_id)','Idempotency reuse must match provider and connected account');
+has(scheduling,'String(existing.payload_json)===serialized&&Number(existing.scheduled_at)===scheduledAt&&String(existing.timezone)===tz','Idempotency reuse must match exact content and scheduled time');
+has(scheduling,'IDEMPOTENCY_KEY_CONFLICT','Reusing a key for another post must return a conflict, never silently reuse the old post');
+has(scheduling,'return json({item:publicRow(existing),idempotent:true})','Exact duplicate schedule requests must return the existing tenant item');
 has(scheduling,'if(body.confirm!==true)','Approval must require explicit confirmation');
 has(scheduling,'String(account.external_id)!==String(row.external_id)','Approval must verify the same connected social account');
 has(scheduling,'const hash=await approvalHash(row,payload)','Approval must bind the content/account/time snapshot');
