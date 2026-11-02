@@ -42,6 +42,7 @@ const env = {
   SESSION_SECRET: 'test-only-session-signing-secret'
 };
 assert.equal(deepgramVoiceReadiness(env).ready, true);
+assert.deepEqual(deepgramVoiceReadiness(env).limits, { max_concurrent_calls: 2, max_call_seconds: 600, daily_minutes: 30, monthly_minutes: 300 });
 assert.equal(await deepgramVoiceEnabled(env), true);
 assert.equal((await deepgramVoiceRuntimeReadiness(env)).ready, true);
 const incompleteRuntime = await deepgramVoiceRuntimeReadiness(noKey);
@@ -79,7 +80,7 @@ assert.equal(settings.agent.listen.provider.language, 'multi');
 assert.equal(settings.agent.speak.provider.type, 'cartesia');
 assert.equal(settings.agent.speak.provider.model_id, 'sonic-3.5');
 assert.equal(settings.agent.speak.provider.language, 'multi');
-assert.equal(settings.agent.speak.provider.model_id, 'sonic-3.5');
+
 assert.equal(settings.agent.think.provider.type, 'open_ai');
 assert.equal(settings.agent.think.provider.model, 'magnanimous-voice-v1');
 assert.equal(settings.agent.think.endpoint.url, 'https://iammagnanimousway.com/api/voice-agent/think');
@@ -141,6 +142,7 @@ assert.match(security, /api\/voice-agent\/think/);
 assert.match(router, /response\?\.webSocket/);
 assert.match(ui, /handoff_phone/);
 assert.match(ui, /deepgram_voice_agent/);
+assert.match(ui, /max_concurrent_calls/);
 assert.match(wrangler, /DEEPGRAM_VOICE_DAILY_MINUTES_CAP": "30"/);
 assert.match(wrangler, /DEEPGRAM_VOICE_MONTHLY_MINUTES_CAP": "300"/);
 assert.match(docs, /press 1/i);
