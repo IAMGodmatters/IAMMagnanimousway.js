@@ -4,7 +4,8 @@ const workflow = process.env.GITHUB_WORKFLOW || '';
 const repo = process.env.GITHUB_REPOSITORY || 'IAMGodmatters/IAMMagnanimousway.js';
 const token = process.env.GITHUB_TOKEN || '';
 
-if (!inActions || branch !== 'main' || workflow !== 'Build and Deploy I AM') {
+const explicitAudit = process.env.MAGNANIMOUS_VERIFY_PROTECTION === 'true';
+if (!explicitAudit && (!inActions || branch !== 'main' || workflow !== 'Build and Deploy I AM')) {
   console.log('Main branch protection gate: skipped outside the production deployment workflow.');
   process.exit(0);
 }
