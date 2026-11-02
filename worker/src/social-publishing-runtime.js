@@ -17,10 +17,20 @@ async function sessionSecret(env){const direct=String(env?.SESSION_SECRET||'').t
 async function vaultKey(env){const secret=await sessionSecret(env);if(!secret)throw new Error('Secure social credential storage is unavailable.');const digest=await crypto.subtle.digest('SHA-256',encoder.encode(`iam-social-connect-v1:${secret}`));return crypto.subtle.importKey('raw',digest,{name:'AES-GCM'},false,['encrypt','decrypt'])}
 async function encrypt(value,env){if(!value)return'';const iv=crypto.getRandomValues(new Uint8Array(12)),key=await vaultKey(env),cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,encoder.encode(String(value)));return`enc1.${b64(iv)}.${b64(new Uint8Array(cipher))}`}
 async function decrypt(value,env){const raw=String(value||'');if(!raw)return'';if(!raw.startsWith('enc1.'))return raw;const[,ivp,cp]=raw.split('.'),key=await vaultKey(env),plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:fromB64(ivp)},key,fromB64(cp));return new TextDecoder().decode(plain)}
+const socialPublishingSchemaReady=new WeakMap();
 async function ensureSchema(env){
- await env.DB.prepare(`CREATE TABLE IF NOT EXISTS social_platform_credentials (credential_key TEXT PRIMARY KEY,encrypted_value TEXT NOT NULL,updated_at INTEGER NOT NULL,updated_by TEXT NOT NULL DEFAULT '')`).run();
- await env.DB.prepare(`CREATE TABLE IF NOT EXISTS social_oauth_states (state TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,provider TEXT NOT NULL,expires_at INTEGER NOT NULL,created_at INTEGER NOT NULL)`).run();
- await env.DB.prepare(`CREATE TABLE IF NOT EXISTS social_connections (tenant_id TEXT NOT NULL,provider TEXT NOT NULL,external_id TEXT NOT NULL DEFAULT '',display_name TEXT NOT NULL DEFAULT '',access_token TEXT NOT NULL,refresh_token TEXT NOT NULL DEFAULT '',expires_at INTEGER,scope TEXT NOT NULL DEFAULT '',metadata_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(tenant_id,provider))`).run();
+ const db=env?.DB;
+ if(!db||typeof db!=='object')throw new Error('Social publishing database binding is unavailable.');
+ let pending=socialPublishingSchemaReady.get(db);
+ if(!pending){
+  pending=(async()=>{
+   await db.prepare(`CREATE TABLE IF NOT EXISTS social_platform_credentials (credential_key TEXT PRIMARY KEY,encrypted_value TEXT NOT NULL,updated_at INTEGER NOT NULL,updated_by TEXT NOT NULL DEFAULT '')`).run();
+   await db.prepare(`CREATE TABLE IF NOT EXISTS social_oauth_states (state TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,provider TEXT NOT NULL,expires_at INTEGER NOT NULL,created_at INTEGER NOT NULL)`).run();
+   await db.prepare(`CREATE TABLE IF NOT EXISTS social_connections (tenant_id TEXT NOT NULL,provider TEXT NOT NULL,external_id TEXT NOT NULL DEFAULT '',display_name TEXT NOT NULL DEFAULT '',access_token TEXT NOT NULL,refresh_token TEXT NOT NULL DEFAULT '',expires_at INTEGER,scope TEXT NOT NULL DEFAULT '',metadata_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(tenant_id,provider))`).run();
+  })();
+  socialPublishingSchemaReady.set(db,pending);
+ }
+ try{await pending}catch(error){socialPublishingSchemaReady.delete(db);throw error}
 }
 async function savedCredential(env,key){const row=await env.DB.prepare('SELECT encrypted_value FROM social_platform_credentials WHERE credential_key=?').bind(key).first();return row?decrypt(row.encrypted_value,env):''}
 async function credential(env,key){const direct=String(env?.[key]||'').trim();return direct||String(await savedCredential(env,key)||'').trim()}
