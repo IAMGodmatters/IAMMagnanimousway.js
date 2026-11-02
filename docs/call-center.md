@@ -161,16 +161,16 @@ No Cartesia account or key is needed for the managed TTS configuration. The init
 
 The initial pilot is deliberately small:
 
-- One concurrent Deepgram voice session platform-wide.
+- Two concurrent Deepgram voice sessions platform-wide.
 - Maximum 30 WebSocket handshakes per minute per source IP, stored as a keyed hash rather than a raw IP address.
 - Maximum 30 Magnanimous AI think requests per minute for each call.
-- Maximum 5 minutes per day and 20 minutes per calendar month.
-- Maximum 5 minutes per call.
-- At Deepgram's current listed Custom BYO LLM rate of $0.059/minute, 20 minutes is approximately $1.18; if the session is billed at the Standard rate of $0.075/minute, the same cap is $1.50. The advertised starting credit covers the initial test when available.
+- Maximum 30 minutes per day and 300 minutes per calendar month.
+- Maximum 10 minutes per call.
+- At Deepgram's current listed Custom BYO LLM rate of $0.059/minute, 300 minutes is approximately $17.70; if the session is billed at the Standard rate of $0.075/minute, the same cap is $22.50. The advertised $200 starting credit would cover roughly 9–11 months at the full monthly cap, if the account is eligible.
 - Existing Twilio carrier minutes, caller ID and any transfer leg are separate carrier charges. The usage cap here does not pretend to cover them.
 - Workers AI uses the existing Magnanimous binding; no new paid LLM key or model subscription is introduced by this adapter.
 
-The daily/monthly caps are enforced server-side against a durable usage ledger, including active sessions. The session is closed when its remaining allowance is used. A failed provider handshake falls back to a short TwiML failure message and hangup; it does not silently transfer the call or start another paid provider.
+The daily/monthly caps are enforced server-side against a durable usage ledger, including active sessions. The initial concurrency and minute limits are deliberately small and can be raised only after reviewing real usage and funding. The session is closed when its remaining allowance is used. A failed provider handshake falls back to a short TwiML failure message and hangup; it does not silently transfer the call or start another paid provider.
 
 ### Consent, handoff and retention
 
