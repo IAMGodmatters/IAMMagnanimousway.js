@@ -33,11 +33,12 @@ test('unknown browser routes recover automatically instead of stranding the user
   await expect(page.locator('body')).not.toContainText('continue a persistent Magnanimous job');
 });
 
-test('interactive controls have an accessible identity', async ({ page }) => {
-  const sample = routes.length <= 24 ? routes : ['/', ...routes.filter((r) => /ai|business|video|call|admin|billing|translator|support|pricing|agents/i.test(r)).slice(0, 23)];
-  for (const route of [...new Set(sample)]) {
+const sample = routes.length <= 24 ? routes : ['/', ...routes.filter((r) => /ai|business|video|call|admin|billing|translator|support|pricing|agents/i.test(r)).slice(0, 23)];
+for (const route of [...new Set(sample)]) {
+  test(`${route} interactive controls have an accessible identity`, async ({ page }) => {
     const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
-    if (!response || response.status() >= 500 || response.status() === 404) continue;
+    if (!response || response.status() >= 500 || response.status() === 404) return;
+    await page.locator('body').waitFor({ state: 'visible', timeout: 10_000 });
 
     const unnamedButtons = await page.locator('button:visible').evaluateAll((buttons) =>
       buttons.filter((button) => {
@@ -52,5 +53,5 @@ test('interactive controls have an accessible identity', async ({ page }) => {
 
     const unsafeLinks = await page.locator('a[href^="javascript:"]').count();
     expect.soft(unsafeLinks, `${route} contains javascript: links`).toBe(0);
-  }
-});
+  });
+}
