@@ -65,6 +65,11 @@ has(wrangler,'"crons": ["*/15 * * * *"]','No new paid scheduler infrastructure m
 has(page,'/api/social-connect/connections','Calendar must use the existing first-party connected accounts');
 has(page,'/api/social-schedule','Calendar must use the Magnanimous native scheduler API');
 has(page,'Approve and schedule','Calendar must require explicit user approval');
+has(scheduling,'LEFT JOIN social_connections c ON c.tenant_id=s.tenant_id AND c.provider=s.provider AND c.external_id=s.external_id','Calendar rows must identify the actual connected account bound to the post');
+has(scheduling,"AS account_display_name",'Calendar list must return the connected account display name only within the current tenant');
+has(page,'item.account_display_name||"Connected account"','Approval card must display the target account name');
+has(page,'Media to publish:','Video approval must expose the exact source media URL');
+has(page,'Visibility:','Approval must expose provider-specific visibility settings');
 has(page,'I approve this exact content, connected account and publishing time','Approval must identify the exact content/account/time');
 has(page,'outcome_unknown','Calendar must explain uncertain provider outcomes and duplicate protection');
 has(page,'SELF_ONLY','TikTok defaults to private posting');
