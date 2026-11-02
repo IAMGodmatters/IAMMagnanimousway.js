@@ -48,6 +48,21 @@ function validTimezone(value){
  if(!tz||tz.length>80)return '';
  try{new Intl.DateTimeFormat('en-US',{timeZone:tz}).format(new Date());return tz}catch{return ''}
 }
+function timezoneOffsetMatches(value,timezone){
+ const raw=String(value||'').trim();
+ const match=raw.match(/(Z|([+-])(\d{2}):(\d{2}))$/i);
+ if(!match)return false;
+ const date=new Date(raw),ms=date.getTime();
+ if(!Number.isFinite(ms))return false;
+ const supplied=match[1].toUpperCase()==='Z'?0:(match[2]==='-'?-1:1)*(Number(match[3])*60+Number(match[4]));
+ try{
+  const parts=new Intl.DateTimeFormat('en-US',{timeZone:timezone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(date);
+  const v=Object.fromEntries(parts.filter(x=>x.type!=='literal').map(x=>[x.type,Number(x.value)]));
+  const localAsUtc=Date.UTC(v.year,v.month-1,v.day,v.hour,v.minute,v.second);
+  const actual=Math.round((localAsUtc-Math.floor(ms/1000)*1000)/60000);
+  return actual===supplied;
+ }catch{return false}
+}
 function parseSchedule(value){
  const raw=String(value||'').trim();
   if(!/(?:Z|[+-]\d{2}:\d{2})$/i.test(raw))return 0;
@@ -147,6 +162,7 @@ async function handleCreate(request,env,user){
  const provider=String(body.provider);
  const scheduledAt=parseSchedule(body.scheduled_at),tz=validTimezone(body.timezone);
  if(!scheduledAt||!tz)return json({detail:'Use a valid date/time with an explicit UTC offset and a valid IANA timezone.'},400);
+ if(!timezoneOffsetMatches(body.scheduled_at,tz))return json({detail:'The UTC offset does not match the selected timezone at that date and time. This can happen during a daylight-saving change; choose a valid local time.'},400);
  if(scheduledAt<now()+900)return json({detail:'Schedule at least 15 minutes ahead. The free Worker scheduler checks every 15 minutes.'},400);
  const account=await connectedAccount(env,user.tenant_id,provider);
  if(!account?.external_id)return json({detail:'Connect this social account before creating a schedule.'},409);
@@ -175,7 +191,9 @@ async function handleCreate(request,env,user){
  const row=await getTenantRow(env,user.tenant_id,id);
  return json({item:publicRow(row),approval_required:true},201);
 }
+function canManageSchedules(user){return ['owner','admin'].includes(String(user?.role||'').toLowerCase())}
 async function handleApprove(request,env,user,id){
+ if(!canManageSchedules(user))return json({detail:'Only the workspace owner or administrator can approve automatic social publishing.'},403);
  const body=await request.json().catch(()=>({}));
  if(body.confirm!==true)return json({detail:'Explicitly confirm this exact content, connected account and scheduled time before enabling automatic publishing.',code:'SCHEDULE_APPROVAL_REQUIRED'},409);
  const row=await getTenantRow(env,user.tenant_id,id);
@@ -193,6 +211,7 @@ async function handleApprove(request,env,user,id){
  return json({item:publicRow(updated),approval:{confirmed:true,approved_at:ts,content_bound:true,account_bound:true,time_bound:true}});
 }
 async function handleCancel(request,env,user,id){
+ if(!canManageSchedules(user))return json({detail:'Only the workspace owner or administrator can cancel scheduled social publishing.'},403);
  const row=await getTenantRow(env,user.tenant_id,id);
  if(!row)return json({detail:'Scheduled post not found.'},404);
  if(!['draft','scheduled'].includes(String(row.status)))return json({detail:'This post can no longer be cancelled from its current state.'},409);
