@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
+import { validIanaTimezone, timezoneOffsetMatches } from '../../worker/src/social-timezone.js';
 
 const read=path=>fs.readFileSync(path,'utf8');
 const scheduling=read('worker/src/social-scheduling-runtime.js');
@@ -9,6 +10,17 @@ const migration=read('worker/migrations/0111_social_scheduled_posts.sql');
 const page=read('frontend/app/social-calendar/page.tsx');
 const socialStudio=read('frontend/app/social-media/page.tsx');
 const wrangler=read('worker/wrangler.jsonc');
+assert.equal(validIanaTimezone('Asia/Manila'),'Asia/Manila','Manila timezone must be accepted');
+assert.equal(validIanaTimezone('Not/A_Real_Zone'),'','Unknown IANA timezone must be rejected');
+assert.equal(timezoneOffsetMatches('2026-11-02T12:00:00+08:00','Asia/Manila'),true,'Manila UTC+08 offset must match');
+assert.equal(timezoneOffsetMatches('2026-01-15T12:00:00-05:00','America/New_York'),true,'New York winter standard offset must match');
+assert.equal(timezoneOffsetMatches('2026-07-15T12:00:00-04:00','America/New_York'),true,'New York summer daylight offset must match');
+assert.equal(timezoneOffsetMatches('2026-03-08T02:30:00-05:00','America/New_York'),false,'Nonexistent spring-forward wall time must be rejected');
+assert.equal(timezoneOffsetMatches('2026-11-01T01:30:00-04:00','America/New_York'),true,'First fall-back 01:30 offset must be valid');
+assert.equal(timezoneOffsetMatches('2026-11-01T01:30:00-05:00','America/New_York'),true,'Second fall-back 01:30 offset must be valid');
+assert.equal(timezoneOffsetMatches('2026-01-15T12:00:00-04:00','America/New_York'),false,'Mismatched UTC offset must be rejected');
+assert.equal(timezoneOffsetMatches('2026-11-02T12:00:00','Asia/Manila'),false,'Datetime without explicit offset must be rejected');
+
 const skills=read('worker/src/magnanimous-agent-skills.js');
 const has=(source,needle,message)=>assert.ok(source.includes(needle),message);
 
