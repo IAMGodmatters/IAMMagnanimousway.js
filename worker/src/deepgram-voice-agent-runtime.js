@@ -73,6 +73,30 @@ async function ensureUsageSchema(env){
  await env.DB.prepare("CREATE TABLE IF NOT EXISTS voice_stream_handshake_limits (ip_hash TEXT NOT NULL,window_start INTEGER NOT NULL,attempts INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(ip_hash,window_start))").run();
  await env.DB.prepare("CREATE TABLE IF NOT EXISTS voice_think_request_limits (call_id INTEGER NOT NULL,window_start INTEGER NOT NULL,requests INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(call_id,window_start))").run();
 }
+async function rateLimitStreamHandshake(env,request){
+ const secret=await signingSecret(env);if(!secret)return false;
+ await ensureUsageSchema(env);
+ const ip=String(request.headers.get("cf-connecting-ip")||"unknown").slice(0,80);
+ const ipHash=await hmacHex(secret,"voice-stream:"+ip),windowStart=Math.floor(now()/60)*60;
+ await env.DB.prepare("INSERT INTO voice_stream_handshake_limits(ip_hash,window_start,attempts) VALUES(?,?,1) ON CONFLICT(ip_hash,window_start) DO UPDATE SET attempts=attempts+1").bind(ipHash,windowStart).run();
+ const row=await env.DB.prepare("SELECT attempts FROM voice_stream_handshake_limits WHERE ip_hash=? AND window_start=?").bind(ipHash,windowStart).first();
+ await env.DB.prepare("DELETE FROM voice_stream_handshake_limits WHERE window_start<?").bind(windowStart-3600).run().catch(()=>{});
+ return Number(row?.attempts||0)<=30;
+}
+async function rateLimitThink(env,callId){
+ await ensureUsageSchema(env);
+ const windowStart=Math.floor(now()/60)*60;
+ await env.DB.prepare("INSERT INTO voice_think_request_limits(call_id,window_start,requests) VALUES(?,?,1) ON CONFLICT(call_id,window_start) DO UPDATE SET requests=requests+1").bind(Number(callId),windowStart).run();
+ const row=await env.DB.prepare("SELECT requests FROM voice_think_request_limits WHERE call_id=? AND window_start=?").bind(Number(callId),windowStart).first();
+ await env.DB.prepare("DELETE FROM voice_think_request_limits WHERE window_start<?").bind(windowStart-3600).run().catch(()=>{});
+ return Number(row?.requests||0)<=30;
+}
+export async function deepgramVoiceRuntimeReadiness(env={}){
+ const base=deepgramVoiceReadiness(env),secret=await signingSecret(env);
+ const missing=[...base.missing];
+ if(!secret)missing.push("SESSION_SECRET or auth_config.session_secret");
+ return {...base,ready:missing.length===0,missing};
+}
 async function finishUsage(env,callId){
  try{const ts=now(),max=Math.min(1800,Math.max(60,Number(env.DEEPGRAM_VOICE_MAX_CALL_SECONDS||300)||300));await env.DB.prepare("UPDATE voice_provider_sessions SET ended_at=COALESCE(ended_at,?),billed_seconds=MAX(billed_seconds,MIN(?,MAX(0,?-started_at))) WHERE call_id=? AND provider='deepgram'").bind(ts,max,ts,Number(callId)).run();}catch{}
 }
