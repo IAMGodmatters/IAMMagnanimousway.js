@@ -241,7 +241,8 @@ async function createTwilioCall(request, env, user, body, internalContext = {}) 
   const statusUrl = `${origin}/api/voice-agent/twilio/status?call_id=${callId}`;
   const opening = String(body.opening_message || agent.opening_message || 'Hello. This is an automated AI assistant. I am not a human. How may I help you?').slice(0, 1200);
   const consentAction = `${origin}/api/voice-agent/twilio/consent?call_id=${callId}`;
-  const twimlBody = deepgramVoiceEnabled(env) ? buildDeepgramConsentTwiml(consentAction) : gatherTwiml(turnUrl, opening, agent.twilio_voice);
+  const realtimeVoiceReady = await deepgramVoiceEnabled(env);
+  const twimlBody = realtimeVoiceReady ? buildDeepgramConsentTwiml(consentAction) : gatherTwiml(turnUrl, opening, agent.twilio_voice);
 
   const form = new URLSearchParams();
   form.set('To', to);
@@ -265,7 +266,7 @@ async function createTwilioCall(request, env, user, body, internalContext = {}) 
   }
   await env.DB.prepare('UPDATE phone_calls SET provider_call_id=?,status=?,updated_at=? WHERE id=? AND tenant_id=?')
     .bind(String(data.sid), String(data.status || 'queued'), now(), callId, user.tenant_id).run();
-  if (!deepgramVoiceEnabled(env)) {
+  if (!await deepgramVoiceEnabled(env)) {
     await env.DB.prepare('INSERT INTO voice_agent_turns(tenant_id,call_id,provider_call_id,speaker,text,created_at,expires_at) VALUES(?,?,?,?,?,?,?)')
       .bind(user.tenant_id, callId, String(data.sid), 'assistant', opening, now(), now() + 30 * 86400).run();
   }
@@ -312,7 +313,7 @@ async function twilioTurn(request, env, url) {
 
 async function twilioConsent(request, env, url) {
   if (!await validateTwilioRequest(request, env)) return xml(goodbyeTwiml('This call could not be authenticated.'), 403);
-  if (!deepgramVoiceEnabled(env)) return xml(goodbyeTwiml('The realtime AI service is not configured.'), 503);
+  if (!await deepgramVoiceEnabled(env)) return xml(goodbyeTwiml('The realtime AI service is not configured.'), 503);
   const callId = Number(url.searchParams.get('call_id') || 0);
   const call = callId ? await env.DB.prepare('SELECT * FROM phone_calls WHERE id=?').bind(callId).first() : null;
   if (!call) return xml(goodbyeTwiml('This call session is unavailable.'), 404);
@@ -421,7 +422,7 @@ async function twilioIncoming(request, env) {
   const origin = new URL(request.url).origin;
   const action = `${origin}/api/voice-agent/twilio/turn?call_id=${call.id}`;
   const opening = String(agent.opening_message || 'Hello. This is an automated AI assistant. I am not a human. How may I help you?');
-  if (deepgramVoiceEnabled(env)) {
+  if (await deepgramVoiceEnabled(env)) {
     const consentAction = `${origin}/api/voice-agent/twilio/consent?call_id=${call.id}`;
     return xml(buildDeepgramConsentTwiml(consentAction));
   }
