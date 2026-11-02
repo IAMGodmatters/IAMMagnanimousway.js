@@ -43,7 +43,8 @@ async function loadRoute(page: any, route: string): Promise<boolean> {
       { timeout: 12_000 },
     );
     await page.locator('body').waitFor({ state: 'visible', timeout: 10_000 });
-    await expect(page.locator('body')).toContainText(/sign in|log in/i);
+    await expect(page.locator('form input[type="email"]')).toBeVisible();
+    await expect(page.locator('form input[type="password"]')).toBeVisible();
     return false;
   }
 
