@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
   deepgramVoiceReadiness,
+  deepgramVoiceRuntimeReadiness,
   deepgramVoiceEnabled,
   buildDeepgramConsentTwiml,
   buildDeepgramStreamTwiml,
@@ -41,7 +42,11 @@ const env = {
   SESSION_SECRET: 'test-only-session-signing-secret'
 };
 assert.equal(deepgramVoiceReadiness(env).ready, true);
-assert.equal(deepgramVoiceEnabled(env), true);
+assert.equal(await deepgramVoiceEnabled(env), true);
+assert.equal((await deepgramVoiceRuntimeReadiness(env)).ready, true);
+const incompleteRuntime = await deepgramVoiceRuntimeReadiness(noKey);
+assert.equal(incompleteRuntime.ready, false);
+assert.ok(incompleteRuntime.missing.includes('SESSION_SECRET or auth_config.session_secret'));
 
 const consent = buildDeepgramConsentTwiml('https://example.test/api/voice-agent/twilio/consent?call_id=42');
 assert.match(consent, /Press 1 to agree and continue/);
@@ -115,6 +120,14 @@ assert.match(runtime, /createDeepgramVoiceStreamToken/);
 assert.match(runtime, /handoff_phone/);
 assert.match(runtime, /expires_at/);
 assert.match(bridge, /sec-websocket-protocol/);
+assert.match(bridge, /rateLimitStreamHandshake/);
+assert.match(bridge, /rateLimitThink/);
+assert.match(bridge, /voice_stream_handshake_limits/);
+assert.match(bridge, /voice_think_request_limits/);
+assert.match(bridge, /audioBytes>=1600/);
+assert.match(bridge, /setTimeout\(flushAudioBuffer,200\)/);
+assert.match(bridge, /media\.track/);
+assert.match(bridge, /behavior:"interrupt"/);
 assert.match(bridge, /voice_provider_sessions/);
 assert.match(bridge, /DEEPGRAM_VOICE_MONTHLY_MINUTES_CAP/);
 assert.match(bridge, /AgentAudioDone/);
