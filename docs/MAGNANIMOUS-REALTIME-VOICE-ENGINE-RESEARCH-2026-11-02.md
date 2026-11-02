@@ -33,7 +33,7 @@ The source also preserves fail-closed gates for carrier readiness, outbound cons
 
 ### Immediate Twilio/Deepgram runtime — first operational path
 
-The existing Twilio carrier is retained. The Worker returns a consent TwiML prompt first; only a caller pressing 1 receives a short-lived, call-bound stream token and a bidirectional `<Connect><Stream>` session. Twilio sends 8 kHz mu-law frames to the Worker, the Worker bridges them to Deepgram Voice Agent, and returned audio is sent back to the same Twilio stream.
+The existing Twilio carrier is retained. The Worker returns a consent TwiML prompt first; only a caller pressing 1 receives a short-lived, call-bound stream token and a bidirectional `<Connect><Stream>` session. Twilio sends 8 kHz mu-law frames to the Worker; the Worker buffers 200 ms batches, forwards only inbound audio to Deepgram Voice Agent, and returns generated audio to the same Twilio stream.
 
 - Deepgram Voice Agent authentication uses the documented WebSocket subprotocols `token` and the API key.
 - Nova-3 uses `language: "multi"` for English/Filipino code-switching. Cartesia Sonic 3.5 uses the multilingual TTS mode; its supported language list includes Tagalog/Filipino. Actual phone-audio quality still requires a measured test. Cebuano/Bisaya is not included in this first adapter's verified language scope. Google Cloud Speech-to-Text lists `ceb-PH` for selected regions, but that would require a separate streaming STT/TTS integration and billing credentials; it is not silently enabled here.
