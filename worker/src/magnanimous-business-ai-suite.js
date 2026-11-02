@@ -73,9 +73,9 @@ async function ensure(env){
   // The NOT EXISTS guard prevents concurrent cold isolates from repeating the work.
   await db.batch([
    db.prepare(`UPDATE magnanimous_business_ai_jobs
-    SET user_id=COALESCE((SELECT w.user_id FROM magnanimous_work_items w WHERE w.tenant_id=magnanimous_business_ai_jobs.tenant_id AND w.id=CAST(json_extract(magnanimous_business_ai_jobs.output_json,'$.work_id') AS INTEGER) LIMIT 1),'')
+    SET user_id=COALESCE((SELECT w.user_id FROM magnanimous_work_items w WHERE w.tenant_id=magnanimous_business_ai_jobs.tenant_id AND w.id=CAST(CASE WHEN json_valid(magnanimous_business_ai_jobs.output_json) THEN json_extract(magnanimous_business_ai_jobs.output_json,'$.work_id') ELSE NULL END AS INTEGER) LIMIT 1),'')
     WHERE user_id=''
-    AND EXISTS(SELECT 1 FROM magnanimous_work_items w WHERE w.tenant_id=magnanimous_business_ai_jobs.tenant_id AND w.id=CAST(json_extract(magnanimous_business_ai_jobs.output_json,'$.work_id') AS INTEGER))
+    AND EXISTS(SELECT 1 FROM magnanimous_work_items w WHERE w.tenant_id=magnanimous_business_ai_jobs.tenant_id AND w.id=CAST(CASE WHEN json_valid(magnanimous_business_ai_jobs.output_json) THEN json_extract(magnanimous_business_ai_jobs.output_json,'$.work_id') ELSE NULL END AS INTEGER))
     AND NOT EXISTS(SELECT 1 FROM magnanimous_business_ai_migrations WHERE migration_key=?)`).bind(BUSINESS_AI_LEGACY_BACKFILL),
    db.prepare('INSERT OR IGNORE INTO magnanimous_business_ai_migrations(migration_key,applied_at) VALUES(?,?)').bind(BUSINESS_AI_LEGACY_BACKFILL,now())
   ]);
