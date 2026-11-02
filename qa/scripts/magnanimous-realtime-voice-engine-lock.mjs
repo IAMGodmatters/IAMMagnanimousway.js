@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { MAGNANIMOUS_VOICE_ENGINE_KNOWLEDGE, magnanimousVoiceEngineSummary } from '../../worker/src/magnanimous-voice-engine-knowledge.js';
+import { TELECOM_KNOWLEDGE, telecomArchitectureSummary } from '../../worker/src/magnanimous-telecom-knowledge.js';
 
 const read = path => fs.readFileSync(path, 'utf8');
 const doc = read('docs/MAGNANIMOUS-REALTIME-VOICE-ENGINE-RESEARCH-2026-11-02.md');
@@ -12,6 +13,8 @@ const callCenter = read('docs/call-center.md');
 assert.equal(MAGNANIMOUS_VOICE_ENGINE_KNOWLEDGE.identity.brain, 'Magnanimous AI');
 assert.equal(MAGNANIMOUS_VOICE_ENGINE_KNOWLEDGE.status, 'design-approved-pending-runtime-and-e2e-verification');
 assert.equal(magnanimousVoiceEngineSummary(), MAGNANIMOUS_VOICE_ENGINE_KNOWLEDGE);
+assert.equal(TELECOM_KNOWLEDGE.voice_engine, MAGNANIMOUS_VOICE_ENGINE_KNOWLEDGE, 'canonical Telecom knowledge must include the new voice-engine research');
+assert.equal(telecomArchitectureSummary().voice_engine.status, 'design-approved-pending-runtime-and-e2e-verification');
 assert.match(docker, /ARG ASTERISK_VERSION=22\.11\.0/);
 assert.match(voice, /Gather input="speech"/);
 assert.match(voice, /env\.AI\.run/);
