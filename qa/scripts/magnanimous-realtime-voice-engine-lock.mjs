@@ -35,7 +35,7 @@ assert.ok(MAGNANIMOUS_VOICE_ENGINE_KNOWLEDGE.reference_implementation.absorb_pat
 assert.match(microsoftAudit, /Azure Communication Services/);
 assert.match(microsoftAudit, /Apache-2\.0/);
 assert.match(microsoftAudit, /Azure Communication Services as a mandatory provider/);
-assert.match(microsoftAudit, /human transfer/);
+assert.match(microsoftAudit, /human-agent fallback|warm transfer/i);
 assert.match(microsoftAudit, /not streamed directly into the LLM/);
 assert.match(microsoftAudit, /Do not solve latency by silently selecting an expensive model/);
 assert.match(doc, /custom Pipecat FrameSerializer\/transport adapter/);
