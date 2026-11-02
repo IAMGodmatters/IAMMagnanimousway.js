@@ -85,7 +85,7 @@ async function reserveUsage(env,call){
  const callId=Number(call.id);
  const existing=await env.DB.prepare("SELECT * FROM voice_provider_sessions WHERE call_id=? AND provider='deepgram'").bind(callId).first();
  if(existing)return{ok:false,reason:"call_session_already_reserved"};
- const ts=now(),dayStart=Math.floor(ts/86400)*86400,monthStart=Math.floor(ts/2592000)*2592000;
+ const ts=now(),dayStart=Math.floor(ts/86400)*86400,monthDate=new Date(ts*1000),monthStart=Math.floor(Date.UTC(monthDate.getUTCFullYear(),monthDate.getUTCMonth(),1)/1000);
  await env.DB.prepare("INSERT INTO voice_provider_sessions(call_id,tenant_id,provider,started_at,ended_at,billed_seconds) VALUES(?,?,'deepgram',?,NULL,0)").bind(callId,String(call.tenant_id),ts).run();
  const maxConcurrent=Math.min(4,Math.max(1,Number(env.DEEPGRAM_VOICE_MAX_CONCURRENT_CALLS||1)||1));
  const active=await env.DB.prepare("SELECT COUNT(*) AS n FROM voice_provider_sessions WHERE provider='deepgram' AND ended_at IS NULL").first();
