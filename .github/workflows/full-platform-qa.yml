@@ -151,6 +151,9 @@ jobs:
       - name: Lock cinematic 3-D homepage module marks
         run: node qa/scripts/home-3d-module-marks-lock.mjs
 
+      - name: Lock Business AI D1 schema and request workload
+        run: node qa/scripts/business-ai-request-workload-lock.mjs
+
       - name: Frontend typecheck and production build
         working-directory: frontend
         run: |
