@@ -24,7 +24,7 @@ export function deepgramVoiceReadiness(env={}){
  if(tts==="cartesia"&&!String(env.DEEPGRAM_CARTESIA_VOICE_ID||"").trim())missing.push("DEEPGRAM_CARTESIA_VOICE_ID configuration");
  else if(tts==="deepgram"&&language!=="en")missing.push("Cartesia TTS for Filipino/Tagalog or multilingual speech");
  else if(!["deepgram","cartesia"].includes(tts))missing.push("supported TTS provider (deepgram or cartesia)");
- const limits={max_concurrent_calls:Math.min(4,Math.max(1,Number(env.DEEPGRAM_VOICE_MAX_CONCURRENT_CALLS||2)||2)),max_call_seconds:Math.min(1800,Math.max(60,Number(env.DEEPGRAM_VOICE_MAX_CALL_SECONDS||600)||600)),daily_minutes:Math.min(240,Math.max(1,Number(env.DEEPGRAM_VOICE_DAILY_MINUTES_CAP||30)||30)),monthly_minutes:Math.min(1440,Math.max(1,Number(env.DEEPGRAM_VOICE_MONTHLY_MINUTES_CAP||300)||300))};
+ const limits={max_concurrent_calls:Math.min(2,Math.max(1,Number(env.DEEPGRAM_VOICE_MAX_CONCURRENT_CALLS||2)||2)),max_call_seconds:Math.min(600,Math.max(60,Number(env.DEEPGRAM_VOICE_MAX_CALL_SECONDS||600)||600)),daily_minutes:Math.min(30,Math.max(1,Number(env.DEEPGRAM_VOICE_DAILY_MINUTES_CAP||30)||30)),monthly_minutes:Math.min(300,Math.max(1,Number(env.DEEPGRAM_VOICE_MONTHLY_MINUTES_CAP||300)||300))};
  limits.tenant_max_concurrent_calls=Math.min(limits.max_concurrent_calls,Math.max(1,Number(env.DEEPGRAM_VOICE_TENANT_MAX_CONCURRENT_CALLS||1)||1));
  limits.tenant_daily_minutes=Math.min(limits.daily_minutes,Math.max(1,Number(env.DEEPGRAM_VOICE_TENANT_DAILY_MINUTES_CAP||20)||20));
  limits.tenant_monthly_minutes=Math.min(limits.monthly_minutes,Math.max(1,Number(env.DEEPGRAM_VOICE_TENANT_MONTHLY_MINUTES_CAP||150)||150));
