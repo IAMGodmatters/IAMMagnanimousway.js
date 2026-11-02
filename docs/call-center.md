@@ -130,6 +130,58 @@ The bridge must return JSON containing a durable call identifier:
 
 Send call updates to the supplied webhook URL with the `x-iam-webhook-secret` header. The JSON body should contain `provider_call_id`, `status`, and optionally `event_type`, `detail`, or `recording_url`.
 
+## Realtime PSTN voice — low-cost streaming path
+
+The existing Twilio carrier, phone number, call records and status callbacks remain in place. When the realtime adapter is ready, new inbound and outbound PSTN calls use Twilio bidirectional Media Streams instead of the old turn-by-turn `Gather` speech loop. If the realtime provider is not ready, the existing Gather path remains available.
+
+### Runtime ownership
+
+- **Magnanimous AI** remains the only conversation-reasoning endpoint. Deepgram sends each turn to the authenticated `/api/voice-agent/think` endpoint, which invokes the existing Workers AI binding and the tenant's selected voice-agent instructions.
+- **Deepgram Voice Agent** handles streaming speech recognition, turn events and audio transport.
+- **Cartesia Sonic multilingual TTS** is selected through Deepgram's managed Cartesia integration. The default public voice is the Customer Support Man preset; its voice ID can be changed in Wrangler configuration after listening tests. No separate Cartesia API key is required.
+- **Twilio** remains the PSTN carrier and bidirectional media transport. This does not replace Asterisk Telecom Core or browser calling.
+
+### Activation
+
+The adapter is fail-closed until the Deepgram secret is present. Do not paste API keys into chat, source code, Wrangler `vars`, or the browser.
+
+1. Create a Deepgram account using the free Pay-As-You-Go signup. Deepgram currently advertises a $200 starting credit, no credit-card requirement and no expiration for Pay-As-You-Go credits. Keep auto-load off and do not add a payment method for the initial trial.
+2. Create a server-side API key with only the required Voice Agent access.
+3. After the streaming adapter has been deployed, run this from the repository's `worker` directory and paste the key only at the secure prompt:
+
+   ```powershell
+   npx wrangler secret put DEEPGRAM_API_KEY
+   ```
+
+4. The AI Receptionist page shows the realtime voice readiness check. Calls use streaming only when the secret, existing Workers AI binding and required runtime settings are all present.
+
+No Cartesia account or key is needed for the managed TTS configuration. The initial multilingual voice preset uses Cartesia Sonic 3.6 with the public Customer Support Man voice ID. Test English, Filipino/Tagalog and code-switching with real phone audio before enabling this for customer traffic.
+
+### Cost guardrails
+
+The initial pilot is deliberately small:
+
+- One concurrent Deepgram voice session platform-wide.
+- Maximum 5 minutes per day and 20 minutes per calendar month.
+- Maximum 5 minutes per call.
+- At Deepgram's current listed Custom BYO LLM rate of $0.059/minute, 20 minutes is approximately $1.18; if the session is billed at the Standard rate of $0.075/minute, the same cap is $1.50. The advertised starting credit covers the initial test when available.
+- Existing Twilio carrier minutes, caller ID and any transfer leg are separate carrier charges. The usage cap here does not pretend to cover them.
+- Workers AI uses the existing Magnanimous binding; no new paid LLM key or model subscription is introduced by this adapter.
+
+The daily/monthly caps are enforced server-side against a durable usage ledger, including active sessions. The session is closed when its remaining allowance is used. A failed provider handshake falls back to a short TwiML failure message and hangup; it does not silently transfer the call or start another paid provider.
+
+### Consent, handoff and retention
+
+- Before any Deepgram audio stream starts, the caller hears an AI/speech-processing disclosure and must press 1. Declining or timing out starts no AI conversation.
+- No raw call audio is stored by this adapter. New voice transcripts are retained for 30 days; pre-existing transcript rows without an expiry are left unchanged.
+- Caller opt-out phrases are handled in the streaming bridge and written to the tenant-scoped do-not-call list before the assistant ends the call.
+- Each workspace voice assistant can have its own E.164 human handoff number in the AI Receptionist page. Pressing 0 redirects that specific Twilio call to that number. If no number is configured, the assistant does not claim a transfer is available.
+- The handoff number is stored on the tenant-scoped voice-agent record; it is not a global fallback shared between tenants.
+
+### Runtime verification
+
+The readiness endpoint reports missing provider configuration without exposing secrets. Required acceptance tests include: bidirectional audio, first-response latency, interruption/barge-in, English and Filipino/Tagalog, noisy mobile audio, DNC, caller hangup, human transfer, provider outage, usage-cap exhaustion, duplicate callbacks and cross-tenant isolation.
+
 ## Cost and compliance
 
 Browser-to-browser calls use the free Internet-phone layer. Calls to ordinary phone numbers require an authorized carrier path, an assigned caller ID, and the carrier's usage charges. Before automated outreach, recording or supervisor monitoring, obtain required consent and follow do-not-call, recording, privacy, telemarketing and other applicable rules.
