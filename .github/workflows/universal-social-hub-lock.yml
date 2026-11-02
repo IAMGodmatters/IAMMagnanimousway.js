@@ -19,3 +19,5 @@ jobs:
           node-version: 22
       - name: Verify universal social login and consent contracts
         run: node qa/scripts/universal-social-hub-lock.mjs
+      - name: Verify native social scheduling, approval and tenant isolation
+        run: node qa/scripts/social-scheduling-lock.mjs
