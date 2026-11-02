@@ -9,6 +9,7 @@ const migration=read('worker/migrations/0108_social_scheduled_posts.sql');
 const page=read('frontend/app/social-calendar/page.tsx');
 const socialStudio=read('frontend/app/social-media/page.tsx');
 const wrangler=read('worker/wrangler.jsonc');
+const skills=read('worker/src/magnanimous-agent-skills.js');
 const has=(source,needle,message)=>assert.ok(source.includes(needle),message);
 
 for(const provider of ["youtube:{name:'YouTube'","tiktok:{name:'TikTok'","linkedin:{name:'LinkedIn'"])has(publishing,provider,`First-party social publisher must support ${provider.split(':')[0]}`);
@@ -60,6 +61,7 @@ has(page,'SELF_ONLY','TikTok defaults to private posting');
 has(page,'type="datetime-local"','Calendar must collect a local publishing time');
 has(page,'Intl.DateTimeFormat().resolvedOptions().timeZone','Calendar must use the browser IANA timezone');
 has(socialStudio,'href="/social-calendar"','Social Studio must link to the publishing calendar');
+has(skills,"name:'social-publishing-calendar-operator'",'Magnanimous Agent Skills must expose the first-party social calendar operator');
 assert.ok(!page.includes('Postiz'),'UI must remain Magnanimous-branded, not third-party branded');
 
 console.log('Magnanimous native social scheduling lock passed.');
