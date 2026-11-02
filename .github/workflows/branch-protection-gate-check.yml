@@ -26,6 +26,7 @@ jobs:
           GITHUB_WORKFLOW: Build and Deploy I AM
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_TOKEN: ${{ github.token }}
+          MAGNANIMOUS_VERIFY_PROTECTION: 'true'
         run: node scripts/verify-main-protection.mjs
 
       - name: Lock exact main ruleset verification contract
