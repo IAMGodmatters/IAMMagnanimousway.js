@@ -5,6 +5,7 @@ import { TELECOM_KNOWLEDGE, telecomArchitectureSummary } from '../../worker/src/
 
 const read = path => fs.readFileSync(path, 'utf8');
 const doc = read('docs/MAGNANIMOUS-REALTIME-VOICE-ENGINE-RESEARCH-2026-11-02.md');
+const microsoftAudit = read('docs/MICROSOFT-CALL-CENTER-AI-CLEAN-ROOM-RESEARCH-2026-11-02.md');
 const docker = read('telecom-core/asterisk/Dockerfile');
 const compose = read('telecom-core/docker-compose.yml');
 const voice = read('worker/src/voice-agent-runtime.js');
@@ -28,12 +29,19 @@ assert.match(MAGNANIMOUS_VOICE_ENGINE_KNOWLEDGE.speech_candidates.tts[0].purpose
 assert.match(MAGNANIMOUS_VOICE_ENGINE_KNOWLEDGE.cost.paid_providers, /disabled_until_explicitly_enabled_and_prepaid/);
 assert.match(MAGNANIMOUS_VOICE_ENGINE_KNOWLEDGE.safety.transcripts, /never auto-publishes/i);
 assert.match(MAGNANIMOUS_VOICE_ENGINE_KNOWLEDGE.safety.outbound, /DNC/);
-assert.match(doc, /The supplied Facebook Reel URL could not be retrieved/);
+assert.match(doc, /caption\/source metadata was subsequently retrieved/);
+assert.equal(MAGNANIMOUS_VOICE_ENGINE_KNOWLEDGE.reference_implementation.license, 'Apache-2.0; preserve license, copyright, NOTICE and modification notices when redistributing adapted source.');
+assert.ok(MAGNANIMOUS_VOICE_ENGINE_KNOWLEDGE.reference_implementation.absorb_patterns.includes('bidirectional telephone audio'));
+assert.match(microsoftAudit, /Azure Communication Services/);
+assert.match(microsoftAudit, /Apache-2\.0/);
+assert.match(microsoftAudit, /Do not import Azure Communication Services/);
+assert.match(microsoftAudit, /human transfer/);
 assert.match(doc, /custom Pipecat FrameSerializer\/transport adapter/);
 assert.match(doc, /Asterisk is distributed under GPLv2/);
 assert.match(doc, /No Pipecat dependency, voice worker, container, deployment/);
 assert.ok(callCenter.includes('Magnanimous AI remains the brain'), 'existing call-center ownership model must remain in place');
 assert.ok(callCenter.includes('MAGNANIMOUS-REALTIME-VOICE-ENGINE-RESEARCH-2026-11-02.md'), 'call-center documentation must link to the realtime voice research');
+assert.ok(callCenter.includes('MICROSOFT-CALL-CENTER-AI-CLEAN-ROOM-RESEARCH-2026-11-02.md'), 'call-center documentation must link to the Microsoft project audit');
 assert.ok(MAGNANIMOUS_VOICE_ENGINE_KNOWLEDGE.readiness.length >= 6);
 
 console.log('Magnanimous realtime voice-engine architecture lock PASS');
