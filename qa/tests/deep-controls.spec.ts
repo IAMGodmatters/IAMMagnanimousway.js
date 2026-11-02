@@ -4,6 +4,11 @@ import { discoverStaticRoutes, watchRuntime } from './helpers';
 const routes = discoverStaticRoutes();
 const CONSEQUENCE = /\b(?:delete|remove|pay|buy|checkout|subscribe|purchase|call|dial|send|submit|save|publish|approve|reject|create|start|launch|book|sign\s?up|log\s?in|connect|disconnect|archive|charge|refund|cancel\s+(?:plan|subscription)|top\s?up|place order|withdraw|transfer|invite|upload|apply|activate|deactivate|reset password)\b/i;
 const THIRD_PARTY_AI = /\b(?:OpenAI|ChatGPT|Anthropic|Claude|Google Gemini|Gemini|Groq|Mistral|OpenRouter|Cerebras|Hugging Face|Cloudflare(?: Workers AI)?|Workers AI)\b/i;
+const AUTH_GUARDED_ROUTES = new Map<string, string>([
+  ['/intelligence-desk', '/intelligence-desk'],
+  ['/media-library', '/media-library'],
+  ['/video-agents', '/video-agents'],
+]);
 
 async function safelyClickableControls(page: any) {
   return page.locator('button:visible, [role="button"]:visible').evaluateAll((els: Element[]) => {
@@ -21,12 +26,34 @@ async function safelyClickableControls(page: any) {
   });
 }
 
-async function loadRoute(page: any, route: string) {
-  const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
+/**
+ * Returns false for routes that correctly enforce sign-in. Their auth boundary
+ * is asserted explicitly instead of attempting to click controls on a transient
+ * pre-redirect document.
+ */
+async function loadRoute(page: any, route: string): Promise<boolean> {
+  const response = await page.goto(route, { waitUntil: 'domcontentloaded', timeout: 30_000 });
   expect(response, `No HTTP response for ${route}`).not.toBeNull();
   expect(response!.status(), `${route} returned a fatal HTTP status`).toBeLessThan(500);
-  await page.locator('body').waitFor({ state: 'visible', timeout: 2_000 });
-  await page.waitForLoadState('load', { timeout: 1_500 }).catch(() => {});
+
+  const expectedReturnTo = AUTH_GUARDED_ROUTES.get(route);
+  if (expectedReturnTo) {
+    await page.waitForURL(
+      url => url.pathname.replace(/\/+$/, '') === '/login' && url.searchParams.get('returnTo') === expectedReturnTo,
+      { timeout: 12_000 },
+    );
+    await page.locator('body').waitFor({ state: 'visible', timeout: 10_000 });
+    await expect(page.locator('body')).toContainText(/sign in|log in/i);
+    return false;
+  }
+
+  // Static HTML can return before a client-side route transition or heavier
+  // workspace finishes. Wait for actual visible content, not a 2-second race.
+  await page.locator('body').waitFor({ state: 'visible', timeout: 10_000 });
+  await expect.poll(async () => (await page.locator('body').innerText()).trim().length, { timeout: 10_000 })
+    .toBeGreaterThan(20);
+  await page.waitForLoadState('load', { timeout: 3_000 }).catch(() => {});
+  return true;
 }
 
 function namedControl(page: any, candidate: any) {
@@ -37,13 +64,11 @@ async function ensureCandidateReady(page: any, route: string, candidate: any) {
   let target = namedControl(page, candidate);
   if (await target.isVisible().catch(() => false)) return target;
 
-  // A prior safe control may have changed local UI state (dialog/tab/collapse). Only then
-  // restore the route. This avoids the old full-page reload before every single button.
+  // A prior safe control may have changed local UI state (dialog/tab/collapse).
   await loadRoute(page, route);
   target = namedControl(page, candidate);
   if (await target.isVisible().catch(() => false)) return target;
 
-  // Final fallback preserves compatibility with unusual role/button implementations.
   const visible = page.locator('button:visible, [role="button"]:visible');
   const count = await visible.count();
   if (candidate.index >= count) return null;
@@ -55,7 +80,14 @@ test.describe('deep non-destructive control sweep', () => {
   for (const route of routes) {
     test(`${route} visible controls are usable without fatal errors`, async ({ page }) => {
       const runtimeProblems = watchRuntime(page);
-      await loadRoute(page, route);
+      const workspaceReady = await loadRoute(page, route);
+
+      if (!workspaceReady) {
+        // A redirect to sign-in is the expected anonymous behavior for protected tools.
+        await expect(page).toHaveURL(/\/login\?/);
+        expect(runtimeProblems, `${route} emitted fatal browser errors during its auth redirect`).toEqual([]);
+        return;
+      }
 
       const controls = await safelyClickableControls(page);
       for (const control of controls) {
@@ -76,15 +108,18 @@ test.describe('deep non-destructive control sweep', () => {
         try {
           await target.click({ timeout: 2_500 });
         } catch {
-          // A previous click may have left a transient overlay intercepting the next control.
-          // Restore once and retry; a second failure is a real sweep failure rather than a silent skip.
-          await loadRoute(page, route);
-          target = await ensureCandidateReady(page, route, candidate);
-          if (!target || await target.isDisabled().catch(() => true)) continue;
-          try {
-            await target.click({ timeout: 2_500 });
-          } catch {
+          // Restore once and retry; a second failure remains a real sweep failure.
+          const restored = await loadRoute(page, route);
+          if (!restored) {
             clicked = false;
+          } else {
+            target = await ensureCandidateReady(page, route, candidate);
+            if (!target || await target.isDisabled().catch(() => true)) continue;
+            try {
+              await target.click({ timeout: 2_500 });
+            } catch {
+              clicked = false;
+            }
           }
         }
         expect(clicked, `${route} control "${candidate.text}" could not be clicked`).toBe(true);
