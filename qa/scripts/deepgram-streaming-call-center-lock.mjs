@@ -94,8 +94,8 @@ assert.ok(claims.exp > Math.floor(Date.now() / 1000));
 const encoder = new TextEncoder();
 const fakeWorkersAiStream = new ReadableStream({
   start(controller) {
-    controller.enqueue(encoder.encode('data: {"response":"Hello"}\\n\\n'));
-    controller.enqueue(encoder.encode('data: {"response":" there."}\\n\\n'));
+    controller.enqueue(encoder.encode('data: {"response":"Hello"}\n\n'));
+    controller.enqueue(encoder.encode('data: {"response":" there."}\n\n'));
     controller.close();
   }
 });
@@ -106,7 +106,7 @@ assert.match(openAiStreamText, /"role":"assistant"/);
 assert.match(openAiStreamText, /Hello/);
 assert.match(openAiStreamText, /there/);
 assert.match(openAiStreamText, /"finish_reason":"stop"/);
-assert.match(openAiStreamText, /data: \\[DONE\\]/);
+assert.match(openAiStreamText, /data: \[DONE\]/);
 
 assert.match(runtime, /deepgramVoiceEnabled\(env\)/);
 assert.match(runtime, /twilio\/consent/);
