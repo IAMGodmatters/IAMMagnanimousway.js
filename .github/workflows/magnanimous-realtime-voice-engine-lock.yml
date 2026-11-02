@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'worker/src/magnanimous-voice-engine-knowledge.js'
+      - 'worker/src/magnanimous-telecom-knowledge.js'
       - 'worker/src/voice-agent-runtime.js'
       - 'telecom-core/asterisk/Dockerfile'
       - 'telecom-core/docker-compose.yml'
