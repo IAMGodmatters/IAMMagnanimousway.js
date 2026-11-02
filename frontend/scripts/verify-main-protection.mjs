@@ -138,4 +138,8 @@ if (explicitAudit) {
   process.exit(0);
 }
 
-console.log('Main branch protection gate: PASS — active rulesets require a reviewed pull request and exact Full Platform QA and Magnanimous Command Lock checks with strict latest-head validation. Bypass actors are visible and restricted.');
+if (visibleBypassPolicies.length === applicable.length) {
+  console.log('Main branch protection gate: PASS — active rulesets require a reviewed pull request and exact Full Platform QA and Magnanimous Command Lock checks with strict latest-head validation; bypass actors were visible and checked.');
+} else {
+  console.log('Main branch protection gate: PASS — reviewed pull request and exact required checks are configured. WARNING: bypass-actor details were hidden from this read-only token and must be checked by a repository administrator.');
+}
