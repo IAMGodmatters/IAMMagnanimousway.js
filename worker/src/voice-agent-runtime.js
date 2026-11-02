@@ -378,7 +378,7 @@ async function twilioIncoming(request, env) {
   const sid = String(form.get('CallSid') || '');
   const from = normPhone(form.get('From'));
   const to = normPhone(form.get('To'));
-  let tenantId = '';
+  let tenantId = '', assignedCustomerDid = false;
   if (to) {
     try {
       await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_carrier_numbers(
@@ -393,10 +393,14 @@ async function twilioIncoming(request, env) {
           return xml(goodbyeTwiml('This telephone number is not assigned for service.'), 404);
         }
         tenantId = String(number.assigned_tenant_id);
+        assignedCustomerDid = true;
       }
     } catch (_) {
       return xml(goodbyeTwiml('Telephone number routing could not be verified.'), 503);
     }
+  }
+  if (assignedCustomerDid && !['1','true','yes','on'].includes(String(env.TELECOM_CUSTOMER_INBOUND_BILLING_VERIFIED || '').trim().toLowerCase())) {
+    return xml(goodbyeTwiml('Inbound customer calling is temporarily unavailable while usage billing verification is completed.'), 503);
   }
   if (!tenantId) tenantId = String(env.TWILIO_DEFAULT_TENANT_ID || '').trim();
   if (!tenantId && to && to === normPhone(env.TWILIO_PHONE_NUMBER)) {
