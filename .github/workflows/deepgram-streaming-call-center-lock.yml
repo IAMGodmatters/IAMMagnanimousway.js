@@ -1,0 +1,57 @@
+name: Deepgram Streaming Call Center Lock
+
+on:
+  push:
+    paths:
+      - 'worker/src/deepgram-voice-agent-runtime.js'
+      - 'worker/src/voice-agent-runtime.js'
+      - 'worker/src/magnanimous-voice-engine-knowledge.js'
+      - 'worker/src/magnanimous-telecom-knowledge.js'
+      - 'worker/src/security-entrypoint.js'
+      - 'worker/src/router-entrypoint.js'
+      - 'worker/wrangler.jsonc'
+      - 'frontend/app/ai-receptionist/page.tsx'
+      - 'docs/call-center.md'
+      - 'docs/MAGNANIMOUS-REALTIME-VOICE-ENGINE-RESEARCH-2026-11-02.md'
+      - 'qa/scripts/deepgram-streaming-call-center-lock.mjs'
+      - 'qa/scripts/magnanimous-realtime-voice-engine-lock.mjs'
+      - '.github/workflows/deepgram-streaming-call-center-lock.yml'
+  pull_request:
+    paths:
+      - 'worker/src/deepgram-voice-agent-runtime.js'
+      - 'worker/src/voice-agent-runtime.js'
+      - 'worker/src/magnanimous-voice-engine-knowledge.js'
+      - 'worker/src/magnanimous-telecom-knowledge.js'
+      - 'worker/src/security-entrypoint.js'
+      - 'worker/src/router-entrypoint.js'
+      - 'worker/wrangler.jsonc'
+      - 'frontend/app/ai-receptionist/page.tsx'
+      - 'docs/call-center.md'
+      - 'docs/MAGNANIMOUS-REALTIME-VOICE-ENGINE-RESEARCH-2026-11-02.md'
+      - 'qa/scripts/deepgram-streaming-call-center-lock.mjs'
+      - 'qa/scripts/magnanimous-realtime-voice-engine-lock.mjs'
+      - '.github/workflows/deepgram-streaming-call-center-lock.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - name: Check Worker JavaScript syntax
+        run: |
+          node --check worker/src/deepgram-voice-agent-runtime.js
+          node --check worker/src/voice-agent-runtime.js
+          node --check worker/src/security-entrypoint.js
+          node --check worker/src/router-entrypoint.js
+          node --check worker/src/magnanimous-voice-engine-knowledge.js
+      - name: Verify streaming call-center contracts
+        run: node qa/scripts/deepgram-streaming-call-center-lock.mjs
+      - name: Verify existing realtime voice architecture lock
+        run: node qa/scripts/magnanimous-realtime-voice-engine-lock.mjs
