@@ -132,13 +132,13 @@ Send call updates to the supplied webhook URL with the `x-iam-webhook-secret` he
 
 ## Realtime PSTN voice — low-cost streaming path
 
-The existing Twilio carrier, phone number, call records and status callbacks remain in place. When the realtime adapter is ready, new inbound and outbound PSTN calls use Twilio bidirectional Media Streams instead of the old turn-by-turn `Gather` speech loop. If the realtime provider is not ready, the existing Gather path remains available.
+The existing Twilio carrier, phone number, call records and status callbacks remain in place. When the realtime adapter is ready, new inbound and outbound PSTN calls use Twilio bidirectional Media Streams instead of the old turn-by-turn `Gather` speech loop. Caller audio is buffered in 200 ms batches and only the inbound track is forwarded, preventing outbound audio echo and reducing tiny-frame overhead. If the realtime provider is not ready, the existing Gather path remains available.
 
 ### Runtime ownership
 
 - **Magnanimous AI** remains the only conversation-reasoning endpoint. Deepgram sends each turn to the authenticated `/api/voice-agent/think` endpoint, which invokes the existing Workers AI binding and the tenant's selected voice-agent instructions.
 - **Deepgram Voice Agent** handles streaming speech recognition, turn events and audio transport.
-- **Cartesia Sonic multilingual TTS** is selected through Deepgram's managed Cartesia integration. The default public voice is the Customer Support Man preset; its voice ID can be changed in Wrangler configuration after listening tests. No separate Cartesia API key is required.
+- **Cartesia Sonic multilingual TTS** is selected through Deepgram's managed Cartesia integration. The default public Cartesia voice ID comes from the Deepgram integration example; it can be changed in Wrangler configuration after listening tests. No separate Cartesia API key is required.
 - **Twilio** remains the PSTN carrier and bidirectional media transport. This does not replace Asterisk Telecom Core or browser calling.
 
 ### Activation
