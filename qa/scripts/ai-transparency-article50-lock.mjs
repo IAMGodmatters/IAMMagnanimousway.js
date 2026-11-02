@@ -39,7 +39,8 @@ assert.ok(director.includes('verified_credentials_emitted_in_plan:false'),'Plann
 const social=read('worker/src/social-publishing-runtime.js');
 assert.ok(social.includes("code:'AI_DISCLOSURE_REQUIRED'"),'Declared deepfake/public-interest publishing must require label.');
 assert.ok(social.includes("code:'AI_MEDIA_DISCLOSURE_CONFIRMATION_REQUIRED'"),'Deepfake media needs explicit visible-media acknowledgement.');
-assert.ok(social.indexOf('AI_DISCLOSURE_REQUIRED')<social.indexOf('await youtubePublish(env,row,body)'), 'Disclosure gate must run BEFORE uploading.');
+const socialHandler=social.slice(social.indexOf('export async function handleSocialPublishing'));
+assert.ok(socialHandler.indexOf('AI_DISCLOSURE_REQUIRED')<socialHandler.indexOf('await youtubePublish(env,row,body)'), 'Disclosure gate must run BEFORE uploading.');
 
 assert.ok(read('worker/src/magnanimous-agent-skills.js').includes("name:'ai-transparency-review'"), 'Built-in article50 skill must be discoverable.');
 const component=read('frontend/components/AIInteractionDisclosure.tsx');

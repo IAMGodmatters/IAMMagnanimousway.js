@@ -61,7 +61,7 @@ export default function Social() {
   return (
     <main className="social">
       <header>
-        <a href="/">← Dashboard</a>
+        <a href="/">← Dashboard</a>\n        <a href="/social-calendar">Publishing Calendar →</a>
         <div>
           {aiReady === null
             ? "CHECKING AI"

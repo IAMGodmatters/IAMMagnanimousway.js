@@ -1,0 +1,71 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+
+const read=path=>fs.readFileSync(path,'utf8');
+const scheduling=read('worker/src/social-scheduling-runtime.js');
+const publishing=read('worker/src/social-publishing-runtime.js');
+const operations=read('worker/src/operations-entrypoint.js');
+const migration=read('worker/migrations/0111_social_scheduled_posts.sql');
+const page=read('frontend/app/social-calendar/page.tsx');
+const socialStudio=read('frontend/app/social-media/page.tsx');
+const wrangler=read('worker/wrangler.jsonc');
+const skills=read('worker/src/magnanimous-agent-skills.js');
+const has=(source,needle,message)=>assert.ok(source.includes(needle),message);
+
+for(const provider of ["youtube:{name:'YouTube'","tiktok:{name:'TikTok'","linkedin:{name:'LinkedIn'"])has(publishing,provider,`First-party social publisher must support ${provider.split(':')[0]}`);
+has(scheduling,'WHERE id=? AND tenant_id=?','Post detail reads must be tenant-scoped');
+has(scheduling,'WHERE tenant_id=? ORDER BY scheduled_at DESC LIMIT ?','Calendar list must be tenant-scoped and bounded');
+has(scheduling,"if(!user)return json({detail:'Sign in to manage scheduled social posts.'},401)",'Scheduler routes must require an authenticated user');
+has(scheduling,'scheduledAt<now()+900','Schedule must respect the existing 15-minute Worker cron');
+has(scheduling,'validTimezone(body.timezone)','Schedule must validate an IANA timezone');
+has(scheduling,'explicit UTC offset','Schedule datetime must carry an explicit UTC offset');
+has(scheduling,'new TextEncoder().encode(raw).byteLength>20000','Schedule request body must be bounded');
+has(scheduling,'UNIQUE(tenant_id,idempotency_key)','Idempotency must be unique within a tenant');
+has(scheduling,'if(existing){','Duplicate schedule submissions must inspect an existing idempotency key');
+has(scheduling,'String(existing.provider)===provider&&String(existing.external_id)===String(account.external_id)','Idempotency reuse must match provider and connected account');
+has(scheduling,'String(existing.payload_json)===serialized&&Number(existing.scheduled_at)===scheduledAt&&String(existing.timezone)===tz','Idempotency reuse must match exact content and scheduled time');
+has(scheduling,'IDEMPOTENCY_KEY_CONFLICT','Reusing a key for another post must return a conflict, never silently reuse the old post');
+has(scheduling,'return json({item:publicRow(existing),idempotent:true})','Exact duplicate schedule requests must return the existing tenant item');
+has(scheduling,'if(body.confirm!==true)','Approval must require explicit confirmation');
+has(scheduling,'String(account.external_id)!==String(row.external_id)','Approval must verify the same connected social account');
+has(scheduling,'const hash=await approvalHash(row,payload)','Approval must bind the content/account/time snapshot');
+has(scheduling,"WHERE id=? AND tenant_id=? AND status='draft'","Approval state transition must be tenant-scoped and draft-only");
+has(scheduling,"status='cancelled',approval_hash=NULL",'Cancellation must invalidate the approval snapshot');
+has(scheduling,"status='publishing',locked_at=?,attempts=attempts+1",'Worker must atomically claim and count a scheduled post');
+has(scheduling,'scheduled_at<=? AND approval_hash=?','Only due, approval-bound posts may be claimed');
+has(scheduling,"status='outcome_unknown'",'Uncertain provider outcomes must be retained for manual reconciliation');
+has(scheduling,"WHERE status='publishing' AND updated_at<?",'Stale in-flight claims must become outcome-unknown, not retry');
+assert.match(scheduling,/WHERE status='scheduled' AND scheduled_at<=\? AND approval_hash IS NOT NULL[\s\S]*?LIMIT 1/,'Worker may claim only one approved scheduled item per tick');
+has(scheduling,'publishSocialPostForTenant(env,row.tenant_id,row.provider,payload,row.external_id)','Scheduler must reuse Magnanimous first-party publishing and bind the approved external account');
+has(scheduling,'uncertain?\'outcome_unknown\':\'failed\'','Ambiguous provider results must not be automatically retried');
+
+has(publishing,'export async function ensureSocialPublishingSchema','Scheduler must reuse first-party social account schema');
+has(publishing,'export async function publishSocialPostForTenant','Scheduler must reuse first-party social provider adapters');
+has(publishing,'assessAiTransparency','Scheduled posts must retain AI-transparency checks');
+has(publishing,'expectedExternalId','Scheduled post must reject a changed connected account');
+has(publishing,'body.explicit_consent!==true','Publishing adapters must preserve explicit provider consent');
+
+has(migration,'CREATE TABLE IF NOT EXISTS social_scheduled_posts','D1 migration must create the durable social calendar');
+has(migration,'tenant_id TEXT NOT NULL','Scheduled posts must carry a tenant identifier');
+has(migration,'UNIQUE(tenant_id,idempotency_key)','D1 migration must enforce tenant idempotency');
+has(migration,'approval_hash TEXT','D1 must persist approval binding');
+has(migration,'outcome_unknown','D1 must model ambiguous provider outcomes');
+
+has(operations,"import {handleSocialScheduling,scheduledSocialPublishing} from './social-scheduling-runtime.js'","Operations entrypoint must import scheduler");
+has(operations,'handleSocialScheduling(request,env)','Social schedule API must be routed in the authenticated operations layer');
+has(operations,'scheduledSocialPublishing(env).catch','Social scheduler must be invoked by the existing Worker cron handler');
+has(wrangler,'"crons": ["*/15 * * * *"]','No new paid scheduler infrastructure may be introduced');
+
+has(page,'/api/social-connect/connections','Calendar must use the existing first-party connected accounts');
+has(page,'/api/social-schedule','Calendar must use the Magnanimous native scheduler API');
+has(page,'Approve and schedule','Calendar must require explicit user approval');
+has(page,'I approve this exact content, connected account and publishing time','Approval must identify the exact content/account/time');
+has(page,'outcome_unknown','Calendar must explain uncertain provider outcomes and duplicate protection');
+has(page,'SELF_ONLY','TikTok defaults to private posting');
+has(page,'type="datetime-local"','Calendar must collect a local publishing time');
+has(page,'Intl.DateTimeFormat().resolvedOptions().timeZone','Calendar must use the browser IANA timezone');
+has(socialStudio,'href="/social-calendar"','Social Studio must link to the publishing calendar');
+has(skills,"name:'social-publishing-calendar-operator'",'Magnanimous Agent Skills must expose the first-party social calendar operator');
+assert.ok(!page.includes('Postiz'),'UI must remain Magnanimous-branded, not third-party branded');
+
+console.log('Magnanimous native social scheduling lock passed.');
