@@ -137,7 +137,7 @@ export default function AIReceptionist() {
   async function saveHandoff() {
     if (!selected || handoffBusy) return;
     const number = handoffPhone.trim();
-    if (number && !/^\\+[1-9]\\d{7,14}$/.test(number)) {
+    if (number && !/^\+[1-9]\d{7,14}$/.test(number)) {
       setMessage('Enter the human handoff number in international E.164 format, for example +639171234567.');
       return;
     }
