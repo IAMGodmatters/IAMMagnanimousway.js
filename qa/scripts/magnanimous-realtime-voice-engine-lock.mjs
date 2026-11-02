@@ -36,6 +36,8 @@ assert.match(microsoftAudit, /Azure Communication Services/);
 assert.match(microsoftAudit, /Apache-2\.0/);
 assert.match(microsoftAudit, /Do not import Azure Communication Services/);
 assert.match(microsoftAudit, /human transfer/);
+assert.match(microsoftAudit, /not streamed directly into the LLM/);
+assert.match(microsoftAudit, /Do not solve latency by silently selecting an expensive model/);
 assert.match(doc, /custom Pipecat FrameSerializer\/transport adapter/);
 assert.match(doc, /Asterisk is distributed under GPLv2/);
 assert.match(doc, /No Pipecat dependency, voice worker, container, deployment/);
