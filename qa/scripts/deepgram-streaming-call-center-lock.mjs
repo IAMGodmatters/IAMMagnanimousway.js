@@ -6,7 +6,8 @@ import {
   buildDeepgramConsentTwiml,
   buildDeepgramStreamTwiml,
   buildDeepgramSettings,
-  createDeepgramVoiceStreamToken
+  createDeepgramVoiceStreamToken,
+  openAIStreamFromWorkersAI
 } from '../../worker/src/deepgram-voice-agent-runtime.js';
 
 const read = path => fs.readFileSync(path, 'utf8');
@@ -89,6 +90,23 @@ assert.equal(claims.call_id, 42);
 assert.equal(claims.tenant_id, 'tenant-1');
 assert.equal(claims.agent_id, 'agent-1');
 assert.ok(claims.exp > Math.floor(Date.now() / 1000));
+
+const encoder = new TextEncoder();
+const fakeWorkersAiStream = new ReadableStream({
+  start(controller) {
+    controller.enqueue(encoder.encode('data: {"response":"Hello"}\\n\\n'));
+    controller.enqueue(encoder.encode('data: {"response":" there."}\\n\\n'));
+    controller.close();
+  }
+});
+const openAiStreamResponse = openAIStreamFromWorkersAI(fakeWorkersAiStream, 42, 'test-model');
+assert.equal(openAiStreamResponse.headers.get('content-type')?.startsWith('text/event-stream'), true);
+const openAiStreamText = await openAiStreamResponse.text();
+assert.match(openAiStreamText, /"role":"assistant"/);
+assert.match(openAiStreamText, /Hello/);
+assert.match(openAiStreamText, /there/);
+assert.match(openAiStreamText, /"finish_reason":"stop"/);
+assert.match(openAiStreamText, /data: \\[DONE\\]/);
 
 assert.match(runtime, /deepgramVoiceEnabled\(env\)/);
 assert.match(runtime, /twilio\/consent/);
