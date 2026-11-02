@@ -70,10 +70,11 @@ async function ensureSchema(env) {
     id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, name TEXT NOT NULL,
     instructions TEXT NOT NULL DEFAULT '', opening_message TEXT NOT NULL DEFAULT '',
     twilio_voice TEXT NOT NULL DEFAULT '', tavus_replica_id TEXT NOT NULL DEFAULT '',
-    tavus_persona_id TEXT NOT NULL DEFAULT '', active INTEGER NOT NULL DEFAULT 1,
+    tavus_persona_id TEXT NOT NULL DEFAULT '', handoff_phone TEXT NOT NULL DEFAULT '', active INTEGER NOT NULL DEFAULT 1,
     created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
   )`).run();
   await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_voice_agents_tenant ON voice_agents(tenant_id,active)').run();
+  await env.DB.prepare("ALTER TABLE voice_agents ADD COLUMN handoff_phone TEXT NOT NULL DEFAULT ''").run().catch(() => {});
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS voice_agent_turns (
     id INTEGER PRIMARY KEY AUTOINCREMENT, tenant_id TEXT NOT NULL, call_id INTEGER,
     provider_call_id TEXT, speaker TEXT NOT NULL, text TEXT NOT NULL, created_at INTEGER NOT NULL
@@ -337,7 +338,7 @@ async function twilioConsent(request, env, url) {
   if (!streamToken) return xml(goodbyeTwiml('The secure voice session could not be created. Goodbye.'), 503);
   const streamUrl = new URL('/api/voice-agent/twilio/stream', request.url);
   streamUrl.protocol = 'wss:';
-  return xml(buildDeepgramStreamTwiml(streamUrl.toString(), streamToken, env.TWILIO_HUMAN_FALLBACK_NUMBER));
+  return xml(buildDeepgramStreamTwiml(streamUrl.toString(), streamToken));
 }
 
 async function twilioStatus(request, env, url) {
@@ -451,13 +452,15 @@ async function agentRoutes(request, env, user, path, internalContext = {}) {
     const body = await request.json().catch(() => ({}));
     const name = String(body.name || '').trim();
     if (!name) return json({ detail: 'Agent name is required.' }, 400);
+    const handoffPhone = normPhone(body.handoff_phone || '');
+    if (handoffPhone && !/^\\+[1-9]\\d{7,14}$/.test(handoffPhone)) return json({ detail: 'Human handoff must use E.164 format, such as +639171234567.' }, 400);
     const id = crypto.randomUUID(), ts = now();
     await env.DB.prepare(`INSERT INTO voice_agents(
-      id,tenant_id,name,instructions,opening_message,twilio_voice,tavus_replica_id,tavus_persona_id,active,created_at,updated_at
-    ) VALUES(?,?,?,?,?,?,?,?,1,?,?)`).bind(
+      id,tenant_id,name,instructions,opening_message,twilio_voice,tavus_replica_id,tavus_persona_id,handoff_phone,active,created_at,updated_at
+    ) VALUES(?,?,?,?,?,?,?,?,?,1,?,?)`).bind(
       id, user.tenant_id, name, String(body.instructions || '').slice(0, 10000),
       String(body.opening_message || '').slice(0, 1500), String(body.twilio_voice || '').slice(0, 100),
-      String(body.tavus_replica_id || '').slice(0, 100), String(body.tavus_persona_id || '').slice(0, 100), ts, ts
+      String(body.tavus_replica_id || '').slice(0, 100), String(body.tavus_persona_id || '').slice(0, 100), normPhone(body.handoff_phone || ''), ts, ts
     ).run();
     return json({ id }, 201);
   }
@@ -467,12 +470,14 @@ async function agentRoutes(request, env, user, path, internalContext = {}) {
     const body = await request.json().catch(() => ({}));
     const agent = await env.DB.prepare('SELECT * FROM voice_agents WHERE id=? AND tenant_id=?').bind(agentMatch[1], user.tenant_id).first();
     if (!agent) return json({ detail: 'Agent not found.' }, 404);
-    await env.DB.prepare(`UPDATE voice_agents SET name=?,instructions=?,opening_message=?,twilio_voice=?,tavus_replica_id=?,tavus_persona_id=?,active=?,updated_at=? WHERE id=? AND tenant_id=?`)
+    const handoffPhone = body.handoff_phone === undefined ? String(agent.handoff_phone || '') : normPhone(body.handoff_phone || '');
+    if (handoffPhone && !/^\\+[1-9]\\d{7,14}$/.test(handoffPhone)) return json({ detail: 'Human handoff must use E.164 format, such as +639171234567.' }, 400);
+    await env.DB.prepare(`UPDATE voice_agents SET name=?,instructions=?,opening_message=?,twilio_voice=?,tavus_replica_id=?,tavus_persona_id=?,handoff_phone=?,active=?,updated_at=? WHERE id=? AND tenant_id=?`)
       .bind(
         String(body.name ?? agent.name).slice(0, 120), String(body.instructions ?? agent.instructions).slice(0, 10000),
         String(body.opening_message ?? agent.opening_message).slice(0, 1500), String(body.twilio_voice ?? agent.twilio_voice).slice(0, 100),
         String(body.tavus_replica_id ?? agent.tavus_replica_id).slice(0, 100), String(body.tavus_persona_id ?? agent.tavus_persona_id).slice(0, 100),
-        body.active === false ? 0 : 1, now(), agent.id, user.tenant_id
+        handoffPhone, body.active === false ? 0 : 1, now(), agent.id, user.tenant_id
       ).run();
     return json({ ok: true });
   }
