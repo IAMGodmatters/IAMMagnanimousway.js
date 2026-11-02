@@ -213,7 +213,7 @@ export async function handleSocialScheduling(request,env){
   await ensureSocialPublishingSchema(env);
   if(path==='/api/social-schedule'&&request.method==='GET'){
    const requestedLimit=Number(url.searchParams.get('limit')||60),limit=Number.isFinite(requestedLimit)?Math.min(100,Math.max(1,requestedLimit)):60;
-   const {results=[]}=await env.DB.prepare('SELECT * FROM social_scheduled_posts WHERE tenant_id=? ORDER BY scheduled_at DESC LIMIT ?').bind(String(user.tenant_id),limit).all();
+   const {results=[]}=await env.DB.prepare(`SELECT s.*,COALESCE(c.display_name,'') AS account_display_name FROM social_scheduled_posts s LEFT JOIN social_connections c ON c.tenant_id=s.tenant_id AND c.provider=s.provider AND c.external_id=s.external_id WHERE s.tenant_id=? ORDER BY s.scheduled_at DESC LIMIT ?`).bind(String(user.tenant_id),limit).all();
    return json({items:results.map(publicRow),scheduler:{enabled:true,interval_minutes:15,automatic_retry:false}});
   }
   if(path==='/api/social-schedule'&&request.method==='POST')return await handleCreate(request,env,user);
