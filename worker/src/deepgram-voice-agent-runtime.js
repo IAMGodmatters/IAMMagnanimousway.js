@@ -77,10 +77,14 @@ async function finishUsage(env,callId){
 }
 async function reserveUsage(env,call){
  await ensureUsageSchema(env);
- const callId=Number(call.id);
+ const callId=Number(call.id),ts=now();
+ const configuredMax=Math.min(1800,Math.max(60,Number(env.DEEPGRAM_VOICE_MAX_CALL_SECONDS||300)||300));
+ const staleBefore=ts-configuredMax-120;
+ await env.DB.prepare("UPDATE voice_provider_sessions SET ended_at=COALESCE(ended_at,?),billed_seconds=MAX(billed_seconds,MIN(?,MAX(0,?-started_at))) WHERE provider='deepgram' AND ended_at IS NULL AND started_at<?")
+  .bind(ts,configuredMax,ts,staleBefore).run();
  const existing=await env.DB.prepare("SELECT * FROM voice_provider_sessions WHERE call_id=? AND provider='deepgram'").bind(callId).first();
  if(existing)return{ok:false,reason:"call_session_already_reserved"};
- const ts=now(),dayStart=Math.floor(ts/86400)*86400,monthDate=new Date(ts*1000),monthStart=Math.floor(Date.UTC(monthDate.getUTCFullYear(),monthDate.getUTCMonth(),1)/1000);
+ const dayStart=Math.floor(ts/86400)*86400,monthDate=new Date(ts*1000),monthStart=Math.floor(Date.UTC(monthDate.getUTCFullYear(),monthDate.getUTCMonth(),1)/1000);
  await env.DB.prepare("INSERT INTO voice_provider_sessions(call_id,tenant_id,provider,started_at,ended_at,billed_seconds) VALUES(?,?,'deepgram',?,NULL,0)").bind(callId,String(call.tenant_id),ts).run();
  const maxConcurrent=Math.min(4,Math.max(1,Number(env.DEEPGRAM_VOICE_MAX_CONCURRENT_CALLS||1)||1));
  const active=await env.DB.prepare("SELECT COUNT(*) AS n FROM voice_provider_sessions WHERE provider='deepgram' AND ended_at IS NULL").first();
@@ -93,7 +97,6 @@ async function reserveUsage(env,call){
  const dailyRemaining=dailyCap*60-Number(daily?.seconds||0),monthlyRemaining=monthlyCap*60-Number(monthly?.seconds||0);
  const remaining=Math.min(dailyRemaining,monthlyRemaining);
  if(remaining<30){await finishUsage(env,callId);return{ok:false,reason:dailyRemaining<30?"daily_usage_limit":"monthly_usage_limit"};}
- const configuredMax=Math.min(1800,Math.max(60,Number(env.DEEPGRAM_VOICE_MAX_CALL_SECONDS||300)||300));
  return{ok:true,max_call_seconds:Math.min(configuredMax,remaining)};
 }
 async function connectDeepgram(env){
@@ -262,7 +265,7 @@ export async function handleDeepgramVoiceAgentRoutes(request,env,url=new URL(req
        }else if(eventMessage.type==="UserStartedSpeaking")twilioSend({event:"clear",streamSid:state.streamSid});
        else if(eventMessage.type==="ConversationText"){
         const speaker=eventMessage.role==="assistant"?"assistant":"caller",transcript=String(eventMessage.content||"").trim().slice(0,3000);
-        if(transcript&&state.call?.id)await env.DB.prepare("INSERT INTO voice_agent_turns(tenant_id,call_id,provider_call_id,speaker,text,created_at) VALUES(?,?,?,?,?,?)").bind(state.call.tenant_id,state.call.id,String(state.call.provider_call_id||""),speaker,transcript,now()).run().catch(()=>null);
+        if(transcript&&state.call?.id)await env.DB.prepare("INSERT INTO voice_agent_turns(tenant_id,call_id,provider_call_id,speaker,text,created_at,expires_at) VALUES(?,?,?,?,?,?,?)").bind(state.call.tenant_id,state.call.id,String(state.call.provider_call_id||""),speaker,transcript,now(),now()+30*86400).run().catch(()=>null);
         if(speaker==="caller"&&transcript){
          const lower=transcript.toLowerCase();
          if(/\b(stop calling|do not call|don't call|do not contact|don't contact|remove me|opt out|unsubscribe|take me off)\b/.test(lower)){
