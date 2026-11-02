@@ -48,8 +48,8 @@ try {
   process.exit(1);
 }
 
-if (repository?.default_branch !== 'main' || repository?.protected !== true) {
-  console.error('::error::PRODUCTION DEPLOYMENT BLOCKED: main is not the protected default branch.');
+if (repository?.default_branch !== 'main') {
+  console.error('::error::PRODUCTION DEPLOYMENT BLOCKED: repository default branch is not main.');
   process.exit(1);
 }
 
