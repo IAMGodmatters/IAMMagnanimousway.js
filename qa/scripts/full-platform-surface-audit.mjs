@@ -140,7 +140,7 @@ if(liveEnabled){
   live.external_checked++;
   try{
    let response=await fetchWithTimeout(url,{method:'HEAD'},12000);
-   if([405,501].includes(response.status))response=await fetchWithTimeout(url,{method:'GET',headers:{Range:'bytes=0-1023'}},12000);
+   if([404,405,501].includes(response.status))response=await fetchWithTimeout(url,{method:'GET',headers:{Range:'bytes=0-1023'}},12000);
    if(response.status===404||response.status===410){add('errors',{type:'external-link-dead',url,status:response.status});return}
    if([401,403,429].includes(response.status)){live.external_restricted++;add('warnings',{type:'external-link-restricted',url,status:response.status,detail:'Endpoint is live but restricts automated probes.'});return}
    if(response.status>=500){add('warnings',{type:'external-link-server-error',url,status:response.status});return}
