@@ -42,7 +42,7 @@ const env = {
   SESSION_SECRET: 'test-only-session-signing-secret'
 };
 assert.equal(deepgramVoiceReadiness(env).ready, true);
-assert.deepEqual(deepgramVoiceReadiness(env).limits, { max_concurrent_calls: 2, max_call_seconds: 600, daily_minutes: 30, monthly_minutes: 300 });
+assert.deepEqual(deepgramVoiceReadiness(env).limits, { max_concurrent_calls: 2, max_call_seconds: 600, daily_minutes: 30, monthly_minutes: 300, tenant_max_concurrent_calls: 1, tenant_daily_minutes: 20, tenant_monthly_minutes: 150 });
 assert.equal(await deepgramVoiceEnabled(env), true);
 assert.equal((await deepgramVoiceRuntimeReadiness(env)).ready, true);
 const incompleteRuntime = await deepgramVoiceRuntimeReadiness(noKey);
