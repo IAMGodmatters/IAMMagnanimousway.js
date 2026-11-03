@@ -84,7 +84,7 @@ let previous=-1;
 for(const route of referenceOrder){const next=mobileReferenceBlock.indexOf(route);assert.ok(next>previous,`Approved mobile reference route missing or out of order: ${route}`);previous=next}
 assert.equal((mobileReferenceBlock.match(/\{label:/g)||[]).length,16,'Approved mobile reference must keep exactly sixteen two-column modules.');
 
-assert.ok(page.includes("const cardLinks=[...sideLinks]"),'Desktop artwork card links must remain mapped from the approved sidebar routes.');
+assert.ok(page.includes("const cardLinks=sideLinks.filter(item=>item.href!=='/companion')"),'The fixed desktop artwork hotspots must preserve their approved route positions; new Companion access belongs in the sidebar/drawer instead of shifting artwork hotspots.');
 assert.ok(page.includes('className="exactArtwork" src="/crm-upgrade.jpeg"'),'Desktop must continue using the exact approved dashboard artwork.');
 assert.ok(page.includes('className="mobileReferenceArtwork" src="/mobile-dashboard-approved.webp"'),'Mobile must render the exact approved portrait reference artwork as the guaranteed fallback.');
 assert.ok(page.includes('className="mobileReferenceFrame"')&&page.includes('aspect-ratio:941/1672'),'Mobile reference frame must preserve the approved artwork proportions.');
