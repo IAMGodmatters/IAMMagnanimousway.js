@@ -87,7 +87,7 @@ def build_report() -> dict[str, object]:
     best_gpu = max((float(gpu["vram_gb"]) for gpu in gpus), default=0.0)
     gpu_ready = best_gpu >= REQUIRED_GPU_VRAM_GB
     disk_ready = disk_free_gb is not None and disk_free_gb >= RECOMMENDED_FREE_DISK_GB
-    model_ready = gpu_ready and disk_ready
+    capacity_ready = gpu_ready and disk_ready
 
     blockers: list[str] = []
     if not gpus:
@@ -118,7 +118,7 @@ def build_report() -> dict[str, object]:
             "recommended_free_disk_gb": RECOMMENDED_FREE_DISK_GB,
         },
         "cpu_only_reference_tests_available": True,
-        "full_qwenputer_model_ready": model_ready,
+        "capacity_preflight_passes": capacity_ready,
         "blockers": blockers,
         "safety": "Read-only preflight; no model download or paid compute is started.",
     }
@@ -140,7 +140,7 @@ def main() -> int:
         print(f"Free disk: {report['free_disk_gb']} GB")
         print(f"NVIDIA GPUs: {report['nvidia_gpus'] or 'none detected'}")
         print("CPU-only reference tests: AVAILABLE")
-        print(f"Full Qwenputer checkpoint ready: {'YES' if report['full_qwenputer_model_ready'] else 'NO'}")
+        print(f"GPU and disk capacity preflight passes: {'YES' if report['capacity_preflight_passes'] else 'NO'}")
         for blocker in report["blockers"]:
             print(f"BLOCKER: {blocker}")
         print(str(report["safety"]))
