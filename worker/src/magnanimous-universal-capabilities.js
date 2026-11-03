@@ -21,7 +21,7 @@ export const MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS = [
   {
     id: 'computer-browser-use',
     name: 'Computer, browser and application operation',
-    capabilities: ['screen-understanding','browser-navigation','browser-search','rendered-page-extraction','batch-web-fetch','source-backed-web-research','structured-web-extraction','form-entry','click-type-scroll','persistent-browser-profiles','persistent-browser-sessions','browser-task-lifecycle','browser-status-streaming','native-web-completion-webhooks','scheduled-web-monitoring','monitor-run-now','browser-usage-accounting','screenshot-capture','native-local-browser','cloud-browser-rendering','cloud-sandbox-compute','persistent-cloud-workspace','desktop-operation','mobile-operation','ui-testing','workflow-automation','recovery-from-ui-change']
+    capabilities: ['screen-understanding','browser-navigation','browser-search','rendered-page-extraction','batch-web-fetch','source-backed-web-research','structured-web-extraction','form-entry','click-type-scroll','persistent-browser-profiles','persistent-browser-sessions','browser-task-lifecycle','browser-status-streaming','native-web-completion-webhooks','scheduled-web-monitoring','monitor-run-now','browser-usage-accounting','screenshot-capture','screen-aware-companion','visual-step-guidance','screen-context-drafting','user-triggered-screen-capture','native-local-browser','cloud-browser-rendering','cloud-sandbox-compute','persistent-cloud-workspace','desktop-operation','mobile-operation','ui-testing','workflow-automation','recovery-from-ui-change']
   },
   {
     id: 'multimodal-intelligence',
@@ -36,7 +36,7 @@ export const MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS = [
   {
     id: 'voice-realtime',
     name: 'Realtime voice and conversational agents',
-    capabilities: ['speech-to-text','text-to-speech','full-duplex-voice','telephony','receptionist','call-center','live-assistance','voice-memory']
+    capabilities: ['speech-to-text','text-to-speech','screen-context-voice-prompt','full-duplex-voice','telephony','receptionist','call-center','live-assistance','voice-memory']
   },
   {
     id: 'files-documents',

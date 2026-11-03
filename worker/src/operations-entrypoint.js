@@ -22,6 +22,7 @@ import {handleWhiteLabelWhatsApp} from './white-label-whatsapp-inbox.js';
 import {handleMagnanimousNativeWeb,scheduledNativeWeb} from './magnanimous-native-web-runtime.js';
 import {scheduledMagnanimousCapabilityMesh} from './magnanimous-capability-mesh.js';
 import {handleMagnanimousRoutineStudio,scheduledMagnanimousRoutines} from './magnanimous-skill-routine-runtime.js';
+import {handleMagnanimousCompanion} from './magnanimous-companion-runtime.js';
 import {handlePaymentLinkBilling,augmentBillingResponse} from './payment-link-runtime.js';
 import {handleSelfHealing,scheduledSelfHealing} from './self-healing-runtime.js';
 import {handlePremiumVoice} from './premium-voice-runtime.js';
@@ -163,6 +164,7 @@ async function operationsFetch(request,env,ctx){
   try{const vibe=await handleMagnanimousVibeStudio(request,env);if(vibe)return vibe}catch(error){console.error('Magnanimous Vibe Studio failed',error);return json({detail:'Magnanimous Vibe Studio could not complete this request.'},500)}
   try{const nativeWeb=await handleMagnanimousNativeWeb(request,env);if(nativeWeb)return nativeWeb}catch(error){console.error('Magnanimous Native Web failed',error);return json({detail:'Magnanimous Native Web could not complete this request.'},500)}
   try{const routineStudio=await handleMagnanimousRoutineStudio(request,env);if(routineStudio)return routineStudio}catch(error){console.error('Magnanimous Routine Studio failed',error);return json({detail:error?.message||'Magnanimous Routine Studio could not complete this request.'},500)}
+  try{const companion=await handleMagnanimousCompanion(request,env);if(companion)return companion}catch(error){console.error('Magnanimous Companion failed',error);return json({detail:'Magnanimous Companion could not complete this request.'},500)}
   try{const growth=await handleGrowthRecovery(request,env);if(growth)return growth}catch(error){console.error('growth recovery layer failed',error);return json({detail:'Growth Funnel could not complete this request.'},500)}
 
   try{
