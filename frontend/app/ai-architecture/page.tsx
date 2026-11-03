@@ -147,6 +147,7 @@ export default function AIArchitecture() {
         <a href="/knowledge"><span>02</span><b>Knowledge / RAG</b><small>Search and ground answers in useful context</small></a>
         <a href="/agents"><span>03</span><b>AI Agents</b><small>Plan, act, observe, and complete goals</small></a>
         <a href="/ai-chat"><span>04</span><b>Magnanimous AI</b><small>Use the complete system from one place</small></a>
+        <a href="/qwenputer-lab"><span>05</span><b>Model-internal Computing</b><small>Explore the optional Qwenputer research lab</small></a>
       </section>
 
       <footer>
