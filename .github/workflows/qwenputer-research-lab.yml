@@ -1,0 +1,28 @@
+name: Qwenputer research lab checks
+
+on:
+  pull_request:
+    paths:
+      - "research-core/qwenputer-lab/**"
+      - ".github/workflows/qwenputer-research-lab.yml"
+  push:
+    paths:
+      - "research-core/qwenputer-lab/**"
+      - ".github/workflows/qwenputer-research-lab.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  cpu-reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run exact memory reference tests
+        run: python -m unittest discover -s research-core/qwenputer-lab/tests -v
+      - name: Run read-only preflight JSON smoke test
+        run: python research-core/qwenputer-lab/qwenputer_preflight.py --json

@@ -25,6 +25,25 @@ export const MAGNANIMOUS_RESEARCH_PROVIDER_PATTERNS = Object.freeze([
   }
 ]);
 
+export const MAGNANIMOUS_MODEL_INTERNAL_COMPUTING_CAPABILITIES = Object.freeze([
+  Object.freeze({
+    id: 'qwenputer-riscv-experimental',
+    domain: 'experimental-computing',
+    capability: 'model_internal_riscv_execution_research',
+    status: 'research_only',
+    production_dispatch: false,
+    automatic_model_download: false,
+    actions: ['architecture_review','cpu_reference_simulation','hardware_preflight','reproducibility_evaluation'],
+    resource_requirements: Object.freeze({minimum_gpu_vram_gb:24,checkpoint_size_gb:18.8,gpu_acceleration:true}),
+    upstream: Object.freeze({
+      source_code: 'https://github.com/divagr18/qwenputer',
+      model_weights: 'https://huggingface.co/divagr1925/Qwen3.5-4B-Qwenputer',
+      technical_article: 'https://divagr.com/blog/qwenputer'
+    }),
+    boundary: 'Optional research adapter only; no production dispatch, no automatic downloads, no paid GPU provisioning, and no change to Magnanimous AI core orchestration.'
+  })
+]);
+
 export function researchCapabilitySummary(){
   const publicApiCapabilities=getPublicApiCapabilityManifest(),publicApis=getPublicApiAbsorptionSummary();
   return {
@@ -40,6 +59,8 @@ export function researchCapabilitySummary(){
     capabilities:MAGNANIMOUS_ACADEMIC_RESEARCH_CAPABILITIES,
     public_api_capabilities:publicApiCapabilities.map(row=>({id:row.id,capability:row.capability,native_target:row.native_target,boundary:row.boundary})),
     public_api_fabric:publicApis,
-    provider_patterns:MAGNANIMOUS_RESEARCH_PROVIDER_PATTERNS
+    provider_patterns:MAGNANIMOUS_RESEARCH_PROVIDER_PATTERNS,
+    model_internal_computing_capabilities:MAGNANIMOUS_MODEL_INTERNAL_COMPUTING_CAPABILITIES,
+    model_internal_computing_policy:Object.freeze({status:'research_only',production_dispatch:false,automatic_model_downloads:false,paid_gpu_provisioning:false,core_orchestration_unchanged:true})
   };
 }
