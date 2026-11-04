@@ -594,7 +594,7 @@ const opportunities:Opportunity[]=[
   secondaryLabel:'EU Delegation announcement (older “Apply now” page; call closed)',
   cta:'Review official closed-call record',
   verified:'2026-11-04'
- }
+ },
 
  {
   id:'meta-viewpoints-ph-iphone',name:'Meta Viewpoints — iPhone Surveys, Tasks & Research Programs',status:'location-check',badge:'PHILIPPINES APP STORE • IPHONE ONLY • PROGRAMS NOT GUARANTEED',
