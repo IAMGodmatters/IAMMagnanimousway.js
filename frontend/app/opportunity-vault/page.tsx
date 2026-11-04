@@ -160,7 +160,7 @@ const opportunities:Opportunity[]=[
   ],
   cta:'Open official TSMG application',
   verified:'2026-11-04'
-}
+},
 
  {
   id:'innodata-xconnect-global-ai',name:'Innodata XConnect — Global Remote AI Projects (Country Check)',status:'location-check',badge:'REMOTE • GLOBAL LISTINGS • PH ELIGIBILITY NOT CONFIRMED',
@@ -187,7 +187,7 @@ const opportunities:Opportunity[]=[
   ],
   cta:'Open official event portal',
   verified:'2026-11-04'
-}
+},
  {
   id:'dost-pcieerd-dut-2026',name:'DOST-PCIEERD — Driving Urban Transition (DUT) 2026 Grant',status:'location-check',badge:'PHILIPPINES • INTERNATIONAL RESEARCH CONSORTIUM • DEADLINE NOV 17, 2026',
   summary:'An official open DOST-PCIEERD concept-proposal call under the Driving Urban Transition Partnership. It supports transnational urban research/innovation, not unrestricted startup operating cash. The call allocates up to PHP 25,000,000 for a maximum of three projects over three years (the allocation is for the whole program/project duration, not PHP 25 million per applicant).',
@@ -520,7 +520,7 @@ const opportunities:Opportunity[]=[
   secondaryLabel:'Official Philippines App Store listing',
   cta:'Check country eligibility before joining',
   verified:'2026-11-01'
- }
+ },
 
  {
   id:'tsmg-team-coordinator',name:'TSMG — Team Coordinator (AI Device Testing & Data Collection)',status:'active-ph',badge:'PHILIPPINES • REMOTE • FULL-TIME CONTRACT • PAY NOT DISCLOSED',
