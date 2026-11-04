@@ -140,6 +140,17 @@ const opportunities:Opportunity[]=[
   cta:'Apply on official Welo listing',
   verified:'2026-10-24'
  },
+
+ {
+  id:'doola-customer-care-agent-ph',name:'doola — Customer Care Agent (Remote Philippines)',status:'active-ph',badge:'PHILIPPINES • FULL-TIME REMOTE • 2+ YEARS SUPPORT EXPERIENCE • PAY NOT DISCLOSED',
+  summary:'doola currently lists a full-time remote Customer Care Agent role explicitly open to applicants working remotely from the Philippines. The role supports customers by email and phone, resolves account/business-formation questions, maintains case records and escalates complex issues. Pay is not disclosed.',
+  requirements:['The official employer-hosted Lever listing explicitly includes Remote in Philippines; full-time remote role','Requires at least 2 years of customer-service experience; chat or phone support preferred','Strong written and verbal communication, ability to handle multiple conversations, meet response/resolution/customer-satisfaction KPIs, keep accurate records and solve problems','Work includes real-time email and phone support, follow-up, escalation and keeping customers informed; HubSpot, Intercom or other help-desk experience is a bonus','Salary, shift, equipment, employment classification, Philippine payroll/contract terms and benefits are not disclosed on the listing; confirm these in writing before accepting','Apply only through the official doola Lever listing. No application fee is advertised; never pay for screening, training, equipment or placement'],
+  official:'https://jobs.lever.co/doola/999a0f10-0738-42f7-a9f6-5c7192e74873',
+  secondary:'https://jobs.lever.co/doola?location=Remote+in+Latin+America',
+  secondaryLabel:'Official doola remote job listings',
+  cta:'Apply through the official doola listing',
+  verified:'2026-11-04'
+ },
  {
   id:'tsmg-filipino-audio-transcription',name:'TSMG — Filipino Audio Transcription Specialist',status:'active-ph',badge:'PHILIPPINES • REMOTE • BEGINNER-FRIENDLY AUDIO',
   summary:'TSMG officially lists remote Filipino-language audio transcription work, full-time or part-time. Listen to recorded speech and transcribe it according to project guidelines. Pay is NOT disclosed by the employer; do not rely on salary estimates from job aggregators.',
@@ -275,13 +286,26 @@ const opportunities:Opportunity[]=[
  },
  {
   id:'swc-ph-2026',name:'Startup World Cup Philippines Regional 2026 — Pitch Competition',status:'closed',badge:'PHILIPPINE STARTUPS • APPLICATION DEADLINE PASSED OCT 30, 2026 • LINK MISMATCH',
-  summary:'The official Philippines competition page lists October 30, 2026 as the submission deadline. As of October 31 Philippine time, that deadline has passed, so this is no longer an active application opportunity unless the organizer formally reopens it. The official Apply button still routes to a page headed MAURITIUS REGIONAL COMPETITION. Do not submit Philippine company information through that mismatched form.',
-  requirements:['Applications are treated as closed after the official October 30, 2026 deadline; the event page lists finalist notification on November 3 and the regional finale on November 10, 2026','The event page’s Apply button points to /copy-of-mauritius-app, whose heading explicitly says Mauritius Regional Competition; this is a confirmed routing mismatch','The global competition advertises a US$1 million investment prize, but that is not a guaranteed grant, regional cash award or paid job','Keep this listing for event tracking only; reactivate it only if the official Philippines organizer publishes a corrected route or reopening notice','Do not pay an unverified application fee or send confidential pitch materials through the mismatched form'],
+  summary:'Applications closed October 30, 2026 at 11:59 PM Philippine time. On November 3, the Philippine organizer announced seven regional finalists: CrisisOps, Pickers, Pili AdheSeal, Proficio, Rezbin, Saltric Power and TalentHero. They will pitch at IGNITE X on November 10; one will represent the Philippines in San Francisco for the global US$1 million investment prize. This is a competition outcome, not a grant or guaranteed award for every applicant. The official Philippines Apply button had routed to a page headed MAURITIUS REGIONAL COMPETITION; do not submit through that mismatched form.',
+  requirements:['Applications closed October 30, 2026 at 11:59 PM PHT; this is no longer an open application opportunity','The official organizer announced the seven Philippine regional finalists on November 3: CrisisOps, Pickers, Pili AdheSeal, Proficio, Rezbin, Saltric Power and TalentHero. They are scheduled to pitch at IGNITE X on November 10, 2026','One finalist will represent the Philippines in San Francisco and compete for the global US$1 million investment prize; this is not a guaranteed grant or cash award for every finalist','The event page’s Apply button had pointed to /copy-of-mauritius-app, whose heading explicitly said Mauritius Regional Competition; do not submit Philippine company information through that mismatched form','Keep this listing for finalist/event tracking only; reactivate applications only if the official Philippines organizer publishes a new call with a corrected route and deadline','Do not pay an unverified application fee or send confidential pitch materials through a mismatched or unofficial form'],
   official:'https://www.startupworldcup.io/philippines-2026',
   secondary:'https://ignite.ph/swc',
   secondaryLabel:'Philippine organizer updates',
   cta:'View event status and finale details',
-  verified:'2026-10-31'
+  verified:'2026-11-04'
+ },
+
+ {
+  id:'egocapture-indonesia-only-ph-watch',name:'EgoCapture — Robotics Household Video Data Collection (Indonesia-Only Tasks)',status:'location-check',badge:'ANDROID + IPHONE • APP LISTED IN PH • TASKS CURRENTLY INDONESIA ONLY',
+  summary:'EgoCapture by GL Technology Holdings is a free phone app for recording everyday household tasks for robotics training. Its Philippines App Store listing currently says “Now collecting in Indonesia.” The app describes payment per approved hour of footage, but no Philippine tasks, rates or payout eligibility are confirmed. Keep this as a watch item only—not a Philippine earning recommendation.',
+  requirements:['The app is listed in the Philippines App Store and Google Play, but the official Philippines App Store description explicitly says it is now collecting in Indonesia; no Philippines task or payout route was verified as of November 4, 2026','Available for Android and iPhone; the Philippines iPhone listing requires iOS 17.0 or later. The app is free to install and supports Filipino language, but language and store availability do not prove country eligibility','The developer says contributors are paid per hour of footage that passes quality review; the task-specific rate is shown in the app. No public Philippine rate, payment method or cash-out threshold was verified','Do not buy a head/neck mount or record anything until the app itself displays a live Philippine task, its exact payment terms and a working payout method','The app instructions require clear first-person footage of hands during chores; the developer says not to record children or bathrooms/changing areas and says unapproved recordings can be deleted before approval','Privacy review required: Apple lists email, phone, photos/videos, audio and identifiers as data that may be linked to the user; Google Play says personal information, photos/videos and app activity may be collected and encrypted in transit. Review consent and deletion terms before uploading','Never record children, bystanders, private conversations, IDs, screens, financial details or anyone without consent; never pay an intermediary to unlock tasks'],
+  official:'https://apps.apple.com/ph/app/egocapture-get-paid-to-record/id6809194022',
+  secondary:'https://play.google.com/store/apps/details?id=ai.roboloop.egocapture',
+  secondaryLabel:'Official Android Google Play listing',
+  tertiary:'https://roboloop.ai/',
+  tertiaryLabel:'Official developer website',
+  cta:'Check country eligibility only; do not treat as open in the Philippines',
+  verified:'2026-11-04'
  },
  {
   id:'aniani',name:'AniAni — Household Video Tasks (Android pilot)',status:'location-check',badge:'METRO MANILA ONLY • ANDROID PILOT',
