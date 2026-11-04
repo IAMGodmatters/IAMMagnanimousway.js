@@ -151,6 +151,16 @@ const opportunities:Opportunity[]=[
   cta:'Apply through the official doola listing',
   verified:'2026-11-04'
  },
+
+ {
+  id:'doola-tax-reviewer-ph',name:'doola — Tax Reviewer (Remote Philippines)',status:'active-ph',badge:'PHILIPPINES • FULL-TIME REMOTE • ACTIVE EA/CPA + PTIN REQUIRED • PAY NOT DISCLOSED',
+  summary:'doola lists a permanent, full-time remote Tax Reviewer role explicitly open to Remote in Philippines. The reviewer checks U.S. federal and state business income-tax returns, calculations, documentation and compliance, and helps resolve technical tax issues. Compensation is not disclosed.',
+  requirements:['The official employer-hosted listing explicitly includes Remote in Philippines; permanent, full-time remote role','Requires an active Enrolled Agent (EA) or CPA license and an active PTIN, or ability to obtain a PTIN before tax season','Requires experience reviewing federal and state business income-tax returns; strong knowledge of quarterly estimates, tax notices and tax dispute resolution','Experience with Forms 1120, 5472 and 1065 is specifically required, particularly for non-U.S. business owners and partnerships','Work includes reviewing returns, identifying errors, researching U.S. federal/state tax rules, guiding preparers and sometimes speaking with clients by email or video','Pay is not disclosed. Confirm compensation, schedule, equipment, employment classification and Philippine work/payroll terms in writing before accepting','This is a credentialed tax-professional role, not an entry-level data-entry job. Apply only through the official doola Lever listing; no application fee is advertised'],
+  official:'https://jobs.lever.co/doola/66c28540-e255-4c66-8092-fd0745105c43',
+  cta:'Apply through the official doola listing',
+  verified:'2026-11-04'
+ },
+
  {
   id:'tsmg-filipino-audio-transcription',name:'TSMG — Filipino Audio Transcription Specialist',status:'active-ph',badge:'PHILIPPINES • REMOTE • BEGINNER-FRIENDLY AUDIO',
   summary:'TSMG officially lists remote Filipino-language audio transcription work, full-time or part-time. Listen to recorded speech and transcribe it according to project guidelines. Pay is NOT disclosed by the employer; do not rely on salary estimates from job aggregators.',
@@ -287,7 +297,7 @@ const opportunities:Opportunity[]=[
  {
   id:'swc-ph-2026',name:'Startup World Cup Philippines Regional 2026 — Pitch Competition',status:'closed',badge:'PHILIPPINE STARTUPS • APPLICATION DEADLINE PASSED OCT 30, 2026 • LINK MISMATCH',
   summary:'Applications closed October 30, 2026 at 11:59 PM Philippine time. On November 3, the Philippine organizer announced seven regional finalists: CrisisOps, Pickers, Pili AdheSeal, Proficio, Rezbin, Saltric Power and TalentHero. They will pitch at IGNITE X on November 10; one will represent the Philippines in San Francisco for the global US$1 million investment prize. This is a competition outcome, not a grant or guaranteed award for every applicant. The official Philippines Apply button had routed to a page headed MAURITIUS REGIONAL COMPETITION; do not submit through that mismatched form.',
-  requirements:['Applications closed October 30, 2026 at 11:59 PM PHT; this is no longer an open application opportunity','The official organizer announced the seven Philippine regional finalists on November 3: CrisisOps, Pickers, Pili AdheSeal, Proficio, Rezbin, Saltric Power and TalentHero. They are scheduled to pitch at IGNITE X on November 10, 2026','One finalist will represent the Philippines in San Francisco and compete for the global US$1 million investment prize; this is not a guaranteed grant or cash award for every finalist','The event page’s Apply button had pointed to /copy-of-mauritius-app, whose heading explicitly said Mauritius Regional Competition; do not submit Philippine company information through that mismatched form','Keep this listing for finalist/event tracking only; reactivate applications only if the official Philippines organizer publishes a new call with a corrected route and deadline','Do not pay an unverified application fee or send confidential pitch materials through a mismatched or unofficial form'],
+  requirements:['Applications closed October 30, 2026 at 11:59 PM PHT; this is no longer an open application opportunity','The official organizer announced the seven Philippine regional finalists on November 3: CrisisOps, Pickers, Pili AdheSeal, Proficio, Rezbin, Saltric Power and TalentHero. They are scheduled to pitch at IGNITE X on November 10, 2026','One finalist will represent the Philippines in San Francisco and compete for the global US$1 million investment prize; this is not a guaranteed grant or cash award for every finalist','The official IGNITE X Luma event page still contains stale Startup World Cup copy showing an October 26 deadline and linking to the Mauritius application route. That copy is outdated: the Philippines application closed October 30 and the organizer announced the seven finalists on November 3. Do not use the stale Luma application link or submit Philippine company information through it','Keep this listing for finalist/event tracking only; reactivate applications only if the official Philippines organizer publishes a new call with a corrected route and deadline','Do not pay an unverified application fee or send confidential pitch materials through a mismatched or unofficial form'],
   official:'https://www.startupworldcup.io/philippines-2026',
   secondary:'https://ignite.ph/swc',
   secondaryLabel:'Philippine organizer updates',
@@ -339,6 +349,19 @@ const opportunities:Opportunity[]=[
   secondaryLabel:'Google Play listing (Android)',
   cta:'Check official country and payout eligibility',
   verified:'2026-11-01'
+ },
+
+ {
+  id:'usertesting-global-ph-location-check',name:'UserTesting — Paid Website, App & Product Tests',status:'location-check',badge:'GLOBAL TESTER NETWORK • PHILIPPINES ELIGIBILITY CHECK AT SIGN-UP • PAYPAL',
+  summary:'UserTesting pays contributors to complete surveys, recorded website/app tests and live video conversations. The official platform says the reward for each test is shown in the contributor feed and completed-test payments are usually sent 14 days later. UserTesting does not publish a fixed eligible-country list: its support centre says availability changes with supply and demand, so Philippine sign-up eligibility must be checked on the official registration page. Treat this as a country-check opportunity, not a confirmed PH account until the sign-up flow accepts the actual residence.',
+  requirements:['Free registration is offered through the official Get Paid to Test page; complete the email sign-up, profile checklist and short practice test','UserTesting says country eligibility changes with supply and demand and does not publish a fixed country list; the sign-up page determines whether a Philippines-based applicant can create an account','Never select a false country, use a VPN/proxy to appear elsewhere or use another person’s PayPal account; if the Philippines is not accepted, do not try to bypass the restriction','Available formats include surveys, recorded tests that may capture screen/audio/video, and scheduled live video conversations','The exact reward varies by test type, length and customer demand; the amount is displayed in the feed before accepting. No guaranteed number of invitations or monthly income is published','The official contributor page says completed-test payments are usually sent 14 days later; the onboarding guide requires PayPal for payment','Mobile app minimums published by UserTesting: iOS 14 or later, Android 10 or later; computer tests require a supported browser, microphone and adequate upload speed','Read each test’s recording notice and privacy terms before starting; do not reveal passwords, financial account details, private messages or confidential documents during a recording'],
+  official:'https://www.usertesting.com/get-paid-to-test',
+  secondary:'https://participant-support.usertesting.com/hc/en-us/articles/38410176419603-Can-I-join-the-UserTesting-Network-from-my-country',
+  secondaryLabel:'Official country-eligibility guidance',
+  tertiary:'https://participant-support.usertesting.com/hc/en-us/articles/38745458217235-How-can-I-join-the-UserTesting-Network',
+  tertiaryLabel:'Official onboarding and PayPal payment guidance',
+  cta:'Check actual Philippines eligibility at official sign-up',
+  verified:'2026-11-04'
  },
  {
   id:'userlytics-ph-usability',name:'Userlytics — Paid Website & App Usability Tests',status:'active-ph',badge:'PHILIPPINES • PAYPAL • DESKTOP & MOBILE STUDIES',
@@ -418,12 +441,16 @@ const opportunities:Opportunity[]=[
  },
 
   {
-  id:'prolific',name:'Prolific',status:'waitlist',badge:'NOT CURRENTLY PH-SUPPORTED',
-  summary:'Paid studies and AI-task work are legitimate opportunities, but Prolific’s current participant-country list does not include the Philippines. Eligibility is based on where you currently live, not citizenship.',
-  requirements:['Philippines residence is not currently on the supported participant-country list','A waitlist may be available, but access is not guaranteed','If residency changes, re-check the official current-country list before applying'],
+  id:'prolific',name:'Prolific',status:'waitlist',badge:'PH NEW SIGN-UPS WAITLIST ONLY • SMALL EXISTING PH PANEL',
+  summary:'Prolific’s current participant-onboarding country list excludes the Philippines, so new Philippines-based applicants are directed to the waitlist and are not guaranteed an invitation. A separate researcher-facing panel snapshot does count a small existing Philippines participant population. These two official pages are not contradictory about existing participants versus new sign-ups: do not advertise Prolific as open Philippine registration until the participant onboarding list includes the Philippines.',
+  requirements:['The current participant identity-verification/onboarding FAQ excludes the Philippines from its supported-country list and says residents of unsupported countries may join the waitlist; invitations are not guaranteed','A separate researcher-facing panel snapshot dated June 18, 2026 lists a small existing participant population in the Philippines. That is evidence of existing panel members, not proof that new PH registration is open','Eligibility is based on current country of residence, not citizenship. Prolific requires the phone number, ID/residence details and PayPal account to match the country of residence when invited to complete onboarding','Prolific requires PayPal as its participant payment method; do not use a U.S. PayPal/account address or VPN to bypass Philippine residence restrictions','Re-check the official participant onboarding country list before applying; only change this record to active-PH if that onboarding page explicitly adds the Philippines'],
   official:'https://www.prolific.com/participants-join-us',
+  secondary:'https://participant-help.prolific.com/en/articles/445010-verifying-my-identity-faq',
+  secondaryLabel:'Official participant onboarding and supported-country list',
+  tertiary:'https://researcher-help.prolific.com/en/articles/445224-who-are-the-participants-on-prolific',
+  tertiaryLabel:'Researcher-facing participant population snapshot',
   cta:'View official participant information',
-  verified:'2026-09-25'
+  verified:'2026-11-04'
  },
  {
   id:'alignerr-ai-training-specialist',name:'Alignerr — AI Training, Data Labeling & Evaluation Roles',status:'active-ph',badge:'PHILIPPINES-LISTED ROLES • REMOTE CONTRACT • USD $40–$120/HR ADVERTISED',
@@ -500,14 +527,15 @@ const opportunities:Opportunity[]=[
  {
   id:'respondent-ph-paid-research',name:'Respondent — Paid Research Studies & Interviews',status:'active-ph',badge:'PHILIPPINES • FREE PARTICIPANT SIGN-UP • REMOTE RESEARCH',
   summary:'Respondent’s official participant panel lists approximately 103,000 Philippines participants and USD $84,000 in incentives paid in the country, and its help centre includes the Philippines among its primary target markets. Participant sign-up is free. Its current participant page says most sessions pay USD $50–$250 depending on length and seniority; the help centre gives more specific illustrative ranges of USD $40–$150 for remote interviews and USD $5–$25 for short unmoderated tasks. Researchers select participants, so invitations and income are not guaranteed.',
-  requirements:['Respondent’s official panel snapshot lists about 103,000 participants in the Philippines and USD $84,000 in total incentives paid there; its help centre also lists the Philippines as a primary target market','Participant sign-up is free and does not require a credit card; the participant page says most people receive about 1–3 study invitations per month, but selection and income are not guaranteed','Complete an accurate profile and apply only to studies that genuinely match your experience, occupation and location; researchers choose participants','Screening questionnaires are unpaid; do not treat screeners or study invitations as guaranteed income','After the researcher confirms attendance/completion, incentives are delivered through Tremendous, typically 7–10 business days later','Respondent deducts a 5% fulfillment fee with a USD $1 minimum; available gift cards or payout options depend on the Philippines redemption catalogue at the time of payment','Check the Tremendous redemption choices for the Philippines before committing to a study if you need a particular cash-out method; never pay anyone to qualify or release a reward'],
+  requirements:['Respondent’s official panel snapshot lists about 103,000 participants in the Philippines and USD $84,000 in total incentives paid there; its help centre also lists the Philippines as a primary target market','Participant sign-up is free and does not require a credit card; the participant page says most people receive about 1–3 study invitations per month, but selection and income are not guaranteed','Complete an accurate profile and apply only to studies that genuinely match your experience, occupation and location; researchers choose participants','Screening questionnaires are unpaid; do not treat screeners or study invitations as guaranteed income','After the researcher confirms attendance/completion, incentives are delivered through Tremendous, typically 7–10 business days later','Respondent deducts a 5% fulfillment fee with a USD $1 minimum; available gift cards or payout options depend on the Philippines redemption catalogue at the time of payment','Tremendous currently lists GCash as a possible Philippines monetary redemption option, but Respondent says payout options are sender-configured and vary by participant/payment; GCash is not guaranteed on every reward. Check the exact redemption screen before accepting if you need GCash
+'Never pay anyone to qualify or release a reward'],
   official:'https://www.respondent.io/become-a-participant',
   secondary:'https://help.respondent.io/en/articles/5471299-what-countries-can-i-recruit-in-on-respondent',
   secondaryLabel:'Official country-market information',
   tertiary:'https://help.respondent.io/en/articles/12552519-getting-paid-on-respondent-timeline-currencies-how-to-redeem',
   tertiaryLabel:'Official payout timing, options and fees',
   cta:'Join as a participant — free',
-  verified:'2026-11-01'
+  verified:'2026-11-04'
  },
  {
   id:'triaba-ph-surveys',name:'Triaba — Philippines Paid Survey Panel',status:'active-ph',badge:'PHILIPPINES • FREE JOIN • MOBILE & WEB SURVEYS',
