@@ -548,7 +548,7 @@ const opportunities:Opportunity[]=[
   ],
   cta:'Join the official Philippines panel',
   verified:'2026-11-04'
-}
+},
  {
   id:'ipsos-isay-ph-maintenance-check',name:'Ipsos iSay — Philippines Surveys & GCash Rewards (Maintenance Check)',status:'location-check',badge:'PHILIPPINES • OFFICIAL PANEL • PUBLIC SITE REDIRECTED TO MAINTENANCE',
   summary:'Ipsos iSay has an official Philippines survey panel and a local rewards catalogue that includes GCash and gift-card options. However, during the November 4, 2026 check, the live English Philippines landing and rewards URLs redirected to an Ipsos Interactive maintenance page. The panel is legitimate, but current registration and redemption availability could not be confirmed; do not use unofficial replacement links.',
@@ -560,7 +560,7 @@ const opportunities:Opportunity[]=[
   tertiaryLabel:'Official Ipsos anti-scam and account-safety guidance',
   cta:'Check whether the official PH panel has returned',
   verified:'2026-11-04'
-}
+},
  {
   id:'impact-hub-manila-2026-hubber',name:'Impact Hub Manila — 2026 Hubber / Venture-Builder Rolling Intake',status:'location-check',badge:'PHILIPPINES + SEA FOUNDERS • ROLLING INTAKE • FREE TO APPLY',
   summary:'Impact Hub Manila currently invites idea-stage through seed-stage founders across Southeast Asia to apply for its Hubber community and 2026 venture-builder programs. The official page advertises free application, no pitch deck required and a five-business-day response target. Support includes mentorship, capital connections, events, a Bonifacio Global City workspace and access to programs in climate, AI for Good, agritech, health and inclusive finance. This is not a guaranteed grant or cash award.',
