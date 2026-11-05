@@ -25,7 +25,7 @@ jobs:
       standalone_changed: ${{ steps.impact.outputs.standalone_changed }}
     steps:
       - name: Checkout runtime impact range
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 2
 
@@ -66,7 +66,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 50
 
