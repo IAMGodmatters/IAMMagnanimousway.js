@@ -1,0 +1,32 @@
+name: Magnanimous Communications Lock
+
+on:
+  pull_request:
+    paths:
+      - 'telecom-core/communications/**'
+      - 'telecom-core/tests/test_communications*'
+      - 'docs/MAGNANIMOUS_COMMUNICATIONS.md'
+      - 'qa/scripts/magnanimous-communications-lock.mjs'
+      - '.github/workflows/magnanimous-communications-lock.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'telecom-core/communications/**'
+      - 'telecom-core/tests/test_communications*'
+      - 'docs/MAGNANIMOUS_COMMUNICATIONS.md'
+      - 'qa/scripts/magnanimous-communications-lock.mjs'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node qa/scripts/magnanimous-communications-lock.mjs
+      - run: pip install pytest pytest-asyncio
+      - run: cd telecom-core && python -m pytest -q tests/test_communications.py tests/test_communications_calls.py
