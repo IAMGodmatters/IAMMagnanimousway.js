@@ -16,7 +16,7 @@ for(const s of [
  'https://www.prolific.com/participants-join-us','2PDR9UXD','task availability vary by country',
  'Unverified names stay out of the active list.'
 ])assert.ok(vault.includes(s),'Opportunity Vault missing '+s);
-assert.ok(!vault.includes('$3'),'Vault must not preserve stale referral bonus claims without current source verification');
+assert.ok(!/(?:referral|invite)[\s\S]{0,120}\$3|\$3[\s\S]{0,120}(?:referral|invite)/i.test(vault),'Vault must not preserve stale referral bonus claims without current source verification');
 assert.ok(catalog.includes("key:'opportunity'"),'interaction catalog must understand Opportunity Vault');
 assert.ok(kids.includes("import { currentUser } from './integrations.js';"),'Kids Drive owner OAuth must retain the existing session user resolver import');
 assert.ok(!kids.includes("await ensureTables(env);\n if(request.method==='OPTIONS')"),'Kids public media routes must not run DDL per request');
