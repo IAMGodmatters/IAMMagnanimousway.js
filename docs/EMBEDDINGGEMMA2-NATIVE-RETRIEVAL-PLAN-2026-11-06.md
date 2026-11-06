@@ -84,3 +84,18 @@ A follow-up source audit checked the actual Worker entrypoints and local runtime
 - The repository tree has no clearly named vector-store or knowledge-runtime test file. Before implementing semantic retrieval, add focused tests for the existing local vector store and route wiring, and determine whether the knowledge runtime is intentionally dormant or needs safe registration.
 
 This changes the first implementation gate: establish and test the intended route ownership and data lifecycle before connecting any embedding model. Do not wire an apparently dormant handler into production solely to make the prototype work; first inspect its authorization, tenant scoping, migrations, and existing frontend/API contracts.
+
+
+## Follow-up action — vector-store regression coverage (2026-11-06)
+
+Added regression assertions to the existing standalone runtime verification script at `magnanimous-runtime/scripts/verify-runtime.mjs` on this branch. Coverage now includes:
+- metadata-filtered vector search;
+- safe exclusion of vectors with incompatible dimensions;
+- namespace isolation when two namespaces contain the same record ID;
+- upsert replacement of vector values and metadata;
+- rejection of NaN vector components; and
+- deletion followed by a read proving the vector is no longer returned.
+
+These checks use the existing temporary SQLite database created by the verification script. They do not load a model, embed customer data, modify production data, or introduce dependencies.
+
+**Verification status:** the change is committed, but execution is not yet verified. The GitHub workflow lookup for commit `d73a9ebf517fefaad5b6d35a280487bfde5c47c4` returned no pull-request workflow runs. Run `npm run verify` from `magnanimous-runtime` in a Node.js 24 environment before treating these assertions as passing. No production route or model integration has been enabled.
