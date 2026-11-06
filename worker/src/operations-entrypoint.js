@@ -32,6 +32,7 @@ import {scheduledMagnanimousAttentionWatch,magnanimousAttentionWatchStatus} from
 import {scheduledNativeStoreCommerce,scheduledNativeStoreFulfillment} from './native-store-runtime.js';
 import {handleContinuousLearning,runContinuousLearningCycle} from './magnanimous-continuous-learning.js';
 import {handleNativeMeetingRooms,pruneExpiredMeetingRooms} from './native-meeting-rooms.js';
+import {handleSocialScheduling,scheduledSocialPublishing} from './social-scheduling-runtime.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const bodyOf=(request)=>request.clone().json().catch(()=>({}));
@@ -157,6 +158,8 @@ async function operationsFetch(request,env,ctx){
 
   const consequential=await requireConsequentialActionConfirmation(request);
   if(consequential)return consequential;
+
+  try{const socialSchedule=await handleSocialScheduling(request,env);if(socialSchedule)return socialSchedule}catch(error){console.error('Magnanimous Social Studio scheduling failed',error);return json({detail:'Social scheduling could not complete this request.'},500)}
 
   try{const training=await handleContinuousLearning(request,env);if(training)return training}catch(error){console.error('continuous learning layer failed',error);return json({detail:'Magnanimous continuous learning could not complete this request.'},500)}
 
@@ -285,6 +288,7 @@ export default{
    scheduledSelfHealing(env,origin).catch(error=>console.error('scheduled self-healing check failed',error)),
    scheduledTelecomEmailWatch(env).catch(error=>console.error('scheduled telecom email watch failed',error)),
    scheduledMagnanimousAttentionWatch(env).catch(error=>console.error('scheduled native attention watch failed',error)),
+   scheduledSocialPublishing(env).catch(error=>console.error('scheduled social publishing failed',error)),
    scheduledNativeStoreCommerce(env).catch(error=>console.error('scheduled native store commerce failed',error))
   ];
   if(continuousLearningRunsLocally(env))scheduledTasks.push(runContinuousLearningCycle(env,{source:'cron'}).catch(error=>console.error('scheduled continuous learning failed',error)));
