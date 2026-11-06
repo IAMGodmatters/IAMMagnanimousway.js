@@ -643,6 +643,59 @@ const opportunities:Opportunity[]=[
   cta:"Check supported countries before considering",
   verified:"2026-11-06"
  },
+
+ {
+  id:"alignerr-ai-chatbot-tester-ph",
+  name:"Alignerr — AI Chatbot Tester (Philippines)",
+  status:"active-ph",
+  badge:"PHILIPPINES • FULLY REMOTE • USD $40–$120/HR ADVERTISED • NO PRIOR AI EXPERIENCE",
+  summary:"Alignerr's employer-posted Philippines contract asks contributors to converse with AI chatbots, test varied scenarios and edge cases, and rate responses for helpfulness, accuracy, tone and safety. The listing is entry-level, fully remote and says no prior AI or technical experience is required. Alignerr advertises USD $40–$120/hour, but the actual rate depends on skills and experience and is not guaranteed.",
+  requirements:["The employer listing identifies the Philippines, fully remote work and an hourly independent contract with an advertised commitment of 10–40 hours per week","No prior AI or technical experience is required. Applicants should be naturally curious, comfortable exploring different topics, able to judge answers objectively and write clear, precise English feedback","Work includes open-ended chatbot conversations, testing unusual or edge-case prompts, checking factual accuracy, tone, helpfulness, consistency and safety, and recording findings in structured feedback forms and rating rubrics","Alignerr advertises a base pay range of USD $40–$120/hour and states that the actual rate is based on skills and experience. This is not a guaranteed rate, minimum number of hours or guaranteed project assignment; confirm the written project rate, paid hours, assessment terms and payout schedule before accepting","The public posting does not promise a fixed contract duration or guaranteed weekly workload; projects and extensions depend on demand","Apply through the employer-posted Alignerr listing or its official website. Never pay an application, assessment, training, equipment or release fee; do not provide passwords, OTPs or banking login details"],
+  official:"https://ph.linkedin.com/jobs/view/ai-chatbot-tester-at-alignerr-4483798512",
+  secondary:"https://www.alignerr.com/",
+  secondaryLabel:"Official Alignerr website",
+  cta:"Review the employer-posted remote contract",
+  verified:"2026-11-06"
+ },
+ {
+  id:"alignerr-robotics-technician-video-data-ph",
+  name:"Alignerr — Robotics Technician (AI Training Video Collection)",
+  status:"active-ph",
+  badge:"PHILIPPINES • REMOTE • SMARTPHONE OR CAMERA • USD $40–$120/HR ADVERTISED",
+  summary:"Alignerr's new Philippines contract pays contributors to record ordinary household or workplace activities for robotics AI training. The employer says no robotics, engineering or AI background is required; a smartphone or camera, reliable internet and the ability to follow recording instructions are required. The advertised USD $40–$120/hour range is employer-published but not guaranteed.",
+  requirements:["The employer listing identifies the Philippines, fully remote work and an hourly contract with an advertised commitment of 10–40 hours per week","No robotics, engineering or AI background is required. Contributors need a smartphone or camera capable of clear video, reliable internet for uploads and the ability to follow detailed recording sequences and metadata instructions","Tasks may include recording ordinary activities such as cooking, cleaning, organizing, folding laundry or opening doors in an approved home or workspace, then uploading video and completing simple metadata forms","Alignerr advertises USD $40–$120/hour; the actual rate depends on skills and experience. Confirm the assigned rate, paid recording time, accepted-task rules, upload requirements and payment schedule in writing. Task volume and paid hours are not guaranteed","Privacy and consent are essential: record only the task and approved space. Do not include children, visitors, other household members, coworkers, private conversations, IDs, screens, financial papers, medical information or personal documents. Obtain clear consent from every identifiable person and stop recording if anyone enters the frame without consent","Check storage, upload limits and mobile data use before accepting tasks; large video files may require Wi-Fi and significant device storage","Apply only through the official employer listing. Never pay for a task slot, training, equipment, assessment or payout release"],
+  official:"https://ph.linkedin.com/jobs/view/robotics-technician-at-alignerr-4484415288",
+  secondary:"https://www.alignerr.com/",
+  secondaryLabel:"Official Alignerr website",
+  cta:"Review the phone-video task contract and privacy rules",
+  verified:"2026-11-06"
+ },
+ {
+  id:"alignerr-content-reviewer-ph",
+  name:"Alignerr — Content Reviewer (AI Training)",
+  status:"active-ph",
+  badge:"PHILIPPINES • FULLY REMOTE • USD $40–$120/HR ADVERTISED • ENTRY LEVEL",
+  summary:"Alignerr's Philippines Content Reviewer contract evaluates AI-generated text for clarity, accuracy, tone and overall quality. The employer describes it as fully remote and entry-level, with no prior AI, technical or editorial experience required. Strong English reading comprehension and objective written feedback are essential.",
+  requirements:["The employer listing identifies the Philippines, fully remote work and an hourly contract with an advertised commitment of 10–40 hours per week","No prior AI, technology or editorial experience is required. Applicants need strong English reading comprehension, clear written communication, critical thinking and the ability to explain quality judgments","Work includes reviewing AI-generated text across topics such as news, culture, science and everyday life, flagging misleading or inappropriate content, and submitting structured ratings and written notes","Alignerr advertises USD $40–$120/hour; the actual rate depends on skills and experience. Confirm the assigned rate, project volume, paid assessment terms, contract duration and payout schedule; no minimum hours or earnings are guaranteed","The listing describes asynchronous independent work, but does not promise a fixed number of assignments or continuing work","Use the employer-posted Alignerr listing or official website only. Never pay an application, assessment, training or payout fee"],
+  official:"https://ph.linkedin.com/jobs/view/content-reviewer-at-alignerr-4484415303",
+  secondary:"https://www.alignerr.com/",
+  secondaryLabel:"Official Alignerr website",
+  cta:"Review the employer-posted remote contract",
+  verified:"2026-11-06"
+ },
+ {
+  id:"alignerr-image-description-specialist-ph",
+  name:"Alignerr — Image Description Specialist (AI Training)",
+  status:"active-ph",
+  badge:"PHILIPPINES • FULLY REMOTE • USD $40–$120/HR ADVERTISED • ENTRY LEVEL",
+  summary:"Alignerr's Philippines Image Description Specialist contract involves writing clear, detailed descriptions of photos, illustrations, diagrams and charts so AI systems can learn to interpret visual content. The employer says no photography, art or AI background is required; strong observation and descriptive written English are important.",
+  requirements:["The employer listing identifies the Philippines, fully remote work and an hourly contract with an advertised commitment of 10–40 hours per week","No photography, art or AI background is required. Applicants need strong observation, clear descriptive English, attention to detail and the ability to follow structured annotation guidelines","Work includes describing visual elements such as objects, scenes, people, actions and spatial relationships in photos, illustrations, diagrams and charts; output must be consistent, accurate and detailed","Alignerr advertises USD $40–$120/hour; the actual rate depends on skills and experience. Confirm the assigned rate, paid assessment terms, project volume, duration and payout schedule before accepting; no minimum hours or earnings are guaranteed","The posting describes independent asynchronous work but does not promise ongoing projects or a fixed weekly workload","Apply only through the official employer listing or Alignerr website. Never pay application, assessment, training, equipment or release fees"],
+  official:"https://ph.linkedin.com/jobs/view/image-description-specialist-at-alignerr-4484402664",
+  secondary:"https://www.alignerr.com/",
+  secondaryLabel:"Official Alignerr website",
+  cta:"Review the employer-posted remote contract",
+  verified:"2026-11-06"
+ },
  {
   id:'thoth-ai-remote-annotation-trainer',name:'Thoth AI — Remote Data Annotation Trainer & Onboarding Coach',status:'location-check',badge:'REMOTE IN TITLE • METRO MANILA LOCATION • FULL-TIME • PAY NOT DISCLOSED',
   summary:'Thoth AI’s employer-posted LinkedIn role is titled Remote Data Annotation Trainer & Onboarding Coach and shows Metro Manila as its location. Work includes training and onboarding new labelers, coaching them on project guidelines and quality expectations, monitoring onboarding performance, providing feedback and updating training materials. The listing does not publish pay or explicitly confirm nationwide remote eligibility; confirm that work from Negros Oriental is accepted before applying.',
