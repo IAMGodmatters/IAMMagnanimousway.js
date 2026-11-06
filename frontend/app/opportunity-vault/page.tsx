@@ -894,6 +894,111 @@ const opportunities:Opportunity[]=[
   cta:'Verify program status with the government portal',
   verified:'2026-11-04'
  }
+
+ {
+  id:"neonlink-ai-enabled-executive-assistant-ph",
+  name:"Neon Link — AI-Enabled Executive Assistant (Philippines Remote)",
+  status:"active-ph",
+  badge:"PHILIPPINES • REMOTE • PHP 46,000–58,000/MONTH • US NIGHT SHIFT • 3+ YEARS EA/VA",
+  summary:"Neon Link's official careers page lists a Philippines-based remote AI-enabled executive assistant contract supporting a US founder or small-business owner. The work covers inbox and calendar management, travel, CRM upkeep, follow-ups, AI-assisted drafting and simple automations. The advertised range is PHP 46,000–58,000 per month; the engagement may be project-based or full-time depending on the client.",
+  requirements:["The employer says remote anywhere in the Philippines; Monday–Friday during US business hours, which means night shift in the Philippines; exact shift is set with the client","Requires 3+ years as an executive assistant or virtual assistant directly supporting US founders or business owners; strong Google Workspace or Microsoft 365, daily practical AI-tool use and at least one automation built in Zapier, Make, n8n, Power Automate or similar","Work includes inbox triage and approved replies, calendar management across US time zones, travel planning, CRM updates, follow-up ownership, AI-assisted research/drafting and weekly founder summaries","Advertised pay: PHP 46,000–58,000/month. The listing describes contract, project-based or full-time engagement depending on the client; confirm the exact written offer, benefits, schedule and payment terms","Requires own computer with at least 16 GB RAM and Core i5/Ryzen 5/Apple M-series or better, webcam, noise-cancelling headset, fiber internet of at least 50 Mbps plus backup connection, UPS/generator and a quiet private workspace","The employer says a confidentiality agreement and current NBI clearance are required. Because the role accesses a founder's email, calendar and accounts, use only client-provisioned accounts and their password manager; never store credentials or payment details on a personal account","Neon Link says it never charges to apply, test, train or start and only contacts applicants from neonlink.ai email addresses. Do not pay for equipment, training, screening or job placement"],
+  official:"https://neonlink.ai/careers/job/ai-enabled-executive-assistant/",
+  secondary:"https://neonlink.ai/careers/",
+  secondaryLabel:"Neon Link official current roles and applicant-safety rules",
+  cta:"Review official role and apply",
+  verified:"2026-11-06"
+ },
+ {
+  id:"neonlink-ai-video-editor-ph",
+  name:"Neon Link — AI Video Editor (Philippines Remote)",
+  status:"active-ph",
+  badge:"PHILIPPINES • REMOTE • PHP 46,000–70,000/MONTH • AI VIDEO PORTFOLIO REQUIRED",
+  summary:"Neon Link's official careers page lists a Philippines remote AI Video Editor contract creating short-form and advertising videos for US businesses. Work uses standard editing tools plus AI-generated footage, avatars and voiceovers. Advertised pay is PHP 46,000–70,000/month, with US business-hours night shifts Monday–Friday.",
+  requirements:["The employer says remote anywhere in the Philippines; Monday–Friday on US business hours (night shift locally), weekends off; exact shift is set with the client","Requires either 2+ years editing short-form or advertising video for brands/businesses, or a channel/page the applicant grew using short-form video, with a portfolio","Requires hands-on published work using AI video tools such as Veo, Kling or Runway plus avatar/voice tools such as HeyGen, Synthesia or ElevenLabs; strong Premiere Pro, DaVinci Resolve, Final Cut, CapCut or similar, captions and basic motion graphics","Advertised pay: PHP 46,000–70,000/month, including the night-hours rate. Contract may be project-based or full-time depending on the engagement; confirm written rate and workload","Requires own editing computer with at least 16 GB RAM, Core i7/Ryzen 7/Apple M-series and a dedicated GPU on Windows, webcam/headset, fiber internet of at least 50 Mbps plus backup, UPS/generator and quiet workspace","The employer requires confidentiality and a current NBI clearance. Keep client footage, scripts and unreleased assets in client accounts; do not publish them in a portfolio without written permission. Use only voices and likenesses the client has rights to use","Neon Link says it never charges to apply, test, train or start and only contacts applicants from neonlink.ai email addresses. Never pay for equipment, assessments or placement"],
+  official:"https://neonlink.ai/careers/job/ai-video-editor/",
+  secondary:"https://neonlink.ai/careers/",
+  secondaryLabel:"Neon Link official current roles and applicant-safety rules",
+  cta:"Review official role and apply",
+  verified:"2026-11-06"
+ },
+ {
+  id:"neonlink-ai-automation-specialist-ph",
+  name:"Neon Link — AI Automation Specialist (n8n, Make, Zapier)",
+  status:"active-ph",
+  badge:"PHILIPPINES • REMOTE • PHP 58,000–74,000/MONTH • 2+ YEARS AUTOMATION",
+  summary:"Neon Link's official careers page lists a Philippines remote AI Automation Specialist contract building client workflows with n8n, Make or Zapier, APIs/webhooks and LLM steps. Advertised pay is PHP 58,000–74,000/month for a full-time client engagement; earlier project work is priced per project in advance.",
+  requirements:["The employer says remote anywhere in the Philippines, with at least 3 hours of overlap with US business hours for calls and handoffs; exact engagement schedule depends on the client","Requires 2+ years building automations for real users in n8n, Make, Zapier, Power Automate or a similar platform; practical APIs, webhooks, JSON and authentication knowledge; at least one working LLM-enabled workflow; enough JavaScript or Python to write code steps","Work includes mapping a client's manual process, connecting CRMs/inboxes/spreadsheets/accounting tools through APIs and webhooks, adding LLM classification/extraction/summarization/drafting with human approval, retries, duplicate protection, alerts, logs and runbooks","Advertised pay: PHP 58,000–74,000/month for a full-time client engagement, depending on experience; project work before that is paid per project at a rate agreed up front. Confirm the written rate, hours and contract terms","Requires own computer with at least 16 GB RAM and Core i5/Ryzen 5/Apple M-series or better, webcam/headset, fiber internet of at least 50 Mbps plus backup, UPS/generator and quiet workspace","The employer requires a confidentiality agreement and current NBI clearance. Build inside client-owned accounts, keep credentials and API keys in the client's password manager, and hand over admin access and connection documentation","Neon Link says it never charges to apply, test, train or start and only contacts applicants from neonlink.ai email addresses. Do not pay an intermediary or buy equipment to secure a role"],
+  official:"https://neonlink.ai/careers/job/ai-automation-specialist/",
+  secondary:"https://neonlink.ai/careers/",
+  secondaryLabel:"Neon Link official current roles and applicant-safety rules",
+  cta:"Review official role and apply",
+  verified:"2026-11-06"
+ },
+ {
+  id:"neonlink-gohighlevel-ai-specialist-ph",
+  name:"Neon Link — GoHighLevel AI Specialist (Agents, Workflows, CRM)",
+  status:"active-ph",
+  badge:"PHILIPPINES • REMOTE • PHP 49,000–58,000/MONTH • 2+ YEARS GOHIGHLEVEL",
+  summary:"Neon Link's official careers page lists a Philippines remote GoHighLevel AI Specialist contract building CRM pipelines, workflows, funnels, Conversation AI and voice agents for US small businesses. Advertised pay is PHP 49,000–58,000/month.",
+  requirements:["The employer says remote anywhere in the Philippines; Monday–Friday during US business hours (night shift locally), weekends off; exact shift is set with the client","Requires 2+ years building in GoHighLevel for a real business or agency, including workflows, pipelines, funnels, forms and calendars; hands-on Conversation AI or voice AI with real leads; webhooks and integrations through Zapier, Make or n8n","Work includes lead follow-up and appointment automations, AI chat/voice agents with human handoff, CRM pipelines and data hygiene, funnels/forms/calendars, integrations and reporting","Advertised pay: PHP 49,000–58,000/month, including the night-hours rate. Engagement may be project-based or full-time depending on the client; confirm the exact offer, hours and payment terms","Requires own computer with at least 16 GB RAM and Core i5/Ryzen 5/Apple M-series or better, Windows 10/11 or macOS, webcam, noise-cancelling headset, fiber internet of at least 50 Mbps plus backup, UPS/generator and quiet workspace","The employer requires a confidentiality agreement and current NBI clearance. Work only in client-provisioned accounts; keep lead lists, logins and API keys out of personal accounts","Neon Link says it never charges to apply, test, train or start and only contacts applicants from neonlink.ai email addresses. Do not pay for placement, onboarding or equipment"],
+  official:"https://neonlink.ai/careers/job/gohighlevel-ai-specialist/",
+  secondary:"https://neonlink.ai/careers/",
+  secondaryLabel:"Neon Link official current roles and applicant-safety rules",
+  cta:"Review official role and apply",
+  verified:"2026-11-06"
+ },
+ {
+  id:"neonlink-ai-agent-engineer-ph",
+  name:"Neon Link — AI Agent Engineer (MCP, Agent SDKs, Claude Code)",
+  status:"active-ph",
+  badge:"PHILIPPINES • REMOTE • PHP 90,000–130,000/MONTH • ADVANCED",
+  summary:"Neon Link's official careers page lists a Philippines remote AI Agent Engineer contract building tool-using agents and MCP servers for US businesses. Advertised pay is PHP 90,000–130,000/month for a full-time client engagement; earlier project work is priced per project in advance.",
+  requirements:["The employer says remote anywhere in the Philippines, with at least 3 hours of overlap with US business hours for calls and handoffs","Requires 2+ years shipping software in Python or TypeScript, including at least one agent that takes real actions with tools; hands-on tool calling and an agent framework/SDK such as Claude Agent SDK, OpenAI Agents SDK or LangGraph; built or extended an MCP server or comparable tool integration; and practical evaluation/trace skills","Work includes mapping multi-step business tasks, building tool-using agents, scoped MCP integrations and audit logs, guardrails, step/spend limits, safe defaults, human approval before customer-facing, financial or destructive actions, reliability evaluation and runbooks","Advertised pay: PHP 90,000–130,000/month for a full-time client engagement, depending on experience; earlier project work is paid per project at a rate agreed up front. Confirm the written rate and contract scope","Requires own computer with at least 16 GB RAM and Core i5/Ryzen 5/Apple M-series or better, Windows/macOS/Linux, webcam/headset, fiber internet of at least 50 Mbps plus backup, UPS/generator and quiet workspace","The employer requires a confidentiality agreement and current NBI clearance. Use only client-provisioned accounts and keep client data, code and API keys out of personal accounts and public repositories","Neon Link says it never charges to apply, test, train or start and only contacts applicants from neonlink.ai email addresses. Do not pay an intermediary or purchase equipment to obtain a job"],
+  official:"https://neonlink.ai/careers/job/ai-agent-engineer/",
+  secondary:"https://neonlink.ai/careers/",
+  secondaryLabel:"Neon Link official current roles and applicant-safety rules",
+  cta:"Review official role and apply",
+  verified:"2026-11-06"
+ },
+ {
+  id:"neonlink-ai-native-fullstack-ph",
+  name:"Neon Link — AI-Native Full-Stack Developer (React/Next.js, Supabase)",
+  status:"active-ph",
+  badge:"PHILIPPINES • REMOTE • PHP 58,000–66,000/MONTH • 2+ YEARS WEB APPS",
+  summary:"Neon Link's official careers page lists a Philippines remote AI-native full-stack developer contract building internal tools, client portals and small applications with React/Next.js, TypeScript, Postgres/Supabase and AI coding agents. Advertised pay is PHP 58,000–66,000/month.",
+  requirements:["The employer says remote anywhere in the Philippines, with at least 3 hours of overlap with US business hours for calls and handoffs","Requires 2+ years building and shipping web apps used by real users; strong React or Next.js with TypeScript, Postgres schema design/migrations/queries, authentication and row-level security; daily use of AI coding agents and ability to review/test generated changes","Work includes turning spreadsheet processes into apps, building internal tools and client portals, securing user access, connecting APIs/webhooks/serverless functions, production deployment and handover","Advertised pay: PHP 58,000–66,000/month for a full-time client engagement, depending on experience; project work before that is paid per project at an agreed rate","Requires own computer with at least 16 GB RAM and Core i5/Ryzen 5/Apple M-series or better, Windows/macOS/Linux, webcam/headset, fiber internet of at least 50 Mbps plus backup, UPS/generator and quiet workspace","The employer requires a confidentiality agreement and current NBI clearance. Keep client data, code and API keys in client-controlled accounts and out of public repositories","Neon Link says it never charges to apply, test, train or start and only contacts applicants from neonlink.ai email addresses. Do not pay for placement or equipment"],
+  official:"https://neonlink.ai/careers/job/ai-native-full-stack-developer/",
+  secondary:"https://neonlink.ai/careers/",
+  secondaryLabel:"Neon Link official current roles and applicant-safety rules",
+  cta:"Review official role and apply",
+  verified:"2026-11-06"
+ },
+ {
+  id:"rekreate-fullstack-developer-ph",
+  name:"Rekreate Digital — Full-Stack Developer (React + TypeScript)",
+  status:"active-ph",
+  badge:"PHILIPPINES • REMOTE • PAY NOT DISCLOSED • PORTFOLIO-FIRST",
+  summary:"Rekreate Digital's official careers page lists a Philippines-remote Full-Stack Developer role building React/TypeScript client apps and dashboards with Postgres and Supabase. The employer says it values shipped work and practical skills over formal credentials. Salary, contract type, hours and application deadline are not published.",
+  requirements:["The employer identifies the role as Remote · Philippines; its public careers page does not state a salary, contract type, hours or closing date","Work includes React and TypeScript interfaces, client dashboards, Postgres/Supabase data structures and end-to-end feature ownership, including scope, build, test and release","The application asks for skills/stack, project links, what the applicant has built and availability; no résumé file upload is required, but at least one link is requested","The stated hiring process is a short call of about 30 minutes followed by a small scoped task. The page does not say whether the task is paid; ask before starting and keep any evaluation task tightly limited","The employer's privacy policy identifies Rekreate Digital Marketing Services as a BIR-registered Philippine sole proprietorship and explains that applications are stored in a private Google Sheet via Google Apps Script, with internal Discord/email notifications; unsuccessful applications are retained for up to 12 months after the role is filled","Do not send government ID numbers, bank details, health information or other sensitive personal data in the initial application. The employer says it does not need these to assess applicants","Use only the official careers page and verify any recruiter contact against the company's own domain. No application fee is published; never pay an agent or intermediary to secure an interview"],
+  official:"https://rekreatedigital.com/careers",
+  secondary:"https://rekreatedigital.com/privacy-policy",
+  secondaryLabel:"Official recruitment privacy policy and business identity",
+  cta:"Apply through the official careers form",
+  verified:"2026-11-06"
+ },
+ {
+  id:"rekreate-ai-automation-engineer-ph",
+  name:"Rekreate Digital — AI Automation Engineer (n8n + LLM Agents)",
+  status:"active-ph",
+  badge:"PHILIPPINES • REMOTE • PAY NOT DISCLOSED • PORTFOLIO-FIRST",
+  summary:"Rekreate Digital's official careers page lists a Philippines-remote AI Automation Engineer role building n8n workflows and LLM-connected automations for client operations. Work includes email, reports, follow-ups, alerts and integrations with calendars, spreadsheets, CRMs and accounting tools. Salary, contract type, hours and deadline are not published.",
+  requirements:["The employer identifies the role as Remote · Philippines; its public careers page does not state salary, contract type, hours or a closing date","Work includes building n8n workflows that run independently, connecting email/calendars/spreadsheets/CRMs/accounting tools, adding LLM steps, designing retries and failure handling, and fixing live automations","The employer says it will teach its patterns for retries, spending limits and human approval before risky actions; applicants should be able to show relevant work or projects and explain how they handle reliability","The application asks for skills/stack, project links, what the applicant has built and availability; no résumé file upload is required, but at least one link is requested","The stated hiring process is a 30-minute call and a small scoped task. The page does not say whether the task is paid; ask before starting and do not perform open-ended production work as an unpaid assessment","The employer's privacy policy identifies Rekreate Digital Marketing Services as a BIR-registered Philippine sole proprietorship and says job applications are recorded in a private Google Sheet through Google Apps Script, with internal Discord/email notifications and up to 12 months retention after the role is filled","Do not send government ID numbers, bank details, health information or other sensitive personal data in the initial application. No application fee is published; never pay an agent or intermediary"],
+  official:"https://rekreatedigital.com/careers",
+  secondary:"https://rekreatedigital.com/privacy-policy",
+  secondaryLabel:"Official recruitment privacy policy and business identity",
+  cta:"Apply through the official careers form",
+  verified:"2026-11-06"
+ }
 ];
 
 const statusLabel=(s:Opportunity['status'])=>s==='active-ph'?'Verified PH path':s==='closed'?'Closed / deadline passed':s==='location-check'?'Check eligibility / location':'Waitlist / unavailable in PH';
