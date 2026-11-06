@@ -1,0 +1,41 @@
+name: Magnanimous Model Calibration Lab Tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'research-core/model-calibration-lab/**'
+      - 'worker/src/magnanimous-model-calibration.js'
+      - 'worker/test/magnanimous-model-calibration.test.js'
+      - '.github/workflows/model-calibration-lab.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'research-core/model-calibration-lab/**'
+      - 'worker/src/magnanimous-model-calibration.js'
+      - 'worker/test/magnanimous-model-calibration.test.js'
+      - '.github/workflows/model-calibration-lab.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Offline calibration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Test structured assessment evaluator
+        run: node --test research-core/model-calibration-lab/test/*.test.mjs
+      - name: Test response calibration evaluator
+        working-directory: worker
+        run: node --test test/magnanimous-model-calibration.test.js
+      - name: Check evaluator syntax
+        run: |
+          node --check research-core/model-calibration-lab/evaluator.mjs
+          node --check worker/src/magnanimous-model-calibration.js
