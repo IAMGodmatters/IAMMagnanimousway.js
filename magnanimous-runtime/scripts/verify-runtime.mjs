@@ -118,6 +118,28 @@ try {
   assert.equal(vectorQuery.matches[0].id,'a');
   assert.ok(vectorQuery.matches[0].score>.99);
 
+  const filteredVectors=await vectors.query([1,0],{topK:10,filter:{type:'beta'}});
+  assert.deepEqual(filteredVectors.matches.map(item=>item.id),['b']);
+  const dimensionMismatch=await vectors.query([1,0,0],{topK:10});
+  assert.deepEqual(dimensionMismatch.matches,[],'incompatible dimensions must never be compared');
+
+  const isolatedVectors=openMagnanimousVectorStore(db,'verify-isolated');
+  await isolatedVectors.upsert([{id:'a',values:[0,1],metadata:{type:'isolated'}}]);
+  assert.equal((await isolatedVectors.getByIds(['a']))[0].metadata.type,'isolated');
+  assert.equal((await vectors.getByIds(['a']))[0].metadata.type,'alpha','namespaces must not leak records');
+
+  await vectors.upsert([{id:'a',values:[0,1],metadata:{type:'updated'}}]);
+  const updatedVector=(await vectors.getByIds(['a']))[0];
+  assert.deepEqual(updatedVector.values,[0,1]);
+  assert.equal(updatedVector.metadata.type,'updated');
+
+  await assert.rejects(
+    () => vectors.upsert([{id:'invalid',values:[1,Number.NaN]}]),
+    /invalid numbers/i
+  );
+  await vectors.deleteByIds(['a']);
+  assert.deepEqual(await vectors.getByIds(['a']),[],'deleted vectors must not remain retrievable');
+
   const analytics=openMagnanimousAnalyticsEngine(db);
   await analytics.writeDataPoint({indexes:['verify'],doubles:[1],blobs:['ok']},'runtime');
   assert.equal(await analytics.aggregateCount({dataset:'runtime',index1:'verify'}),1);
@@ -162,7 +184,7 @@ try {
   console.log(
     'Magnanimous standalone SQL compatibility verified across ' +
     result.total +
-    ' migrations; object store, KV/cache, durable queue/workflows, event coordination, rate limiting, vector query, analytics, encrypted secrets, ingestion pipelines, internal service bindings, native metrics and provider-neutral image generation contract verified.'
+    ' migrations; object store, KV/cache, durable queue/workflows, event coordination, rate limiting, vector ranking, metadata filters, dimension safety, namespace isolation, updates, validation and deletion, analytics, encrypted secrets, ingestion pipelines, internal service bindings, native metrics and provider-neutral image generation contract verified.'
   );
 } finally {
   db.close();
