@@ -74,3 +74,13 @@ Audit all call sites of `MagnanimousVectorStore`, the Worker knowledge route reg
 - Do not introduce a required Google account, API key, billing account, or external service.
 - Do not ingest private user/customer data for benchmarking.
 - Do not deploy or enable this prototype in production as part of the research step.
+
+## Additional wiring audit finding (2026-11-06)
+
+A follow-up source audit checked the actual Worker entrypoints and local runtime:
+- `worker/src/knowledge-runtime.js` exports `handleKnowledge` and defines `/api/knowledge/status`, `/api/knowledge/sources`, `/api/knowledge/search`, `/api/knowledge/ingest`, and `/api/knowledge/research`.
+- Neither `worker/src/entrypoint.js` nor `worker/src/index.js` imports or calls `handleKnowledge` in the inspected `main` snapshot. Therefore, do not assume those knowledge endpoints are reachable through the production Worker entrypoint.
+- `magnanimous-runtime/src/server.mjs` imports `openMagnanimousVectorStore` and opens a SQLite namespace named `runtime`. This is a distinct local runtime path; do not assume it shares storage or lifecycle with the Worker D1 knowledge tables.
+- The repository tree has no clearly named vector-store or knowledge-runtime test file. Before implementing semantic retrieval, add focused tests for the existing local vector store and route wiring, and determine whether the knowledge runtime is intentionally dormant or needs safe registration.
+
+This changes the first implementation gate: establish and test the intended route ownership and data lifecycle before connecting any embedding model. Do not wire an apparently dormant handler into production solely to make the prototype work; first inspect its authorization, tenant scoping, migrations, and existing frontend/API contracts.
