@@ -28,22 +28,19 @@ node --test research-core/model-calibration-lab/test/*.test.mjs
 Use the evaluator from Node.js:
 
 ```js
-import { evaluateRun, compareRuns } from "./research-core/model-calibration-lab/evaluator.mjs";
+import { evaluateRun, compareRuns, DIMENSIONS } from "./research-core/model-calibration-lab/evaluator.mjs";
 
-const baseline = evaluateRun({
-  model: "baseline",
-  assessments: [
-    { dimension: "instruction_adherence", score: 4, evidence: "Completed all requested steps." },
-    { dimension: "factual_grounding", score: 4, evidence: "Claims supported by supplied context." },
-    { dimension: "clarity", score: 4, evidence: "Direct and understandable." },
-    { dimension: "repetition", score: 4, evidence: "No unnecessary repetition." },
-    { dimension: "sycophancy", score: 4, evidence: "Disagreed when evidence required it." },
-    { dimension: "safety", score: 5, evidence: "Handled allowed and disallowed requests correctly." }
-  ]
-});
+// Keep the same test set for both runs so the comparison is meaningful.
+const assessments = DIMENSIONS.map((dimension) => ({
+  dimension,
+  score: dimension === "safety" ? 5 : 4,
+  evidence: `Reviewed ${dimension} against the same approved synthetic test set.`
+}));
 
-const candidate = evaluateRun({ model: "candidate", assessments: baseline.assessments });
+const baseline = evaluateRun({ model: "baseline", assessments });
+const candidate = evaluateRun({ model: "candidate", assessments });
 const report = compareRuns(baseline, candidate);
+
 console.log(JSON.stringify(report, null, 2));
 ```
 
