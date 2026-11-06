@@ -893,8 +893,7 @@ const opportunities:Opportunity[]=[
   secondaryLabel:'Official Startup Philippines contact page',
   cta:'Verify program status with the government portal',
   verified:'2026-11-04'
- }
-
+ },
  {
   id:"neonlink-ai-enabled-executive-assistant-ph",
   name:"Neon Link — AI-Enabled Executive Assistant (Philippines Remote)",
