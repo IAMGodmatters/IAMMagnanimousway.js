@@ -8,6 +8,7 @@ const studio=read('frontend/app/tv/studio/page.tsx');
 const builder=read('frontend/app/tv/studio/station-builder.tsx');
 const stationPage=read('frontend/app/tv/station/page.tsx');
 const bulletin=read('frontend/app/tv/data/page.tsx');
+const channel=read('frontend/app/tv/channel-page.tsx');
 const home=read('frontend/app/tv/page.tsx');
 const nav=read('frontend/app/platform-chrome.tsx');
 const research=read('docs/MAGNANIMOUS-TV-NETWORK-RESEARCH-2026-11-08.md');
@@ -24,7 +25,7 @@ for(const s of ['setInterval','6*60*60*1000','PSA OpenSTAT','attribution','not a
 
 for(const s of ['StationBuilder','/video-stack','/video-studio','/social-media','/tv/data'])assert.ok(studio.includes(s),'TV Studio missing '+s);
 for(const s of ['/api/tv/stations','Authorization:\'Bearer \'+t','station_url','up to five','not yet a live channel'])assert.ok(builder.includes(s),'station creator missing '+s);
-for(const s of ['/api/tv/stations/public/','MAGNANIMOUS TV','Broadcast coming soon','Powered by I Am Magnanimous Way™'])assert.ok(stationPage.includes(s),'public station page missing '+s);
+for(const s of ['/api/tv/stations/public/','MAGNANIMOUS TV','Broadcast coming soon','Powered by I Am Magnanimous Way™'])assert.ok(stationPage.includes(s),'public station page missing '+s);\nfor(const s of ['Bahay Kubo by Kabataang Silay Rondalla','https://upload.wikimedia.org/wikipedia/commons/a/ab/Bahay_Kubo_by_Kabataang_Silay_Rondalla.webm','CC BY 3.0','marsilingco','commons.wikimedia.org/wiki/File:Bahay_Kubo_by_Kabataang_Silay_Rondalla.webm'])assert.ok(channel.includes(s),'licensed Filipino programme missing '+s);
 assert.ok(home.includes('href="/tv/studio"'),'TV homepage must link to TV Studio');
 assert.ok(nav.includes('href:\'/tv/studio\''),'platform navigation must link to TV Studio');
 for(const s of ['PNA terms','PAGASA','Luz Morales','Netflix','MediaMTX','OpenSTAT'])assert.ok(research.includes(s),'TV rights/technology research missing '+s);
