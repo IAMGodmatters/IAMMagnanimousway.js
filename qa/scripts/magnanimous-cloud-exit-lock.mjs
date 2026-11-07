@@ -65,7 +65,7 @@ must(tvMedia.includes('maxReaders: 40')&&tvMedia.includes('record: false'),'TV m
 must(tvCompose.includes('profiles: ["broadcast"]')&&tvCompose.includes('MAGNANIMOUS_TV_MEDIA_ENABLED:-false'),'TV media service must remain opt-in and disabled by default.');
 must(tvCompose.includes('image: bluenviron/mediamtx:1.21.3'),'TV media version must be pinned.');
 must(tvCompose.includes('127.0.0.1')&&tvCompose.includes('8189:8189/udp'),'TV media ICE UDP exposure must default to loopback.');
-must(tvCompose.includes('networks:\\n      - internal_services'),'TV media must remain on the isolated internal Docker network.');
+must(/networks:\\s+- internal_services/.test(tvCompose),'TV media must remain on the isolated internal Docker network.');
 must(tvCaddy.includes('header_down Location ^/ /tv-media/webrtc/'),'TV WHIP resource paths must survive the secure reverse proxy.');
 
 must(docker.includes('grep -RFq "Tell me what you want to say." frontend/out/business-email*'),'Standalone image build must fail if the Email Writer is absent from the exported static page.');
