@@ -68,6 +68,6 @@ jobs:
           grep -q 'Verified using v1 scheme (JAR signing): true' /tmp/magnanimous-legacy-signature.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: MagnanimousDriveTV-Astron-v0.7-native-APK
+          name: MagnanimousDriveTV-Astron-v0.8-native-APK
           path: tv-app/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error

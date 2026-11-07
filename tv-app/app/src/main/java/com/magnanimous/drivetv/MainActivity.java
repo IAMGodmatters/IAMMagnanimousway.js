@@ -220,6 +220,27 @@ public class MainActivity extends Activity {
     b.setOnClickListener(v -> openEntry(entry, all));
     items.addView(b);
   }
+  private void collectMediaRecursive(String parentId, String prefix, List<Entry> output, int depth) {
+    if (depth > 12 || output.size() >= 5000) return;
+    Uri children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, parentId);
+    String[] columns = {
+      DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+      DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+      DocumentsContract.Document.COLUMN_MIME_TYPE
+    };
+    try (Cursor c = getContentResolver().query(children, columns, null, null, null)) {
+      while (c != null && c.moveToNext() && output.size() < 5000) {
+        String id = c.getString(0), name = c.getString(1), mime = c.getString(2);
+        if (id == null || name == null) continue;
+        if (DocumentsContract.Document.MIME_TYPE_DIR.equals(mime)) {
+          collectMediaRecursive(id, prefix + name + "/", output, depth + 1);
+        } else {
+          Entry entry = new Entry(DocumentsContract.buildDocumentUriUsingTree(tree, id), prefix + name, mime);
+          if (entry.media() && !entry.picture()) output.add(entry);
+        }
+      }
+    } catch (RuntimeException ignored) {}
+  }
   private void showFolder() {
     viewingFolder = true;
     items.removeAllViews();
@@ -263,23 +284,16 @@ public class MainActivity extends Activity {
         });
         items.addView(b);
       }
-      if (autoPlayOnOpen) {
-        for (Entry entry : playable) {
-          if (entry.media() && !entry.picture()) {
-            autoPlayOnOpen = false;
-            openEntry(entry, playable);
-            return;
-          }
-        }
+      ArrayList<Entry> allMedia = new ArrayList<>();
+      collectMediaRecursive(documentId, "", allMedia, 0);
+      if (autoPlayOnOpen && !allMedia.isEmpty()) {
+        autoPlayOnOpen = false;
+        openEntry(allMedia.get(0), allMedia);
+        return;
       }
-      if (!playable.isEmpty()) {
-        Button playAll = button("â–¶  PLAY ALL MUSIC & VIDEO IN THIS FOLDER");
-        playAll.setOnClickListener(v -> {
-          for (Entry entry : playable) if (entry.media() && !entry.picture()) {
-            openEntry(entry, playable); return;
-          }
-          hint("This folder has pictures but no music or videos.");
-        });
+      if (!allMedia.isEmpty()) {
+        Button playAll = button("PLAY ALL " + allMedia.size() + " VIDEOS (INCLUDING SUBFOLDERS)");
+        playAll.setOnClickListener(v -> openEntry(allMedia.get(0), allMedia));
         items.addView(playAll);
       }
       for (Entry entry : playable) addEntry(entry, playable);
