@@ -371,7 +371,7 @@ export async function scheduledMagnanimousTvProgramming(env){
 }
 export async function handleMagnanimousTvProgramming(request,env){
  const url=new URL(request.url),path=url.pathname;
- if(path==='/api/tv/media/auth')return await authenticateMediaNode(request,env,url);
+ if(path==='/api/tv/media/auth'){if(!env?.DB)return J({detail:'TV media authorization storage is unavailable.'},503);try{await schema(env);return await authenticateMediaNode(request,env,url)}catch{return J({detail:'TV media authorization is unavailable.'},503)}}
  if(path==='/api/tv/media/status'&&request.method==='GET'){const origin=mediaHostOrigin(env);return J({enabled:mediaEnabled(env)&&Boolean(origin),host_configured:Boolean(origin),media_host:mediaEnabled(env)?origin:null,ingest_protocol:'webrtc-whip',viewer_protocols:['webrtc-whep','hls'],maximum_readers_per_stream:40,recording_enabled:false,default_network_ports_public:false});}
  if(path==='/api/tv/programming/public'&&request.method==='GET'){
   try{await schema(env);return await publicGuide(env,url)}catch(error){console.error('Magnanimous TV public guide failed',error);return J({detail:'The TV programme guide is temporarily unavailable.'},503)}
