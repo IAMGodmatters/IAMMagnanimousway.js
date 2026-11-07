@@ -2,6 +2,7 @@
 import {useEffect,useState,type CSSProperties} from 'react';
 import Link from 'next/link';
 import styles from './station.module.css';
+import ProgrammeGuide from '../programme-guide';
 
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
 type Station={name:string;slug:string;description:string;visibility:string;primary_color:string;secondary_color:string;station_url:string};
@@ -21,6 +22,7 @@ export default function PublicTvStation(){
    <p className={styles.starterCredit}>Bahay Kubo — Kabataang Silay Rondalla · Attribution: marsilingco · <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noreferrer">CC BY 3.0</a> · <a href="https://commons.wikimedia.org/wiki/File:Bahay_Kubo_by_Kabataang_Silay_Rondalla.webm" target="_blank" rel="noreferrer">Source and licence record</a>.</p>
    <a className={styles.dataLink} href="/tv/data">Watch the automatic Philippine statistics bulletin →</a>
   </section>
+  <ProgrammeGuide stationSlug={station.slug}/>
   <footer className={styles.footer}><span>{station.name}</span><span>Powered by I Am Magnanimous Way™</span><Link href="/tv/studio">Create or manage a station</Link></footer>
  </main>;
 }
