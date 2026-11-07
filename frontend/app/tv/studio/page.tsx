@@ -7,6 +7,7 @@ export const metadata:Metadata={title:'Magnanimous TV Studio | Magnanimous',desc
 
 const tools=[
  {title:'Automatic Data Bulletin',detail:'Refresh an official PSA OpenSTAT dataset with attribution for a future scheduled programme.',href:'/tv/data',action:'Open data bulletin',mark:'DATA'},
+ {title:'Programme Library & Schedule',detail:'Submit rights evidence, review approved programmes and plan channel airtime.',href:'/tv/studio/programming',action:'Open programming',mark:'EPG'},
  {title:'Video Studio',detail:'Prepare recordings and video projects with Magnanimous tools.',href:'/video-studio',action:'Open Video Studio',mark:'VS'},
  {title:'Native Video Stack',detail:'Use your camera, record, upload, edit and manage private media.',href:'/video-stack',action:'Open Video Stack',mark:'NV'},
  {title:'Social Studio',detail:'Prepare social publishing and connected destinations where authorized.',href:'/social-media',action:'Open Social Studio',mark:'SS'},
