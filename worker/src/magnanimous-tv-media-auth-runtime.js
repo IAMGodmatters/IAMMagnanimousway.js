@@ -35,6 +35,7 @@ async function verifyMediaToken(token,secret){
 }
 export async function handleMagnanimousTvMediaAuth(request,env){
  const url=new URL(request.url);
+ if(url.pathname==='/api/tv/media/status'&&request.method==='GET'){const host=String(env?.TV_MEDIA_PUBLIC_HOST||'').trim().toLowerCase().replace('https://','').replace('http://','').split('/')[0];return Response.json({configured:/^[a-z0-9.-]{3,253}$/.test(host),host:/^[a-z0-9.-]{3,253}$/.test(host)?host:null,publish_protocol:'WHIP/WebRTC',playback_protocols:['HLS','WHEP'],viewer_limit_per_station:10},{headers:{'cache-control':'no-store'}});}
  if(url.pathname!=='/api/tv/media/auth')return null;
  if(request.method!=='POST')return new Response(null,{status:405,headers:{allow:'POST','cache-control':'no-store'}});
  if(!env?.DB)return denied();
