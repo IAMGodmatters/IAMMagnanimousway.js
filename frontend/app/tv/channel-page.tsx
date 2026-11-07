@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import styles from './tv-network.module.css';
+import ProgrammeGuide from './programme-guide';
 
 export type TvChannelKey='philippines'|'worldwide';
 const channelData={
@@ -44,7 +45,7 @@ export function TvChannelPage({channel}:{channel:TvChannelKey}){
       <p className={styles.featuredCredit}>Attribution: marsilingco · Performer: Kabataang Silay Rondalla · <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noreferrer">CC BY 3.0</a> · No changes made.</p>
       <p className={styles.featuredCredit}>Source and licence record: <a href="https://commons.wikimedia.org/wiki/File:Bahay_Kubo_by_Kabataang_Silay_Rondalla.webm" target="_blank" rel="noreferrer">Wikimedia Commons file page</a>.</p>
     </section>
-    <section className={styles.schedule}><div><p className={styles.eyebrow}>PROGRAM GUIDE</p><h2>Schedule coming soon</h2></div><p>We will publish a real program guide after the channel feed, production calendar and content permissions are in place. No placeholder programs are being presented as actual broadcasts.</p></section>
+    <ProgrammeGuide channel={channel}/>
     <footer className={styles.footer}><span>Magnanimous TV Network</span><span>Presented by I Am Magnanimous Way™</span><Link href="/tv">Switch channel</Link></footer>
     <p className={styles.disclaimer}>Internet streaming only. This page does not represent a licensed terrestrial broadcast. Actual launch requires a working stream, rights-cleared programming, tested access controls and applicable legal/compliance review.</p>
   </main>;
