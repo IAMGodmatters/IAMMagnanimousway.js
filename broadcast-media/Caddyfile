@@ -1,0 +1,14 @@
+media.iammagnanimousway.com {
+  encode zstd gzip
+
+  # WHIP publish and WHEP playback signaling are handled by MediaMTX's WebRTC listener.
+  @webrtc path_regexp webrtc ^/[a-z0-9-]+/(whip|whep)$
+  handle @webrtc {
+    reverse_proxy mediamtx:8889
+  }
+
+  # HLS manifests and media segments.
+  handle {
+    reverse_proxy mediamtx:8888
+  }
+}
