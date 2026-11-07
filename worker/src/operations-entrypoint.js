@@ -32,6 +32,7 @@ import {scheduledMagnanimousAttentionWatch,magnanimousAttentionWatchStatus} from
 import {scheduledNativeStoreCommerce,scheduledNativeStoreFulfillment} from './native-store-runtime.js';
 import {handleContinuousLearning,runContinuousLearningCycle} from './magnanimous-continuous-learning.js';
 import {handleNativeMeetingRooms,pruneExpiredMeetingRooms} from './native-meeting-rooms.js';
+import {scheduledMagnanimousTvProgramming} from './magnanimous-tv-programming-runtime.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const bodyOf=(request)=>request.clone().json().catch(()=>({}));
@@ -285,7 +286,8 @@ export default{
    scheduledSelfHealing(env,origin).catch(error=>console.error('scheduled self-healing check failed',error)),
    scheduledTelecomEmailWatch(env).catch(error=>console.error('scheduled telecom email watch failed',error)),
    scheduledMagnanimousAttentionWatch(env).catch(error=>console.error('scheduled native attention watch failed',error)),
-   scheduledNativeStoreCommerce(env).catch(error=>console.error('scheduled native store commerce failed',error))
+   scheduledNativeStoreCommerce(env).catch(error=>console.error('scheduled native store commerce failed',error)),
+   scheduledMagnanimousTvProgramming(env).catch(error=>console.error('scheduled TV programming cleanup failed',error))
   ];
   if(continuousLearningRunsLocally(env))scheduledTasks.push(runContinuousLearningCycle(env,{source:'cron'}).catch(error=>console.error('scheduled continuous learning failed',error)));
   const task=Promise.all(scheduledTasks);
