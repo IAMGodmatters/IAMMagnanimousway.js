@@ -300,7 +300,7 @@ export default {
       if(credentialMigrationResponse)return finalizeResponse(request,await securityPostflight(request,credentialMigrationResponse,env));
       const tvDataResponse=await handleMagnanimousTvData(request);
       if(tvDataResponse)return finalizeResponse(request,await securityPostflight(request,tvDataResponse,env));
-      if(url.pathname==='/api/tv/media/auth'){const tvMediaEnv=await getProviderRuntimeEnv(env);const tvMediaResponse=await handleMagnanimousTvMediaAuth(request,tvMediaEnv);if(tvMediaResponse)return finalizeResponse(request,await securityPostflight(request,tvMediaResponse,env));}
+      if(url.pathname.startsWith('/api/tv/media/')){const tvMediaEnv=await getProviderRuntimeEnv(env);const tvMediaResponse=await handleMagnanimousTvMediaAuth(request,tvMediaEnv);if(tvMediaResponse)return finalizeResponse(request,await securityPostflight(request,tvMediaResponse,env));}
       if(url.pathname.startsWith('/api/tv/stations')){const tvStationsEnv=await getProviderRuntimeEnv(env);const tvStationsResponse=await handleMagnanimousTvStations(request,tvStationsEnv);if(tvStationsResponse)return finalizeResponse(request,await securityPostflight(request,tvStationsResponse,env));}
       if(url.pathname.startsWith('/api/video-stack')){const videoStackEnv=await getProviderRuntimeEnv(env);const nativeVideo=await handleNativeVideoStack(request,videoStackEnv);if(nativeVideo)return finalizeResponse(request,await securityPostflight(request,nativeVideo,env));}
       if(url.pathname.startsWith('/api/creator-growth')){const creatorProviderEnv=await getProviderRuntimeEnv(env);const creator=await handleCreatorGrowth(request,creatorProviderEnv);if(creator)return finalizeResponse(request,await securityPostflight(request,creator,env));}
