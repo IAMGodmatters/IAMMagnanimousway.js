@@ -260,6 +260,12 @@ export default {
     const canonicalOrLegacy=canonicalOrLegacyResponse(request);
     if(canonicalOrLegacy)return finalizeResponse(request,canonicalOrLegacy);
     const outerUrl=new URL(request.url);
+    // Deepgram media and scoped-think callbacks authenticate with short-lived, call-bound HMAC tokens.
+    // Keep WebSocket 101 responses intact; browser session wrappers cannot wrap an upgraded socket.
+    if(outerUrl.pathname==='/api/voice-agent/twilio/stream'||outerUrl.pathname==='/api/voice-agent/think'){
+      const voiceProviderEnv=await getProviderRuntimeEnv(env);
+      return app.fetch(request,voiceProviderEnv,ctx);
+    }
     const runtimeControlResponse=await handleMagnanimousRuntimeControl(request,env);
     if(runtimeControlResponse)return finalizeResponse(request,runtimeControlResponse);
     const reelsProxyResponse=await handleMagnanimousReelsProxy(request);
