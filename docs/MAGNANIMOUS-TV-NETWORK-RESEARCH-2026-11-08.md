@@ -36,7 +36,7 @@ The platform must not scrape and rebroadcast arbitrary videos, TV stations, musi
 - Creative Commons recommends checking the exact licence of each music track; ND (NoDerivatives) tracks cannot be synchronized into videos, and attribution is required where the licence says so. YouTube Audio Library tracks are presented as safe for YouTube use, but that does not grant Magnanimous a general worldwide external broadcasting licence. Sources: https://creativecommons.org/legalmusicforvideos/ and https://support.google.com/youtube/answer/3376882?hl=en.
 
 ### Known Filipino vocalist / voice
-No famous Filipino vocalist's recordings, voice clone, likeness, stage performance, or signature intro should be used without direct permission from the person and the relevant recording/label/producer/rightsholders. A voice licence needs explicit permission for synthetic voice generation if requested, territory, term, media, commercial/promotional use, editing, and downstream sublicensing. A public-domain song does not make a modern recording of that song public domain. Use a non-imitative licensed narrator or ordinary text-to-speech voice until a named artist signs a release. Do not synthesize a celebrity voice from interviews or YouTube clips.
+No verified free full-length recording or reusable voice grant from a famous Filipino solo vocalist has been cleared yet. Search results for Moira Dela Torre, Sharon Cuneta and other known singers were still-image/screenshot records, not reusable full performance masters; those photos do not license the songs or videos. No famous Filipino vocalist's recordings, voice clone, likeness, stage performance, or signature intro should be used without direct permission from the person and the relevant recording/label/producer/rightsholders. A voice licence needs explicit permission for synthetic voice generation if requested, territory, term, media, commercial/promotional use, editing, and downstream sublicensing. A public-domain song does not make a modern recording of that song public domain. Use a non-imitative licensed narrator or ordinary text-to-speech voice until a named artist signs a release. Do not synthesize a celebrity voice from interviews or YouTube clips.
 
 ### Automatic programme types that can be built first
 - PSA OpenSTAT data and statistics explainers with source attribution, API rate-limit handling, dataset/table metadata and links to source material.
@@ -97,8 +97,8 @@ These are implementation references, not mandatory dependencies or claims that t
 
 ## Explicitly not complete yet
 
-- No licensed celebrity/vocalist has been contracted.
-- No fully cleared continuous video/music library is attached.
+- No famous Filipino solo vocalist has been contracted or cleared; the current free programme is a CC BY 3.0 ensemble folk performance, not a celebrity vocal recording.
+- Only one full-length CC BY 3.0 Filipino folk-performance video has been added so far; this is not a continuous video/music library.
 - A fixed-source PSA OpenSTAT connector, six-hour edge-cache policy, and data-bulletin page have been added to the current pull request. They are not yet merged, deployed, or live-source verified; no scheduled playout or continuous broadcast is active.
 - Authenticated station-profile CRUD/read APIs and a public station profile route have been added to the current pull request. Tenant/user ownership is enforced in database queries, and the API caps each account at five station profiles. Station profiles do not yet have live ingest or playout.
 - No automated live feed or 24/7 playout is running.
