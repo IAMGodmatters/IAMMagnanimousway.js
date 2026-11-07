@@ -31,6 +31,8 @@ for(const text of [
 ])assert.ok(runtime.includes(text),'Rights review and submission protection missing '+text);
 
 assert.ok(runtime.includes('WHERE id=? AND tenant_id=? AND user_id=?'),'Station operations must be tenant/user scoped.');
+assert.ok(runtime.includes("(?=1 AND tenant_id<>? AND status='pending')"),'Only the platform owner may see pending submissions from other tenants.');
+assert.ok(runtime.includes('canManageNetworks?1:0'),'Creator review queue must be gated by platform-owner status.');
 assert.ok(runtime.includes("if(!uses.includes('linear'))"),'Linear schedule must require an explicit linear-use grant.');
 assert.ok(runtime.includes("if(channelKey==='worldwide'&&!territories.includes('worldwide'))"),'Worldwide channel must enforce worldwide rights.');
 assert.ok(runtime.includes("if(channelKey==='philippines'&&!territories.some(x=>x==='worldwide'||x==='philippines'))"),'Philippines channel must enforce territory rights.');
