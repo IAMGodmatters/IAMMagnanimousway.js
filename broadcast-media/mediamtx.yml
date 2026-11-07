@@ -1,0 +1,39 @@
+logLevel: info
+logDestinations: [stdout]
+
+# First deployment is deliberately limited to secure browser/WebRTC ingest and HLS/WebRTC playback.
+# RTMP, RTSP, SRT, MoQ, Control API, metrics and pprof stay disabled until separately secured.
+rtsp: false
+rtmp: false
+hls: true
+webrtc: true
+srt: false
+moq: false
+api: false
+metrics: false
+pprof: false
+
+# All publish/read permissions are checked by the Magnanimous Worker.
+authMethod: http
+authHTTPAddress: https://iammagnanimousway.com/api/tv/media/auth
+authHTTPExclude: []
+
+hlsAddress: :8888
+hlsAllowOrigins:
+  - https://iammagnanimousway.com
+hlsSegmentDuration: 2s
+hlsSegmentCount: 7
+
+webrtcAddress: :8889
+webrtcEncryption: false
+webrtcAllowOrigins:
+  - https://iammagnanimousway.com
+webrtcLocalUDPAddress: :8189
+webrtcAdditionalHosts:
+  - media.iammagnanimousway.com
+webrtcICEServers2:
+  - url: stun:stun.l.google.com:19302
+
+paths:
+  all:
+    source: publisher
