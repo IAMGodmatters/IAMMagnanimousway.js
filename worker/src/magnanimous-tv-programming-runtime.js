@@ -33,6 +33,7 @@ async function schema(env){
   created_at INTEGER NOT NULL
  )`).run();
  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_tv_media_token_path ON magnanimous_tv_media_tokens(path,action,expires_at,revoked_at)').run();
+ await env.DB.prepare(\"CREATE UNIQUE INDEX IF NOT EXISTS idx_tv_media_one_active_publish_per_path ON magnanimous_tv_media_tokens(path) WHERE action='publish' AND revoked_at IS NULL\").run();
  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_tv_media_token_owner ON magnanimous_tv_media_tokens(tenant_id,user_id,expires_at,revoked_at)').run();
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_tv_programmes(
   id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,submitted_by TEXT NOT NULL,station_id TEXT,
@@ -161,13 +162,17 @@ async function issueMediaPublishAccess(request,env,user){
   if(!await isPlatformOwnerUser(env,user))return J({detail:'Only the platform owner can publish to a network-wide channel.'},403);
   path='tv-'+channelKey;
  }else return J({detail:'Choose one of your own TV stations or an owner-managed network channel.'},400);
- const active=await env.DB.prepare("SELECT COUNT(*) AS count FROM magnanimous_tv_media_tokens WHERE path=? AND action='publish' AND expires_at>? AND revoked_at IS NULL").bind(path,now()).first();
+ const timestamp=now();
+ await env.DB.prepare("DELETE FROM magnanimous_tv_media_tokens WHERE path=? AND action='publish' AND expires_at<=?").bind(path,timestamp).run();
+ const active=await env.DB.prepare("SELECT COUNT(*) AS count FROM magnanimous_tv_media_tokens WHERE path=? AND action='publish' AND expires_at>? AND revoked_at IS NULL").bind(path,timestamp).first();
  if(Number(active?.count||0)>0)return J({detail:'This station already has an active broadcast key. Revoke that key before creating another.'},409);
- const timestamp=now(),expiresAt=timestamp+3600,id=ID(),token=newMediaToken();
- await env.DB.prepare("INSERT INTO magnanimous_tv_media_tokens(id,tenant_id,user_id,station_id,path,action,protocol,token_hash,rights_attested_at,expires_at,revoked_at,created_at) VALUES(?,?,?,?,?,'publish','webrtc',?,?,?,NULL,?)").bind(
-  id,String(user.tenant_id),String(user.id),stationRef,path,await sha256Hex(token),
-  timestamp,expiresAt,timestamp
- ).run();
+ const expiresAt=timestamp+3600,id=ID(),token=newMediaToken();
+ try{
+  await env.DB.prepare("INSERT INTO magnanimous_tv_media_tokens(id,tenant_id,user_id,station_id,path,action,protocol,token_hash,rights_attested_at,expires_at,revoked_at,created_at) VALUES(?,?,?,?,?,'publish','webrtc',?,?,?,NULL,?)").bind(
+   id,String(user.tenant_id),String(user.id),stationRef,path,await sha256Hex(token),
+   timestamp,expiresAt,timestamp
+  ).run();
+ }catch{return J({detail:'A broadcast credential was created at the same time from another session. Use the existing key or revoke it first.'},409)}
  const whipUrl=origin+'/tv-media/webrtc/'+encodeURIComponent(path)+'/whip';
  const playbackUrl=origin+'/tv-media/hls/'+encodeURIComponent(path)+'/index.m3u8';
  return J({
@@ -180,7 +185,7 @@ async function revokeMediaAccess(env,user,id){
  const row=await env.DB.prepare('SELECT id FROM magnanimous_tv_media_tokens WHERE id=? AND tenant_id=? AND user_id=? AND revoked_at IS NULL').bind(id,String(user.tenant_id),String(user.id)).first();
  if(!row)return J({detail:'Active broadcast key not found.'},404);
  await env.DB.prepare('UPDATE magnanimous_tv_media_tokens SET revoked_at=? WHERE id=? AND tenant_id=? AND user_id=? AND revoked_at IS NULL').bind(now(),id,String(user.tenant_id),String(user.id)).run();
- return J({revoked:true,id});
+ return J({revoked:true,id,new_publish_blocked:true,existing_publisher_must_stop:true,note:'This blocks new publishing with the key. An already-established OBS session must be stopped in OBS; the server also expires the authorization at the one-hour key deadline.'});
 }
 async function authenticateMediaNode(request,env,url){
  const secret=String(env?.MAGNANIMOUS_MEDIA_AUTH_SECRET||'');
