@@ -99,7 +99,7 @@ These are implementation references, not mandatory dependencies or claims that t
 
 - No licensed celebrity/vocalist has been contracted.
 - No fully cleared continuous video/music library is attached.
-- No OpenSTAT API connector or scheduled bulletin renderer has been implemented yet; OpenSTAT is a verified candidate source, not an active feed.
+- A fixed-source PSA OpenSTAT connector and data-bulletin page have been added to the current pull request. They are not yet merged, deployed, or live-source verified; no scheduled playout or continuous broadcast is active.
 - No automated live feed or 24/7 playout is running.
 - The current live-session record endpoint is not a live streaming server.
 - No YouTube/Meta/Instagram OAuth destinations are connected by this research.
