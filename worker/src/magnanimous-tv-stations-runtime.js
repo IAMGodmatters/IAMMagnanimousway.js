@@ -71,7 +71,7 @@ export async function handleMagnanimousTvStations(request,env){
   const row=await env.DB.prepare('SELECT * FROM magnanimous_tv_stations WHERE id=? AND tenant_id=? AND user_id=?').bind(id,tenant,uid).first();
   return J({station:safe(row),broadcast_status:'not_connected',message:'Station profile created. Live broadcast is not connected yet.'},201);
  }
- const publish=p.match(new RegExp('^/api/tv/stations/([0-9a-f-]{36})/publish-token
+ const publish=p.startsWith('/api/tv/stations/')&&p.endsWith('/publish-token')?[null,p.slice('/api/tv/stations/'.length,-'/publish-token'.length)]:null;
  if(publish&&request.method==='POST'){
   const row=await env.DB.prepare('SELECT * FROM magnanimous_tv_stations WHERE id=? AND tenant_id=? AND user_id=?').bind(publish[1],tenant,uid).first();
   if(!row)return J({detail:'Station not found or not owned by this account.'},404);
