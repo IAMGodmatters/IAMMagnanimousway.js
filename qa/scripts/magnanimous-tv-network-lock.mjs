@@ -29,5 +29,5 @@ for(const s of ['/api/tv/stations/public/','MAGNANIMOUS TV','Broadcast coming so
 for(const s of ['Bahay Kubo — Kabataang Silay Rondalla','https://upload.wikimedia.org/wikipedia/commons/a/ab/Bahay_Kubo_by_Kabataang_Silay_Rondalla.webm','CC BY 3.0','marsilingco','commons.wikimedia.org/wiki/File:Bahay_Kubo_by_Kabataang_Silay_Rondalla.webm'])assert.ok(channel.includes(s),'licensed Filipino programme missing '+s);
 assert.ok(home.includes('href="/tv/studio"'),'TV homepage must link to TV Studio');
 assert.ok(nav.includes('href:\'/tv/studio\''),'platform navigation must link to TV Studio');
-for(const s of ['PNA terms','PAGASA','Luz Morales','Netflix','MediaMTX','OpenSTAT'])assert.ok(research.includes(s),'TV rights/technology research missing '+s);
+for(const s of ['Philippine News Agency (PNA)','PAGASA','Luz Morales','Netflix','MediaMTX','OpenSTAT'])assert.ok(research.includes(s),'TV rights/technology research missing '+s);
 console.log('Magnanimous TV network, station tenancy, PSA source and rights checks passed.');
