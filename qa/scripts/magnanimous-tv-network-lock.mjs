@@ -13,7 +13,7 @@ const home=read('frontend/app/tv/page.tsx');
 const nav=read('frontend/app/platform-chrome.tsx');
 const research=read('docs/MAGNANIMOUS-TV-NETWORK-RESEARCH-2026-11-08.md');
 
-for(const s of ['tenant_id TEXT NOT NULL','user_id TEXT NOT NULL','slug TEXT NOT NULL UNIQUE','SLUG=/','visibility IN (\'public\',\'unlisted\')','WHERE tenant_id=? AND user_id=?','COUNT(*) AS n','>=5','station_url:'])assert.ok(stations.includes(s),'TV station tenant/ownership contract missing '+s);
+for(const s of ['tenant_id TEXT NOT NULL','user_id TEXT NOT NULL','slug TEXT NOT NULL UNIQUE','SLUG=/','visibility IN (\'public\',\'unlisted\')','WHERE tenant_id=? AND user_id=?' ,'SELECT COUNT(*) FROM magnanimous_tv_stations WHERE tenant_id=? AND user_id=?',' < 5','if(!Number(inserted?.meta?.changes||0))','station_url:'])assert.ok(stations.includes(s),'TV station tenant/ownership contract missing '+s);
 assert.ok(stations.includes('if(!user)return J({detail:\'Sign in to manage your TV stations.\'},401)'),'station management must require authenticated account');
 assert.ok(stations.includes('Station profile created. Live broadcast is not connected yet.'),'station creation must not imply live broadcast readiness');
 assert.ok(security.includes('handleMagnanimousTvStations'),'TV station handler must be wired through the security entrypoint');
