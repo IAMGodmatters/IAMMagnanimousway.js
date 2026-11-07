@@ -135,7 +135,8 @@ function newMediaToken(){
 }
 function mediaHostOrigin(env){
  const host=S(env?.MAGNANIMOUS_TV_MEDIA_HOST,253).toLowerCase();
- if(!host||host.includes('/')||host.includes('@')||host.includes(':')||host==='localhost'||host.endsWith('.local'))return '';
+ const publicDomain=S(env?.MAGNANIMOUS_DOMAIN,253).toLowerCase();
+ if(!host||!publicDomain||host!==publicDomain||host.includes('/')||host.includes('@')||host.includes(':')||host==='localhost'||host.endsWith('.local'))return '';
  try{
   const u=new URL('https://'+host);
   if(u.hostname!==host||u.protocol!=='https:'||u.username||u.password||u.port)return '';
