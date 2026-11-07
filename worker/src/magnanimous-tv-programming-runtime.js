@@ -194,7 +194,7 @@ async function authenticateMediaNode(request,env,url){
  if(!path||!new Set(['publish','read']).has(action))return J({detail:'Media action denied.'},401);
  const expires=now()+300;
  if(action==='read'){
-  if(protocol!=='hls')return J({detail:'Only HLS read access is enabled.'},401);
+  if(!new Set(['hls','webrtc']).has(protocol))return J({detail:'Only HLS and WebRTC public read access is enabled.'},401);
   if(path==='tv-philippines'||path==='tv-worldwide')return J({expireAt:new Date(expires*1000).toISOString()});
   const match=path.match(/^tv-station-([a-z0-9-]{3,48})$/);
   if(!match)return J({detail:'Unknown public TV stream.'},401);
@@ -372,6 +372,7 @@ export async function scheduledMagnanimousTvProgramming(env){
 export async function handleMagnanimousTvProgramming(request,env){
  const url=new URL(request.url),path=url.pathname;
  if(path==='/api/tv/media/auth')return await authenticateMediaNode(request,env,url);
+ if(path==='/api/tv/media/status'&&request.method==='GET'){const origin=mediaHostOrigin(env);return J({enabled:mediaEnabled(env)&&Boolean(origin),host_configured:Boolean(origin),media_host:mediaEnabled(env)?origin:null,ingest_protocol:'webrtc-whip',viewer_protocols:['webrtc-whep','hls'],maximum_readers_per_stream:40,recording_enabled:false,default_network_ports_public:false});}
  if(path==='/api/tv/programming/public'&&request.method==='GET'){
   try{await schema(env);return await publicGuide(env,url)}catch(error){console.error('Magnanimous TV public guide failed',error);return J({detail:'The TV programme guide is temporarily unavailable.'},503)}
  }
