@@ -1,0 +1,41 @@
+services:
+  mediamtx:
+    image: bluenviron/mediamtx:1.21.3
+    restart: unless-stopped
+    volumes:
+      - ./mediamtx.yml:/mediamtx.yml:ro
+    expose:
+      - "8888"
+      - "8889"
+    ports:
+      - "8189:8189/udp"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      - magnanimous-media
+
+  caddy:
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    depends_on:
+      - mediamtx
+    ports:
+      - "80:80/tcp"
+      - "443:443/tcp"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - magnanimous-media
+
+networks:
+  magnanimous-media:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
