@@ -1,7 +1,6 @@
 const API='https://openstat.psa.gov.ph/PXWeb/api/v1/en/DB/2E/CS/0012E4EVCP0.px';
 const CACHE_KEY=new Request('https://tv-cache.magnanimous.invalid/psa-palay-v1');
-const CACHE_TTL=6*60*60;
-const J=(body,status=200,cache='public, max-age=0, s-maxage=21600, stale-while-revalidate=86400')=>Response.json(body,{status,headers:{'cache-control':cache}});
+const J=(body,status=200,cache='public, s-maxage=21600, stale-while-revalidate=86400')=>Response.json(body,{status,headers:{'cache-control':cache}});
 const pick=(variable,label)=>{const i=(variable?.valueTexts||[]).findIndex(x=>String(x).trim().toLowerCase()===label.toLowerCase());return i<0?null:String(variable.values[i]);};
 
 export async function handleMagnanimousTvData(request){
