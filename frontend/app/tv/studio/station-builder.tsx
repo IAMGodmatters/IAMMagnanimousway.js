@@ -3,6 +3,7 @@ import {useCallback,useEffect,useState} from 'react';
 import Link from 'next/link';
 import {getPlatformAuthToken} from '../../lib/magnanimous-session';
 import styles from './station-builder.module.css';
+import LivePublisher from './live-publisher';
 
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
 type Station={id:string;slug:string;name:string;description:string;visibility:string;station_url:string};
@@ -25,7 +26,7 @@ export default function StationBuilder(){
    <button type="submit" disabled={loading||stations.length>=5}>{loading?'Creating station…':'Create my station'}</button>
   </form>}
   {error&&<p className={styles.error}>{error}</p>}{notice&&<p className={styles.notice}>{notice}</p>}
-  {stations.length>0&&<div className={styles.list}><h3>Your stations</h3>{stations.map(s=><article key={s.id}><div><strong>{s.name}</strong><span>{s.description}</span><small>{s.visibility==='public'?'Public station':'Unlisted station'} · Magnanimous TV</small></div><a href={s.station_url} target="_blank" rel="noreferrer">Open station ↗</a></article>)}</div>}
-  <p className={styles.disclaimer}>A station profile is not yet a live channel. Live ingest, scheduled playout, public HLS playback, creator moderation and social destinations are separate launch requirements.</p>
+  {stations.length>0&&<div className={styles.list}><h3>Your stations</h3>{stations.map(s=><article key={s.id}><div><strong>{s.name}</strong><span>{s.description}</span><small>{s.visibility==='public'?'Public station':'Unlisted station'} · Magnanimous TV</small><a href={s.station_url} target="_blank" rel="noreferrer">Open station ↗</a></div><LivePublisher stationId={s.id} stationName={s.name} authToken={token}/></article>)}</div>}
+  <p className={styles.disclaimer}>Your station profile and branded camera stage are ready. Live publishing remains disabled until the separate free media host is provisioned; scheduled playout and social destination adapters are the next phases.</p>
  </section>;
 }
