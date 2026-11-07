@@ -1,4 +1,6 @@
 const API='https://openstat.psa.gov.ph/PXWeb/api/v1/en/DB/2E/CS/0012E4EVCP0.px';
+const CACHE_KEY=new Request('https://tv-cache.magnanimous.invalid/psa-palay-v1');
+const CACHE_TTL=6*60*60;
 const J=(body,status=200,cache='public, max-age=0, s-maxage=21600, stale-while-revalidate=86400')=>Response.json(body,{status,headers:{'cache-control':cache}});
 const pick=(variable,label)=>{const i=(variable?.valueTexts||[]).findIndex(x=>String(x).trim().toLowerCase()===label.toLowerCase());return i<0?null:String(variable.values[i]);};
 
@@ -7,6 +9,8 @@ export async function handleMagnanimousTvData(request){
  if(url.pathname!=='/api/tv/data/psa/palay')return null;
  if(request.method!=='GET')return J({detail:'Method not allowed.'},405,'no-store');
  try{
+  const cache=globalThis.caches?.default;
+  if(cache){const hit=await cache.match(CACHE_KEY);if(hit)return hit;}
   const metaResponse=await fetch(API,{headers:{accept:'application/json'}});
   if(!metaResponse.ok)throw new Error('PSA OpenSTAT metadata request failed ('+metaResponse.status+').');
   const metadata=await metaResponse.json();
@@ -33,7 +37,7 @@ export async function handleMagnanimousTvData(request){
   const csv=await dataResponse.text();
   if(!dataResponse.ok)throw new Error('PSA OpenSTAT data request failed ('+dataResponse.status+').');
   if(!csv.trim())throw new Error('PSA OpenSTAT returned an empty data table.');
-  return J({
+  const response=J({
    status:'source-data-ready',
    programme_type:'original_magnanimous_data_bulletin',
    title:'Philippine Palay Production — Annual National Statistics',
@@ -47,7 +51,9 @@ export async function handleMagnanimousTvData(request){
    format:'csv',data:csv,retrieved_at:new Date().toISOString(),
    refresh_window_hours:6,
    editorial_note:'This is a data bulletin source, not an official PSA broadcast or PSA endorsement. Check units, revisions and definitions before narration.'
-  });
+  },200,'public, max-age=0, s-maxage=21600, stale-while-revalidate=86400');
+  if(cache)await cache.put(CACHE_KEY,response.clone());
+  return response;
  }catch(error){
   return J({status:'source-unavailable',source_name:'Philippine Statistics Authority — OpenSTAT',source_url:'https://openstat.psa.gov.ph/',detail:String(error?.message||'The source is temporarily unavailable.'),retry_after_seconds:900},503,'no-store');
  }
