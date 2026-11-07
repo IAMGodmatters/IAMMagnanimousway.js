@@ -134,12 +134,15 @@ async function publicGuide(env,url){
 }
 async function listPrivate(env,user){
  const tenant=String(user.tenant_id),uid=String(user.id);
- const [stations,programmes,canManageNetworks]=await Promise.all([
+ const canManageNetworks=await isPlatformOwnerUser(env,user);
+ const [stations,programmes]=await Promise.all([
   env.DB.prepare('SELECT id,slug,name,visibility FROM magnanimous_tv_stations WHERE tenant_id=? AND user_id=? ORDER BY created_at DESC LIMIT 5').bind(tenant,uid).all(),
   env.DB.prepare(`SELECT * FROM magnanimous_tv_programmes
-   WHERE (tenant_id=? AND submitted_by=?) OR (tenant_id=? AND status='approved')
-   ORDER BY CASE WHEN tenant_id=? THEN 0 ELSE 1 END,updated_at DESC LIMIT 100`).bind(tenant,uid,GLOBAL_TENANT,GLOBAL_TENANT).all(),
-  isPlatformOwnerUser(env,user)
+   WHERE (tenant_id=? AND submitted_by=?)
+    OR (tenant_id=? AND status='approved')
+    OR (?=1 AND tenant_id<>? AND status='pending')
+   ORDER BY CASE WHEN status='pending' THEN 0 WHEN tenant_id=? THEN 1 ELSE 2 END,updated_at DESC LIMIT 100`)
+   .bind(tenant,uid,GLOBAL_TENANT,canManageNetworks?1:0,GLOBAL_TENANT,GLOBAL_TENANT).all()
  ]);
  return J({stations:stations.results||[],programmes:(programmes.results||[]).map(privateProgramme),can_manage_networks:canManageNetworks,limits:{stations:5,programme_submissions_per_station:20},broadcast_connected:false});
 }
