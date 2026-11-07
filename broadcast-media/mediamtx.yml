@@ -34,6 +34,10 @@ webrtcAdditionalHosts:
 webrtcICEServers2:
   - url: stun:stun.l.google.com:19302
 
+pathDefaults:
+  # Initial free-pilot guardrail; this is per station path, not a global viewer guarantee.
+  maxReaders: 10
+
 paths:
   all:
     source: publisher
