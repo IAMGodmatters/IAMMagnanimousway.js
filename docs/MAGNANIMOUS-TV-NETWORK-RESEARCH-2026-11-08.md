@@ -86,7 +86,7 @@ These are implementation references, not mandatory dependencies or claims that t
 ## Implementation sequence / acceptance gates
 
 1. Add a rights-aware programme source registry and licence evidence model.
-2. Build station profile creation and tenant-isolated station pages.
+2. Build station profile creation and tenant-isolated station pages. (Initial implementation is in the current PR: authenticated users can create up to five public/unlisted station profiles; the public station page displays the user's station identity with the Magnanimous TV mark. Profiles are not live broadcasts.)
 3. Build visual scene/studio controls on top of the existing native video stack.
 4. Add a real media ingest/playback plane and verify end-to-end HLS/WebRTC from a creator to a separate viewer.
 5. Add a scheduled playout engine and verified, licensed starter content; include a source attribution slate.
@@ -99,7 +99,8 @@ These are implementation references, not mandatory dependencies or claims that t
 
 - No licensed celebrity/vocalist has been contracted.
 - No fully cleared continuous video/music library is attached.
-- A fixed-source PSA OpenSTAT connector and data-bulletin page have been added to the current pull request. They are not yet merged, deployed, or live-source verified; no scheduled playout or continuous broadcast is active.
+- A fixed-source PSA OpenSTAT connector, six-hour edge-cache policy, and data-bulletin page have been added to the current pull request. They are not yet merged, deployed, or live-source verified; no scheduled playout or continuous broadcast is active.
+- Authenticated station-profile CRUD/read APIs and a public station profile route have been added to the current pull request. Tenant/user ownership is enforced in database queries, and the API caps each account at five station profiles. Station profiles do not yet have live ingest or playout.
 - No automated live feed or 24/7 playout is running.
 - The current live-session record endpoint is not a live streaming server.
 - No YouTube/Meta/Instagram OAuth destinations are connected by this research.
