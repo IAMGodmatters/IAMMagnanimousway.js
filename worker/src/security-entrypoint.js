@@ -18,6 +18,7 @@ import { handleVideoAgents } from './video-agent-runtime.js';
 import { handleMovieMaker } from './movie-maker-runtime.js';
 import { handleCreatorGrowth } from './creator-growth-runtime.js';
 import { handleNativeVideoStack } from './native-video-stack-runtime.js';
+import { handleMagnanimousTvData } from './magnanimous-tv-data-runtime.js';
 import { handleRenderEngine } from './magnanimous-render-engine.js';
 import { handleCredentialVaultMigration } from './credential-vault-migration.js';
 import { handleMagnanimousCapabilityMesh } from './magnanimous-capability-mesh.js';
@@ -295,6 +296,8 @@ export default {
       const url=new URL(request.url);
       const credentialMigrationResponse=await handleCredentialVaultMigration(request,env);
       if(credentialMigrationResponse)return finalizeResponse(request,await securityPostflight(request,credentialMigrationResponse,env));
+      const tvDataResponse=await handleMagnanimousTvData(request);
+      if(tvDataResponse)return finalizeResponse(request,await securityPostflight(request,tvDataResponse,env));
       if(url.pathname.startsWith('/api/video-stack')){const videoStackEnv=await getProviderRuntimeEnv(env);const nativeVideo=await handleNativeVideoStack(request,videoStackEnv);if(nativeVideo)return finalizeResponse(request,await securityPostflight(request,nativeVideo,env));}
       if(url.pathname.startsWith('/api/creator-growth')){const creatorProviderEnv=await getProviderRuntimeEnv(env);const creator=await handleCreatorGrowth(request,creatorProviderEnv);if(creator)return finalizeResponse(request,await securityPostflight(request,creator,env));}
       if(url.pathname.startsWith('/api/movie-maker')){const movieProviderEnv=await getProviderRuntimeEnv(env);const movie=await handleMovieMaker(request,movieProviderEnv);if(movie)return finalizeResponse(request,await securityPostflight(request,movie,env));}
