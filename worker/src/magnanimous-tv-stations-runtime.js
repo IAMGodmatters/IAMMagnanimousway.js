@@ -42,12 +42,15 @@ export async function handleMagnanimousTvStations(request,env){
   const secondary=HEX.test(String(b.secondary_color||''))?String(b.secondary_color):'#102A4C';
   if(name.length<3)return J({detail:'Station name must contain at least 3 characters.'},400);
   if(!SLUG.test(slug))return J({detail:'Station address must be 3–48 characters and use lowercase letters, numbers and hyphens.'},400);
-  const count=await env.DB.prepare('SELECT COUNT(*) AS n FROM magnanimous_tv_stations WHERE tenant_id=? AND user_id=?').bind(tenant,uid).first();
-  if(Number(count?.n||0)>=5)return J({detail:'This account has reached the current free station-profile limit of 5.'},429);
   const id=ID(),now=Math.floor(Date.now()/1000);
   try{
-   await env.DB.prepare('INSERT INTO magnanimous_tv_stations(id,tenant_id,user_id,slug,name,description,visibility,primary_color,secondary_color,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)').bind(id,tenant,uid,slug,name,description,visibility,primary,secondary,now,now).run();
-  }catch(error){return J({detail:'That station address is already in use. Choose another address.'},409)}
+   const inserted=await env.DB.prepare('INSERT INTO magnanimous_tv_stations(id,tenant_id,user_id,slug,name,description,visibility,primary_color,secondary_color,created_at,updated_at) SELECT ?,?,?,?,?,?,?,?,?,?,? WHERE (SELECT COUNT(*) FROM magnanimous_tv_stations WHERE tenant_id=? AND user_id=?) < 5').bind(id,tenant,uid,slug,name,description,visibility,primary,secondary,now,now,tenant,uid).run();
+   if(!Number(inserted?.meta?.changes||0))return J({detail:'This account has reached the current free station-profile limit of 5.'},429);
+  }catch(error){
+   const existing=await env.DB.prepare('SELECT id FROM magnanimous_tv_stations WHERE slug=?').bind(slug).first().catch(()=>null);
+   if(existing)return J({detail:'That station address is already in use. Choose another address.'},409);
+   return J({detail:'Station could not be created. Try again.'},500);
+  }
   const row=await env.DB.prepare('SELECT * FROM magnanimous_tv_stations WHERE id=? AND tenant_id=? AND user_id=?').bind(id,tenant,uid).first();
   return J({station:safe(row),broadcast_status:'not_connected',message:'Station profile created. Live broadcast is not connected yet.'},201);
  }
