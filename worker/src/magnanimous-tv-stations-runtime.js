@@ -71,7 +71,34 @@ export async function handleMagnanimousTvStations(request,env){
   const row=await env.DB.prepare('SELECT * FROM magnanimous_tv_stations WHERE id=? AND tenant_id=? AND user_id=?').bind(id,tenant,uid).first();
   return J({station:safe(row),broadcast_status:'not_connected',message:'Station profile created. Live broadcast is not connected yet.'},201);
  }
- const publish=p.match(/^\\/api\\/tv\\/stations\\/([0-9a-f-]{36})\\/publish-token$/);
+ const publish=p.match(new RegExp('^/api/tv/stations/([0-9a-f-]{36})/publish-token
+ if(publish&&request.method==='POST'){
+  const row=await env.DB.prepare('SELECT * FROM magnanimous_tv_stations WHERE id=? AND tenant_id=? AND user_id=?').bind(publish[1],tenant,uid).first();
+  if(!row)return J({detail:'Station not found or not owned by this account.'},404);
+  const host=String(env.TV_MEDIA_PUBLIC_HOST||'').trim().toLowerCase().replace('https://','').replace('http://','').split('/')[0];
+  if(!/^[a-z0-9.-]{3,253}$/.test(host))return J({detail:'The Magnanimous media host is not configured yet.'},503);
+  const secret=await mediaSecret(env);
+  if(secret.length<32)return J({detail:'The media signing key is not configured.'},503);
+  const now=Math.floor(Date.now()/1000),expires=now+43200;
+  const token=await signMediaToken({v:1,sub:uid,tenant,station:row.id,path:row.slug,action:'publish',iat:now,exp:expires},secret);
+  return J({station:safe(row),protocol:'WHIP/WebRTC',publish_url:'https://'+host+'/'+row.slug+'/whip',viewer_hls_url:'https://'+host+'/'+row.slug+'/index.m3u8',token,expires_at:new Date(expires*1000).toISOString(),message:'Short-lived publish token. Keep it private and paste it only into an authorized WHIP publisher.'});
+ }
+ const item=p.match(/^\/api\/tv\/stations\/([0-9a-f-]{36})$/);
+ if(item&&request.method==='PATCH'){
+  const b=await request.json().catch(()=>({}));
+  const name=S(b.name,80),description=S(b.description,280);
+  const visibility=['public','unlisted'].includes(b.visibility)?b.visibility:'public';
+  const primary=HEX.test(String(b.primary_color||''))?String(b.primary_color):'#D9B66D';
+  const secondary=HEX.test(String(b.secondary_color||''))?String(b.secondary_color):'#102A4C';
+  if(name.length<3)return J({detail:'Station name must contain at least 3 characters.'},400);
+  const result=await env.DB.prepare('UPDATE magnanimous_tv_stations SET name=?,description=?,visibility=?,primary_color=?,secondary_color=?,updated_at=? WHERE id=? AND tenant_id=? AND user_id=?').bind(name,description,visibility,primary,secondary,Math.floor(Date.now()/1000),item[1],tenant,uid).run();
+  if(!Number(result?.meta?.changes||0))return J({detail:'Station not found or not owned by this account.'},404);
+  const row=await env.DB.prepare('SELECT * FROM magnanimous_tv_stations WHERE id=? AND tenant_id=? AND user_id=?').bind(item[1],tenant,uid).first();
+  return J({station:safe(row)});
+ }
+ return J({detail:'TV station route not found.'},404);
+}
+));
  if(publish&&request.method==='POST'){
   const row=await env.DB.prepare('SELECT * FROM magnanimous_tv_stations WHERE id=? AND tenant_id=? AND user_id=?').bind(publish[1],tenant,uid).first();
   if(!row)return J({detail:'Station not found or not owned by this account.'},404);
