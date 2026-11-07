@@ -39,6 +39,20 @@ This is not a Christian-only network. Programming areas include news and public 
 - Keep the existing TV Companion remote-control feature separate from the television channel product.
 - Do not merge or deploy until the normal repository QA and production verification pass.
 
+## Programme catalogue and schedule implementation in the current development branch
+
+The next feature branch adds a first-party programme-control layer without claiming that video is being transmitted:
+
+- Creates tenant-aware programme and schedule tables, plus safe initialization of the existing personal-station table.
+- Seeds the existing *Bahay Kubo — Kabataang Silay Rondalla* source with its CC BY 3.0 source, attribution and 215-second runtime.
+- Accepts creator submissions only for a station owned by the submitting account. Submissions are restricted to CC0, CC BY or a verified public-domain claim and require source, rights-evidence, attribution, territory, permitted-use and duration fields.
+- Keeps every creator submission pending. Only the platform owner can approve/reject it; approval requires a verified HTTPS media URL on an allowlisted host and a written review note. The owner review queue can see pending submissions across tenants; other users cannot.
+- Enforces linear-use permission, programme territory, bounded scheduling up to 90 days, programme duration, overlap prevention, station ownership and owner-only network scheduling.
+- Adds public programme-guide previews to the Philippines channel, Worldwide channel and personal station pages. Past slots are marked complete and schedules are cancelled when the programme rights record expires.
+- Keeps an explicit playout_connected=false state. A schedule is a guide entry only; there is still no ingest server, HLS/WebRTC viewer delivery, continuous playout, social simulcast or Philippines-only geofencing.
+
+This is a development branch until its regression checks and platform CI pass. It does not deploy a live broadcast or grant the network any additional copyright, broadcast franchise or regulatory authority.
+
 ## Status
 
-The pages in this change are a pre-launch frontend foundation only. No live channel, geofence, EPG database, creator intake backend, video origin, broadcast rights or regulatory approval is implied.
+The original network landing pages and channel profiles are the pre-launch frontend foundation. The current development branch adds the rights-reviewed programme catalogue, owner moderation queue, bounded EPG scheduler and public guide previews described above. No live channel, geofence, continuous playout, live ingest, HLS/WebRTC viewer delivery, social simulcast, broadcast franchise or regulatory approval is implied.
