@@ -22,6 +22,8 @@ services:
       MAGNANIMOUS_BROWSER_URL: "http://browser:8792"
       MAGNANIMOUS_MEDIA_URL: "http://media:8793"
       MAGNANIMOUS_SECRETS_KEY: "${MAGNANIMOUS_SECRETS_KEY}"
+      MAGNANIMOUS_TV_MEDIA_ENABLED: "${MAGNANIMOUS_TV_MEDIA_ENABLED:-false}"
+      MAGNANIMOUS_MEDIA_AUTH_SECRET: "${MAGNANIMOUS_MEDIA_AUTH_SECRET:-}"
     volumes:
       - magnanimous_data:/app/data
       - magnanimous_backups:/app/backups
@@ -141,6 +143,42 @@ services:
     networks:
       - internal_services
 
+  live-media:
+    image: bluenviron/mediamtx:1.21.3
+    profiles: ["broadcast"]
+    restart: unless-stopped
+    depends_on:
+      - magnanimous
+    environment:
+      MTX_AUTHMETHOD: "http"
+      MTX_AUTHHTTPADDRESS: "http://magnanimous:8788/api/tv/media/auth?key=${MAGNANIMOUS_MEDIA_AUTH_SECRET:-UNCONFIGURED_DISABLED}"
+      MTX_AUTHHTTPEXCLUDE: ""
+      MTX_API: "false"
+      MTX_METRICS: "false"
+      MTX_PPROF: "false"
+      MTX_WEBRTCADDITIONALHOSTS: "${MAGNANIMOUS_TV_MEDIA_HOST:-localhost}"
+    volumes:
+      - ./mediamtx.yml:/mediamtx.yml:ro
+    expose:
+      - "8888"
+      - "8889"
+    # WHIP media packets use UDP. Loopback-only by default; an operator must
+    # deliberately bind a public interface and open the matching host firewall.
+    ports:
+      - "${MAGNANIMOUS_TV_WEBRTC_UDP_BIND:-127.0.0.1}:${MAGNANIMOUS_TV_WEBRTC_UDP_PORT:-8189}:8189/udp"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 1.0
+    networks:
+      - internal_services
+
   edge:
     image: caddy:2
     restart: unless-stopped
@@ -156,6 +194,9 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+    networks:
+      - default
+      - internal_services
 
   authoritative-dns:
     image: coredns/coredns:1.12.4
