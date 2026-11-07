@@ -14,6 +14,13 @@ export default function PublicTvStation(){
   <header className={styles.topbar}><Link href="/tv" className={styles.brand}><span className={styles.mark}>M</span><span><strong>MAGNANIMOUS TV</strong><small>POWERED BY I AM MAGNANIMOUS WAY™</small></span></Link><Link href="/tv" className={styles.back}>Magnanimous TV Network</Link></header>
   <section className={styles.hero}><p className={styles.eyebrow}>PERSONAL STATION · {station.visibility.toUpperCase()}</p><h1>{station.name}</h1><p>{station.description}</p><span className={styles.brandline}>A PERSONAL CHANNEL ON MAGNANIMOUS TV</span></section>
   <section className={styles.player}><div className={styles.play}>▶</div><h2>Broadcast coming soon</h2><p>This station profile is ready. Its live stream and scheduled programme feed have not been connected yet.</p><span>MAGNANIMOUS TV · YOUR STATION</span></section>
+  <section className={styles.starter}>
+   <p className={styles.eyebrow}>FREE STARTER PROGRAMMING</p><h2>Something to watch while you build your station.</h2>
+   <p>Every new station can start with this open-licensed Filipino folk performance and the Magnanimous automatic data bulletin. No creator upload is needed.</p>
+   <video className={styles.starterVideo} controls preload="metadata" playsInline><source src="https://upload.wikimedia.org/wikipedia/commons/a/ab/Bahay_Kubo_by_Kabataang_Silay_Rondalla.webm" type="video/webm"/>Open the <a href="https://commons.wikimedia.org/wiki/File:Bahay_Kubo_by_Kabataang_Silay_Rondalla.webm">licensed programme source</a>.</video>
+   <p className={styles.starterCredit}>Bahay Kubo — Kabataang Silay Rondalla · Attribution: marsilingco · <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noreferrer">CC BY 3.0</a> · <a href="https://commons.wikimedia.org/wiki/File:Bahay_Kubo_by_Kabataang_Silay_Rondalla.webm" target="_blank" rel="noreferrer">Source and licence record</a>.</p>
+   <a className={styles.dataLink} href="/tv/data">Watch the automatic Philippine statistics bulletin →</a>
+  </section>
   <footer className={styles.footer}><span>{station.name}</span><span>Powered by I Am Magnanimous Way™</span><Link href="/tv/studio">Create or manage a station</Link></footer>
  </main>;
 }
