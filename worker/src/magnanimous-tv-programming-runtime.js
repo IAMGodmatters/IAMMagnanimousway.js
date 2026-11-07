@@ -33,7 +33,7 @@ async function schema(env){
   created_at INTEGER NOT NULL
  )`).run();
  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_tv_media_token_path ON magnanimous_tv_media_tokens(path,action,expires_at,revoked_at)').run();
- await env.DB.prepare(\"CREATE UNIQUE INDEX IF NOT EXISTS idx_tv_media_one_active_publish_per_path ON magnanimous_tv_media_tokens(path) WHERE action='publish' AND revoked_at IS NULL\").run();
+ await env.DB.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_tv_media_one_active_publish_per_path ON magnanimous_tv_media_tokens(path) WHERE action='publish' AND revoked_at IS NULL").run();
  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_tv_media_token_owner ON magnanimous_tv_media_tokens(tenant_id,user_id,expires_at,revoked_at)').run();
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_tv_programmes(
   id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,submitted_by TEXT NOT NULL,station_id TEXT,
