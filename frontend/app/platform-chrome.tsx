@@ -1,7 +1,7 @@
 'use client';
 import {FormEvent,useEffect,useMemo,useState} from 'react';
 
-const publicPaths=['/login','/signup','/owner-login','/privacy','/terms','/movie','/magnanimous','/telecom-standalone','/tv-remote'];
+const publicPaths=['/login','/signup','/owner-login','/privacy','/terms','/movie','/magnanimous','/telecom-standalone','/tv-remote','/tv'];
 type NavItem={glyph:string;label:string;href:string};
 // Reuse original Magnanimous illustrations: no third-party artwork or new downloads.
 const sidebarArt=(href:string)=>{
@@ -17,7 +17,7 @@ const sidebarArt=(href:string)=>{
  return '/mode-images/general.webp';
 };
 const nav:NavItem[]=[
- {glyph:'H',label:'Home',href:'/'},{glyph:'AI',label:'AI Command',href:'/ai-chat'},{glyph:'OV',label:'Opportunity Vault',href:'/opportunity-vault'},{glyph:'CRM',label:'CRM',href:'/crm'},{glyph:'B2B',label:'B2B',href:'/b2b'},{glyph:'CC',label:'Contact Center',href:'/contact-center'},{glyph:'TEL',label:'Telecom',href:'/telecom'},{glyph:'ID',label:'Intelligence Desk',href:'/intelligence-desk'},{glyph:'TR',label:'Travel Agency',href:'/travel-agency'},{glyph:'TV',label:'TV Browser Remote',href:'/tv-remote'},{glyph:'K',label:'Magnanimous Kids',href:'https://harmonic-data-52yyzau.shipstatic.com/'},{glyph:'AB',label:'AI Business',href:'/business-ai'},{glyph:'UP',label:'Launch Magnanimous',href:'/business-plan'},{glyph:'VS',label:'Video Studio',href:'/video-studio'},{glyph:'SS',label:'Social Studio',href:'/social-media'},{glyph:'AR',label:'AI Receptionist',href:'/ai-receptionist'},{glyph:'VA',label:'Virtual Assistant',href:'/virtual-assistant'},{glyph:'KN',label:'Knowledge Center',href:'/knowledge'},{glyph:'PB',label:'Professional Business',href:'/professional'},{glyph:'RT',label:'Routines',href:'/routine-studio'},{glyph:'CN',label:'Connected',href:'/connections'},{glyph:'RP',label:'Reports',href:'/activity'},{glyph:'SH',label:'Shop',href:'/shop'},{glyph:'SET',label:'Settings',href:'/account'}
+ {glyph:'H',label:'Home',href:'/'},{glyph:'AI',label:'AI Command',href:'/ai-chat'},{glyph:'OV',label:'Opportunity Vault',href:'/opportunity-vault'},{glyph:'CRM',label:'CRM',href:'/crm'},{glyph:'B2B',label:'B2B',href:'/b2b'},{glyph:'CC',label:'Contact Center',href:'/contact-center'},{glyph:'TEL',label:'Telecom',href:'/telecom'},{glyph:'ID',label:'Intelligence Desk',href:'/intelligence-desk'},{glyph:'TR',label:'Travel Agency',href:'/travel-agency'},{glyph:'TV',label:'Magnanimous TV',href:'/tv'},{glyph:'TR',label:'TV Browser Remote',href:'/tv-remote'},{glyph:'K',label:'Magnanimous Kids',href:'https://harmonic-data-52yyzau.shipstatic.com/'},{glyph:'AB',label:'AI Business',href:'/business-ai'},{glyph:'UP',label:'Launch Magnanimous',href:'/business-plan'},{glyph:'VS',label:'Video Studio',href:'/video-studio'},{glyph:'SS',label:'Social Studio',href:'/social-media'},{glyph:'AR',label:'AI Receptionist',href:'/ai-receptionist'},{glyph:'VA',label:'Virtual Assistant',href:'/virtual-assistant'},{glyph:'KN',label:'Knowledge Center',href:'/knowledge'},{glyph:'PB',label:'Professional Business',href:'/professional'},{glyph:'RT',label:'Routines',href:'/routine-studio'},{glyph:'CN',label:'Connected',href:'/connections'},{glyph:'RP',label:'Reports',href:'/activity'},{glyph:'SH',label:'Shop',href:'/shop'},{glyph:'SET',label:'Settings',href:'/account'}
 ];
 const ownerNav:NavItem[]=[{glyph:'OWN',label:'Owner Center',href:'/owner-center'},{glyph:'OPS',label:'Owner Operations',href:'/owner-operations'}];
 
@@ -38,17 +38,17 @@ export default function PlatformChrome(){
  useEffect(()=>{
   const p=location.pathname;setPath(p);const isOwner=!!(localStorage.getItem('magnanimous_admin_token')||localStorage.getItem('odin_admin_token'));setOwner(isOwner);
   const saved=localStorage.getItem('iam_sidebar_collapsed')==='1';setCollapsed(saved);
-  if(publicPaths.includes(p)||p.startsWith('/movie/'))return;
+  if(publicPaths.includes(p)||p.startsWith('/movie/')||p.startsWith('/tv/'))return;
   document.documentElement.dataset.iamShell='true';document.documentElement.dataset.iamSidebar=saved?'collapsed':'open';
   const token=localStorage.getItem('magnanimous_admin_token')||localStorage.getItem('odin_admin_token')||localStorage.getItem('iam_account_token')||'';
   if(token){fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL||''}/api/auth/me`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json()).then(d=>{const n=d?.user?.name||d?.user?.email;if(n)setDisplayName(String(n).split('@')[0])}).catch(()=>{})}
   return()=>{delete document.documentElement.dataset.iamShell;delete document.documentElement.dataset.iamSidebar}
  },[]);
- useEffect(()=>{if(!path||publicPaths.includes(path))return;document.documentElement.dataset.iamSidebar=collapsed?'collapsed':'open';localStorage.setItem('iam_sidebar_collapsed',collapsed?'1':'0')},[collapsed,path]);
+ useEffect(()=>{if(!path||publicPaths.includes(path)||path.startsWith('/tv/'))return;document.documentElement.dataset.iamSidebar=collapsed?'collapsed':'open';localStorage.setItem('iam_sidebar_collapsed',collapsed?'1':'0')},[collapsed,path]);
  const theme=useMemo(()=>themeFor(path),[path]);
  const items=owner?[...nav,...ownerNav]:nav;
  function submit(e:FormEvent){e.preventDefault();const q=query.trim();if(q)location.href=`/ai-chat?prompt=${encodeURIComponent(q)}`}
- if(!path||publicPaths.includes(path)||path.startsWith('/movie/'))return null;
+ if(!path||publicPaths.includes(path)||path.startsWith('/movie/')||path.startsWith('/tv/'))return null;
  return <>
   <div className="iam-shell-ambient" aria-hidden="true"><div className="iam-shell-art" style={{backgroundImage:`url('${theme.image}')`}}/><i/><i/><i/></div>
   <header className="iam-shell-topbar">
