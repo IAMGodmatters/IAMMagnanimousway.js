@@ -9,7 +9,7 @@ const compose=read('broadcast-media/compose.yml');
 const caddy=read('broadcast-media/Caddyfile');
 const readme=read('broadcast-media/README.md');
 
-for(const s of ["authMethod: http","authHTTPAddress: https://iammagnanimousway.com/api/tv/media/auth","rtmp: false","rtsp: false","srt: false","moq: false","api: false","metrics: false","pprof: false","webrtcLocalUDPAddress: :8189","webrtcAdditionalHosts:","hlsAllowOrigins:","webrtcAllowOrigins:"])assert.ok(media.includes(s),'MediaMTX hardening missing '+s);
+for(const s of ["authMethod: http","authHTTPAddress: https://iammagnanimousway.com/api/tv/media/auth","rtmp: false","rtsp: false","srt: false","moq: false","api: false","metrics: false","pprof: false","webrtcLocalUDPAddress: :8189","webrtcAdditionalHosts:","hlsAllowOrigins:","webrtcAllowOrigins:","maxReaders: 10"])assert.ok(media.includes(s),'MediaMTX hardening missing '+s);
 assert.ok(compose.includes('bluenviron/mediamtx:1.21.3'),'MediaMTX must be pinned to a reviewed version');
 assert.ok(compose.includes('8189:8189/udp'),'WebRTC UDP listener must be exposed');
 for(const p of ['8888:8888','8889:8889','1935:1935','8554:8554','8890:8890','9997:9997'])assert.ok(!compose.includes(p),'Internal/disabled media port must not be public: '+p);
