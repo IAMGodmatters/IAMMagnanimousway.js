@@ -19,6 +19,13 @@ const USES=new Set(['linear','on_demand']);
 const TERRITORIES=new Set(['worldwide','philippines']);
 
 async function schema(env){
+ await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_tv_stations(
+  id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,slug TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,description TEXT NOT NULL DEFAULT '',visibility TEXT NOT NULL DEFAULT 'public',
+  primary_color TEXT NOT NULL DEFAULT '#D9B66D',secondary_color TEXT NOT NULL DEFAULT '#102A4C',
+  created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL
+ )`).run();
+ await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_tv_stations_owner ON magnanimous_tv_stations(tenant_id,user_id,updated_at DESC)').run();
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_tv_programmes(
   id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,submitted_by TEXT NOT NULL,station_id TEXT,
   title TEXT NOT NULL,description TEXT NOT NULL DEFAULT '',source_url TEXT NOT NULL,
@@ -106,14 +113,14 @@ async function publicGuide(env,url){
   const station=await env.DB.prepare("SELECT id,tenant_id,slug,name FROM magnanimous_tv_stations WHERE slug=? AND visibility IN ('public','unlisted') LIMIT 1").bind(stationSlug).first();
   if(!station)return J({detail:'Public station not found.'},404);
   const channelKey='station:'+String(station.id);
-  const result=await env.DB.prepare(`SELECT s.id,s.starts_at,s.ends_at,s.status,p.*
+  const result=await env.DB.prepare(`SELECT s.id AS schedule_id,s.starts_at AS schedule_starts_at,s.ends_at AS schedule_ends_at,p.*
    FROM magnanimous_tv_schedule s JOIN magnanimous_tv_programmes p ON p.id=s.programme_id
    WHERE s.tenant_id=? AND s.channel_key=? AND s.status='scheduled'
     AND s.ends_at>? AND p.status='approved'
     AND (p.rights_expires_at IS NULL OR p.rights_expires_at>?)
    ORDER BY s.starts_at ASC LIMIT 40`).bind(station.tenant_id,channelKey,timestamp,timestamp).all();
   rows=result.results||[];
-  return J({channel:'station',station:{slug:station.slug,name:station.name},programmes:rows.map(r=>({schedule_id:r.id,starts_at:r.starts_at,ends_at:r.ends_at,programme:publicProgramme(r)})),playout_connected:false,note:'This is a programme-guide preview. Automatic playout and viewer streaming are not connected yet.'});
+  return J({channel:'station',station:{slug:station.slug,name:station.name},programmes:rows.map(r=>({schedule_id:r.schedule_id,starts_at:r.schedule_starts_at,ends_at:r.schedule_ends_at,programme:publicProgramme(r)})),playout_connected:false,note:'This is a programme-guide preview. Automatic playout and viewer streaming are not connected yet.'});
  }
  if(!CHANNELS.has(channel))return J({detail:'Choose the Philippines or Worldwide channel.'},400);
  const result=await env.DB.prepare(`SELECT s.id,s.starts_at,s.ends_at,s.status,p.*
@@ -207,6 +214,8 @@ async function createSchedule(request,env,user){
  if(!programme||programme.status!=='approved'||!programme.media_url||(programme.rights_expires_at&&Number(programme.rights_expires_at)<=timestamp))return J({detail:'Only approved programmes with a current rights record and verified media file can be scheduled.'},409);
  if(CHANNELS.has(channelKey)&&programme.tenant_id!==GLOBAL_TENANT)return J({detail:'Network channels can only use globally approved programme assets.'},403);
  if(stationId&&(programme.tenant_id!==GLOBAL_TENANT&&(programme.tenant_id!==tenant||programme.station_id!==stationId)))return J({detail:'This programme is not approved for the selected station.'},403);
+ const uses=parseJsonArray(programme.uses_json,USES);
+ if(!uses.includes('linear'))return J({detail:'This programme is not licensed for scheduled linear television.'},403);
  const territories=parseJsonArray(programme.territories_json,TERRITORIES);
  if(channelKey==='worldwide'&&!territories.includes('worldwide'))return J({detail:'This programme is not cleared for worldwide distribution.'},403);
  if(channelKey==='philippines'&&!territories.some(x=>x==='worldwide'||x==='philippines'))return J({detail:'This programme is not cleared for the Philippines.'},403);
