@@ -18,6 +18,8 @@ for(const s of [
  "preload_next","tags_json","metadata_json","tenantPlan(env,user.tenant_id)",
  "['free','plus']","/api/video/edit","browser-webrtc","tenant_isolation:true"
 ])assert.ok(runtime.includes(s),'native video stack missing '+s);
+for(const s of ["'metadata-only'",'broadcast_active:false','ingest_connected:false','viewer_playback_ready:false','broadcast_transport_connected:false'])assert.ok(runtime.includes(s),'live-session truthfulness contract missing '+s);
+assert.ok(!runtime.includes('browser_webrtc_free_first:true'),'video stack must not advertise a fake WebRTC broadcast transport');
 
 assert.ok(rendererDockerfile.includes('COPY video-renderer/renderer_auth.py ./renderer_auth.py'),'renderer auth module must be copied into production Docker image');
 assert.ok(!runtime.includes('VIDEO_IO_APP_TOKEN'),'outside master token must not be part of native video stack');
@@ -34,7 +36,7 @@ for(const s of [
 for(const s of [
  'navigator.mediaDevices.getUserMedia','new MediaRecorder','PART=8*1024*1024',
  '/api/video-stack/uploads','/api/video-stack/playlists','Finalize selected clips',
- 'Create live session','ready to play','RECORD • UPLOAD • PLAY • EDIT • LIVE'
+ 'Create session record (not live)','ready to play','RECORD • UPLOAD • PLAY • EDIT'
 ])assert.ok(ui.includes(s),'video stack UI missing '+s);
 
 assert.ok(movie.includes('href="/video-stack"'),'Movie Maker must link to native video stack');
