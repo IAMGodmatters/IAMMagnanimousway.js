@@ -26,7 +26,7 @@ for(const s of ['setInterval','6*60*60*1000','PSA OpenSTAT','attribution','not a
 for(const s of ['StationBuilder','/video-stack','/video-studio','/social-media','/tv/data'])assert.ok(studio.includes(s),'TV Studio missing '+s);
 for(const s of ['/api/tv/stations','Authorization:\'Bearer \'+t','station_url','up to five','not yet a live channel'])assert.ok(builder.includes(s),'station creator missing '+s);
 for(const s of ['/api/tv/stations/public/','MAGNANIMOUS TV','Broadcast coming soon','Powered by I Am Magnanimous Way™'])assert.ok(stationPage.includes(s),'public station page missing '+s);
-for(const s of ['Bahay Kubo by Kabataang Silay Rondalla','https://upload.wikimedia.org/wikipedia/commons/a/ab/Bahay_Kubo_by_Kabataang_Silay_Rondalla.webm','CC BY 3.0','marsilingco','commons.wikimedia.org/wiki/File:Bahay_Kubo_by_Kabataang_Silay_Rondalla.webm'])assert.ok(channel.includes(s),'licensed Filipino programme missing '+s);
+for(const s of ['Bahay Kubo — Kabataang Silay Rondalla','https://upload.wikimedia.org/wikipedia/commons/a/ab/Bahay_Kubo_by_Kabataang_Silay_Rondalla.webm','CC BY 3.0','marsilingco','commons.wikimedia.org/wiki/File:Bahay_Kubo_by_Kabataang_Silay_Rondalla.webm'])assert.ok(channel.includes(s),'licensed Filipino programme missing '+s);
 assert.ok(home.includes('href="/tv/studio"'),'TV homepage must link to TV Studio');
 assert.ok(nav.includes('href:\'/tv/studio\''),'platform navigation must link to TV Studio');
 for(const s of ['PNA terms','PAGASA','Luz Morales','Netflix','MediaMTX','OpenSTAT'])assert.ok(research.includes(s),'TV rights/technology research missing '+s);
