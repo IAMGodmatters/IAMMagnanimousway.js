@@ -152,7 +152,6 @@ services:
     environment:
       MTX_AUTHMETHOD: "http"
       MTX_AUTHHTTPADDRESS: "http://magnanimous:8788/api/tv/media/auth?key=${MAGNANIMOUS_MEDIA_AUTH_SECRET:-UNCONFIGURED_DISABLED}"
-      MTX_AUTHHTTPEXCLUDE: ""
       MTX_API: "false"
       MTX_METRICS: "false"
       MTX_PPROF: "false"
