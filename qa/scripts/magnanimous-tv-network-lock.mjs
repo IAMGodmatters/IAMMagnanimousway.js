@@ -21,7 +21,7 @@ assert.ok(security.includes('handleMagnanimousTvData'),'TV data handler must be 
 
 for(const s of ['https://openstat.psa.gov.ph/PXWeb/api/v1/en/DB/2E/CS/0012E4EVCP0.px','request.method!==\'GET\'','Ecosystem/Croptype','PHILIPPINES','Annual','latestCompletedYear','response:{format:\'csv\'}','globalThis.caches?.default','source-data-ready'])assert.ok(data.includes(s),'PSA source connector contract missing '+s);
 assert.ok(!data.includes('new URL(request.url).searchParams.get(\'url\')'),'PSA connector must not accept arbitrary upstream URLs');
-for(const s of ['setInterval','6*60*60*1000','PSA OpenSTAT','attribution','not a continuous TV broadcast'])assert.ok(bulletin.includes(s),'automatic data bulletin page missing '+s);
+for(const s of ['setInterval','6*60*60*1000','PSA OpenSTAT','attribution','not yet a continuous TV broadcast'])assert.ok(bulletin.includes(s),'automatic data bulletin page missing '+s);
 
 for(const s of ['StationBuilder','/video-stack','/video-studio','/social-media','/tv/data'])assert.ok(studio.includes(s),'TV Studio missing '+s);
 for(const s of ['/api/tv/stations','Authorization:\'Bearer \'+t','station_url','up to five','not yet a live channel'])assert.ok(builder.includes(s),'station creator missing '+s);
