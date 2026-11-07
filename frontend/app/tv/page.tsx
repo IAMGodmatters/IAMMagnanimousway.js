@@ -13,7 +13,7 @@ export default function TvNetworkPage(){
   return <main className={styles.page}>
     <header className={styles.topbar}>
       <Link href="/" className={styles.brand}><span className={styles.brandMark}>M</span><span><strong>MAGNANIMOUS TV</strong><small>AN INTERNET TELEVISION NETWORK</small></span></Link>
-      <span className={styles.networkStatus}>NETWORK PREVIEW</span>
+      <Link href="/tv/studio" className={styles.networkStatus}>OPEN TV STUDIO →</Link>
     </header>
     <section className={styles.hero}>
       <p className={styles.eyebrow}>ONE NETWORK · TWO CHANNELS · FILIPINO STORIES EVERYWHERE</p>

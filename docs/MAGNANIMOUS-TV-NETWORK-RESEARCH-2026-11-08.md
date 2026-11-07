@@ -1,0 +1,113 @@
+# Magnanimous TV Network — Rights, Open-Source and Broadcast Architecture Research
+
+Research date: 2026-11-08  
+Status: research baseline for implementation; not a legal opinion or a statement that live distribution is operational.
+
+## Product direction
+
+Magnanimous owns the identity, user accounts, tenant isolation, station metadata, programming scheduler, rights ledger, moderation, scene composition, automation and destination orchestration. Media servers, encoders, CDNs and social platforms are replaceable infrastructure adapters. A personal station is a tenant-owned channel with a persistent URL and Magnanimous co-branding; users may customize their own station name, logo and colours without removing the Magnanimous attribution/technology mark.
+
+The existing repository already has:
+- a native video stack with browser camera recording, chunked uploads, private assets, playlists, range playback and FFmpeg editing;
+- an existing Video Studio, Movie Maker and Social Studio;
+- a TV network landing page and separate Philippines / Worldwide channel pages;
+- a video-stack live-session record endpoint.
+
+Important limitation: the current `POST /api/video-stack/live` endpoint only creates a database session record. It does **not** ingest a live media stream, generate HLS/WebRTC playback, or distribute to viewers. Do not describe it as an operational broadcast. The native video stack's browser WebRTC capability is currently a free-first concept/metadata flag, not a verified media transport. A real media plane is still required.
+
+## Lawful automatic programming: source policy
+
+The platform must not scrape and rebroadcast arbitrary videos, TV stations, music, news reports, or a celebrity's voice simply because they are publicly viewable.
+
+### Green-light source types (subject to item-level verification)
+1. Public-domain works whose status has been checked in the relevant territory and for the exact recording/version.
+2. Creative Commons CC0 / CC BY works, provided the licence permits the planned use and attribution is retained. CC BY-SA requires compatible share-alike handling; CC BY-NC is not suitable for a generally available platform that may be monetized or promoted.
+3. Directly licensed content with a signed grant covering worldwide internet streaming, scheduled linear channels, on-demand replay, clips/promos, social simulcast, derivative edits, language versions, territory, term and sublicensing to station users where needed.
+4. Government data and public information only where the particular source page/dataset's terms explicitly allow the intended reuse. Keep the attribution, source link, retrieval time and licence snapshot with each item.
+
+### Sources researched
+- PSA OpenSTAT is the strongest verified starter for automatic factual programmes. PSA describes OpenSTAT as an open-data platform whose statistical data can be freely used, reused and redistributed with source attribution. Its official API supports programmatic retrieval and automated reporting, including JSON/CSV responses; the published limit is 10 requests per 10 seconds per connection/user. Use aggregated OpenSTAT tables (for example, palay/corn production) for data explainers, preserve source/table/release metadata, and attribute PSA. Sources: https://openstat.psa.gov.ph/About and https://openstat.psa.gov.ph/API-Documentation.
+- PSA/GOVPH website pages also state that site data and content are CC BY 4.0 unless otherwise stated. Check the exact page, dataset, embedded media, photographs and third-party contributions before reuse. Example: https://psa.gov.ph/content/psa-approves-conduct-survey-role-social-networks-accessing-and-utilizing-weather-and-0.
+- PSA Data Archive (PSADA) must not be treated as the same licence as OpenSTAT. Its current terms restrict redistribution/sublicensing and use outside research and learning; the Statistical Classification Systems API also requires approval and a personal, non-transferable token. Do not use PSADA microdata or its restricted API as a general public broadcasting source without separate authorization. Sources: https://psada.psa.gov.ph/terms-and-conditions-of-use2 and https://psa.gov.ph/classifications-api/access-guide.
+- Philippine News Agency (PNA) terms state that site content is for personal, non-commercial use within stated daily limits; commercial reproduction, publication and use require written consent from NIB-PNA. PNA content must therefore not be automatically republished or broadcast in Magnanimous TV without a separate written syndication licence. Sources: https://www.pna.gov.ph/terms-of-use and https://www.pna.gov.ph/index.php/about.
+- PAGASA has useful current weather and hazard information at https://www.pagasa.dost.gov.ph/ and public downloadable advisories at https://pubfiles.pagasa.dost.gov.ph/tamss/weather/. However, the specific CC BY 4.0 licence previously attributed to a PAGASA alert feed was **not independently verified** in this research. Do not ingest, narrate, or rebroadcast PAGASA content as licensed until its reuse terms are confirmed in writing or an explicit licence is found. Linking to the official page is different from copying or rebroadcasting its content.
+- IPOPHL explains that copyright owners control reproduction, public performance, communication to the public, broadcasting and adaptation. Philippine law also gives performers rights over broadcasting/communication of performances and gives sound-recording producers rights. A commercial sound recording used directly for broadcasting/communication may trigger equitable remuneration under Section 209 of RA 8293. Sources: https://www.ipophil.gov.ph/copyright/ ; https://www.ipophil.gov.ph/help-and-support/copyright/ ; https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/4371.
+- IPOPHL's August 31, 2026 notice emphasizes that performers authorize recording and distribution of their performances; non-commercial purpose alone does not automatically make a use fair. Source: https://www.ipophil.gov.ph/news/ipophl-reminds-concertgoers-on-recording-concerns-and-to-respect-performers-rights/.
+- Creative Commons recommends checking the exact licence of each music track; ND (NoDerivatives) tracks cannot be synchronized into videos, and attribution is required where the licence says so. YouTube Audio Library tracks are presented as safe for YouTube use, but that does not grant Magnanimous a general worldwide external broadcasting licence. Sources: https://creativecommons.org/legalmusicforvideos/ and https://support.google.com/youtube/answer/3376882?hl=en.
+
+### Known Filipino vocalist / voice
+A verified first free-to-watch Filipino programme has been added to both channel pages: *Bahay Kubo — Kabataang Silay Rondalla*, a 3:35, 1080p WebM performance hosted by Wikimedia Commons under CC BY 3.0. The Commons page names the attribution as **marsilingco**, identifies the performers as Kabataang Silay Rondalla, and links the original YouTube upload; the channel player streams the Commons file directly and preserves the attribution/licence link. No edits are made to the source video. Source: https://commons.wikimedia.org/wiki/File:Bahay_Kubo_by_Kabataang_Silay_Rondalla.webm.
+
+A search located Filipino soprano Luz Morales's 1960 album *Folk Songs of the Philippines* in the Smithsonian Folkways collection. The archival record explicitly labels the recording rights as restricted, so it is not a free broadcast source. A traditional folk composition does not automatically clear a modern recording or performance. Source: https://archives.crem-cnrs.fr/archives/collections/CNRSMH_E_1984_008_013/ and https://folkways.si.edu/country/philippines.
+
+No verified free full-length recording or reusable voice grant from a famous Filipino solo vocalist has been cleared yet. Search results for Moira Dela Torre, Sharon Cuneta and other known singers were still-image/screenshot records, not reusable full performance masters; those photos do not license the songs or videos. No famous Filipino vocalist's recordings, voice clone, likeness, stage performance, or signature intro should be used without direct permission from the person and the relevant recording/label/producer/rightsholders. A voice licence needs explicit permission for synthetic voice generation if requested, territory, term, media, commercial/promotional use, editing, and downstream sublicensing. A public-domain song does not make a modern recording of that song public domain. Use a non-imitative licensed narrator or ordinary text-to-speech voice until a named artist signs a release. Do not synthesize a celebrity voice from interviews or YouTube clips.
+
+### Automatic programme types that can be built first
+- PSA OpenSTAT data and statistics explainers with source attribution, API rate-limit handling, dataset/table metadata and links to source material.
+- Public-service explainers generated from verified, licensed datasets and official public notices whose reuse terms are confirmed.
+- Original Magnanimous educational, culture, community and studio graphics with original narration.
+- Public-domain / CC-licensed archival footage and music after exact file-level licence checks.
+- User-contributed programmes only after uploader warranty, rights evidence, moderation and takedown workflow.
+
+A programme item must have a rights record before entering a playlist: source, creator, original URL, exact asset URL/hash, licence identifier/version, attribution text, territory, start/end dates, allowed uses, edit rights, sublicensing rights, evidence file, reviewer, review timestamp and takedown status. The scheduler must reject items with missing/expired/unclear rights.
+
+## Open-source broadcast technologies
+
+These are implementation references, not mandatory dependencies or claims that they are already deployed.
+
+- MediaMTX: MIT-licensed media router/server supporting RTMP, SRT, WebRTC, HLS, RTSP and other protocols; it can publish/read/proxy/record/play streams and authenticate users. Its always-on streams and protocol conversion make it a strong candidate for the replaceable media plane. Source: https://mediamtx.org/docs/misc/license and https://mediamtx.org/docs/kickoff/introduction.
+- Owncast: MIT-licensed self-hosted live video and chat server with HLS playback and documented compatibility with common Smart TV/player paths. It is explicitly a single-user service, so it is useful as a benchmark or optional personal-server adapter, not the whole multi-tenant Magnanimous control plane. Sources: https://github.com/owncast/owncast and https://owncast.online/docs/watching-streams/.
+- OBS Studio: a mature open-source desktop encoder/studio. It is a useful supported publisher for creators, but it is not the Magnanimous identity and should remain an optional client. Source: https://obsproject.com/ and https://github.com/obsproject/obs-studio.
+- FFmpeg: media packaging, transcoding, playout and compositing engine already used by the repository's renderer. Most of FFmpeg is LGPL 2.1+; enabling GPL components changes the effective licence to GPL, and some external libraries can make a build non-redistributable. Audit the exact build flags and bundled libraries before redistributing binaries. Source: https://ffmpeg.org/legal.html.
+- OBS Studio: an optional creator-side desktop encoder/studio, not a required server dependency or Magnanimous identity. Source: https://obsproject.com/ and https://github.com/obsproject/obs-studio.
+
+### Recommended architecture
+1. **Magnanimous control plane (native):** tenant/station management, station URLs, account entitlements, programme schedule, rights ledger, source connectors, moderation, branding, audit logs, consent and cost controls.
+2. **Studio (native UI):** browser camera/screen capture, scene layouts, overlays/lower-thirds, guest invitations, audio mixer controls, local preview, recording, scheduled events and stream health. Use browser APIs where possible; do not require paid AI or a paid encoder.
+3. **Media plane (replaceable):** MediaMTX or a comparable self-hosted media router for ingest and egress; HLS for broad device compatibility, WebRTC for low latency, RTMP/SRT ingest for OBS/encoders. Keep it outside the static website/Cloudflare Worker request path; Workers are not a video transcoding/continuous streaming host.
+4. **Linear playout / auto channel:** rights-approved playlist scheduler, deterministic fallback slate, source refresh jobs, programme metadata, HLS output and continuity monitoring. If no rights-cleared item exists, show a Magnanimous-branded slate or verified data bulletin—not unlicensed third-party video.
+5. **Destination adapters:** YouTube Live API, Meta/Facebook destinations, Instagram Live Producer/approved ingest, and future platforms. Each destination must be individually authorized by the user and respect current API permissions/eligibility. A successful stream to Magnanimous does not guarantee a simultaneous stream to another platform.
+6. **Public player:** channel pages consume a signed or public HLS/WebRTC manifest according to station visibility and access policy; Philippines-only access requires server-side geolocation enforcement, not client-side hiding.
+7. **Multi-tenant:** unique station slug, tenant/user ownership, isolated keys and storage, role-based collaborators, station-level usage budgets, audit logs, rate limits and abuse reporting.
+
+## Destination platform research
+
+- YouTube Live Streaming API supports creating/scheduling broadcasts, creating stream ingest resources, binding the broadcast to a stream, and transitioning the broadcast to live. OAuth, API project configuration, account eligibility and quota apply. Official docs: https://developers.google.com/youtube/data/live/getting-started and https://developers.google.com/youtube/data/live/guides/implementation/broadcasts-and-streams.
+- Instagram Live's current ingest and producer workflows are controlled by Meta and can change. Meta described deploying Media over QUIC for Instagram Live ingest in October 2026. Do not assume an open public API exists for every account or that an RTMP key is always available. Require a user-authorized connection or explicit manual stream-key setup, and re-check Meta's current docs/permissions at implementation time. Source: https://engineering.fb.com/2026/10/12/video-engineering/shipping-media-over-quic-at-meta-scale-for-instagram-live-ingest/.
+- Netflix is not a general-purpose live-stream destination or a social simulcast endpoint. Netflix says it does not accept unsolicited materials; pitches must come through an established agent, producer, attorney, manager or executive with a Netflix relationship. Treat Netflix as a future content-licensing/distribution relationship, not a button in the live studio. Source: https://help.netflix.com/en/node/100386/.
+
+## Free plan and cost protection
+
+"Free for everyone" can mean free access to the Magnanimous station tools and reasonable free viewing, but it cannot mean unlimited global video delivery with no cost. Egress bandwidth, transcoding, storage, moderation and abuse handling have real costs. Free-first launch should:
+- start with local browser preview, direct creator publishing, low-resolution/limited-duration free sessions and small audiences;
+- use a self-hosted/open-source media plane only when a controlled host with available capacity is ready;
+- enforce transparent free-tier quotas and fair-use limits, with no silent paid overages;
+- require prepaid funding or explicit approval before high-cost transcoding/CDN/telecom/API usage;
+- meter egress, storage, concurrency, recording retention and transcoding;
+- fail safely to a branded slate if media capacity or rights checks fail;
+- never expose ingest keys or provider credentials in the browser.
+
+## Implementation sequence / acceptance gates
+
+1. Add a rights-aware programme source registry and licence evidence model.
+2. Build station profile creation and tenant-isolated station pages. (Initial implementation is in the current PR: authenticated users can create up to five public/unlisted station profiles; the public station page displays the user's station identity with the Magnanimous TV mark and a free starter programme (the CC BY 3.0 folk performance plus the automatic PSA data bulletin). Profiles are not live broadcasts.)
+3. Build visual scene/studio controls on top of the existing native video stack.
+4. Add a real media ingest/playback plane and verify end-to-end HLS/WebRTC from a creator to a separate viewer.
+5. Add a scheduled playout engine and verified, licensed starter content; include a source attribution slate.
+6. Add user-authorized destination adapters and test each provider independently.
+7. Add geofencing, moderation, rights takedown, retention and abuse controls.
+8. Test on iPhone, desktop browsers, Android TV/Google TV, Samsung/LG TV browser or player, and low-bandwidth connections.
+9. Deploy only after typecheck, production build, route audit, Worker tests, media tests, security review and production smoke tests pass.
+
+## Explicitly not complete yet
+
+- No famous Filipino solo vocalist has been contracted or cleared; the current free programme is a CC BY 3.0 ensemble folk performance, not a celebrity vocal recording.
+- Only one full-length CC BY 3.0 Filipino folk-performance video has been added so far; this is not a continuous video/music library.
+- A fixed-source PSA OpenSTAT connector, six-hour edge-cache policy, and data-bulletin page have been added to the current pull request. They are not yet merged, deployed, or live-source verified; no scheduled playout or continuous broadcast is active.
+- Authenticated station-profile CRUD/read APIs and a public station profile route have been added to the current pull request. Tenant/user ownership is enforced in database queries, and the API caps each account at five station profiles. Station profiles do not yet have live ingest or playout.
+- No automated live feed or 24/7 playout is running.
+- The current live-session record endpoint is not a live streaming server.
+- No YouTube/Meta/Instagram OAuth destinations are connected by this research.
+- No Netflix partnership or content licence exists.
+- No Philippines geofence is active.
+- No production Smart TV playback test has been completed.
