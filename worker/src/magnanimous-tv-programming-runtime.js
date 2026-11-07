@@ -113,8 +113,11 @@ async function currentOwnerStation(env,user,id){
  return env.DB.prepare('SELECT id,slug,name,visibility FROM magnanimous_tv_stations WHERE id=? AND tenant_id=? AND user_id=?').bind(String(id),String(user.tenant_id),String(user.id)).first();
 }
 function mediaEnabled(env){
+ const bind=String(env?.MAGNANIMOUS_TV_WEBRTC_UDP_BIND||'127.0.0.1').trim().toLowerCase();
+ const udpReachable=Boolean(bind)&&!['127.0.0.1','::1','localhost'].includes(bind);
  return String(env?.MAGNANIMOUS_TV_MEDIA_ENABLED||'').trim().toLowerCase()==='true'&&
-  String(env?.MAGNANIMOUS_MEDIA_AUTH_SECRET||'').trim().length>=32;
+  String(env?.MAGNANIMOUS_MEDIA_AUTH_SECRET||'').trim().length>=32&&
+  Boolean(mediaHostOrigin(env))&&udpReachable;
 }
 function constantTimeTextEqual(a,b){
  const left=String(a||''),right=String(b||'');
@@ -372,7 +375,7 @@ export async function scheduledMagnanimousTvProgramming(env){
 export async function handleMagnanimousTvProgramming(request,env){
  const url=new URL(request.url),path=url.pathname;
  if(path==='/api/tv/media/auth'){if(!env?.DB)return J({detail:'TV media authorization storage is unavailable.'},503);try{await schema(env);return await authenticateMediaNode(request,env,url)}catch{return J({detail:'TV media authorization is unavailable.'},503)}}
- if(path==='/api/tv/media/status'&&request.method==='GET'){const origin=mediaHostOrigin(env);return J({enabled:mediaEnabled(env)&&Boolean(origin),host_configured:Boolean(origin),media_host:mediaEnabled(env)?origin:null,ingest_protocol:'webrtc-whip',viewer_protocols:['webrtc-whep','hls'],maximum_readers_per_stream:40,recording_enabled:false,default_network_ports_public:false});}
+ if(path==='/api/tv/media/status'&&request.method==='GET'){const origin=mediaHostOrigin(env),bind=String(env?.MAGNANIMOUS_TV_WEBRTC_UDP_BIND||'127.0.0.1').trim().toLowerCase(),udp_ready=Boolean(bind)&&!['127.0.0.1','::1','localhost'].includes(bind);return J({enabled:mediaEnabled(env),host_configured:Boolean(origin),udp_ready,media_host:mediaEnabled(env)?origin:null,ingest_protocol:'webrtc-whip',viewer_protocols:['webrtc-whep','hls'],maximum_readers_per_stream:40,recording_enabled:false,default_network_ports_public:false});}
  if(path==='/api/tv/programming/public'&&request.method==='GET'){
   try{await schema(env);return await publicGuide(env,url)}catch(error){console.error('Magnanimous TV public guide failed',error);return J({detail:'The TV programme guide is temporarily unavailable.'},503)}
  }
