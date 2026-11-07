@@ -36,7 +36,9 @@ const codeFiles=[
   'magnanimous-runtime/Dockerfile.browser-egress',
   'magnanimous-runtime/Dockerfile.media',
   'magnanimous-runtime/docker-compose.yml',
-  'magnanimous-runtime/Caddyfile'
+  'magnanimous-runtime/Caddyfile',
+  'magnanimous-runtime/mediamtx.yml',
+  'magnanimous-runtime/docker-compose.release.yml'
 ];
 
 for(const file of codeFiles){
@@ -53,6 +55,19 @@ for(const contract of ['prepare(sql)','bind(...params)','async run()','async fir
 
 const server=read('magnanimous-runtime/src/server.mjs');
 const docker=read('magnanimous-runtime/Dockerfile');
+const tvMedia=read('magnanimous-runtime/mediamtx.yml');
+const tvCompose=read('magnanimous-runtime/docker-compose.release.yml');
+const tvCaddy=read('magnanimous-runtime/Caddyfile');
+must(tvMedia.includes('authMethod: http')&&tvMedia.includes('authHTTPExclude: []'),'TV media must delegate all authentication to Magnanimous without exclusions.');
+must(tvMedia.includes('api: false')&&tvMedia.includes('metrics: false')&&tvMedia.includes('pprof: false'),'TV media control/diagnostic surfaces must remain disabled.');
+must(tvMedia.includes('rtsp: false')&&tvMedia.includes('rtmp: false')&&tvMedia.includes('srt: false')&&tvMedia.includes('moq: false'),'Only the reviewed WHIP/WebRTC and HLS protocols may be enabled.');
+must(tvMedia.includes('maxReaders: 40')&&tvMedia.includes('record: false'),'TV media pilot must enforce reader and no-recording limits.');
+must(tvCompose.includes('profiles: ["broadcast"]')&&tvCompose.includes('MAGNANIMOUS_TV_MEDIA_ENABLED:-false'),'TV media service must remain opt-in and disabled by default.');
+must(tvCompose.includes('image: bluenviron/mediamtx:1.21.3'),'TV media version must be pinned.');
+must(tvCompose.includes('127.0.0.1')&&tvCompose.includes('8189:8189/udp'),'TV media ICE UDP exposure must default to loopback.');
+must(tvCompose.includes('networks:\\n      - internal_services'),'TV media must remain on the isolated internal Docker network.');
+must(tvCaddy.includes('header_down Location ^/ /tv-media/webrtc/'),'TV WHIP resource paths must survive the secure reverse proxy.');
+
 must(docker.includes('grep -RFq "Tell me what you want to say." frontend/out/business-email*'),'Standalone image build must fail if the Email Writer is absent from the exported static page.');
 must(server.includes("MAGNANIMOUS_RUNTIME: 'standalone-node'"),'Standalone runtime identity missing.');
 must(server.includes('/__magnanimous_runtime/health'),'Standalone runtime health endpoint missing.');
