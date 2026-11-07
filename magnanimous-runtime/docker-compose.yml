@@ -164,7 +164,7 @@ services:
     # WHIP media packets use UDP. Loopback-only by default; an operator must
     # deliberately bind a public interface and open the matching host firewall.
     ports:
-      - "${MAGNANIMOUS_TV_WEBRTC_UDP_BIND:-127.0.0.1}:${MAGNANIMOUS_TV_WEBRTC_UDP_PORT:-8189}:8189/udp"
+      - "${MAGNANIMOUS_TV_WEBRTC_UDP_BIND:-127.0.0.1}:8189:8189/udp"
     read_only: true
     tmpfs:
       - /tmp
