@@ -23,7 +23,7 @@ for(const text of [
 
 for(const text of [
  "'CC0-1.0'","'CC-BY-2.0'","'CC-BY-3.0'","'CC-BY-4.0'","'PUBLIC-DOMAIN-VERIFIED'",
- "status:'pending'","isPlatformOwnerUser(env,user)",
+ "'pending'","isPlatformOwnerUser(env,user)",
  'SAFE_MEDIA_HOSTS','upload.wikimedia.org',
  'SELECT COUNT(*) AS count FROM magnanimous_tv_programmes',
  'programme_submissions_per_station:20',
