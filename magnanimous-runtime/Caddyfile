@@ -7,10 +7,16 @@
 
   # Optional MediaMTX profile: secure HLS/WHIP HTTP paths are proxied here.
   handle_path /tv-media/hls/* {
-    reverse_proxy live-media:8888
+    reverse_proxy {
+      to live-media:8888
+      header_down Location ^/ /tv-media/hls/
+    }
   }
   handle_path /tv-media/webrtc/* {
-    reverse_proxy live-media:8889
+    reverse_proxy {
+      to live-media:8889
+      header_down Location ^/ /tv-media/webrtc/
+    }
   }
 
   reverse_proxy magnanimous:8788
