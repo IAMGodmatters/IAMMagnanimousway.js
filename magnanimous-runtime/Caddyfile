@@ -4,6 +4,15 @@
 
 {$MAGNANIMOUS_DOMAIN} {
   encode zstd gzip
+
+  # Optional MediaMTX profile: secure HLS/WHIP HTTP paths are proxied here.
+  handle_path /tv-media/hls/* {
+    reverse_proxy live-media:8888
+  }
+  handle_path /tv-media/webrtc/* {
+    reverse_proxy live-media:8889
+  }
+
   reverse_proxy magnanimous:8788
 
   header {
