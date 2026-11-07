@@ -33,6 +33,17 @@ export function TvChannelPage({channel}:{channel:TvChannelKey}){
       <div className={styles.playerInfo}><p className={styles.eyebrow}>CHANNEL INFORMATION</p><h2>Watch {data.name}</h2><p>{data.audience}</p><p className={styles.territory}>{data.territory}</p><div className={styles.languagePill}>{data.languages}</div></div>
     </section>
     <section className={styles.channelPrograms}><p className={styles.eyebrow}>PROGRAMMING AREAS</p><h2>What this channel will cover</h2><div className={styles.focusGrid}>{data.focus.map((item,i)=><div className={styles.focusItem} key={item}><span>0{i+1}</span>{item}</div>)}</div></section>
+    <section className={styles.featuredProgramme}>
+      <p className={styles.eyebrow}>OPEN-LICENSED FILIPINO PROGRAMME</p>
+      <h2>Bahay Kubo — Kabataang Silay Rondalla</h2>
+      <p className={styles.featuredIntro}>A Filipino folk-song performance that can be watched here without you uploading a video. The file is hosted by Wikimedia Commons and carries a Creative Commons Attribution 3.0 licence.</p>
+      <video className={styles.featuredPlayer} controls preload="metadata" playsInline>
+        <source src="https://upload.wikimedia.org/wikipedia/commons/a/ab/Bahay_Kubo_by_Kabataang_Silay_Rondalla.webm" type="video/webm"/>
+        Your browser does not support WebM video. <a href="https://commons.wikimedia.org/wiki/File:Bahay_Kubo_by_Kabataang_Silay_Rondalla.webm">Open the programme on Wikimedia Commons</a>.
+      </video>
+      <p className={styles.featuredCredit}>Attribution: marsilingco · Performer: Kabataang Silay Rondalla · <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noreferrer">CC BY 3.0</a> · No changes made.</p>
+      <p className={styles.featuredCredit}>Source and licence record: <a href="https://commons.wikimedia.org/wiki/File:Bahay_Kubo_by_Kabataang_Silay_Rondalla.webm" target="_blank" rel="noreferrer">Wikimedia Commons file page</a>.</p>
+    </section>
     <section className={styles.schedule}><div><p className={styles.eyebrow}>PROGRAM GUIDE</p><h2>Schedule coming soon</h2></div><p>We will publish a real program guide after the channel feed, production calendar and content permissions are in place. No placeholder programs are being presented as actual broadcasts.</p></section>
     <footer className={styles.footer}><span>Magnanimous TV Network</span><span>Presented by I Am Magnanimous Way™</span><Link href="/tv">Switch channel</Link></footer>
     <p className={styles.disclaimer}>Internet streaming only. This page does not represent a licensed terrestrial broadcast. Actual launch requires a working stream, rights-cleared programming, tested access controls and applicable legal/compliance review.</p>
