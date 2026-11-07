@@ -1,6 +1,14 @@
 const encoder=new TextEncoder();
 const SLUG=/^[a-z0-9](?:[a-z0-9-]{1,46}[a-z0-9])?$/;
 const denied=()=>new Response(null,{status:401,headers:{'cache-control':'no-store'}});
+async function ensureStationSchema(env){
+ await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_tv_stations(
+  id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,slug TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,description TEXT NOT NULL DEFAULT '',visibility TEXT NOT NULL DEFAULT 'public',
+  primary_color TEXT NOT NULL DEFAULT '#D9B66D',secondary_color TEXT NOT NULL DEFAULT '#102A4C',
+  created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL
+ )`).run();
+}
 async function mediaSecret(env){
  const configured=String(env.SESSION_SECRET||'').trim();
  if(configured)return configured;
@@ -30,6 +38,7 @@ export async function handleMagnanimousTvMediaAuth(request,env){
  if(url.pathname!=='/api/tv/media/auth')return null;
  if(request.method!=='POST')return new Response(null,{status:405,headers:{allow:'POST','cache-control':'no-store'}});
  if(!env?.DB)return denied();
+ await ensureStationSchema(env);
  const body=await request.json().catch(()=>null);
  if(!body)return denied();
  const action=String(body.action||''),path=String(body.path||'').trim().toLowerCase(),protocol=String(body.protocol||'').toLowerCase();
