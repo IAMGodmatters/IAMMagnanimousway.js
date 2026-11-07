@@ -12,6 +12,8 @@ const channel=read('frontend/app/tv/channel-page.tsx');
 const home=read('frontend/app/tv/page.tsx');
 const nav=read('frontend/app/platform-chrome.tsx');
 const research=read('docs/MAGNANIMOUS-TV-NETWORK-RESEARCH-2026-11-08.md');
+const videoStack=read('worker/src/native-video-stack-runtime.js');
+const videoStackPage=read('frontend/app/video-stack/page.tsx');
 
 for(const s of ['tenant_id TEXT NOT NULL','user_id TEXT NOT NULL','slug TEXT NOT NULL UNIQUE','SLUG=/','visibility IN (\'public\',\'unlisted\')','WHERE tenant_id=? AND user_id=?' ,'SELECT COUNT(*) FROM magnanimous_tv_stations WHERE tenant_id=? AND user_id=?',' < 5','if(!Number(inserted?.meta?.changes||0))','station_url:'])assert.ok(stations.includes(s),'TV station tenant/ownership contract missing '+s);
 assert.ok(stations.includes('if(!user)return J({detail:\'Sign in to manage your TV stations.\'},401)'),'station management must require authenticated account');
@@ -30,4 +32,7 @@ for(const s of ['Bahay Kubo — Kabataang Silay Rondalla','https://upload.wikime
 assert.ok(home.includes('href="/tv/studio"'),'TV homepage must link to TV Studio');
 assert.ok(nav.includes('href:\'/tv/studio\''),'platform navigation must link to TV Studio');
 for(const s of ['Philippine News Agency (PNA)','PAGASA','Luz Morales','Netflix','MediaMTX','OpenSTAT'])assert.ok(research.includes(s),'TV rights/technology research missing '+s);
+for(const s of ["'metadata-only'",'broadcast_active:false','ingest_connected:false','viewer_playback_ready:false','broadcast_transport_connected:false'])assert.ok(videoStack.includes(s),'live transport must remain honestly marked as disconnected: '+s);
+assert.ok(!videoStack.includes('browser_webrtc_free_first:true'),'session metadata must not be described as a working WebRTC broadcast transport');
+for(const s of ['Create session record (not live)','Session record created only','Broadcast transmission is not connected yet'])assert.ok(videoStackPage.includes(s),'video stack must clearly distinguish session records from real broadcasting: '+s);
 console.log('Magnanimous TV network, station tenancy, PSA source and rights checks passed.');
