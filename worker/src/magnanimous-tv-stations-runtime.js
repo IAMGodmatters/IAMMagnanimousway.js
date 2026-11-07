@@ -5,6 +5,23 @@ const S=(v,n=500)=>String(v??'').trim().slice(0,n);
 const ID=()=>crypto.randomUUID();
 const SLUG=/^[a-z0-9](?:[a-z0-9-]{1,46}[a-z0-9])?$/;
 const HEX=/^#[0-9a-fA-F]{6}$/;
+const encoder=new TextEncoder();
+async function mediaSecret(env){
+ const configured=String(env.SESSION_SECRET||'').trim();
+ if(configured)return configured;
+ const row=await env.DB.prepare("SELECT value FROM auth_config WHERE key='session_secret'").first().catch(()=>null);
+ return String(row?.value||'').trim();
+}
+function b64url(bytes){
+ let binary='';for(const byte of bytes)binary+=String.fromCharCode(byte);
+ return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+async function signMediaToken(payload,secret){
+ const body=b64url(encoder.encode(JSON.stringify(payload)));
+ const key=await crypto.subtle.importKey('raw',encoder.encode(secret+'|magnanimous-tv-media-v1'),{name:'HMAC',hash:'SHA-256'},false,['sign']);
+ const signature=new Uint8Array(await crypto.subtle.sign('HMAC',key,encoder.encode(body)));
+ return body+'.'+b64url(signature);
+}
 
 async function schema(env){
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_tv_stations(
@@ -53,6 +70,18 @@ export async function handleMagnanimousTvStations(request,env){
   }
   const row=await env.DB.prepare('SELECT * FROM magnanimous_tv_stations WHERE id=? AND tenant_id=? AND user_id=?').bind(id,tenant,uid).first();
   return J({station:safe(row),broadcast_status:'not_connected',message:'Station profile created. Live broadcast is not connected yet.'},201);
+ }
+ const publish=p.match(/^\\/api\\/tv\\/stations\\/([0-9a-f-]{36})\\/publish-token$/);
+ if(publish&&request.method==='POST'){
+  const row=await env.DB.prepare('SELECT * FROM magnanimous_tv_stations WHERE id=? AND tenant_id=? AND user_id=?').bind(publish[1],tenant,uid).first();
+  if(!row)return J({detail:'Station not found or not owned by this account.'},404);
+  const host=String(env.TV_MEDIA_PUBLIC_HOST||'').trim().toLowerCase().replace(/^https?:\\/\\//,'').replace(/\\/.*$/,'');
+  if(!/^[a-z0-9.-]{3,253}$/.test(host))return J({detail:'The Magnanimous media host is not configured yet.'},503);
+  const secret=await mediaSecret(env);
+  if(secret.length<32)return J({detail:'The media signing key is not configured.'},503);
+  const now=Math.floor(Date.now()/1000),expires=now+43200;
+  const token=await signMediaToken({v:1,sub:uid,tenant,station:row.id,path:row.slug,action:'publish',iat:now,exp:expires},secret);
+  return J({station:safe(row),protocol:'WHIP/WebRTC',publish_url:'https://'+host+'/'+row.slug+'/whip',viewer_hls_url:'https://'+host+'/'+row.slug+'/index.m3u8',token,expires_at:new Date(expires*1000).toISOString(),message:'Short-lived publish token. Keep it private and paste it only into an authorized WHIP publisher.'});
  }
  const item=p.match(/^\/api\/tv\/stations\/([0-9a-f-]{36})$/);
  if(item&&request.method==='PATCH'){
