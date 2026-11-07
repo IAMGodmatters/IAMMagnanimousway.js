@@ -1,7 +1,7 @@
 'use client';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import Link from 'next/link';
-import {getPlatformAuthToken} from '../../../../lib/magnanimous-session';
+import {getPlatformAuthToken} from '../../../lib/magnanimous-session';
 import styles from './broadcast.module.css';
 
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
