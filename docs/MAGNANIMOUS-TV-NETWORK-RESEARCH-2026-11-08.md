@@ -90,7 +90,7 @@ These are implementation references, not mandatory dependencies or claims that t
 ## Implementation sequence / acceptance gates
 
 1. Add a rights-aware programme source registry and licence evidence model.
-2. Build station profile creation and tenant-isolated station pages. (Initial implementation is in the current PR: authenticated users can create up to five public/unlisted station profiles; the public station page displays the user's station identity with the Magnanimous TV mark. Profiles are not live broadcasts.)
+2. Build station profile creation and tenant-isolated station pages. (Initial implementation is in the current PR: authenticated users can create up to five public/unlisted station profiles; the public station page displays the user's station identity with the Magnanimous TV mark and a free starter programme (the CC BY 3.0 folk performance plus the automatic PSA data bulletin). Profiles are not live broadcasts.)
 3. Build visual scene/studio controls on top of the existing native video stack.
 4. Add a real media ingest/playback plane and verify end-to-end HLS/WebRTC from a creator to a separate viewer.
 5. Add a scheduled playout engine and verified, licensed starter content; include a source attribution slate.
