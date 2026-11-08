@@ -354,6 +354,7 @@ async function overview(env,user){
 
 export async function handleMagnanimousLocalBridge(request,env){
  const url=new URL(request.url),path=url.pathname;
+ if(path==='/api/magnanimous/virtual-phone-farm/install-cloud-node.sh'&&request.method==='GET')return new Response(CLOUD_NODE_INSTALLER,{status:200,headers:{'content-type':'text/x-shellscript; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','content-disposition':'attachment; filename="install-cloud-node.sh"'}});
  if(!path.startsWith('/api/magnanimous/local-bridge'))return null;
  if(!env?.DB)return json({detail:'Magnanimous Local Bridge requires D1.'},503);
  const agentPath=path.startsWith('/api/magnanimous/local-bridge/agent/');
