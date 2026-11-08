@@ -26,11 +26,11 @@ Cloud mode uses Google's published Android Emulator container image:
 
 Google describes its Android Emulator Container Scripts project as experimental. The supported host requirements include Linux, Docker Engine, Android ADB and readable/writable `/dev/kvm`. Cloud VMs need nested virtualization enabled by their provider. An ordinary Cloudflare Worker is not a suitable KVM host.
 
-The installer at `/downloads/virtual-phone-farm/install-cloud-node.sh` checks the existing Linux host, Docker access, ADB, Python and KVM, downloads the Magnanimous Local Bridge agent, pairs with a one-time owner code, then installs a per-user systemd service when available. It does not create a VM, install Docker, change cloud billing, modify firewall rules or run as root.
+The installer at `local-bridge/install-cloud-node.sh` checks the existing Linux host, Docker access, ADB, Python and KVM, downloads the Magnanimous Local Bridge agent, pairs with a one-time owner code, then installs a per-user systemd service when available. It does not create a cloud VM, install Docker, change cloud billing, modify firewall rules or run as root.
 
 Create a one-time pairing code on the owner page and run:
 ```bash
-curl -fsSL https://iammagnanimousway.com/downloads/virtual-phone-farm/install-cloud-node.sh | bash -s -- 'ONE_TIME_PAIRING_CODE'
+curl -fsSL https://iammagnanimousway.comlocal-bridge/install-cloud-node.sh | bash -s -- 'ONE_TIME_PAIRING_CODE'
 ```
 
 The cloud container's ADB and WebRTC ports are bound to `127.0.0.1` on the paired host only. Starting a container may download a large image and consume disk and bandwidth, so the owner must separately confirm this operation and affirm in the task payload that the applicable Google Android SDK/emulator terms have been reviewed and accepted. The backend and local agent reject cloud start unless that affirmation is present.
