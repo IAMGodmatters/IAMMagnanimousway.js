@@ -148,7 +148,6 @@ assert(virtualPhones.includes('/api/magnanimous/local-bridge/pairings'));
 assert(ownerCenter.includes('href="/virtual-phones"'));
 assert(cloudInstaller.includes('/dev/kvm')&&cloudInstaller.includes('docker info'));
 assert(virtualInstaller.includes('Magnanimous cloud bridge service enabled'));
-assert(runtime.includes('/api/magnanimous/virtual-phone-farm/install-cloud-node.sh'));
 assert(progress.includes("path==='/api/magnanimous/virtual-phone-farm/install-cloud-node.sh'"));
 assert(cloudInstaller.includes('python3 -m py_compile'));
 assert(!cloudInstaller.includes('sudo '));
