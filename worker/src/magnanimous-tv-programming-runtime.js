@@ -136,7 +136,7 @@ function newMediaToken(){
 }
 function mediaHostOrigin(env){
  const host=S(env?.MAGNANIMOUS_TV_MEDIA_HOST,253).toLowerCase();
- const publicDomain=S(env?.MAGNANIMOUS_DOMAIN,253).toLowerCase();
+ const publicDomain=S(env?.MAGNANIMOUS_TV_MEDIA_PUBLIC_DOMAIN,253).toLowerCase();
  if(!host||!publicDomain||host!==publicDomain||host.includes('/')||host.includes('@')||host.includes(':')||host==='localhost'||host.endsWith('.local'))return '';
  try{
   const u=new URL('https://'+host);
