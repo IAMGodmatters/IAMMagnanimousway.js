@@ -52,6 +52,7 @@ assert.ok(runtime.includes('expiresAt=timestamp+3600'),'Publish key must expire 
 assert.ok(runtime.includes('MAGNANIMOUS_TV_MEDIA_ENABLED')&&runtime.includes('MAGNANIMOUS_MEDIA_AUTH_SECRET'),'Media feature flag and shared secret must gate authorization.');
 assert.ok(runtime.includes("media_process_health:'not_probed'"),'Configuration readiness must not be represented as proof of a live media process.');
 assert.ok(broadcast.includes('HOST CONFIGURED'),'Broadcast Studio must distinguish host configuration from actual media health.');
+assert.ok(broadcast.includes('Geographic access restriction is not enabled yet'),'Philippines channel must not imply unimplemented geofencing.');
 assert.ok(runtime.includes('constantTimeTextEqual(secret,supplied)'),'Shared secret must use constant-time comparison.');
 assert.ok(runtime.includes('await schema(env);return await authenticateMediaNode(request,env,url)'),'Media auth must initialize DB schema on a fresh runtime.');
 assert.ok(runtime.includes('payload.action')&&runtime.includes('payload.protocol')&&runtime.includes('payload.path'),'MediaMTX authorization payload must be checked.');
