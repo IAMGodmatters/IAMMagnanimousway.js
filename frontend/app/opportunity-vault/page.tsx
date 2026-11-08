@@ -46,7 +46,7 @@ const opportunities:Opportunity[]=[
   ],
   cta:'Review the official app, payout options and content license',
   verified:'2026-11-08'
- }
+ },
  {
   id:'egovista-contributor-watch',name:'EgoVista — First-Person Photo/Video Data Contributor (Watchlist)',status:'waitlist',badge:'GLOBAL SIGN-UP PAGE • NO LIVE PH MISSIONS OR PAYOUT ROUTE CONFIRMED',
   summary:"EgoVista is a French SAS contributor platform for first-person video and image capture used in AI/robotics datasets. Its public contributor page says the first missions are not open yet and invites people to join for future missions. Pay is per hour of usable footage accepted, with the mission-specific rate shown before participation; no current Philippines mission or Philippine payout corridor was verified. The public sign-up page says worldwide, while the privacy policy still describes a closed, invitation-only preview, so availability is inconsistent.",
