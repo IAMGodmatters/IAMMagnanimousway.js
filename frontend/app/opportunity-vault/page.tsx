@@ -1089,7 +1089,7 @@ const opportunities:Opportunity[]=[
   secondaryLabel:"Official recruitment privacy policy and business identity",
   cta:"Apply through the official careers form",
   verified:"2026-11-06"
- }
+ },
  {
   id:'av-data-contributor-ph',
   name:'AV Data — Paid Everyday Video & Challenge Contributions',
