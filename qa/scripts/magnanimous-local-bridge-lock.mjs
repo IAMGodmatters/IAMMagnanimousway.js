@@ -17,6 +17,11 @@ const progress=read('worker/src/progress-entrypoint.js');
 const provider=read('worker/src/provider-entrypoint.js');
 const page=read('frontend/app/local-bridge/page.tsx');
 const robots=read('frontend/public/robots.txt');
+const virtualPhones=read('frontend/app/virtual-phones/page.tsx');
+const cloudInstaller=read('frontend/public/downloads/virtual-phone-farm/install-cloud-node.sh');
+const virtualPhoneDocs=read('docs/MAGNANIMOUS-VIRTUAL-PHONE-FARM.md');
+const ownerCenter=read('frontend/app/owner-center/page.tsx');
+
 const deploy=read('.github/workflows/deploy.yml');
 
 assert.equal(LOCAL_BRIDGE_POLICY.transport,'outbound-polling-over-https');
@@ -63,6 +68,20 @@ for(const needle of [
 ]) assert(agent.includes(needle),`agent safety contract missing: ${needle}`);
 
 assert(!agent.includes('shell=True'),'local agent must not enable shell execution');
+assert.equal(LOCAL_BRIDGE_ACTIONS.android_emulator_status.confirmation,false);
+assert.equal(LOCAL_BRIDGE_ACTIONS.android_emulator_list.confirmation,false);
+assert.equal(LOCAL_BRIDGE_ACTIONS.android_emulator_install_image.confirmation,true);
+assert.equal(LOCAL_BRIDGE_ACTIONS.android_emulator_create.confirmation,true);
+assert.equal(LOCAL_BRIDGE_ACTIONS.android_emulator_start.confirmation,true);
+assert.equal(LOCAL_BRIDGE_ACTIONS.android_emulator_stop.confirmation,true);
+assert.equal(LOCAL_BRIDGE_ACTIONS.android_emulator_delete.confirmation,true);
+assert.equal(LOCAL_BRIDGE_ACTIONS.android_cloud_status.confirmation,false);
+assert.equal(LOCAL_BRIDGE_ACTIONS.android_cloud_start.confirmation,true);
+assert.equal(LOCAL_BRIDGE_ACTIONS.android_cloud_stop.confirmation,true);
+for(const action of ['android_emulator_status','android_emulator_list','android_emulator_install_image','android_emulator_create','android_emulator_start','android_emulator_stop','android_emulator_delete','android_cloud_status','android_cloud_start','android_cloud_stop']) assert(agent.includes('"'+action+'": action_'),'agent must implement '+action);
+assert(agent.includes('us-docker.pkg.dev/android-emulator-268719/images/30-google-x64:30.1.2'));
+assert(agent.includes('"--publish", f"127.0.0.1:{adb_port}:5555/tcp"'));
+assert(agent.includes('"--device", "/dev/kvm"'));
 assert.equal(LOCAL_BRIDGE_ACTIONS.heimdall_status.confirmation,false);
 assert.equal(LOCAL_BRIDGE_ACTIONS.heimdall_detect.confirmation,true);
 assert.equal(LOCAL_BRIDGE_ACTIONS.heimdall_detect.auto,false);
@@ -76,7 +95,11 @@ assert(page.includes("/cancel"),'declined Heimdall task must use the existing ca
 assert(page.includes("setHeimdallTaskId('')"),'declined device detection must clear the stale task selection');
 assert(runtime.includes("AND expires_at>=?"),'expired Local Bridge tasks must not count as pending');
 
-assert(!agent.includes('subprocess.Popen('),'local agent must not expose unsupervised background process spawning');
+assert.equal((agent.match(/subprocess\.Popen\(/g)||[]).length,1,'only the allowlisted Android emulator start action may spawn a detached process');
+assert(agent.includes('def action_android_emulator_start(config, payload):'));
+assert(agent.includes('argv = [str(emulator), "-avd", name, "-no-boot-anim"]'));
+assert(agent.includes('shell=False'));
+assert(agent.includes('ANDROID_AVD_NAME_RE'));
 assert(installer.includes('New-ScheduledTaskAction'),'Windows installer should retain Task Scheduler support when available');
 assert(installer.includes('GetFolderPath("Startup")'),'Windows installer must have a per-user startup fallback');
 assert(installer.includes('Magnanimous-Local-Bridge.cmd'),'Windows installer must create a per-user startup launcher');
@@ -112,6 +135,14 @@ assert(progress.includes('handleMagnanimousLocalBridge'),'secured runtime must r
 assert(provider.includes('hasAnyReadyLocalBridge'),'public health must use actual heartbeat state');
 assert(provider.includes("ogenicPlan.classification==='LOCAL'"),'chat must auto-initiate local OGENIC work when a bridge is available');
 assert(provider.includes("ogenicPlan.classification==='HYBRID'"),'chat must auto-initiate hybrid OGENIC work when a bridge is available');
+assert(virtualPhones.includes('/api/magnanimous/local-bridge/tasks'));
+assert(virtualPhones.includes('/api/magnanimous/local-bridge/pairings'));
+assert(ownerCenter.includes('href="/virtual-phones"'));
+assert(cloudInstaller.includes('/dev/kvm')&&cloudInstaller.includes('docker info'));
+assert(cloudInstaller.includes('python3 -m py_compile'));
+assert(!cloudInstaller.includes('sudo '));
+assert(virtualPhoneDocs.includes('experimental'));
+assert(virtualPhoneDocs.includes('does not create a cloud VM'));
 assert(page.includes('CREATE ACTIVATION'));
 assert(page.includes('DOWNLOAD WINDOWS ACTIVATION FILE'));
 assert(page.includes('READY LOCAL — VERIFIED'));
