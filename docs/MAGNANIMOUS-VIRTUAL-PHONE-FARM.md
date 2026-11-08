@@ -33,7 +33,7 @@ Create a one-time pairing code on the owner page and run:
 curl -fsSL https://iammagnanimousway.com/downloads/virtual-phone-farm/install-cloud-node.sh | bash -s -- 'ONE_TIME_PAIRING_CODE'
 ```
 
-The cloud container's ADB and WebRTC ports are bound to `127.0.0.1` on the paired host only. Starting a container may download a large image and consume disk and bandwidth, so the owner must separately confirm this operation. Google SDK/container image terms apply; review and accept applicable licenses before use.
+The cloud container's ADB and WebRTC ports are bound to `127.0.0.1` on the paired host only. Starting a container may download a large image and consume disk and bandwidth, so the owner must separately confirm this operation and affirm in the task payload that the applicable Google Android SDK/emulator terms have been reviewed and accepted. The backend and local agent reject cloud start unless that affirmation is present.
 
 ## Security and legitimate use
 
