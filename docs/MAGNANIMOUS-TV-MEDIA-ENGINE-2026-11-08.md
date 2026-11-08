@@ -24,7 +24,7 @@ On a separately administered standalone host, an operator must:
 
 - Set `MAGNANIMOUS_TV_MEDIA_ENABLED=true`.
 - Generate a separate random `MAGNANIMOUS_MEDIA_AUTH_SECRET` of at least 32 characters. Do not reuse session, service or provider secrets.
-- Set `MAGNANIMOUS_TV_MEDIA_HOST` to the exact same hostname as `MAGNANIMOUS_DOMAIN`; Caddy serves one configured site in this stack.
+- Set `MAGNANIMOUS_TV_MEDIA_HOST` and the Worker binding `MAGNANIMOUS_TV_MEDIA_PUBLIC_DOMAIN` to the exact same hostname used by the standalone Caddy site. This dedicated binding avoids coupling the optional media host to the main platform hostname.
 - Set `MAGNANIMOUS_TV_WEBRTC_UDP_BIND=0.0.0.0` only after the public host firewall and network security group have an explicit UDP 8189 allow rule. The default is loopback, and the API reports media disabled while the ICE bind is loopback.
 - Ensure DNS for the configured domain resolves to this host and Caddy has a valid public TLS certificate.
 - Start the optional profile explicitly, for example `docker compose --profile broadcast up -d live-media`.
