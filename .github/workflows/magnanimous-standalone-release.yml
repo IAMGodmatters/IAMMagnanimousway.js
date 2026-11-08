@@ -126,7 +126,6 @@ jobs:
           MAGNANIMOUS_MEDIA_AUTH_SECRET=release-proof-tv-media-auth-secret-2026
           MAGNANIMOUS_TV_MEDIA_HOST=localhost
           MAGNANIMOUS_TV_WEBRTC_UDP_BIND=127.0.0.1
-          MAGNANIMOUS_TV_WEBRTC_UDP_PORT=18189
           EOF
           MAGNANIMOUS_RELEASE_TAG="$TAG" docker compose --env-file "$OUT/.env" -f "$OUT/docker-compose.release.yml" config -q
           MAGNANIMOUS_RELEASE_TAG="$TAG" docker compose --env-file "$OUT/.env" -f "$OUT/docker-compose.release.yml" up -d sandbox browser-egress browser media magnanimous
