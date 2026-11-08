@@ -62,7 +62,7 @@ assert.ok(runtime.includes('payload.token||payload.password'),'WHIP bearer token
 assert.ok(runtime.includes('expires_at>? AND revoked_at IS NULL'),'Expired/revoked tokens must be rejected.');
 assert.ok(runtime.includes("visibility IN ('public','unlisted')"),'Station visibility must gate public read access.');
 assert.ok(runtime.includes('existing_publisher_must_stop:true'),'OBS session revocation boundary must be truthful.');
-assert.ok(runtime.includes('host!==publicDomain')&&runtime.includes('udpReachable'),'Media must require matching host and reachable ICE UDP.');
+assert.ok(runtime.includes('host!==publicDomain')&&runtime.includes('MAGNANIMOUS_TV_MEDIA_PUBLIC_DOMAIN')&&runtime.includes('udpReachable'),'Media must require matching host and reachable ICE UDP.');
 assert.ok(security.includes("url.pathname.startsWith('/api/tv/media')"),'Media API and auth callback must be routed through security entrypoint.');
 
 assert.ok(broadcast.includes('getPlatformAuthToken'),'Broadcast Studio must require sign-in.');
