@@ -68,7 +68,7 @@ assert.ok(broadcast.includes('navigator.mediaDevices.getUserMedia'),'Browser cam
 assert.ok(broadcast.includes('fetch(created.whip_url,{method:\'POST\''),'Browser publisher must use WHIP.');
 assert.ok(broadcast.includes('await waitForConnection(pc)'),'Browser UI must wait for a live media connection before marking LIVE.');
 assert.ok(broadcast.includes('This page cannot confirm an external OBS connection'),'OBS key generation must not imply OBS is live.');
-assert.ok(broadcast.includes('stop the stream in OBS first'),'OBS stop/revoke boundary must be clear.');
+assert.ok(broadcast.includes('stop streaming in OBS first'),'OBS stop/revoke boundary must be clear.');
 assert.ok(studio.includes("href:'/tv/studio/broadcast'"),'TV Studio must link to Broadcast Studio.');
 assert.ok(docs.includes('MediaMTX v1.21.3')&&docs.includes('No TURN relay is bundled.'),'Media docs must record pinned version and TURN limitation.');
 
