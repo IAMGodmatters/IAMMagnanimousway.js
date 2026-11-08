@@ -21,15 +21,32 @@ const opportunities:Opportunity[]=[
   verified:'2026-11-01'
  },
  {
-  id:'kled-iphone-data-tasks',name:'Kled — iPhone Photo/Video Data Tasks',status:'location-check',badge:'IPHONE ONLY • CONFIRM LIVE PH TASKS',
-  summary:'Kled V3 is now available in the Philippines App Store (version 3.0.3, released October 17, 2026). It adds a personalized paid-task feed and more work types across photos, video, audio, text and annotation; each task shows its pay, instructions and submission examples before you start. Earnings still vary by task and accepted content. A third-party job-board post claimed a Weather-Degraded Scenes task paid USD $0.30 per accepted photo, but Kled’s official public materials do not confirm that task or rate; treat the claim as unverified unless the same task and exact amount appear inside the app.',
-  requirements:['iPhone only, 18+ and iOS 18.6 or later; the official App Store listing is available in the Philippines','Kled V3 task categories include photos, video, audio, text and annotation. The app says each task shows its pay, instructions and accepted/rejected examples before you begin','The app lists PayPal, Venmo or Solana wallet payouts; a developer response states a USD $25 minimum cashout, which it reviews periodically. Confirm PayPal availability and all payout/identity requirements in-app before uploading','The developer says ordinary upload value depends on uniqueness, diversity, quality and current buyer demand; no universal per-photo or hourly rate is promised','Uploads are reviewed and accepted contributions may be licensed to AI companies for training with contributor consent. Do not upload private/family photos, children, IDs, financial information or images of people without consent','Specific tasks are piecework: only rely on the amount displayed in the official in-app task brief before you begin; rejected submissions are unpaid','Do not pay a joining fee or share OTPs, passwords or crypto recovery phrases; avoid crypto payouts unless you understand the risks'],
+  id:'kled-iphone-data-tasks',
+  name:'Kled — iPhone Photo/Video Data Contributor',
+  status:'location-check',
+  badge:'PH APP STORE • IPHONE / IOS 18+ • $25 MINIMUM • PAYOUT COUNTRY CHECK',
+  summary:"Kled's official iPhone app is listed in the Philippines App Store and supports photo, video, audio, text and annotation tasks. Task instructions and pay are shown in the app before a contributor starts. Earnings depend on accepted content and buyer demand; there is no fixed hourly or universal per-photo rate, and no Philippines-specific task or payout corridor is guaranteed.",
+  requirements:[
+   "The official App Store listing is available in the Philippines; the app is iPhone-only, rated 18+, and the official help center says iOS 18 or later is required",
+   "Kled is free to download and use. Its task feed may include photos, videos, audio, text and annotation; only rely on the exact amount and requirements shown in the official in-app task brief",
+   "The official help center sets a USD $25 minimum cashout and lists PayPal, Venmo or a Solana wallet. Confirm which payout option is available to a Philippines-based account and any identity requirements before uploading",
+   "No universal hourly rate or per-photo rate is promised. The company says accepted-content value depends on uniqueness, diversity, quality and current buyer demand; rejected content may receive no reward",
+   "The terms grant a worldwide, perpetual, irrevocable, transferable and sublicensable license to submitted content, exclusive for third-party AI/ML training uses. If the rights are later invalidated or withdrawn, the terms say compensation may have to be refunded",
+   "The terms state that contributions do not create an employment relationship. Do not upload content you do not own or recordings containing minors, bystanders, private spaces, personal documents or sensitive conversations without all required rights and consent",
+   "The iPhone app is verified; an Android release was not verified. Some App Store reviews allege low or delayed earnings and cashout problems; these are anecdotal, not proof of misconduct. Kled's developer says earnings are based on content value rather than upload count. Test cautiously and avoid building up an unpaid balance"
+  ],
   official:'https://apps.apple.com/ph/app/kled/id6752585718',
-  secondary:'https://kled.ai',
-  secondaryLabel:'Official developer website',
-  cta:'Open official App Store listing',
-  verified:'2026-10-31'
- },
+  secondary:'https://help.kled.ai/article/what-is-kled-and-how-does-it-work',
+  secondaryLabel:'Official $25 payout minimum and iOS 18+ eligibility',
+  tertiary:'https://www.kled.ai/terms-of-service',
+  tertiaryLabel:'Official content license and no-employment terms',
+  moreLinks:[
+   {label:'Official Kled privacy policy',url:'https://www.kled.ai/privacy-policy'},
+   {label:'Official developer website',url:'https://kled.ai'}
+  ],
+  cta:'Review the official app, payout options and content license',
+  verified:'2026-11-08'
+ }
  {
   id:'egovista-contributor-watch',name:'EgoVista — First-Person Photo/Video Data Contributor (Watchlist)',status:'waitlist',badge:'GLOBAL SIGN-UP PAGE • NO LIVE PH MISSIONS OR PAYOUT ROUTE CONFIRMED',
   summary:"EgoVista is a French SAS contributor platform for first-person video and image capture used in AI/robotics datasets. Its public contributor page says the first missions are not open yet and invites people to join for future missions. Pay is per hour of usable footage accepted, with the mission-specific rate shown before participation; no current Philippines mission or Philippine payout corridor was verified. The public sign-up page says worldwide, while the privacy policy still describes a closed, invitation-only preview, so availability is inconsistent.",
@@ -1072,6 +1089,34 @@ const opportunities:Opportunity[]=[
   secondaryLabel:"Official recruitment privacy policy and business identity",
   cta:"Apply through the official careers form",
   verified:"2026-11-06"
+ }
+ {
+  id:'av-data-contributor-ph',
+  name:'AV Data — Paid Everyday Video & Challenge Contributions',
+  status:'active-ph',
+  badge:'PHILIPPINES • WORLDWIDE EXCEPT EU • $20 STRIPE CASHOUT • HIGH PRIVACY / IP RISK',
+  summary:"AV Data's official site accepts adult contributors worldwide except the European Union. Contributors record everyday activities or rotating challenges and earn per qualifying approved minute; there is no public fixed hourly rate. Cashout starts at USD $20 through Stripe to a personal bank account.",
+  requirements:[
+   "Applicants must be 18+ and have a smartphone with a working camera. The official site says contributors are accepted worldwide except the EU; the Philippines App Store listing is live",
+   "The app is available on iOS and Android. The Philippine iPhone listing requires iOS 16.4 or later",
+   "Pay is per qualifying minute of approved video. Rates vary by location, challenge and quality; there is no published fixed hourly rate. New challenges rotate regularly",
+   "Cashout begins at USD $20 through Stripe to a personal bank account. AV Data says Stripe is supported in every country where it has contributors; select the Philippines as actual residence and confirm the local bank is offered before recording. The first payout takes 7–14 days and later payouts usually take 2–5 business days",
+   "U.S. citizens must complete a W-9 even while living abroad; AV Data's help center says W-8 is for non-U.S. persons. U.S. worldwide-income reporting and any Philippine tax obligations still apply. A 1099-K may be issued to eligible U.S. contributors who meet the IRS reporting threshold",
+   "The creator agreement assigns all right, title and interest in submitted videos to Syntropi in perpetuity, worldwide and without additional compensation. It also grants broad sublicensable rights to use faces, likenesses, voices, conversations and actions",
+   "AV Data's privacy policy says the company and its customers may process face-derived biometric data, precise location and information about non-users appearing in recordings for AI/ML, computer-vision and recognition work. Do not record minors, bystanders, private rooms, sensitive locations, IDs, screens or conversations without every required consent",
+   "Recent Philippine App Store reviews include an October 26 report of inability to cash out and an August complaint about low rates. These are unverified user reports, not proven misconduct; test cautiously and cash out early"
+  ],
+  official:'https://avdata.ai/',
+  secondary:'https://avdata.ai/terms.html',
+  secondaryLabel:'Official creator submission agreement and video rights assignment',
+  tertiary:'https://avdata.ai/privacy.html',
+  tertiaryLabel:'Official biometric, location and non-user data policy',
+  moreLinks:[
+   {label:'Official payout and tax guidance',url:'https://avdata.ai/help/categories/payments-and-taxes.html'},
+   {label:'Philippines App Store listing',url:'https://apps.apple.com/ph/app/av-data/id6741497723'}
+  ],
+  cta:'Review the rights and payout terms before recording',
+  verified:'2026-11-08'
  }
 ];
 
