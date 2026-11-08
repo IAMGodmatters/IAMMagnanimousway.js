@@ -16,7 +16,7 @@ const hotpathMigration=read('worker/migrations/0096_kids_drive_runtime_hotpath.s
 const progress=read('worker/src/progress-entrypoint.js');
 const provider=read('worker/src/provider-entrypoint.js');
 const page=read('frontend/app/local-bridge/page.tsx');
-const virtualPhonePage=read('frontend/app/virtual-phone-farm/page.tsx');
+const virtualPhonePage=read('frontend/app/virtual-phones/page.tsx');
 const robots=read('frontend/public/robots.txt');
 const virtualPhones=read('frontend/app/virtual-phones/page.tsx');
 const cloudInstaller=read('frontend/public/downloads/virtual-phone-farm/install-cloud-node.sh');
@@ -71,7 +71,7 @@ for(const needle of [
 assert(!agent.includes('shell=True'),'local agent must not enable shell execution');
 assert(virtualPhonePage.includes('Magnanimous Virtual Phone Farm'),'virtual phone farm control page must exist');
 for(const action of ['android_emulator_status','android_emulator_list','android_emulator_install_image','android_emulator_create','android_emulator_start','android_emulator_stop','android_emulator_delete','android_cloud_status','android_cloud_start','android_cloud_stop']) assert(virtualPhonePage.includes(action),'virtual phone page must expose '+action);
-assert(virtualPhonePage.includes('No VM is purchased or provisioned'),'cloud phone UI must disclose that it does not provision or purchase a VM');
+assert(virtualPhonePage.includes('No cloud VM is provisioned'),'cloud phone UI must disclose that it does not provision or purchase a VM');
 
 assert.equal(LOCAL_BRIDGE_ACTIONS.android_emulator_status.confirmation,false);
 assert.equal(LOCAL_BRIDGE_ACTIONS.android_emulator_list.confirmation,false);
