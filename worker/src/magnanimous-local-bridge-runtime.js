@@ -22,6 +22,16 @@ export const LOCAL_BRIDGE_ACTIONS=Object.freeze({
  archive_list:{risk:'low',auto:true,confirmation:false,family:'approved-local-archive'},
  archive_test:{risk:'medium',auto:true,confirmation:false,family:'approved-local-archive'},
  android_device_status:{risk:'low',auto:true,confirmation:false,family:'owner-android-device'},
+ android_emulator_status:{risk:'low',auto:true,confirmation:false,family:'virtual-phones-local'},
+ android_emulator_list:{risk:'low',auto:true,confirmation:false,family:'virtual-phones-local'},
+ android_emulator_install_image:{risk:'high',auto:false,confirmation:true,family:'virtual-phones-local'},
+ android_emulator_create:{risk:'medium',auto:false,confirmation:true,family:'virtual-phones-local'},
+ android_emulator_start:{risk:'medium',auto:false,confirmation:true,family:'virtual-phones-local'},
+ android_emulator_stop:{risk:'medium',auto:false,confirmation:true,family:'virtual-phones-local'},
+ android_emulator_delete:{risk:'high',auto:false,confirmation:true,family:'virtual-phones-local'},
+ android_cloud_status:{risk:'low',auto:true,confirmation:false,family:'virtual-phones-cloud'},
+ android_cloud_start:{risk:'high',auto:false,confirmation:true,family:'virtual-phones-cloud'},
+ android_cloud_stop:{risk:'medium',auto:false,confirmation:true,family:'virtual-phones-cloud'},
  heimdall_status:{risk:'low',auto:true,confirmation:false,family:'authorized-phone-service'},
  heimdall_detect:{risk:'medium',auto:false,confirmation:true,family:'authorized-phone-service'},
  storage_status:{risk:'low',auto:true,confirmation:false,family:'cloud-storage'},
@@ -160,6 +170,12 @@ function validateTask(action,payload){
  const body=payload&&typeof payload==='object'&&!Array.isArray(payload)?payload:{};
  if(def.scope_required&&!clip(body.authorization_note,1000))throw new Error('Recorded owner authorization is required for this Netwalk action.');
  if(action==='heimdall_detect'&&body.ownership_confirmed!==true)throw new Error('Device-owner authorization required for Heimdall USB detection.');
+ const avdName=value=>/^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$/.test(clip(value,40));
+ const systemImage=value=>/^system-images;android-(?:29|3[0-9]);google_apis;x86_64$/.test(clip(value,120));
+ if(['android_emulator_create','android_emulator_start','android_emulator_stop','android_emulator_delete'].includes(action)&&!avdName(body.name))throw new Error(action+' requires a safe AVD name (letters, numbers, dot, underscore or hyphen; max 40 characters).');
+ if(['android_emulator_install_image','android_emulator_create'].includes(action)&&!systemImage(body.image))throw new Error(action+' requires a supported Google APIs x86_64 system image package, e.g. system-images;android-35;google_apis;x86_64.');
+ if(action==='android_emulator_create'&&!['pixel_2','pixel','pixel_3','pixel_4'].includes(String(body.device_profile||'pixel_2')))throw new Error('Unsupported Android virtual-device hardware profile.');
+ if(['android_cloud_start','android_cloud_stop'].includes(action)){const slot=Number(body.slot??0);if(!Number.isInteger(slot)||slot<0||slot>9)throw new Error(action+' slot must be an integer from 0 to 9.');}
   if(action.startsWith('storage_')){
   const forbidden=['token','access_token','refresh_token','client_secret','password','passwd','api_key','secret'];
   for(const key of forbidden)if(Object.prototype.hasOwnProperty.call(body,key))throw new Error('Cloud storage credentials must remain local to the paired bridge.');
