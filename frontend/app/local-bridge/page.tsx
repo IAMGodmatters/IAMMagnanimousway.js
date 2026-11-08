@@ -155,7 +155,7 @@ export default function LocalBridgePage(){
  const revokedDevices=(overview?.devices||[]).filter(d=>d.status!=='active');
 
  return <main className="page">
-  <header><a href="/owner-center">← Owner Center</a><span>PRIVATE OWNER • LOCAL EXECUTION</span><nav><a href="/owner-edge-ai">Edge AI</a><a href="/god-coding">God Coding →</a></nav></header>
+  <header><a href="/owner-center">← Owner Center</a><span>PRIVATE OWNER • LOCAL EXECUTION</span><nav><a href="/virtual-phones">Virtual Phones</a><a href="/owner-edge-ai">Edge AI</a><a href="/god-coding">God Coding →</a></nav></header>
 
   <section className="hero">
    <small>I AM MAGNANIMOUS WAY™ • MAGNANIMOUS AI</small>
