@@ -296,8 +296,8 @@ const opportunities:Opportunity[]=[
   cta:'Pre-register through the official Startup Week portal',
   verified:'2026-11-06'
 },
- ,
  {
+
   id:'dict-sgf-2026-watch',name:'DICT / IIDB — Startup Grant Fund 2026 Call (Official Watch)',status:'waitlist',badge:'HIGHEST-PRIORITY PH WATCH • CALL NOT YET PUBLISHED • OCTOBER TARGET PASSED',
   summary:"No official DICT/IIDB Startup Grant Fund 2026 Call for Applications, application form, eligibility rules, deadline, templates or procedure was found on the official channels checked November 8, 2026. The official IIDB public update about the September consultation targeted the revised circular and next call for October 2026; that target has passed. The user reports DICT told them on October 7 that the detailed rules and templates would be published when the official call launches. Do not treat any DOST grant as this DICT call.",
   requirements:["Status is NOT OPEN and no deadline or grant amount is confirmed; do not submit an old SGF form or pay an intermediary","The official Startup Philippines SGF events page currently has no published SGF call/event. Monitor it together with DICT and IIDB official channels","The September IIDB consultation update described October 2026 as the target for the revised circular and next call; no later official application notice was found as of November 8","Eligibility, application procedures, templates, required documents, funding amount and deadline remain unknown until the official call is published","Keep this separate from DOST-PCAARRD, DOST-PCIEERD and other DOST programs; they are not DICT SGF","When the genuine DICT/IIDB call appears, replace this watch entry with the official call, exact eligibility, deadline, templates, procedure and application link"],
