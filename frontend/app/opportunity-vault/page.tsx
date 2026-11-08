@@ -996,8 +996,7 @@ const opportunities:Opportunity[]=[
   secondaryLabel:"Official recruitment privacy policy and business identity",
   cta:"Apply through the official careers form",
   verified:"2026-11-06"
- }
- 
+ },
  {
   id:'taskalpha-project-orion-ph-egocentric-video',
   name:'TaskAlpha / Flipside — Project Orion iPhone Video Data Collection',
