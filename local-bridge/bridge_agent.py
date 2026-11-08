@@ -39,7 +39,7 @@ SAFE_PROJECT_SCRIPTS = {
 }
 BASE_CAPS = {
     "system_info","health","workspace_list","read_file","search_text","heimdall_status",
-    "android_emulator_status","android_emulator_list","android_cloud_status",
+    "android_emulator_status","android_emulator_list",
     "git_status","git_diff","git_log","web_fetch",
     "apply_patch","git_create_branch","git_commit","desktop_tools_status",
 }
@@ -972,8 +972,10 @@ def capabilities(config):
         caps.add("android_emulator_install_image")
     if tools.get("emulator") and tools.get("avdmanager") and tools.get("adb"):
         caps.update({"android_emulator_create","android_emulator_start","android_emulator_stop","android_emulator_delete"})
-    if _android_cloud_host_status().get("ready"):
-        caps.update({"android_cloud_start","android_cloud_stop"})
+    if platform.system().lower() == "linux":
+        caps.add("android_cloud_status")
+        if _android_cloud_host_status().get("ready"):
+            caps.update({"android_cloud_start","android_cloud_stop"})
     if _heimdall_executable():
         caps.add("heimdall_detect")
     for root in _roots(config):
