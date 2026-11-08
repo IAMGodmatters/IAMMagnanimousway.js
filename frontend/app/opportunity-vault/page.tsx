@@ -30,17 +30,30 @@ const opportunities:Opportunity[]=[
   cta:'Open official App Store listing',
   verified:'2026-10-31'
  },
+ {
+  id:'egovista-contributor-watch',name:'EgoVista — First-Person Photo/Video Data Contributor (Watchlist)',status:'waitlist',badge:'GLOBAL SIGN-UP PAGE • NO LIVE PH MISSIONS OR PAYOUT ROUTE CONFIRMED',
+  summary:"EgoVista is a French SAS contributor platform for first-person video and image capture used in AI/robotics datasets. Its public contributor page says the first missions are not open yet and invites people to join for future missions. Pay is per hour of usable footage accepted, with the mission-specific rate shown before participation; no current Philippines mission or Philippine payout corridor was verified. The public sign-up page says worldwide, while the privacy policy still describes a closed, invitation-only preview, so availability is inconsistent.",
+  requirements:["Free account registration is shown on the official sign-up page; the contributor page says there are no uploads at sign-up and that users will be notified when missions open","Device requirements listed by EgoVista include a recent iPhone (12 or newer), recent Android device (2022 or newer), GoPro or compatible smart glasses; phone missions require a hands-free mount","No live Philippines mission, guaranteed hours, public rate or confirmed Philippine payout route was found; do not record or buy equipment until a mission appears in the account and its rate and payment method are confirmed","EgoVista's subprocessor page lists Wise for non-SEPA transfers as in use and says PayPal is not yet active; the Philippines payout corridor is not confirmed","The public contributor page says first missions are coming soon, but the privacy policy still says the service is in a closed preview with invitation-only access; ask the company to resolve this before relying on access","Accepted footage is licensed worldwide for 70 years and may be sublicensed to dataset buyers; the terms and privacy page describe broad use for AI/robotics training and related dataset products. Review this before recording","Only accepted, usable footage is paid. The public page and legal documents give different payment timing descriptions (15 days after approval versus 30 days after a payout request); get the exact mission terms in writing","Faces are described as blurred before external processing, but video remains personal data; do not record minors, bystanders, private spaces, screens, IDs, addresses or sensitive conversations without explicit consent"],
+  official:'https://www.egovista.app/signup',
+  secondary:'https://www.egovista.app/cgu',
+  secondaryLabel:'Official contributor terms and footage license',
+  tertiary:'https://www.egovista.app/privacy',
+  tertiaryLabel:'Official privacy policy and preview status',
+  moreLinks:[{label:'Official payment/data subprocessors',url:'https://www.egovista.app/subprocessors'},{label:'Contributor mission overview',url:'https://www.egovista.app/contribute'}],
+  cta:'Review sign-up, mission status and rights terms',
+  verified:'2026-11-08'
+ },
 
  {
   id:'welo',name:'Welo Global',status:'active-ph',badge:'PHILIPPINES • ACTIVE ROLES + LANGUAGE TALENT POOLS',
   summary:'Current official Philippines listings include remote/freelance AI training, quality review, ads rating and video annotation. Cebuano, English, Tagalog and Ilocano AI Trainers Network listings are talent pools, not active paid job openings; work, scope and compensation are disclosed only if a matching project is offered.',
   requirements:['Requirements differ by role; check the exact official listing before applying','Apply only through the official Welo/Lever listing; the Philippines is explicitly named on the role or talent-hub pages linked here','AI Trainers Network applications add contributors to a talent pool; they do not promise immediate work, hours or income','Do not assume every role is open indefinitely; the official Philippines board is the live source'],
-  examples:['AI Data Quality Specialist — English (Philippines)','AI Trainers Network — Cebuano / English / Tagalog (talent pools; no immediate work)','Shape the Future of AI — Ilocano Talent Hub (native/near-native Ilocano plus English; talent pool, not an active job)','Project Cursa — Robot Manipulation Video Annotator and QC','Ads Quality Rater — Filipino (Philippines)'],
+  examples:['AI Data Quality Specialist — English (Philippines)','AI Trainers Network — Cebuano / English / Tagalog (talent pools; no immediate work)','Shape the Future of AI — Ilocano Talent Hub (native/near-native Ilocano plus English; talent pool, not an active job)','Project Cursa — Robot Manipulation Video Annotator and QC (V2)','Andromeda Delta — Audio Transcription Reviewer (USD $4.55/hour; estimated 30h/week)','Andromeda Delta — Audio Transcription Adjudicator (USD $7/hour; estimated 15–20h/week)','Ads Quality Rater — Filipino (Philippines)'],
   official:'https://jobs.lever.co/weloglobal/?location=Philippines',
   secondary:'https://jobs.lever.co/weloglobal/a7b1515b-4ec4-4154-97cf-459423c50709',
   secondaryLabel:'Official Ilocano AI Trainers talent hub (not an active job)',
   cta:'Open current Philippines roles',
-  verified:'2026-11-01'
+  verified:'2026-11-08'
  },
  {
   id:'ai-data-innovations-ai-safety-annotator',name:'AI Data Innovations — Technical Data Annotator (AI Safety & Guardrails)',status:'active-ph',badge:'PHILIPPINES • REMOTE • CONTRACT • USD $8.00/HR • ABOUT 12 WEEKS',
@@ -156,10 +169,30 @@ const opportunities:Opportunity[]=[
  {
   id:'welo-cursa-annotator',name:'Welo Data — Project Cursa Video Annotator (V2)',status:'active-ph',badge:'PHILIPPINES • REMOTE • AI VIDEO',
   summary:'Official remote freelance listing for describing robotic manipulation videos. Advertised pay: USD 3.50 per hour; hours and selection are not guaranteed.',
-  requirements:['Philippines is explicitly eligible on the official listing','Strong written English, careful observation and ability to follow structured annotation rules','Prior annotation experience is helpful but not required','Computer and reliable internet are appropriate for this video-labeling work; verify onboarding requirements before accepting'],
+  requirements:['Philippines is explicitly eligible on the official listing','Strong written English, careful observation and ability to follow structured annotation rules','Prior annotation experience is helpful but not required','Computer and reliable internet are appropriate for this video-labeling work; verify onboarding requirements before accepting','The current V2 description contains a stray sentence referring to a Legal field that does not match the robotics-video task; confirm the exact scope and instructions with Welo before accepting'],
   official:'https://jobs.lever.co/weloglobal/c5c69abd-d960-42d6-ba72-0cba79615418',
   cta:'Apply on official Welo listing',
-  verified:'2026-11-05'
+  verified:'2026-11-08'
+ },
+ {
+  id:'welo-andromeda-audio-reviewer',name:'Welo Data — Andromeda Delta Audio Transcription Reviewer (English US)',status:'active-ph',badge:'PHILIPPINES • REMOTE FREELANCE PILOT • USD $4.55/HR • EST. 30H/WEEK',
+  summary:"Welo Data's official listing recruits in the Philippines for a freelance pilot reviewing pre-segmented English audio. Reviewers check word-level segments, start/end timestamps and transcript errors. The listed rate is USD $4.55/hour with an estimated 30 hours/week; project volume and hours are not guaranteed.",
+  requirements:["The official posting explicitly lists the Philippines as an eligible work location, along with India, Indonesia and Cairo, Egypt","Strong English fluency, including colloquial speech, contractions and filler words","Prior audio transcription, data annotation or speech/NLP labeling experience is preferred but not stated as mandatory","Use annotation tools, follow a detailed evolving style guide, and work independently with reliable internet and good headphones","Freelance pilot; the listing does not publish payout method or payment cadence. Confirm the contract, payment schedule, currency conversion, taxes and task availability before accepting","For a U.S. citizen residing in the Philippines, the posting's location eligibility is based on the Philippines; confirm local contractor/work authorization and U.S. tax reporting before beginning"],
+  official:'https://jobs.lever.co/weloglobal/efcc8784-2d7a-4ad7-bc54-1d728c53be9f',
+  secondary:'https://jobs.lever.co/weloglobal/efcc8784-2d7a-4ad7-bc54-1d728c53be9f/apply',
+  secondaryLabel:'Official Welo application form',
+  cta:'Apply through the official Welo listing',
+  verified:'2026-11-08'
+ },
+ {
+  id:'welo-andromeda-audio-adjudicator',name:'Welo Data — Andromeda Delta Audio Transcription Adjudicator (English US)',status:'active-ph',badge:'PHILIPPINES • REMOTE FREELANCE • USD $7/HR • EST. 15–20H/WEEK',
+  summary:"Welo Data's official listing recruits in the Philippines for a freelance role resolving disputed word-level English transcription and timestamp annotations. The listed rate is USD $7/hour with an estimated 15–20 hours/week. The role requires stronger judgment than first-pass review; work volume is not guaranteed.",
+  requirements:["The official posting explicitly lists the Philippines as an eligible work location, along with India, Indonesia, Cairo, Egypt and Mexico","Requires U.S. cultural expertise in English and excellent listening comprehension; U.S. citizenship is not required by the listing, and location eligibility is separately based on the Philippines","Prior transcription/annotation QA, adjudication or linguistic review experience is preferred; strong judgment, attention to detail and clear written rationale are required","Reliable internet and a quiet working environment with good headphones are required","Freelance contract; estimated hours are not guaranteed and the listing does not publish payout method or payment cadence. Confirm the contract and payment terms before accepting","For a U.S. citizen residing in the Philippines, confirm local contractor/work authorization and U.S. tax reporting before beginning"],
+  official:'https://jobs.lever.co/weloglobal/bfadf038-9d98-482e-b245-4def1c370253',
+  secondary:'https://jobs.lever.co/weloglobal/bfadf038-9d98-482e-b245-4def1c370253/apply',
+  secondaryLabel:'Official Welo application form',
+  cta:'Apply through the official Welo listing',
+  verified:'2026-11-08'
  },
  {
   id:'welo-cursa-qc',name:'Welo Data — Project Cursa Video Annotation QC (V2)',status:'active-ph',badge:'PHILIPPINES • REMOTE • QUALITY REVIEW',
@@ -263,6 +296,36 @@ const opportunities:Opportunity[]=[
   cta:'Pre-register through the official Startup Week portal',
   verified:'2026-11-06'
 },
+ {
+
+  id:'dict-sgf-2026-watch',name:'DICT / IIDB — Startup Grant Fund 2026 Call (Official Watch)',status:'waitlist',badge:'HIGHEST-PRIORITY PH WATCH • CALL NOT YET PUBLISHED • OCTOBER TARGET PASSED',
+  summary:"No official DICT/IIDB Startup Grant Fund 2026 Call for Applications, application form, eligibility rules, deadline, templates or procedure was found on the official channels checked November 8, 2026. The official IIDB public update about the September consultation targeted the revised circular and next call for October 2026; that target has passed. The user reports DICT told them on October 7 that the detailed rules and templates would be published when the official call launches. Do not treat any DOST grant as this DICT call.",
+  requirements:["Status is NOT OPEN and no deadline or grant amount is confirmed; do not submit an old SGF form or pay an intermediary","The official Startup Philippines SGF events page currently has no published SGF call/event. Monitor it together with DICT and IIDB official channels","The September IIDB consultation update described October 2026 as the target for the revised circular and next call; no later official application notice was found as of November 8","Eligibility, application procedures, templates, required documents, funding amount and deadline remain unknown until the official call is published","Keep this separate from DOST-PCAARRD, DOST-PCIEERD and other DOST programs; they are not DICT SGF","When the genuine DICT/IIDB call appears, replace this watch entry with the official call, exact eligibility, deadline, templates, procedure and application link"],
+  official:'https://startup.gov.ph/events/?tag=SGF',
+  secondary:'https://www.linkedin.com/company/ict-industry-development-bureau/',
+  secondaryLabel:'Official IIDB channel for call announcements',
+  cta:'Monitor official DICT/IIDB call announcements',
+  verified:'2026-11-08'
+ },
+ {
+  id:'div-fund-global-2026',name:'DIV Fund — Global Development Innovation Grants (Rolling Applications)',status:'location-check',badge:'GLOBAL ORGANIZATIONS • ROLLING • STAGE 1 UP TO $300K / STAGE 2 $1M / STAGE 3 $4M',
+  summary:"The official DIV Fund accepts applications on a rolling basis from locally led and global organizations working in low-, lower-middle- and upper-middle-income countries. The Philippines is now upper-middle-income under the World Bank's 2026 classification and remains within the fund's stated eligible country-income groups. This is grant funding, not equity or debt. Awards are milestone-based and are for evidence-driven development innovations, not general operating support or a generic software build.",
+  requirements:["Applicant must be a legally incorporated organization; the fund accepts nonprofits, social enterprises, startups, private-sector firms, universities, research institutions, technical-assistance providers and consortia. It does not fund individuals without a legal entity or directly fund government agencies","Global organizations are welcome, and projects must be implemented in an eligible low-, lower-middle- or upper-middle-income country; the Philippines is now upper-middle-income under the World Bank's August 2026 update","Stage 1 (real-world piloting): up to USD $300,000; the innovation must be post-prototype and ready for real-world testing, typically with hundreds or thousands of people","Stage 2 (testing and positioning for scale): up to USD $1,000,000; requires successful pilot work and a credible plan for rigorous impact or market-viability testing","Stage 3 (transitioning to scale): up to USD $4,000,000; requires strong prior evidence of impact/cost-effectiveness or demonstrated commercial viability and a credible scale pathway","Applications are accepted on a rolling basis; there is no fixed annual deadline. Review and diligence can take several months. Funding is tied to agreed milestones","The fund prioritizes measurable benefits for people living in poverty, cost-effectiveness and durable scale. It typically expects potential to improve at least one million lives over ten years","The fund explicitly says it generally does not fund stand-alone monitoring/evaluation platforms, incubators/accelerators, pre-prototype ideas or general operating support. A Magnanimous project would need a distinct real-world public-impact intervention, evidence, unit costs and a credible scale path; a platform alone is not enough","The official application page warns that incomplete, ineligible, duplicative or primarily AI-generated proposals may be declined; applications must show genuine human judgment and context-specific insight","U.S. citizenship does not by itself disqualify a global organization, but an individual cannot apply without a legally incorporated entity. Verify entity good standing, governance, financial capacity and project-country implementation before preparing an application"],
+  official:'https://www.div.fund/apply/form',
+  secondary:'https://www.div.fund/apply/rfp',
+  secondaryLabel:'Official request for proposals and stage criteria',
+  moreLinks:[{label:'Official 2026.10.30 application form (PDF)',url:'https://cdn.prod.website-files.com/696918a203c2992e3fca8942/6ae51a88a3d21f326e77d902_DIV%20Fund%20Application%20Form%20%E2%80%93%202026.10.30.pdf'},{label:'Official 2026.10.30 application form (Word)',url:'https://cdn.prod.website-files.com/696918a203c2992e3fca8942/6ae519eaeecc71b77560d204_DIV%20Fund%20Application%20Form%20%E2%80%93%202026.10.30.docx'},{label:'Official how-to-apply and applicant FAQs',url:'https://www.div.fund/apply'}],
+  cta:'Review official DIV Fund criteria and application',
+  verified:'2026-11-08'
+ },
+ {
+  id:'circulab-mindanao-cohort-2',name:'Circulab Accelerator — Mindanao Cohort 2 Grant',status:'location-check',badge:'MINDANAO-ONLY • UP TO €19,445 NON-REPAYABLE • DEADLINE DEC 31, 2026',
+  summary:"Upgrade Innolab has opened Cohort 2 of its Circulab Accelerator under the EU-Philippines Green Economy Programme. The call offers selected Mindanao circular-economy ventures a non-repayable grant of up to EUR 19,445. It is a regional program, not a DICT Startup Grant Fund or a nationwide Philippine grant.",
+  requirements:["Applicants must be registered and actively operating in Mindanao, specifically Regions X, XI, XII, XIII or BARMM; Negros Oriental is outside the eligible region, so a venture based there is not eligible","The call expressly warns against expanding into Mindanao solely to qualify; do not relocate or create a nominal address just for this grant","Applicants must be registered businesses with DTI or SEC registration, mayor's permit and BIR registration","The venture must have a validated minimum viable product, a defined target customer base and at least one full-time founder","The business must apply two or three principles from the 10Rs circular-economy framework and show a practical environmental/economic benefit","Grant funding is up to EUR 19,445, non-repayable, for selected ventures; this is not a guaranteed award and no individual-only application route is stated","Application deadline is December 31, 2026. The official call links the application form and proposal templates; screening, pitch, due diligence and final selection follow in early 2027","A U.S. citizen living in the Philippines is not excluded by nationality in the public call, but the venture itself must meet the Mindanao registration and operating requirements"],
+  official:'https://upgradeinnolab.com/2026/10/upgrade-innolab-opens-call-for-proposals/',
+  cta:'Review the official call and linked application form',
+  verified:'2026-11-08'
+ },
  {
   id:'dost-pcieerd-dut-2026',name:'DOST-PCIEERD — Driving Urban Transition (DUT) 2026 Grant',status:'location-check',badge:'PHILIPPINES • INTERNATIONAL RESEARCH CONSORTIUM • DEADLINE NOV 17, 2026',
   summary:'An official open DOST-PCIEERD concept-proposal call under the Driving Urban Transition Partnership. It supports transnational urban research/innovation, not unrestricted startup operating cash. The Philippine call has three eligible topic areas and allocates up to PHP 25,000,000 across a maximum of three projects for the full three-year duration, not PHP 25 million per applicant.',
@@ -486,6 +549,18 @@ const opportunities:Opportunity[]=[
   verified:'2026-10-26'
  },
  {
+  id:'outlier-english-image-video-evaluator',name:'Outlier — English-Speaking AI Image and Video Evaluator (Philippines)',status:'active-ph',badge:'PHILIPPINES • REMOTE • UP TO USD $7/HR • 1099 FREELANCE',
+  summary:"Outlier's official project page is explicitly remote in the Philippines and advertises up to USD $7/hour for evaluating AI-generated images, videos and some live English voice interactions. The work includes comparing outputs, spotting visual/audio defects and writing evidence-based explanations. Hours and task volume are variable; this is freelance contract work, not employment.",
+  requirements:["The official project page explicitly lists Remote — Philippines; eligibility is tied to actual country of residence, not U.S. citizenship","Fluent English and clear written communication; a bachelor's degree or above is desirable, not stated as mandatory","Requires a computer with reliable internet and headphones; a quiet place is needed for projects involving live voice conversations","Ratings and written explanations must be the contributor's own work; AI tools may not be used to write the explanations. Screening and onboarding may include a spoken-English check","Advertised core project rate is up to USD $7/hour. Outlier says rates vary by expertise, skills assessment, location and project need; non-core onboarding/overtime work may pay less. Additional Missions incentives are not guaranteed","Outlier lists PayPal and AirTM on the project page; verify the payout method actually available to a Philippines account before accepting","The listing is a 1099 independent-contractor opportunity and requires authorization to work in the country of residence. A U.S. passport alone does not establish Philippine work authorization. Confirm whether the user's 13A/immigrant status and this cross-border contractor arrangement require DOLE/Bureau of Immigration documentation before starting","U.S. citizens abroad remain subject to U.S. tax reporting on worldwide income. The foreign earned income exclusion may apply only if the tests are met and does not reduce U.S. self-employment tax; keep records and obtain qualified tax advice","No application fee; do not pay to unlock tasks or withdraw earnings, and do not use a VPN or misstate your actual location"],
+  official:'https://app.outlier.ai/opportunities/4749649005',
+  secondary:'https://outlier.ai/faq',
+  secondaryLabel:'Official pay, payout and contractor FAQ',
+  tertiary:'https://outlier.ai/legal/flexible-working-guidelines',
+  tertiaryLabel:'Official permitted-country and location rules',
+  cta:'Review the official Outlier project',
+  verified:'2026-11-08'
+ },
+ {
   id:'user-interviews-ph',name:'User Interviews — Paid Research Studies',status:'waitlist',badge:'PHILIPPINES NOT CURRENTLY SUPPORTED',
   summary:'The official participant-support country list, updated October 5, 2026, does not include the Philippines. Do not expect to qualify for studies while residing in the Philippines unless the company updates its country list.',
   requirements:['The Philippines is absent from the current supported-country list','The company says people in countries not listed cannot yet participate; recheck the official list before applying','Eligibility follows supported-country rules; do not use a false address or VPN to bypass location restrictions'],
@@ -557,15 +632,13 @@ const opportunities:Opportunity[]=[
  {
   id:"rws-cebuano-conversation-recording",
   name:"RWS TrainAI — AI Conversation Recording Contributor (Cebuano)",
-  status:"active-ph",
-  badge:"PHILIPPINES • REMOTE • USD $7/HR • APPROX. 2–4 HRS/DAY • NATIVE CEBUANO",
-  summary:"RWS's official TrainAI Lever posting offers a freelance, work-from-home Cebuano speech-data collection project at USD $7/hour, with flexible task-based work of approximately 2–4 hours daily. The location list explicitly includes Dumaguete and Tagbilaran as well as several other Philippine cities. The project duration is still TBC and the start date is listed as immediate; assignments and total hours are not guaranteed.",
-  requirements:["The official location list explicitly includes Dumaguete and Tagbilaran, plus Cebu City, Mandaue, Lapu-Lapu, Davao City, Cagayan de Oro, Talisay, General Santos, Butuan, Iligan, Zamboanga City, Toledo, Carcar and Valencia","Remote, temporary/freelance contract; approximately 2–4 hours daily on a flexible task-based schedule. Project duration is TBC and the employer lists an immediate start","Published rate is USD $7/hour. RWS describes payments as timely and reliable but does not publish the payout method or schedule on the job page; confirm both and the available paid hours before accepting","Native-level Cebuano fluency and advanced English are required. Contributors must use their own natural pronunciation and must not imitate dialects or accents that are not theirs","No previous speech-recording or data-annotation experience is required; attention to detail and ability to follow recording and metadata instructions are important","Requires a quiet recording space, computer microphone or headset with microphone, reliable internet and access to an online recording platform; this is not a phone-only task","The application asks for current country, native and fluent languages, age 18+, vendor type and ability to invoice. RWS defines Private Individual as someone without a business license, so choose the truthful category; do not claim to have a registered business or invoice capability if you do not","Only record approved conversations with the explicit consent of every participant. Do not record children, bystanders, private/sensitive discussions, IDs, financial information or conversations in spaces where people have not agreed to recording","Apply only through the official RWS Lever page. Never pay an intermediary, recruiter or anyone claiming to unlock tasks or release earnings"],
-  official:"https://jobs.lever.co/rws/0ae94923-6b66-48ad-ab4b-dcffd358dc86",
-  secondary:"https://jobs.lever.co/rws/0ae94923-6b66-48ad-ab4b-dcffd358dc86/apply",
-  secondaryLabel:"Official RWS application form",
-  cta:"Review and apply through RWS",
-  verified:"2026-11-06"
+  status:"closed",
+  badge:"CLOSED / REMOVED • OLD DIRECT JOB ID AND APPLY URL RETURN 404",
+  summary:"The former RWS TrainAI Cebuano conversation-recording posting is no longer available. Its direct Lever job URL and /apply URL both return 404, and the current official RWS TrainAI board no longer lists the Cebuano role. The old USD $7/hour rate, 2–4 hours/day estimate and city list are therefore not current verified terms. This record is retained as closed so the dead listing is not shown as an active earning opportunity.",
+  requirements:["Do not use the old direct job or application URLs; both are dead","The current official RWS TrainAI board has no Cebuano conversation-recording listing as of November 8, 2026","Do not rely on the old USD $7/hour rate, daily hours or location list unless RWS publishes a new official posting","Re-open only when a new official RWS posting and working application route are available; avoid third-party copies and anyone charging a recruitment fee"],
+  official:"https://jobs.lever.co/rws?team=TrainAI",
+  cta:"Check the official RWS TrainAI board for a relisting",
+  verified:"2026-11-08"
  },
  {
   id:"imerit-ai-trainer-video-annotation-ph",
@@ -709,18 +782,19 @@ const opportunities:Opportunity[]=[
  },
  {
   id:'rise-data-labs-global-expert-network',name:'Rise Data Labs — Global Expert Network for AI Training & Evaluation',status:'active-ph',badge:'GLOBAL REMOTE CONTRACTS • ADVANCED PROFESSIONAL EXPERTS • USD $50–$150/HR ADVERTISED',
-  summary:'Rise Data Labs’ official expert portal currently lists remote contract projects whose individual role pages explicitly say “Global. All countries welcome.” Current recently posted examples include Finance Expert ($50–$100/hour; posted Nov 2), Legal & Paralegal Expert ($50–$150/hour; posted Oct 31), and Healthcare Expert ($50–$150/hour; posted Oct 31). An older QuickBooks/Sales Operations project was posted September 11 and is not treated as a current opening. The network requires an advanced degree or deep professional experience; prior AI experience is not required. Rates are role-specific, project volume varies, and weekly payment applies only to approved work.',
+  summary:'Rise Data Labs’ official expert portal currently lists remote contract projects whose individual role pages explicitly say “Global. All countries welcome.” Current examples include the Finance Expert project posted Nov 2 at USD $50–$100/hour, Legal & Paralegal Expert at USD $50–$150/hour, and Healthcare Expert at USD $50–$150/hour. A separate Global Finance Expert listing remains live at up to USD $150/hour, with at least 20 hours/week for two weeks. An older QuickBooks/Sales Operations project is not treated as a current opening. The network requires an advanced degree or deep professional experience; prior AI experience is not required. Rates are role-specific, project volume varies, and weekly payment applies only to approved work.',
   requirements:['The official expert portal says location requirements vary by role; the current Finance, Legal/Paralegal and Healthcare roles linked here each state Global / all countries welcome','Applicants need an advanced degree or deep professional experience. This is not a beginner click-work platform; each role requires established professional expertise in its domain','Finance Expert: USD $50–$100/hour; ideally 40 hours/week for two weeks, minimum 20 hours/week; finance experience such as investment research, asset management, financial modeling, accounting or corporate finance','Legal & Paralegal Expert: USD $50–$150/hour; professional experience as a paralegal, legal researcher, attorney, legal operations or compliance professional; project hours not stated','Healthcare Expert: USD $50–$150/hour; relevant professional experience and qualifications/licensure where applicable; project hours not stated','The network application includes a profile, interview and skills assessment. Approval does not guarantee a project; check each project’s rate, hours, deadline and country terms before accepting','The official portal says approved work is paid weekly. No application or release fee is listed; never pay to join, unlock tasks or receive earnings, and never share passwords or OTPs'],
   official:'https://experts.risedatalabs.com/',
-  secondary:'https://experts.risedatalabs.com/jobs/finance-expert-ai-training-evaluation-cmov7',
-  secondaryLabel:'Finance Expert — USD $50–$100/hour, global',
+  secondary:'https://experts.risedatalabs.com/jobs/legal-paralegal-expert-%E2%80%94-ai-training-evaluation-cmov7',
+  secondaryLabel:'Finance Expert — USD $50–$100/hour, global (posted Nov 2; corrected official route)',
   moreLinks:[
+   {label:'Finance Expert — Global, up to USD $150/hour; 20h/week minimum for two weeks (separate project)',url:'https://experts.risedatalabs.com/jobs/finance-expert-ai-training-evaluation-global-jvaaq'},
    {label:'Legal & Paralegal Expert — USD $50–$150/hour, global',url:'https://experts.risedatalabs.com/jobs/legal-paralegal-expert-%E2%80%94-ai-training-evaluation-0qn42'},
    {label:'Healthcare Expert — USD $50–$150/hour, global',url:'https://experts.risedatalabs.com/jobs/healthcare-expert-%E2%80%94-ai-training-evaluation-x5d4n'},
    {label:'Older QuickBooks/Sales Operations project (posted Sep 11; confirm still available)',url:'https://experts.risedatalabs.com/jobs/quickbooks-expert-with-sales-operations-experience-l7q1d'}
   ],
   cta:'Join official expert network and review projects',
-  verified:'2026-11-02'
+  verified:'2026-11-08'
  },
  {
   id:'respondent-ph-paid-research',name:'Respondent — Paid Research Studies & Interviews',status:'active-ph',badge:'PHILIPPINES • FREE PARTICIPANT SIGN-UP • REMOTE RESEARCH',
