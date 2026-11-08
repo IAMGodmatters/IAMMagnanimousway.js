@@ -65,7 +65,7 @@ for(const needle of [
 ])assert(agent.includes(needle),'Native browser agent contract missing: '+needle);
 
 assert(!agent.includes('shell=True'),'native browser must not reopen a generic shell surface');
-assert.equal((agent.match(/subprocess\\.Popen\\(/g)||[]).length,1,'only the allowlisted Android emulator start action may spawn a detached process');
+assert.equal((agent.match(/subprocess\.Popen\(/g)||[]).length,1,'only the allowlisted Android emulator start action may spawn a detached process');
 assert(agent.includes('def action_android_emulator_start(config, payload):'),'detached process must be limited to the Android emulator lifecycle');
 assert(agent.includes('argv = [str(emulator), "-avd", name, "-no-boot-anim"]'),'Android emulator startup must use an explicit, validated argument vector');
 assert(agent.includes('shell=False'),'Android emulator startup must not invoke a shell');
