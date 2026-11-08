@@ -176,6 +176,7 @@ function validateTask(action,payload){
  if(['android_emulator_install_image','android_emulator_create'].includes(action)&&!systemImage(body.image))throw new Error(action+' requires a supported Google APIs x86_64 system image package, e.g. system-images;android-35;google_apis;x86_64.');
  if(action==='android_emulator_create'&&!['pixel_2','pixel','pixel_3','pixel_4'].includes(String(body.device_profile||'pixel_2')))throw new Error('Unsupported Android virtual-device hardware profile.');
  if(['android_cloud_start','android_cloud_stop'].includes(action)){const slot=Number(body.slot??0);if(!Number.isInteger(slot)||slot<0||slot>9)throw new Error(action+' slot must be an integer from 0 to 9.');}
+ if(action==='android_cloud_start'&&body.google_sdk_license_accepted!==true)throw new Error('Owner must affirm that the applicable Google Android SDK and emulator container terms have been reviewed and accepted.');
   if(action.startsWith('storage_')){
   const forbidden=['token','access_token','refresh_token','client_secret','password','passwd','api_key','secret'];
   for(const key of forbidden)if(Object.prototype.hasOwnProperty.call(body,key))throw new Error('Cloud storage credentials must remain local to the paired bridge.');
