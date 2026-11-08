@@ -19,7 +19,7 @@ const page=read('frontend/app/local-bridge/page.tsx');
 const virtualPhonePage=read('frontend/app/virtual-phones/page.tsx');
 const robots=read('frontend/public/robots.txt');
 const virtualPhones=read('frontend/app/virtual-phones/page.tsx');
-const cloudInstaller=read('frontend/public/downloads/virtual-phone-farm/install-cloud-node.sh');
+const cloudInstaller=read('local-bridge/install-cloud-node.sh');
 const virtualPhoneDocs=read('docs/MAGNANIMOUS-VIRTUAL-PHONE-FARM.md');
 const ownerCenter=read('frontend/app/owner-center/page.tsx');
 
