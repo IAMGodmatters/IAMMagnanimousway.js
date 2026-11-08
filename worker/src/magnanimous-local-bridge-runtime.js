@@ -1,3 +1,4 @@
+import {CLOUD_NODE_INSTALLER} from './magnanimous-virtual-phone-farm-installer.js';
 import { currentUser } from './integrations.js';
 import { requirePlatformOwner } from './platform-owner-guard.js';
 import { createBrowserTaskReceipt, getBrowserTaskReceipt, verifyBrowserReceiptChain } from './magnanimous-browser-receipts.js';
