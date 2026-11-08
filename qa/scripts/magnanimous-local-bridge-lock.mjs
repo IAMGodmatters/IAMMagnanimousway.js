@@ -8,6 +8,7 @@ import {buildMagnanimousOgenicPlan} from '../../worker/src/magnanimous-ogenic-go
 const repoRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const read=p=>fs.readFileSync(path.join(repoRoot,p),'utf8');
 const runtime=read('worker/src/magnanimous-local-bridge-runtime.js');
+const virtualInstaller=read('worker/src/magnanimous-virtual-phone-farm-installer.js');
 const agent=read('local-bridge/bridge_agent.py');
 const installer=read('local-bridge/install.ps1');
 const uninstaller=read('local-bridge/uninstall.ps1');
@@ -146,6 +147,9 @@ assert(virtualPhones.includes('/api/magnanimous/local-bridge/tasks'));
 assert(virtualPhones.includes('/api/magnanimous/local-bridge/pairings'));
 assert(ownerCenter.includes('href="/virtual-phones"'));
 assert(cloudInstaller.includes('/dev/kvm')&&cloudInstaller.includes('docker info'));
+assert(virtualInstaller.includes('Magnanimous cloud bridge service enabled'));
+assert(runtime.includes('/api/magnanimous/virtual-phone-farm/install-cloud-node.sh'));
+assert(progress.includes("path==='/api/magnanimous/virtual-phone-farm/install-cloud-node.sh'"));
 assert(cloudInstaller.includes('python3 -m py_compile'));
 assert(!cloudInstaller.includes('sudo '));
 assert(virtualPhoneDocs.includes('experimental'));
