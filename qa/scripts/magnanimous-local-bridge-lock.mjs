@@ -82,6 +82,8 @@ for(const action of ['android_emulator_status','android_emulator_list','android_
 assert(agent.includes('us-docker.pkg.dev/android-emulator-268719/images/30-google-x64:30.1.2'));
 assert(agent.includes('"--publish", f"127.0.0.1:{adb_port}:5555/tcp"'));
 assert(agent.includes('"--device", "/dev/kvm"'));
+assert(agent.includes('payload.get("google_sdk_license_accepted") is not True'));
+assert(runtime.includes('body.google_sdk_license_accepted!==true'));
 assert.equal(LOCAL_BRIDGE_ACTIONS.heimdall_status.confirmation,false);
 assert.equal(LOCAL_BRIDGE_ACTIONS.heimdall_detect.confirmation,true);
 assert.equal(LOCAL_BRIDGE_ACTIONS.heimdall_detect.auto,false);
