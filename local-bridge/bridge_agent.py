@@ -647,6 +647,8 @@ def action_android_cloud_status(config, payload):
 
 
 def action_android_cloud_start(config, payload):
+    if payload.get("google_sdk_license_accepted") is not True:
+        raise RuntimeError("Owner must review and affirm acceptance of the applicable Google Android SDK and emulator container terms before starting this container.")
     status = _android_cloud_host_status()
     if not status.get("ready"):
         raise RuntimeError("Cloud node requires Linux, readable/writable /dev/kvm, usable Docker Engine, and adb. Magnanimous does not create or pay for a VM.")
