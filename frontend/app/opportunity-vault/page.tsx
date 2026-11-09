@@ -48,6 +48,51 @@ const opportunities:Opportunity[]=[
   verified:'2026-11-08'
  },
  {
+  id:'crowtado-phone-data-watch',
+  name:'Crowtado — Phone Video & Audio AI Data Tasks (Watchlist)',
+  status:'location-check',
+  badge:'FREE SIGN-UP • PH TASK / PAYOUT NOT VERIFIED • PRIVACY / PAYMENT CAUTION',
+  summary:'Crowtado is a browser-based contributor platform for phone-recorded first-person videos, short clips and paired conversations used in AI training. It shows task pay before work and says contributors pay no sign-up or submission fee. Its official site says sign-up is open in most countries, but each task and withdrawal method depends on country. Philippine task availability and a local payout route were not verified.',
+  requirements:[
+   'Applicants must be at least 18 and legally permitted to perform the selected task where they are physically located. Task eligibility varies by country, language, equipment, identity and tax requirements; no minimum work or income is guaranteed',
+   'First-person video tasks ask for 5–20 minutes of an everyday activity using a phone and head or chest mount. Short-clip tasks ask for five 15–120 second clips from a phone or camera recording at least 720p. Paired-conversation tasks require a partner with their own account, headphones and quiet rooms',
+   'The official task page limits paired conversations to the United States and Canada and native American English speakers. A U.S. citizen living in the Philippines should not assume this task is eligible based on citizenship alone',
+   'First-person video is listed as available in many countries, but the official site does not identify whether the Philippines is currently open. Create a free account only to inspect the actual task feed and confirm the payout method available to a Philippines-based account before recording',
+   'Pay is task-specific and shown before starting; only accepted work is paid. The official trust page sets a USD $10 withdrawal minimum, or USD $25 for bank transfers. PayPal, Venmo, Cash App, debit card, Wise and bank transfer options depend on country',
+   'Compensated tasks are intended as independent-contractor work unless mandatory local law requires otherwise. Contributors are responsible for applicable taxes, registrations and reporting. Confirm the tax forms, identity checks and payout destination before accepting a task',
+   'HIGH PRIVACY / IP CAUTION: the contributor agreement grants a worldwide, non-exclusive, transferable, sublicensable, royalty-free, fully paid-up license for platform operation, dataset creation/licensing and AI/ML training. Audio, video, faces, voices and locations may identify people; copies already delivered or incorporated into datasets, analyses or trained systems may persist. Never record minors, non-consenting people, private material, screens, passwords or sensitive personal information',
+   'PAYMENT TRACK-RECORD WARNING: recent community posts include unverified reports of long review queues, rejected or pending work and delayed payouts; other contributors report eventual payment. No independent Philippines payout evidence was found. Treat this as an unproven side-task lead: start small, keep submission records, request a small payout early and never pay a joining or release fee'
+  ],
+  official:'https://www.crowtado.com/en/sign-up',
+  secondary:'https://www.crowtado.com/en/about',
+  secondaryLabel:'Official task types and country availability',
+  tertiary:'https://www.crowtado.com/en/terms',
+  tertiaryLabel:'Contributor terms and content license',
+  moreLinks:[
+   {label:'Official trust, pay and payout policy',url:'https://www.crowtado.com/en/trust'},
+   {label:'Official privacy policy',url:'https://www.crowtado.com/en/privacy'}
+  ],
+  cta:'Check the official task feed and payout options',
+  verified:'2026-11-09'
+ },
+ {
+  id:'oneforma-kawaii-audio-labeling',
+  name:'OneForma — Kawaii Audio Labeling ($17/hour)',
+  status:'location-check',
+  badge:'REMOTE • USD $17/HR • NO EXPERIENCE • LANGUAGE / COUNTRY CHECK',
+  summary:'OneForma’s official Kawaii page advertises an ongoing remote audio-labeling project paying USD $17/hour for completed, approved work. Contributors listen to short voice-assistant recordings, identify speakers and timestamp key moments in a browser tool. The page says no prior experience is required, but it does not publish the supported language or country list; Philippine eligibility is not confirmed.',
+  requirements:['Free application with no joining fee; complete a short language screening, assessment/certification, training and qualification before paid work','Native-level fluency in a supported language is required. The public page does not confirm whether English-Philippines, Tagalog or Cebuano is currently accepted; the application determines eligibility','Requires a reliable computer, stable internet, headphones and a modern browser; this is not a phone-only task','USD $17/hour for completed, approved work; remote and flexible, but the project page does not guarantee hours, acceptance or long-term task volume','The page asks applicants to be based in their country or deeply familiar with its language and accents; Philippines-specific eligibility and the project payout method must be confirmed before accepting','OneForma terms classify contributors as independent contractors and require an independently established trade/business. Work product is assigned to the Project Owner, and registration includes broad use rights for name, voice and likeness','Payments are primarily through Payoneer. The terms say payment details submitted by the 25th are paid around the 10th of the following month. U.S. taxpayers must provide a tax ID and receive Form 1099; other taxpayers handle applicable local tax. Confirm the payout account and tax documentation before starting'],
+  official:'https://www.oneforma.com/join/kawaii/',
+  secondary:'https://www.oneforma.com/',
+  secondaryLabel:'Official OneForma project network and pay information',
+  tertiary:'https://www.oneforma.com/terms-and-conditions/',
+  tertiaryLabel:'Official independent-contractor, payment, tax and IP terms',
+  moreLinks:[{label:'Official OneForma privacy policy',url:'https://www.oneforma.com/privacy-policy/'}],
+  cta:'Check supported language and country',
+  verified:'2026-11-09'
+ },
+
+ {
   id:'egovista-contributor-watch',name:'EgoVista — First-Person Photo/Video Data Contributor (Watchlist)',status:'waitlist',badge:'GLOBAL SIGN-UP PAGE • NO LIVE PH MISSIONS OR PAYOUT ROUTE CONFIRMED',
   summary:"EgoVista is a French SAS contributor platform for first-person video and image capture used in AI/robotics datasets. Its public contributor page says the first missions are not open yet and invites people to join for future missions. Pay is per hour of usable footage accepted, with the mission-specific rate shown before participation; no current Philippines mission or Philippine payout corridor was verified. The public sign-up page says worldwide, while the privacy policy still describes a closed, invitation-only preview, so availability is inconsistent.",
   requirements:["Free account registration is shown on the official sign-up page; the contributor page says there are no uploads at sign-up and that users will be notified when missions open","Device requirements listed by EgoVista include a recent iPhone (12 or newer), recent Android device (2022 or newer), GoPro or compatible smart glasses; phone missions require a hands-free mount","No live Philippines mission, guaranteed hours, public rate or confirmed Philippine payout route was found; do not record or buy equipment until a mission appears in the account and its rate and payment method are confirmed","EgoVista's subprocessor page lists Wise for non-SEPA transfers as in use and says PayPal is not yet active; the Philippines payout corridor is not confirmed","The public contributor page says first missions are coming soon, but the privacy policy still says the service is in a closed preview with invitation-only access; ask the company to resolve this before relying on access","Accepted footage is licensed worldwide for 70 years and may be sublicensed to dataset buyers; the terms and privacy page describe broad use for AI/robotics training and related dataset products. Review this before recording","Only accepted, usable footage is paid. The public page and legal documents give different payment timing descriptions (15 days after approval versus 30 days after a payout request); get the exact mission terms in writing","Faces are described as blurred before external processing, but video remains personal data; do not record minors, bystanders, private spaces, screens, IDs, addresses or sensitive conversations without explicit consent"],
@@ -486,16 +531,17 @@ const opportunities:Opportunity[]=[
  },
 
  {
-  id:'usertesting-global-ph-location-check',name:'UserTesting — Paid Website, App & Product Tests',status:'location-check',badge:'GLOBAL TESTER NETWORK • PHILIPPINES ELIGIBILITY CHECK AT SIGN-UP • PAYPAL',
-  summary:'UserTesting pays contributors to complete surveys, recorded website/app tests and live video conversations. The official platform says the reward for each test is shown in the contributor feed and completed-test payments are usually sent 14 days later. UserTesting does not publish a fixed eligible-country list: its support centre says availability changes with supply and demand, so Philippine sign-up eligibility must be checked on the official registration page. Treat this as a country-check opportunity, not a confirmed PH account until the sign-up flow accepts the actual residence.',
-  requirements:['Free registration is offered through the official Get Paid to Test page; complete the email sign-up, profile checklist and short practice test','UserTesting says country eligibility changes with supply and demand and does not publish a fixed country list; the sign-up page determines whether a Philippines-based applicant can create an account','Never select a false country, use a VPN/proxy to appear elsewhere or use another person’s PayPal account; if the Philippines is not accepted, do not try to bypass the restriction','Available formats include surveys, recorded tests that may capture screen/audio/video, and scheduled live video conversations','The exact reward varies by test type, length and customer demand; the amount is displayed in the feed before accepting. No guaranteed number of invitations or monthly income is published','The official contributor page says completed-test payments are usually sent 14 days later; the onboarding guide requires PayPal for payment','Mobile app minimums published by UserTesting: iOS 14 or later, Android 10 or later; computer tests require a supported browser, microphone and adequate upload speed','Read each test’s recording notice and privacy terms before starting; do not reveal passwords, financial account details, private messages or confidential documents during a recording'],
+  id:'usertesting-global-ph-location-check',name:'UserTesting — Paid Website, App & Product Tests',status:'active-ph',badge:'PHILIPPINES • CLASSIC TESTS ONLY • VERIFIED PAYPAL • 14-DAY USD PAYOUT',
+  summary:'UserTesting’s official October 12, 2026 country table includes the Philippines for Classic moderated and unmoderated tests, but not for New Experience tests (Live Conversation, Surveys, Interaction and Think Out Loud). Test invitations remain screener- and demand-dependent; this is limited test-type eligibility, not guaranteed work.',
+  requirements:['Free to apply; applicants must be at least 18 and complete the profile checklist, PayPal setup and an unpaid practice test','The official country table lists the Philippines for Classic moderated and unmoderated tests only; the Philippines is not listed for New Experience tests. PH is also absent from the standard-country list, so account acceptance and test volume may be limited','The exact reward varies by test and is displayed before accepting. Payments are in USD to a verified PayPal account about 14 days after completion; there is no minimum payout threshold','The applicant FAQ supports English, French and German. Desktop and mobile tests are available; current minimums include iOS latest two versions and Android 10+; most recorded tests require a microphone','Use the actual country of residence in the profile. Do not use a VPN or false location. U.S. citizenship does not override location-specific test availability while living in the Philippines','UserTesting does not withhold taxes; contributors report income under applicable country rules. A U.S. citizen should also confirm U.S. reporting obligations and any applicable Philippine tax treatment','Tests may record screen, audio, video or live conversation. Do not reveal passwords, OTPs, financial account details, private messages or confidential documents. A recent individual Trustpilot review alleges completed tests were unpaid after platform errors; this is an unverified individual report, not proof of a general problem—keep records and contact official support if a test fails'],
   official:'https://www.usertesting.com/get-paid-to-test',
-  secondary:'https://participant-support.usertesting.com/hc/en-us/articles/38410176419603-Can-I-join-the-UserTesting-Network-from-my-country',
-  secondaryLabel:'Official country-eligibility guidance',
-  tertiary:'https://participant-support.usertesting.com/hc/en-us/articles/38745458217235-How-can-I-join-the-UserTesting-Network',
-  tertiaryLabel:'Official onboarding and PayPal payment guidance',
-  cta:'Check actual Philippines eligibility at official sign-up',
-  verified:'2026-11-04'
+  secondary:'https://help.usertesting.com/hc/en-us/articles/11880389286429-Which-countries-can-I-test-in',
+  secondaryLabel:'Official country table — Philippines in Classic tests only',
+  tertiary:'https://support.usertesting.com/hc/en-us/articles/4405063917075-Applicant-FAQ',
+  tertiaryLabel:'Official applicant, language, device and PayPal requirements',
+  moreLinks:[{label:'Official USD payment timing and tax guidance',url:'https://participant-support.usertesting.com/hc/en-us/articles/38814220821523-FAQ-Payments'}],
+  cta:'Apply and check the Philippines Classic-test feed',
+  verified:'2026-11-09'
  },
  {
   id:'userlytics-ph-usability',name:'Userlytics — Paid Website & App Usability Tests',status:'active-ph',badge:'PHILIPPINES • PAYPAL • DESKTOP & MOBILE STUDIES',
