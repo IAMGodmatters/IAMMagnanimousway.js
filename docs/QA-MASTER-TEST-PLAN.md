@@ -16,6 +16,9 @@ The `Full Platform QA` GitHub Action automatically checks:
 - Critical functions across Chromium, Firefox, WebKit/Safari, Android Chrome, and iPhone Safari profiles.
 - Serious/critical accessibility defects on critical routes.
 - Visible forms and controls for basic functional readiness.
+- Built-frontend Chromium journeys on every PR/push: plan-specific affirmative consent, authenticated and unauthenticated checkout paths, cancellation, exact recurring-consent payload, and no-charge mocked hosted checkout.
+- Checkout-entry performance budgets: TTFB under 3 seconds, DOM content loaded under 10 seconds, full load under 15 seconds, fewer than 200 resources, and less than 30 MiB transferred in the local static-bundle runner; mobile pricing must not overflow horizontally.
+- Production deployment retains its separate live post-deploy revision/health, authentication/session, billing, webhook-signature, product-route, and controlled test-tenant smoke checks. Hosted checkout session creation is not a completed payment.
 - Failure evidence: Playwright trace, screenshot, video, JSON result, HTML report, and Markdown summary.
 - Automatic GitHub regression issue creation/update after failed non-PR runs.
 
