@@ -79,6 +79,9 @@ jobs:
             frontend/package-lock.json
             worker/package-lock.json
 
+      - name: Run deterministic native unit and integration tests
+        run: node qa/scripts/run-native-regression-tests.mjs
+
       - name: Install frontend
         working-directory: frontend
         run: npm ci --no-audit --no-fund

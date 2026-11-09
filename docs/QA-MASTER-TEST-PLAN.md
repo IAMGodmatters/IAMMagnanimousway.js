@@ -7,6 +7,7 @@ This document defines the platform-wide test standard. Use **PASS**, **FAIL**, *
 The `Full Platform QA` GitHub Action automatically checks:
 
 - Frontend typecheck, interaction audit, and production build.
+- Deterministic native Node unit/integration suites for homepage health, TV pairing and revocation, video-gateway credential isolation, repository evidence inspection, and model-calibration evaluation. The shared runner is `qa/scripts/run-native-regression-tests.mjs` and runs before production database/secret changes.
 - Worker and video-gateway JavaScript syntax.
 - Backend and video-renderer Python syntax.
 - Every static `frontend/app/**/page.tsx` route discovered from source.
