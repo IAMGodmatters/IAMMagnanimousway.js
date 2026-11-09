@@ -753,16 +753,16 @@ const opportunities:Opportunity[]=[
  },
  {
   id:"welo-robotics-video-qa-expert-ph",
-  name:"Welo Data — Robotics Video QA & Annotation Expert",
-  status:"location-check",
-  badge:"QUEZON CITY LISTING • FULL-TIME • WORK MODE AND PAY NOT DISCLOSED",
-  summary:"Welo Data has a new employer-posted full-time Philippines listing for a Robotics Video QA & Annotation Expert. The role reviews robot-manipulation video annotations for language accuracy, labeling detail and consistency across camera views. The public listing shows Quezon City but does not state whether the job is remote, hybrid or onsite, and it does not publish compensation.",
-  requirements:["The employer-posted listing identifies Quezon City and full-time employment; no remote or work-from-home arrangement is stated, so do not assume applicants in Negros Oriental can perform it remotely","Work includes checking robot-manipulation video annotations against a style guide, finding missing or incorrect object references and missed failure events, providing actionable feedback and maintaining a quality-control log","The public posting does not disclose salary, required years of experience, schedule, contract duration or equipment. Confirm all of these and the work location before applying","This is a quality-control/specialist role, not a beginner phone task or guaranteed freelance assignment","Apply only through the employer-posted Welo Data listing and never pay a recruiter or intermediary"],
-  official:"https://ph.linkedin.com/jobs/view/robotics-video-qa-annotation-expert-at-welo-data-4485853829",
+  name:"Welo Data — Robotics Video QA & Annotation Expert (Closed)",
+  status:"closed",
+  badge:"CLOSED • EMPLOYER LINK RETURNS 404 • VERIFIED 2026-11-09",
+  summary:"The employer-posted Welo Data full-time Robotics Video QA & Annotation Expert listing is no longer verifiable: its Philippines LinkedIn job URL returned HTTP 404 on November 9, 2026, and the current official Welo/Lever Philippines board does not show the same full-time Quezon City role. No exact replacement was verified. Keep this record closed rather than implying the separate Project Cursa freelance QC role is the same job.",
+  requirements:["The former employer-posted LinkedIn application URL returned HTTP 404 on November 9, 2026; do not use the stale URL or third-party mirrors","A review of Welo Data's current official Philippines/Lever board did not find the same full-time Quezon City Robotics Video QA & Annotation Expert opening","The old listing did not disclose pay or confirm remote work; its Quezon City location was not enough to establish eligibility from other provinces","Welo's separate Project Cursa Robot Manipulation Video Annotation QC (V2) listing is a remote freelance role with different terms and is not a replacement for this full-time job","Reopen only if Welo republishes the exact role on its official careers board or confirms a new application link. Never pay a recruiter or intermediary"],
+  official:"https://jobs.lever.co/weloglobal/?location=Philippines",
   secondary:"https://www.welodata.ai/",
-  secondaryLabel:"Official Welo Data website",
-  cta:"Check location and employment terms first",
-  verified:"2026-11-06"
+  secondaryLabel:"Official Welo Data company website",
+  cta:"View current official Philippines roles",
+  verified:"2026-11-09"
  },
 
  {
