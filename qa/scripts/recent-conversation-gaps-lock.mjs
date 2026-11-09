@@ -13,11 +13,12 @@ for(const s of ['/opportunity-vault','Opportunity Vault'])assert.ok(home.include
 for(const s of [
  'https://www.atlascapture.io/opportunities','https://apps.apple.com/ph/app/atlas-capture/id6755671397',
  'https://jobs.lever.co/weloglobal/?location=Philippines','https://app.outlier.ai/opportunities?hl=en-US',
- 'https://www.prolific.com/participants-join-us','2PDR9UXD','USD 10 each after 1 approved hour','USD 50 each after 20 approved hours','USD 100 each after 50 approved hours','task availability vary by country','https://www.crowtado.com/en/sign-up','Crowtado','United States and Canada','unverified reports of long review queues','OneForma — Kawaii Audio Labeling ($17/hour)','USD $17/hour','UserTesting','Classic tests','14 days','Payoneer','independent contractor',
+ 'https://www.prolific.com/participants-join-us','2PDR9UXD','USD 10 each after 1 approved hour','USD 50 each after 20 approved hours','USD 100 each after 50 approved hours','task availability vary by country','https://www.crowtado.com/en/sign-up','Crowtado','United States and Canada','unverified reports of long review queues','OneForma — Kawaii Audio Labeling ($17/hour)','USD $17/hour','UserTesting','Classic tests','14 days','Payoneer','independent contractor','https://www.utest.com/projects/Join-Ambassador-2026','uTest — Global Ambassador Program (Referral-Based)','Ambassador Academy Quiz','no fixed rate disclosed','SIGN-UP TEMPORARILY UNAVAILABLE','temporarily unavailable','November 26, 2026',
  'Unverified names stay out of the active list.'
 ])assert.ok(vault.includes(s),'Opportunity Vault missing '+s);
 assert.ok(!/(?:referral|invite)[\s\S]{0,120}\$3|\$3[\s\S]{0,120}(?:referral|invite)/i.test(vault),'Vault must not preserve stale referral bonus claims without current source verification');
 assert.ok(catalog.includes("key:'opportunity'"),'interaction catalog must understand Opportunity Vault');
+assert.ok(catalog.includes("'utest'")&&catalog.includes("'ambassador'"),'interaction catalog must route uTest ambassador searches');
 assert.ok(kids.includes("import { currentUser } from './integrations.js';"),'Kids Drive owner OAuth must retain the existing session user resolver import');
 assert.ok(!kids.includes("await ensureTables(env);\n if(request.method==='OPTIONS')"),'Kids public media routes must not run DDL per request');
 assert.ok(credentials.includes('runtimeVaultRows'),'credential overlay reads must have a DDL-free runtime path');
