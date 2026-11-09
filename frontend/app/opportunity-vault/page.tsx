@@ -1175,7 +1175,7 @@ const opportunities:Opportunity[]=[
    'Complete the required onboarding courses and pass the Ambassador Academy Quiz, then sign the Global Ambassador Contractor Agreement and follow its confidentiality and non-disclosure obligations',
    'Referral payouts are made per unique participant accepted by the client who successfully completes a project. The amount varies by project complexity, target demographic and region; no fixed rate, minimum hours or income is published',
    'This is best suited to people with a genuine personal, local or digital outreach network. uTest says only applicants who are invited will be contacted; selection and referral volume are not guaranteed',
-   'uTest standard tester terms list payments twice monthly in USD through PayPal or Payoneer. The ambassador agreement may differ; confirm that the payout method is available to a Philippines-based account before accepting',
+   'Current uTest tester support lists twice-monthly payments through PayPal, Payoneer, or direct-to-bank transfer powered by Wise; Payoneer is not available in all countries. The official terms state that payment amounts are in USD. The Ambassador agreement may differ; confirm which payout option is enabled for a Philippines-based account before accepting',
    'uTest does not withhold taxes. Contractors are responsible for applicable reporting; a U.S. citizen living in the Philippines should check U.S. worldwide-income reporting and any applicable Philippine contractor/tax obligations',
    'Ethical sourcing is mandatory. Do not create fake identities, spam, mislead participants, collect credentials or charge people to join. uTest says it never requires payment to become a tester or receive projects; use only official uTest/Applause channels'
   ],
@@ -1186,7 +1186,8 @@ const opportunities:Opportunity[]=[
   tertiaryLabel:'Official uTest tax guidance',
   moreLinks:[
    {label:'Official uTest phishing notice',url:'https://www.utest.com/phishing-notice'},
-   {label:'Official twice-monthly payout schedule',url:'https://support.utest.com/csp?id=kb_article_view&sysparm_article=KB0010033'}
+   {label:'Official twice-monthly payout schedule',url:'https://support.utest.com/csp?id=kb_article_view&sysparm_article=KB0010033'},
+   {label:'Official payout methods and country availability',url:'https://support.utest.com/csp?id=kb_article_view&sysparm_article=KB0010111'}
   ],
   cta:'Apply for the official Ambassador Academy',
   verified:'2026-11-09'
