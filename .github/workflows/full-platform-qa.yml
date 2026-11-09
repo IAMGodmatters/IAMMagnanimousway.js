@@ -41,6 +41,9 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Run deterministic native unit and integration tests
+        run: node qa/scripts/run-native-regression-tests.mjs
+
       - name: Lock standalone AI, platform, and Shopify boundaries
         run: node qa/scripts/product-contract-locks.mjs
 
