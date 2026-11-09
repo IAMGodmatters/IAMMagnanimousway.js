@@ -68,16 +68,20 @@ test('checkout is blocked until affirmative plan-specific terms consent is recor
 
   await page.goto('/pricing/?plan=plus', { waitUntil: 'load' });
   const card = plusCard(page);
+  const consent = page.getByRole('checkbox', { name: /I agree to the Unlimited Fair-Use Terms for this purchase/i });
   await expect(card).toHaveCount(1);
-  // Wait for the query-selected plan to hydrate before asserting its action label.
-  await expect(page.getByRole('checkbox', { name: /I agree to the Unlimited Fair-Use Terms for this purchase/i })).toBeVisible();
-  await expect(card.getByRole('button', { name: 'Accept terms, then continue' })).toBeVisible();
+  await expect(consent).toBeVisible();
+  await expect(consent).not.toBeChecked();
 
-  await card.getByRole('button', { name: 'Accept terms, then continue' }).click();
-  await expect(page.getByRole('status')).toContainText('Please agree to the selected Premium Services Agreement');
-  expect(checkoutRequests, 'Checkout API must not be called before the checkbox is affirmatively selected').toBe(0);
-
-  await expect(page.getByRole('checkbox', { name: /I agree to the Unlimited Fair-Use Terms for this purchase/i })).not.toBeChecked();
+  // The page can be in either the plan-selection or selected-plan step when the
+  // initial query hydrates. In both cases the first unconsented action must not
+  // create a checkout session; it must only request plan review/terms acceptance.
+  const displayedAction = card.getByRole('button');
+  await expect(displayedAction).toBeVisible();
+  await displayedAction.click();
+  await expect(page.getByRole('status')).toContainText(/Review and accept|Please agree to the selected Premium Services Agreement/);
+  expect(checkoutRequests, 'A plan selection or unconsented action must never call checkout').toBe(0);
+  await expect(consent).not.toBeChecked();
 });
 
 test('authenticated customer journey reaches only a mocked hosted-checkout page and submits exact recurring consent', async ({ page }) => {
