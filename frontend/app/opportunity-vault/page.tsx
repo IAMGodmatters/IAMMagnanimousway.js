@@ -531,9 +531,9 @@ const opportunities:Opportunity[]=[
  },
 
  {
-  id:'usertesting-global-ph-location-check',name:'UserTesting — Paid Website, App & Product Tests',status:'active-ph',badge:'PHILIPPINES • CLASSIC TESTS ONLY • VERIFIED PAYPAL • 14-DAY USD PAYOUT',
+  id:'usertesting-global-ph-location-check',name:'UserTesting — Paid Website, App & Product Tests',status:'active-ph',badge:'PHILIPPINES • CLASSIC TESTS ONLY • SIGN-UP TEMPORARILY UNAVAILABLE • VERIFIED PAYPAL • 14-DAY USD PAYOUT',
   summary:'UserTesting’s official October 12, 2026 country table includes the Philippines for Classic moderated and unmoderated tests, but not for New Experience tests (Live Conversation, Surveys, Interaction and Think Out Loud). Test invitations remain screener- and demand-dependent; this is limited test-type eligibility, not guaranteed work.',
-  requirements:['Free to apply; applicants must be at least 18 and complete the profile checklist, PayPal setup and an unpaid practice test','The official country table lists the Philippines for Classic moderated and unmoderated tests only; the Philippines is not listed for New Experience tests. PH is also absent from the standard-country list, so account acceptance and test volume may be limited','The exact reward varies by test and is displayed before accepting. Payments are in USD to a verified PayPal account about 14 days after completion; there is no minimum payout threshold','The applicant FAQ supports English, French and German. Desktop and mobile tests are available; current minimums include iOS latest two versions and Android 10+; most recorded tests require a microphone','Use the actual country of residence in the profile. Do not use a VPN or false location. U.S. citizenship does not override location-specific test availability while living in the Philippines','UserTesting does not withhold taxes; contributors report income under applicable country rules. A U.S. citizen should also confirm U.S. reporting obligations and any applicable Philippine tax treatment','Tests may record screen, audio, video or live conversation. Do not reveal passwords, OTPs, financial account details, private messages or confidential documents. A recent individual Trustpilot review alleges completed tests were unpaid after platform errors; this is an unverified individual report, not proof of a general problem—keep records and contact official support if a test fails'],
+  requirements:['Free to apply; applicants must be at least 18 and complete the profile checklist, PayPal setup and an unpaid practice test','CURRENT SIGN-UP CAVEAT (November 9, 2026): the official Get Paid to Test page displays a banner saying sign-up is temporarily unavailable during an infrastructure upgrade and asks applicants to return Sunday, November 26. November 26, 2026 is a Thursday, so that return-date wording is inconsistent and may be stale; the email form remains visible. Recheck the page before assuming a submission was accepted. This is a temporary service notice, not proof that Philippines Classic-test eligibility has ended.','The official country table lists the Philippines for Classic moderated and unmoderated tests only; the Philippines is not listed for New Experience tests. PH is also absent from the standard-country list, so account acceptance and test volume may be limited','The exact reward varies by test and is displayed before accepting. Payments are in USD to a verified PayPal account about 14 days after completion; there is no minimum payout threshold','The applicant FAQ supports English, French and German. Desktop and mobile tests are available; current minimums include iOS latest two versions and Android 10+; most recorded tests require a microphone','Use the actual country of residence in the profile. Do not use a VPN or false location. U.S. citizenship does not override location-specific test availability while living in the Philippines','UserTesting does not withhold taxes; contributors report income under applicable country rules. A U.S. citizen should also confirm U.S. reporting obligations and any applicable Philippine tax treatment','Tests may record screen, audio, video or live conversation. Do not reveal passwords, OTPs, financial account details, private messages or confidential documents. A recent individual Trustpilot review alleges completed tests were unpaid after platform errors; this is an unverified individual report, not proof of a general problem—keep records and contact official support if a test fails'],
   official:'https://www.usertesting.com/get-paid-to-test',
   secondary:'https://help.usertesting.com/hc/en-us/articles/11880389286429-Which-countries-can-I-test-in',
   secondaryLabel:'Official country table — Philippines in Classic tests only',
@@ -1164,6 +1164,34 @@ const opportunities:Opportunity[]=[
   cta:'Review the rights and payout terms before recording',
   verified:'2026-11-08'
  }
+
+ {
+  id:'utest-global-ambassador',
+  name:'uTest — Global Ambassador Program (Referral-Based)',
+  status:'active-ph',
+  badge:'GLOBAL • REFERRAL-BASED • VARIABLE PAYOUT • INVITE AFTER ACADEMY',
+  summary:'Official uTest Ambassador Academy onboarding cycle started November 6, 2026. The program is open worldwide; active community members can apply to learn compliant outreach and connect qualified participants to paid software-testing projects. It is a referral opportunity, not a guaranteed testing job or salary.',
+  requirements:[
+   'The official project page says worldwide / open to all countries. Applicants must maintain an active uTest account in good standing; the uTest terms require members to be at least 18 and able to form a legal contract',
+   'Complete the required onboarding courses and pass the Ambassador Academy Quiz, then sign the Global Ambassador Contractor Agreement and follow its confidentiality and non-disclosure obligations',
+   'Referral payouts are made per unique participant accepted by the client who successfully completes a project. The amount varies by project complexity, target demographic and region; no fixed rate, minimum hours or income is published',
+   'This is best suited to people with a genuine personal, local or digital outreach network. uTest says only applicants who are invited will be contacted; selection and referral volume are not guaranteed',
+   'uTest standard tester terms list payments twice monthly in USD through PayPal or Payoneer. The ambassador agreement may differ; confirm that the payout method is available to a Philippines-based account before accepting',
+   'uTest does not withhold taxes. Contractors are responsible for applicable reporting; a U.S. citizen living in the Philippines should check U.S. worldwide-income reporting and any applicable Philippine contractor/tax obligations',
+   'Ethical sourcing is mandatory. Do not create fake identities, spam, mislead participants, collect credentials or charge people to join. uTest says it never requires payment to become a tester or receive projects; use only official uTest/Applause channels'
+  ],
+  official:'https://www.utest.com/projects/Join-Ambassador-2026',
+  secondary:'https://www.utest.com/terms-and-conditions',
+  secondaryLabel:'Official independent-contractor, payment and tax terms',
+  tertiary:'https://support.utest.com/csp?id=kb_article_view&sysparm_article=KB0010035',
+  tertiaryLabel:'Official uTest tax guidance',
+  moreLinks:[
+   {label:'Official uTest phishing notice',url:'https://www.utest.com/phishing-notice'},
+   {label:'Official twice-monthly payout schedule',url:'https://support.utest.com/csp?id=kb_article_view&sysparm_article=KB0010033'}
+  ],
+  cta:'Apply for the official Ambassador Academy',
+  verified:'2026-11-09'
+ },
 ];
 
 const statusLabel=(s:Opportunity['status'])=>s==='active-ph'?'Verified PH path':s==='closed'?'Closed / deadline passed':s==='location-check'?'Check eligibility / location':'Waitlist / unavailable in PH';
