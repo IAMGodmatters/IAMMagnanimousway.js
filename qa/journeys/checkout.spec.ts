@@ -69,6 +69,8 @@ test('checkout is blocked until affirmative plan-specific terms consent is recor
   await page.goto('/pricing/?plan=plus', { waitUntil: 'load' });
   const card = plusCard(page);
   await expect(card).toHaveCount(1);
+  // Wait for the query-selected plan to hydrate before asserting its action label.
+  await expect(page.getByRole('checkbox', { name: /I agree to the Unlimited Fair-Use Terms for this purchase/i })).toBeVisible();
   await expect(card.getByRole('button', { name: 'Accept terms, then continue' })).toBeVisible();
 
   await card.getByRole('button', { name: 'Accept terms, then continue' }).click();
@@ -211,7 +213,7 @@ test('pricing entry remains inside conservative navigation and asset budgets', a
       domContentLoadedMs: Math.round(nav.domContentLoadedEventEnd - nav.startTime),
       loadMs: Math.round(nav.loadEventEnd - nav.startTime),
       resourceCount: resources.length,
-      transferBytes: resources.reduce((total, resource) => total + resource.transferSize, 0),
+      transferBytes: nav.transferSize + resources.reduce((total, resource) => total + resource.transferSize, 0),
     };
   });
 
