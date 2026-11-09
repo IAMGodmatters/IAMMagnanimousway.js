@@ -48,6 +48,34 @@ const opportunities:Opportunity[]=[
   verified:'2026-11-08'
  },
  {
+  id:'crowtado-phone-data-watch',
+  name:'Crowtado — Phone Video & Audio AI Data Tasks (Watchlist)',
+  status:'location-check',
+  badge:'FREE SIGN-UP • PH TASK / PAYOUT NOT VERIFIED • PRIVACY / PAYMENT CAUTION',
+  summary:'Crowtado is a browser-based contributor platform for phone-recorded first-person videos, short clips and paired conversations used in AI training. It shows task pay before work and says contributors pay no sign-up or submission fee. Its official site says sign-up is open in most countries, but each task and withdrawal method depends on country. Philippine task availability and a local payout route were not verified.',
+  requirements:[
+   'Applicants must be at least 18 and legally permitted to perform the selected task where they are physically located. Task eligibility varies by country, language, equipment, identity and tax requirements; no minimum work or income is guaranteed',
+   'First-person video tasks ask for 5–20 minutes of an everyday activity using a phone and head or chest mount. Short-clip tasks ask for five 15–120 second clips from a phone or camera recording at least 720p. Paired-conversation tasks require a partner with their own account, headphones and quiet rooms',
+   'The official task page limits paired conversations to the United States and Canada and native American English speakers. A U.S. citizen living in the Philippines should not assume this task is eligible based on citizenship alone',
+   'First-person video is listed as available in many countries, but the official site does not identify whether the Philippines is currently open. Create a free account only to inspect the actual task feed and confirm the payout method available to a Philippines-based account before recording',
+   'Pay is task-specific and shown before starting; only accepted work is paid. The official trust page sets a USD $10 withdrawal minimum, or USD $25 for bank transfers. PayPal, Venmo, Cash App, debit card, Wise and bank transfer options depend on country',
+   'Compensated tasks are intended as independent-contractor work unless mandatory local law requires otherwise. Contributors are responsible for applicable taxes, registrations and reporting. Confirm the tax forms, identity checks and payout destination before accepting a task',
+   'HIGH PRIVACY / IP CAUTION: the contributor agreement grants a worldwide, non-exclusive, transferable, sublicensable, royalty-free, fully paid-up license for platform operation, dataset creation/licensing and AI/ML training. Audio, video, faces, voices and locations may identify people; copies already delivered or incorporated into datasets, analyses or trained systems may persist. Never record minors, non-consenting people, private material, screens, passwords or sensitive personal information',
+   'PAYMENT TRACK-RECORD WARNING: recent community posts include unverified reports of long review queues, rejected or pending work and delayed payouts; other contributors report eventual payment. No independent Philippines payout evidence was found. Treat this as an unproven side-task lead: start small, keep submission records, request a small payout early and never pay a joining or release fee'
+  ],
+  official:'https://www.crowtado.com/en/sign-up',
+  secondary:'https://www.crowtado.com/en/about',
+  secondaryLabel:'Official task types and country availability',
+  tertiary:'https://www.crowtado.com/en/terms',
+  tertiaryLabel:'Contributor terms and content license',
+  moreLinks:[
+   {label:'Official trust, pay and payout policy',url:'https://www.crowtado.com/en/trust'},
+   {label:'Official privacy policy',url:'https://www.crowtado.com/en/privacy'}
+  ],
+  cta:'Check the official task feed and payout options',
+  verified:'2026-11-09'
+ },
+ {
   id:'egovista-contributor-watch',name:'EgoVista — First-Person Photo/Video Data Contributor (Watchlist)',status:'waitlist',badge:'GLOBAL SIGN-UP PAGE • NO LIVE PH MISSIONS OR PAYOUT ROUTE CONFIRMED',
   summary:"EgoVista is a French SAS contributor platform for first-person video and image capture used in AI/robotics datasets. Its public contributor page says the first missions are not open yet and invites people to join for future missions. Pay is per hour of usable footage accepted, with the mission-specific rate shown before participation; no current Philippines mission or Philippine payout corridor was verified. The public sign-up page says worldwide, while the privacy policy still describes a closed, invitation-only preview, so availability is inconsistent.",
   requirements:["Free account registration is shown on the official sign-up page; the contributor page says there are no uploads at sign-up and that users will be notified when missions open","Device requirements listed by EgoVista include a recent iPhone (12 or newer), recent Android device (2022 or newer), GoPro or compatible smart glasses; phone missions require a hands-free mount","No live Philippines mission, guaranteed hours, public rate or confirmed Philippine payout route was found; do not record or buy equipment until a mission appears in the account and its rate and payment method are confirmed","EgoVista's subprocessor page lists Wise for non-SEPA transfers as in use and says PayPal is not yet active; the Philippines payout corridor is not confirmed","The public contributor page says first missions are coming soon, but the privacy policy still says the service is in a closed preview with invitation-only access; ask the company to resolve this before relying on access","Accepted footage is licensed worldwide for 70 years and may be sublicensed to dataset buyers; the terms and privacy page describe broad use for AI/robotics training and related dataset products. Review this before recording","Only accepted, usable footage is paid. The public page and legal documents give different payment timing descriptions (15 days after approval versus 30 days after a payout request); get the exact mission terms in writing","Faces are described as blurred before external processing, but video remains personal data; do not record minors, bystanders, private spaces, screens, IDs, addresses or sensitive conversations without explicit consent"],
