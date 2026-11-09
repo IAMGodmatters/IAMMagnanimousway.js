@@ -1163,8 +1163,7 @@ const opportunities:Opportunity[]=[
   ],
   cta:'Review the rights and payout terms before recording',
   verified:'2026-11-08'
- }
-
+ },
  {
   id:'utest-global-ambassador',
   name:'uTest — Global Ambassador Program (Referral-Based)',
