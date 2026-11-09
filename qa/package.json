@@ -5,6 +5,7 @@
   "scripts": {
     "test": "playwright test",
     "test:smoke": "playwright test tests/routes.spec.ts tests/navigation.spec.ts",
+    "test:journeys": "playwright test --config=playwright.journeys.config.ts",
     "report": "node scripts/summarize.mjs"
   },
   "devDependencies": {

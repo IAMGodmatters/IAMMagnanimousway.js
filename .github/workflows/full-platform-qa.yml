@@ -164,6 +164,30 @@ jobs:
           npm run typecheck
           npm run build
 
+      - name: Install isolated browser journey dependencies
+        working-directory: qa
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Run no-charge customer journeys and checkout performance budgets
+        working-directory: qa
+        env:
+          QA_BASE_URL: http://127.0.0.1:4173
+        run: npm run test:journeys
+
+      - name: Upload checkout journey and performance evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: checkout-journey-qa-${{ github.run_number }}
+          path: |
+            qa/journey-playwright-report/
+            qa/journey-test-results/
+            qa/journey-qa-results.json
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Worker JavaScript syntax check
         run: |
           find worker/src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
