@@ -132,6 +132,36 @@ test('authenticated customer journey reaches only a mocked hosted-checkout page 
   expect(confirmationRequests, 'A checkout redirect alone must never activate a subscription').toBe(0);
 });
 
+test('existing active subscription is not sent through a second checkout', async ({ page }) => {
+  await mockPricingReads(page, true);
+  let checkoutRequests = 0;
+  let hostedCheckoutRequests = 0;
+  await page.route('**/api/billing/checkout', async (route) => {
+    checkoutRequests += 1;
+    await route.fulfill({
+      status: 409,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        code: 'ACTIVE_SUBSCRIPTION_EXISTS',
+        detail: 'You already have an active subscription. Use Manage subscription to change it.',
+      }),
+    });
+  });
+  await page.route('https://checkout.stripe.com/**', async (route) => {
+    hostedCheckoutRequests += 1;
+    await route.fulfill({ status: 500, contentType: 'text/plain', body: 'Must not navigate to hosted checkout.' });
+  });
+
+  await page.goto('/pricing/?plan=plus', { waitUntil: 'load' });
+  await page.getByRole('checkbox', { name: /I agree to the Unlimited Fair-Use Terms for this purchase/i }).check();
+  await plusCard(page).getByRole('button', { name: 'Choose Magnanimous Unlimited Fair-Use' }).click();
+
+  await expect(page.getByRole('status')).toContainText('You already have an active subscription');
+  await expect(page).toHaveURL(/\/pricing\//);
+  expect(checkoutRequests).toBe(1);
+  expect(hostedCheckoutRequests, 'An active subscription conflict must not redirect to a second payment').toBe(0);
+});
+
 test('unauthenticated customer is returned to sign-in without creating a checkout session', async ({ page }) => {
   await mockPricingReads(page, false);
   let checkoutRequests = 0;
