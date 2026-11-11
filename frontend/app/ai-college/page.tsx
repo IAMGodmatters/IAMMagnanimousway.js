@@ -1,6 +1,7 @@
 'use client';
 
 import {useEffect,useMemo,useState} from 'react';
+import {getPlatformAuthToken} from '../lib/magnanimous-session';
 
 type Resource={id:string;title:string;provider:string;kind:string;description:string;url:string;phase:string;video:boolean};
 const resources:Resource[]=[
@@ -29,8 +30,54 @@ export default function MagnanimousAICollege(){
  const [done,setDone]=useState<string[]>([]);
  const [active,setActive]=useState('AI Engineer');
  const [hydrated,setHydrated]=useState(false);
- useEffect(()=>{try{const raw=localStorage.getItem('magnanimous-college-open-progress-v1');if(raw){const parsed=JSON.parse(raw);if(Array.isArray(parsed))setDone(parsed.filter(x=>typeof x==='string'));}}catch{}setHydrated(true)},[]);
+ const [authToken,setAuthToken]=useState('');
+ const [progressRecordId,setProgressRecordId]=useState('');
+ const [syncStatus,setSyncStatus]=useState<'local'|'loading'|'account'|'error'>('local');
+ const [syncMessage,setSyncMessage]=useState('Progress is saved on this device. Sign in to sync it with your account.');
+ useEffect(()=>{try{const raw=localStorage.getItem('magnanimous-college-open-progress-v1');if(raw){const parsed=JSON.parse(raw);if(Array.isArray(parsed))setDone(parsed.filter(x=>typeof x==='string'&&resources.some(r=>r.id===x)));}}catch{}setHydrated(true);setAuthToken(getPlatformAuthToken())},[]);
  useEffect(()=>{if(hydrated){try{localStorage.setItem('magnanimous-college-open-progress-v1',JSON.stringify(done))}catch{}}},[done,hydrated]);
+ useEffect(()=>{
+  if(!hydrated||!authToken)return;
+  let cancelled=false;
+  const headers={'Content-Type':'application/json',Authorization:'Bearer '+authToken};
+  const request=async(path:string,init:RequestInit={})=>{const response=await fetch((process.env.NEXT_PUBLIC_API_BASE_URL||'')+path,{...init,headers:{...headers,...(init.headers||{})},cache:'no-store'});const raw=await response.text();let data:any={};try{data=JSON.parse(raw)}catch{}if(!response.ok)throw new Error(data.detail||'Account progress could not be loaded.');return data};
+  (async()=>{
+   setSyncStatus('loading');setSyncMessage('Connecting your private study record…');
+   try{
+    const workspaces=await request('/api/operations/workspaces');
+    let workspace=workspaces.items?.find((x:any)=>x.kind==='college-progress');
+    if(!workspace){const created=await request('/api/operations/workspaces',{method:'POST',body:JSON.stringify({name:'My Magnanimous AI College Progress',kind:'college-progress',description:'Private student learning progress and resource completion marks.'})});workspace=created.item}
+    if(!workspace?.id)throw new Error('Your private study workspace could not be opened.');
+    const boards=await request('/api/operations/boards?workspace_id='+encodeURIComponent(workspace.id));
+    let board=boards.items?.find((x:any)=>x.kind==='college-progress');
+    if(!board){const created=await request('/api/operations/boards',{method:'POST',body:JSON.stringify({workspace_id:workspace.id,name:'My Study Progress',singular_name:'study record',kind:'college-progress',description:'Private course and resource completion records.'})});board=created.item}
+    if(!board?.id)throw new Error('Your private study record could not be opened.');
+    const records=await request('/api/operations/records?board_id='+encodeURIComponent(board.id)+'&limit=500');
+    const existing=records.items?.find((x:any)=>x.data?.kind==='college-progress');
+    if(existing?.id){
+     const saved=Array.isArray(existing.data?.done)?existing.data.done.filter((x:any)=>typeof x==='string'&&resources.some(r=>r.id===x)):[];
+     if(!cancelled){setDone(saved);setProgressRecordId(existing.id);setSyncStatus('account');setSyncMessage('Your study progress is connected to your signed-in account.');}
+    }else{
+     const initial=done.filter(x=>resources.some(r=>r.id===x));
+     const created=await request('/api/operations/records',{method:'POST',body:JSON.stringify({board_id:board.id,title:'Open Campus study progress',status:'active',data:{kind:'college-progress',done:initial,resource_ids:resources.map(r=>r.id),schema_version:1}})});
+     if(!created.item?.id)throw new Error('Your study progress record could not be created.');
+     if(!cancelled){setProgressRecordId(created.item.id);setSyncStatus('account');setSyncMessage('Your study progress is now connected to your signed-in account.');}
+    }
+   }catch(error){if(!cancelled){setSyncStatus('error');setSyncMessage(error instanceof Error?error.message+' Your browser copy is still available.':'Account sync failed. Your browser copy is still available.');}}
+  })();
+  return()=>{cancelled=true};
+ },[hydrated,authToken]);
+ useEffect(()=>{
+  if(syncStatus!=='account'||!progressRecordId||!authToken)return;
+  const timer=setTimeout(async()=>{
+   try{
+    const response=await fetch((process.env.NEXT_PUBLIC_API_BASE_URL||'')+'/api/operations/records/'+encodeURIComponent(progressRecordId),{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+authToken},body:JSON.stringify({data:{kind:'college-progress',done,resource_ids:resources.map(r=>r.id),schema_version:1}}),cache:'no-store'});
+    if(!response.ok)throw new Error('Progress sync could not be confirmed.');
+    setSyncMessage('Your study progress is saved to your signed-in account.');
+   }catch{setSyncStatus('error');setSyncMessage('Account sync could not be confirmed. Your browser copy remains available.');}
+  },300);
+  return()=>clearTimeout(timer);
+ },[done,progressRecordId,authToken,syncStatus]);
  const filtered=useMemo(()=>resources.filter(r=>(filter==='All'||(filter==='Videos'&&r.video)||(filter==='Courses'&&!r.video))&&[r.title,r.provider,r.description,r.phase].join(' ').toLowerCase().includes(query.toLowerCase())),[filter,query]);
  const total=resources.length;
  const progress=Math.round(done.length/total*100);
@@ -62,8 +109,8 @@ export default function MagnanimousAICollege(){
    <p className="rights">Respect for creators: this campus links to official resources and permitted official players. It does not download, mirror, re-upload or sell third-party videos. MIT-licensed source code is reused only with required license notices and attribution.</p>
   </section>
   <section className="section study">
-   <div><small>YOUR STUDY RECORD</small><h2>Keep moving forward.</h2><p>Your “marked studied” list is saved only in this browser on this device. Sign-in and private cross-device progress will be added after the student account and privacy path is implemented.</p></div>
-   <div className="progress"><div className="progressTop"><b>{done.length} of {total}</b><span>resources marked studied</span></div><div className="track"><i style={{width:progress+'%'}}/></div><strong>{progress}%</strong><button onClick={()=>setDone([])} disabled={!done.length}>Reset local study marks</button></div>
+   <div><small>YOUR STUDY RECORD</small><h2>Keep moving forward.</h2><p>Your learning resources remain free to open. Study marks are kept in this browser and, when you sign in successfully, copied into your private Magnanimous account workspace. This is a learning-progress record, not an accredited transcript or degree.</p><p role="status" aria-live="polite" style={{fontSize:11,color:syncStatus==='account'?'#9ce1c7':syncStatus==='error'?'#f1bd8c':'#b9c9d8'}}>{syncMessage}</p>{!authToken&&<a href="/login?returnTo=%2Fai-college" style={{color:'#e7d092',fontSize:11,fontWeight:800}}>Sign in to sync study progress ↗</a>}</div>
+   <div className="progress"><div className="progressTop"><b>{done.length} of {total}</b><span>resources marked studied</span></div><div className="track"><i style={{width:progress+'%'}}/></div><strong>{progress}%</strong><button onClick={()=>setDone([])} disabled={!done.length}>Reset study marks</button></div>
   </section>
   <section className="section roadmap">
    <div className="sectionHead"><div><small>AI ENGINEER ROADMAP</small><h2>From first steps to a capstone.</h2></div><span>Illustrative sequence</span></div>
