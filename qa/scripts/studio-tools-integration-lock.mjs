@@ -14,6 +14,7 @@ check(core.includes('export function calculate(') && core.includes('Division by 
 check(core.includes('export function convert(') && core.includes('Temperature'), 'Unit converter must retain temperature and standard unit conversion.');
 check(tools.includes('file.size>2*1024*1024') && core.includes('records.length > 500') && core.includes('backup.records.length > 500'), 'Backup import must enforce file and record limits.');
 check(core.includes('backup_source_id') && tools.includes('Existing records will not be deleted or replaced.'), 'Backup restore must be additive and safely deduplicated.');
+check(tools.includes('exportedAt:new Date().toISOString(),theme') && tools.includes("backup.theme==='light'||backup.theme==='dark'"), 'Portable backups must preserve the light/dark theme preference.');
 check(tools.includes('window.confirm(') && tools.includes('onRestore(data)') && tools.includes('normalizeBackup(JSON.parse(await file.text()))'), 'Backup import must require affirmative user confirmation and use the authenticated restore callback.');
 check(!tools.includes('localStorage.setItem(STORAGE_KEY') && !tools.includes('localStorage.setItem("magnanimous-studio-workspace'), 'Customer workspace records must not be stored in browser localStorage.');
 check(page.includes("'/api/operations/records'") && page.includes('board_id:boardId') && page.includes('backup_source_id'), 'Workspace restore must write through the tenant-scoped Operations API.');
