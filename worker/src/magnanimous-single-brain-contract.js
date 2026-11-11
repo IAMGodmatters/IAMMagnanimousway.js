@@ -9,7 +9,7 @@ import {getPublicApiCapabilityManifest,getPublicApiAbsorptionSummary} from './ma
 
 export const MAGNANIMOUS_SINGLE_BRAIN_CONTRACT=Object.freeze({
  identity:'Magnanimous AI',
- platform:'I AM MAGNANIMOUS WAYâ„¢',
+ platform:'I AM MAGNANIMOUS WAY\u2122',
  public_ai_identity:'Magnanimous AI',
  public_specialist_identity:'Magnanimous AI specialist departments',
  orchestration_owner:'Magnanimous AI',

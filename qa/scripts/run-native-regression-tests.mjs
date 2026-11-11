@@ -7,6 +7,7 @@ import { resolve } from 'node:path';
 const testFiles = [
   'qa/scripts/home-health.test.mjs',
   'qa/scripts/prepaid-wallet.test.mjs',
+  'qa/scripts/magnanimous-brand-encoding-lock.mjs',
   'qa/scripts/tv-companion-lock.mjs',
   'worker/test/magnanimous-model-calibration.test.js',
   'video-gateway/test/security.test.mjs',
