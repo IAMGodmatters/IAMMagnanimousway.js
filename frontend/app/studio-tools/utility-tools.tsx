@@ -4,6 +4,8 @@ import './utility-tools.css';
 import { calculate, convert, normalizeBackup, type RestoreRecord } from './utility-tools-core.mjs';
 
 type StudioRecord = { id:string; title:string; status:string; due_at:number|null; data:Record<string,unknown>; updated_at:number };
+type Props = { items:StudioRecord[]; onRestore:(records:RestoreRecord[])=>Promise<{imported:number;skipped:number}> };
+const UNIT_NAMES:Record<string,string[]>={Length:['m','km','cm','mm','ft','in','mi'],Weight:['kg','g','mg','lb','oz'],Volume:['L','mL','gal','cup'],Temperature:['°C','°F','K']};
 export default function UtilityTools({items,onRestore}:Props) {
   const [active,setActive]=useState('focus'),[theme,setTheme]=useState<'dark'|'light'>('dark');
   const [seconds,setSeconds]=useState(1500),[mode,setMode]=useState<'Focus'|'Break'>('Focus'),[running,setRunning]=useState(false),deadline=useRef<number|null>(null);
