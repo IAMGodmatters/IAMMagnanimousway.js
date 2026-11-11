@@ -1,3 +1,4 @@
+import { classifySocialPublishFailure } from './social-publish-outcome.js';
 import { currentUser } from './integrations.js';
 import { assessAiTransparency } from './ai-transparency.js';
 
@@ -234,7 +235,14 @@ export async function handleSocialPublishing(request,env){
    return json({...result,ai_transparency:transparency});
   }
   return json({detail:'Unsupported social publishing operation.'},405);
- }catch(error){console.error('social publishing runtime error',error);return json({detail:error?.message||'Social publishing failed.',code:'SOCIAL_PUBLISHING_ERROR'},502)}
+ }catch(error){
+  console.error('social publishing runtime error',error);
+  if(/\/(youtube|tiktok|linkedin)\/publish$/.test(url.pathname)){
+   const status=classifySocialPublishFailure(error),uncertain=status==='outcome_unknown';
+   return json({detail:error?.message||'Social publishing failed.',code:uncertain?'SOCIAL_PUBLISH_OUTCOME_UNKNOWN':'SOCIAL_PUBLISH_FAILED',status,automatic_retry:false,action_required:uncertain?'Check the provider account before attempting this post again.':'Correct the reported issue before creating a new publish attempt.'},409);
+  }
+  return json({detail:error?.message||'Social publishing failed.',code:'SOCIAL_PUBLISHING_ERROR'},502);
+ }
 }
 
 
