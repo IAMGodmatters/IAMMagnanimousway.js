@@ -3,6 +3,7 @@ import app from './entrypoint.js';
 import { chatAiTransparency } from './ai-transparency.js';
 import { handleIntegrations, currentUser } from './integrations.js';
 import { getKnowledgeContext, handleKnowledge } from './knowledge-runtime.js';
+import { researchIntent } from './magnanimous-research-intelligence.js';
 import { getMagnanimousMemoryContext } from './magnanimous-brain-runtime.js';
 import { getMagnanimousToolFoundryContext, handleMagnanimousToolFoundry } from './magnanimous-tool-foundry.js';
 import { getMagnanimousOgenicPrompt, buildMagnanimousOgenicPlan, handleMagnanimousOgenic } from './magnanimous-ogenic-god-toolkit.js';
@@ -147,7 +148,9 @@ function extractUrls(message) {
   return [...new Set(matches.map(x => x.replace(/[),.;!?]+$/g, '')))].slice(0, 4);
 }
 function needsFreshResearch(message) {
-  return /\b(latest|current|today|recent|now|this week|this month|news|price|availability|status|updated|update|verify|source|citation|research|competitor|market|find|search|look up|lookup|website|official site|official website|web link|link to|where can i|where do i|apply online)\b/i.test(String(message || ''));
+  const text=String(message||'');
+  const intent=researchIntent(text);
+  return intent.needsResearch || /\\b(latest|current|today|recent|now|this week|this month|news|price|availability|status|updated|update|verify|source|citation|research|competitor|market|find|search|look up|lookup|website|official site|official website|web link|link to|where can i|where do i|apply online|requirements|eligibility|deadline|regulator|compliance|policy|law|tax|financial|security|safety|compare|best provider|recommend|review|documentation|api docs)\\b/i.test(text);
 }
 function nativeCapability(message, task) {
   const m = String(message || '').toLowerCase();
@@ -246,7 +249,7 @@ async function cloudflare(env, message, model, freeFailoverAvailable=false) {
           { role: 'system', content: COMMANDER_PROTOCOL },
           { role: 'user', content: message }
         ],
-        max_tokens: 1400
+        max_tokens: 3200
       }),Math.min(modelTimeout,remaining),`Workers AI ${m}`);
       const text = extractCloudflareText(result).trim();
       if (text) return { text, model: m };
@@ -274,7 +277,7 @@ async function callProvider(id, env, message, model, options={}) {
 function availableProviders(env) { return PROVIDERS.filter(p => providerEnabled(env,p)); }
 function taskClass(message,body={}){
   const m=String(message||'').toLowerCase();
-  if(body.live_search||body.news||/research|latest|current|source|cite|market size|competitor/.test(m))return'research';
+  if(body.live_search||body.news||needsFreshResearch(m)||/research|latest|current|source|cite|market size|competitor|requirements|eligibility|deadline|regulator|compliance|policy|law|tax|financial|security|safety|compare|best provider|recommend|review|documentation|api docs/.test(m))return'research';
   if(/code|debug|typescript|javascript|python|sql|api|function|repository|deploy/.test(m))return'coding';
   if(/business plan|financial|cash flow|break-even|investor|lender|grant|startup|strategy|market/.test(m))return'business';
   if(/write|rewrite|email|caption|script|post|copy|letter|proposal/.test(m))return'writing';
