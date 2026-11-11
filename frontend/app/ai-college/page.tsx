@@ -68,7 +68,7 @@ export default function MagnanimousAICollege(){
    }catch(error){if(!cancelled){setSyncStatus('error');setSyncMessage(error instanceof Error?error.message+' Your browser copy is still available.':'Account sync failed. Your browser copy is still available.');}}
   })();
   return()=>{cancelled=true};
- },[hydrated,authToken]);
+ },[hydrated,authToken,router]);
  useEffect(()=>{
   if(syncStatus!=='account'||!progressRecordId||!authToken)return;
   const timer=setTimeout(async()=>{
@@ -79,7 +79,7 @@ export default function MagnanimousAICollege(){
    }catch{setSyncStatus('error');setSyncMessage('Account sync could not be confirmed. Your browser copy remains available.');}
   },300);
   return()=>clearTimeout(timer);
- },[done,progressRecordId,authToken,syncStatus]);
+ },[done,progressRecordId,authToken,syncStatus,router]);
  const filtered=useMemo(()=>resources.filter(r=>(filter==='All'||(filter==='Videos'&&r.video)||(filter==='Courses'&&!r.video))&&[r.title,r.provider,r.description,r.phase].join(' ').toLowerCase().includes(query.toLowerCase())),[filter,query]);
  const total=resources.length;
  const progress=Math.round(done.length/total*100);
