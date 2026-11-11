@@ -45,7 +45,9 @@ webrtcAllowOrigins:
 webrtcLocalUDPAddress: :8189
 webrtcLocalTCPAddress: ""
 webrtcIPsFromInterfaces: false
-webrtcAdditionalHosts: []
+# Explicit public host is required when interface-IP discovery is disabled.
+webrtcAdditionalHosts:
+  - standalone.iammagnanimousway.com
 webrtcHandshakeTimeout: 10s
 webrtcTrackGatherTimeout: 2s
 
