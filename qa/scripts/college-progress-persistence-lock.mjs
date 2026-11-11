@@ -40,6 +40,14 @@ assert.ok(runtime.includes("workspace.owner_user_id===String(user.id||'')"),'Col
 assert.ok(runtime.includes("const mine=url.searchParams.get('mine')==='1'"),'The workspace API supports owner-filtered reads without accepting a caller-supplied user ID.');
 assert.ok(runtime.includes("if(workspace.kind==='college-progress'&&workspace.owner_user_id!==String(user.id||''))"),'Only the owner can open a College workspace or create its board.');
 assert.ok((runtime.match(/canAccessCollegeBoard\(env,t,user,board\)/g)||[]).length>=3,'College record reads, creates and updates enforce owner access.');
+assert.ok(runtime.includes("async function canAccessCollegeWorkspace(env,t,user,workspace)"),'Workspace-level owner access is centralized.');
+assert.ok(runtime.includes("async function canAccessCollegeRecord(env,t,user,record)"),'Record-level owner access is centralized.');
+assert.ok((runtime.match(/canAccessCollegeBoard\(env,t,user,board\)/g)||[]).length>=7,'Records, fields, views, links, and events enforce board owner access.');
+assert.ok(runtime.includes("const from=text(body.from_record_id,80),to=text(body.to_record_id,80),fromRecord=await ownedRecord(env,t,from),toRecord=await ownedRecord(env,t,to);if(!fromRecord||!toRecord||!await canAccessCollegeRecord(env,t,user,fromRecord)||!await canAccessCollegeRecord(env,t,user,toRecord)"),'Links cannot bridge into another student\'s records.');
+assert.ok(runtime.includes("SELECT a.* FROM magnanimous_ops_activity a LEFT JOIN magnanimous_ops_records"),'Activity feed hides another student\'s College activity.');
+assert.ok(runtime.includes("SELECT a.* FROM magnanimous_ops_automations a LEFT JOIN magnanimous_ops_workspaces"),'Automation lists exclude other students\' College workspaces.');
+assert.ok(runtime.includes("SELECT s.* FROM magnanimous_ops_sequences s LEFT JOIN magnanimous_ops_workspaces"),'Sequence lists exclude other students\' College workspaces.');
+assert.ok(runtime.includes("SELECT COUNT(*) n FROM magnanimous_ops_records r LEFT JOIN magnanimous_ops_boards"),'Workspace summaries exclude another student\'s progress counts.');
 
 assert.ok(page.includes('not an accredited transcript or degree'),'Open Campus does not imply accreditation.');
 console.log('Magnanimous AI College account progress lock: PASS');
