@@ -1,0 +1,26 @@
+name: Magnanimous Chat Quality Lock
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'worker/src/provider-entrypoint.js'
+      - 'worker/src/magnanimous-research-intelligence.js'
+      - 'qa/scripts/magnanimous-chat-quality-lock.mjs'
+      - '.github/workflows/magnanimous-chat-quality-lock.yml'
+  pull_request:
+    paths:
+      - 'worker/src/provider-entrypoint.js'
+      - 'worker/src/magnanimous-research-intelligence.js'
+      - 'qa/scripts/magnanimous-chat-quality-lock.mjs'
+      - '.github/workflows/magnanimous-chat-quality-lock.yml'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node qa/scripts/magnanimous-chat-quality-lock.mjs
