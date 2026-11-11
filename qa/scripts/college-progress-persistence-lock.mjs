@@ -24,7 +24,7 @@ assert.ok(page.includes("localStorage.setItem('magnanimous-college-open-progress
 assert.ok(page.includes("setDone(saved)"),'A signed-in account restores its saved study marks.');
 assert.ok(page.includes("method:'PUT'"),'Progress updates are written to the account record.');
 assert.ok(page.includes("method:'POST'"),'A first-time student receives a durable progress record.');
-assert.ok(!/tenant_id\\s*:/.test(page),'The browser must never choose or submit its own tenant ID.');
+assert.ok(!/tenant_id\s*:/.test(page),'The browser must never choose or submit its own tenant ID.');
 assert.ok(session.includes('getPlatformAuthToken'),'College uses the shared Magnanimous session authority.');
 
 assert.ok(runtime.includes('export async function handleNativeWorkCrm(request,env)'),'The Operations API handler is present.');
