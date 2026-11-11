@@ -555,7 +555,7 @@ export async function handleNativeWorkCrm(request,env){
  if(url.pathname==='/api/operations/bootstrap-crm'&&request.method==='POST'){const workspace=await seedCrmWorkspace(env,user);await log(env,user,'bootstrap_crm',{workspace_id:workspace.id});return json({workspace},201)}
 
  if(url.pathname==='/api/operations/workspaces'){
-  if(request.method==='GET'){const mine=url.searchParams.get('mine')==='1';const{results=[]}=await env.DB.prepare('SELECT * FROM magnanimous_ops_workspaces WHERE tenant_id=?'+(mine?' AND owner_user_id=?':'')+' ORDER BY updated_at DESC').bind(...(mine?[t,String(user.id||'')]:[t])).all();return json({items:results.map(mapWorkspace)})}
+  if(request.method==='GET'){const mine=url.searchParams.get('mine')==='1';const sql='SELECT * FROM magnanimous_ops_workspaces WHERE tenant_id=? AND (kind<>\'college-progress\' OR owner_user_id=?)'+(mine?' AND owner_user_id=?':'')+' ORDER BY updated_at DESC';const args=mine?[t,String(user.id||''),String(user.id||'')]:[t,String(user.id||'')];const{results=[]}=await env.DB.prepare(sql).bind(...args).all();return json({items:results.map(mapWorkspace)})}
   if(request.method==='POST'){const wid=id(),ts=now();await env.DB.prepare('INSERT INTO magnanimous_ops_workspaces(id,tenant_id,owner_user_id,name,kind,description,settings_json,permissions_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(wid,t,String(user.id||''),text(body.name||'New workspace',220),text(body.kind||'workspace',80),text(body.description,4000),JSON.stringify(body.settings||{}).slice(0,30000),JSON.stringify(body.permissions||{}).slice(0,30000),ts,ts).run();await log(env,user,'workspace_created',{workspace_id:wid});return json({item:mapWorkspace(await ownedWorkspace(env,t,wid))},201)}
  }
 
