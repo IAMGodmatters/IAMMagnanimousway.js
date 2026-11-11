@@ -1,0 +1,14 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const entry=fs.readFileSync(new URL('../../worker/src/entrypoint.js',import.meta.url),'utf8');
+const runtime=fs.readFileSync(new URL('../../worker/src/native-work-crm-runtime.js',import.meta.url),'utf8');
+const college=fs.readFileSync(new URL('../../frontend/app/ai-college/page.tsx',import.meta.url),'utf8');
+assert.ok(entry.includes("import { handleMagnanimousNativeWorkCrm } from './native-work-crm-runtime.js';"),'Worker entrypoint imports the native Operations API.');
+assert.ok(entry.includes('const nativeOperations=await handleMagnanimousNativeWorkCrm(request,env);'),'Worker entrypoint invokes the native Operations API.');
+assert.ok(entry.indexOf('if(nativeOperations)return nativeOperations;')<entry.indexOf('return app.fetch(request,env,ctx);'),'Native Operations routes are dispatched before the legacy app fallback.');
+assert.ok(runtime.includes("if(!url.pathname.startsWith('/api/operations'))return null;"),'Handler is scoped to Operations routes.');
+assert.ok(runtime.includes("const user=await currentUser(request,env);if(!user)return json({detail:'Sign in required.'},401);const t=tenant(user);if(!t)return json({detail:'Tenant context required.'},403);"),'Operations routes require an authenticated tenant.');
+for(const route of ["url.pathname==='/api/operations/workspaces'","url.pathname==='/api/operations/boards'","url.pathname==='/api/operations/records'"])assert.ok(runtime.includes(route),'Missing authenticated endpoint '+route);
+assert.ok(runtime.includes('WHERE tenant_id=? AND id=?'),'Owned records are tenant-scoped.');
+assert.ok(college.includes("request('/api/operations/workspaces')")&&college.includes("request('/api/operations/boards?workspace_id=")&&college.includes("request('/api/operations/records?board_id="),'College uses the existing Operations API.');
+console.log('Native Operations API route wiring lock: PASS');
