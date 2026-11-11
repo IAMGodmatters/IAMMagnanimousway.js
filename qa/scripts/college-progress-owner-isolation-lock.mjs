@@ -26,7 +26,7 @@ for(const [label,marker] of [
  ,['sequence reads','COALESCE(w.kind,\'\')<>\'college-progress\' OR w.owner_user_id=?']
  ,['sequence creation','accessibleWorkspace(env,t,wid,user)']
  ,['event writes','accessibleRecord(env,t,rid,user)']
- ,['activity reads','magnanimous_ops_activity a LEFT JOIN magnanimous_ops_workspaces w']
+ ,['activity reads','magnanimous_ops_activity a LEFT JOIN magnanimous_ops_boards b ON b.tenant_id=a.tenant_id AND b.id=a.board_id LEFT JOIN magnanimous_ops_workspaces w ON w.tenant_id=a.tenant_id AND w.id=COALESCE(a.workspace_id,b.workspace_id)']
  ,['record audit scope','record_updated',{workspace_id:board.workspace_id,board_id:cur.board_id,record_id:rid}']
 ]) assert.ok(runtime.includes(marker),`College ownership guard missing from ${label}.`);
 
