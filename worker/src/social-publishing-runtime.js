@@ -207,6 +207,7 @@ export async function handleSocialPublishing(request,env){
   const publishMatch=url.pathname.match(/^\/api\/social-connect\/(youtube|tiktok|linkedin)\/publish$/);
   if(publishMatch&&request.method==='POST'){
    const provider=publishMatch[1],row=await connection(env,user.tenant_id,provider);if(!row)return json({detail:`Connect ${PROVIDERS[provider].name} first.`},409);const body=await request.json().catch(()=>({}));
+   if(body.explicit_consent!==true)return json({detail:'Confirm this exact post and destination before publishing.',code:'SOCIAL_PUBLISH_CONSENT_REQUIRED'},409);
    const transparency=assessAiTransparency({
      kind:provider==='linkedin'?'text':'video',
      ai_generated:body.ai_generated===true||body.deepfake===true||body.public_interest===true,
