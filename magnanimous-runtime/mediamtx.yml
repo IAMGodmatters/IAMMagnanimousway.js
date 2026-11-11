@@ -1,0 +1,56 @@
+logLevel: info
+logDestinations: [stdout]
+logStructured: true
+readTimeout: 10s
+writeTimeout: 10s
+writeQueueSize: 128
+udpMaxPayloadSize: 1452
+
+# Magnanimous owns the identity and authorization decision for every media action.
+# Compose overrides this URL with a private high-entropy key. Keep all exclusions empty.
+authMethod: http
+authHTTPAddress: http://magnanimous:8788/api/tv/media/auth?key=UNCONFIGURED_DISABLED
+authHTTPExclude: []
+
+# No administrative or diagnostic listeners are exposed.
+api: false
+metrics: false
+pprof: false
+playback: false
+
+# Only WHIP ingest, WebRTC and HLS are enabled in the first pilot profile.
+rtsp: false
+rtmp: false
+srt: false
+moq: false
+hls: true
+hlsAddress: :8888
+hlsEncryption: false
+hlsAllowOrigins:
+  - https://iammagnanimousway.com
+  - https://standalone.iammagnanimousway.com
+hlsAlwaysRemux: false
+hlsVariant: mpegts
+hlsSegmentCount: 7
+hlsSegmentDuration: 2s
+hlsSegmentMaxSize: 8M
+hlsMuxerCloseAfter: 30s
+
+webrtc: true
+webrtcAddress: :8889
+webrtcEncryption: false
+webrtcAllowOrigins:
+  - https://iammagnanimousway.com
+  - https://standalone.iammagnanimousway.com
+webrtcLocalUDPAddress: :8189
+webrtcLocalTCPAddress: ""
+webrtcIPsFromInterfaces: false
+webrtcAdditionalHosts: []
+webrtcHandshakeTimeout: 10s
+webrtcTrackGatherTimeout: 2s
+
+paths:
+  all_others:
+    source: publisher
+    maxReaders: 40
+    record: false

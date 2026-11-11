@@ -26,6 +26,15 @@ async function schema(env){
   created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL
  )`).run();
  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_tv_stations_owner ON magnanimous_tv_stations(tenant_id,user_id,updated_at DESC)').run();
+ await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_tv_media_tokens(
+  id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,station_id TEXT,
+  path TEXT NOT NULL,action TEXT NOT NULL,protocol TEXT NOT NULL,token_hash TEXT NOT NULL UNIQUE,
+  rights_attested_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,revoked_at INTEGER,
+  created_at INTEGER NOT NULL
+ )`).run();
+ await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_tv_media_token_path ON magnanimous_tv_media_tokens(path,action,expires_at,revoked_at)').run();
+ await env.DB.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_tv_media_one_active_publish_per_path ON magnanimous_tv_media_tokens(path) WHERE action='publish' AND revoked_at IS NULL").run();
+ await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_tv_media_token_owner ON magnanimous_tv_media_tokens(tenant_id,user_id,expires_at,revoked_at)').run();
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_tv_programmes(
   id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,submitted_by TEXT NOT NULL,station_id TEXT,
   title TEXT NOT NULL,description TEXT NOT NULL DEFAULT '',source_url TEXT NOT NULL,
@@ -104,6 +113,118 @@ function privateProgramme(row){return{...publicProgramme(row),station_id:row.sta
 async function currentOwnerStation(env,user,id){
  return env.DB.prepare('SELECT id,slug,name,visibility FROM magnanimous_tv_stations WHERE id=? AND tenant_id=? AND user_id=?').bind(String(id),String(user.tenant_id),String(user.id)).first();
 }
+function mediaEnabled(env){
+ const bind=String(env?.MAGNANIMOUS_TV_WEBRTC_UDP_BIND||'127.0.0.1').trim().toLowerCase();
+ const udpReachable=Boolean(bind)&&!['127.0.0.1','::1','localhost'].includes(bind);
+ return String(env?.MAGNANIMOUS_TV_MEDIA_ENABLED||'').trim().toLowerCase()==='true'&&
+  String(env?.MAGNANIMOUS_MEDIA_AUTH_SECRET||'').trim().length>=32&&
+  Boolean(mediaHostOrigin(env))&&udpReachable;
+}
+function constantTimeTextEqual(a,b){
+ const left=String(a||''),right=String(b||'');
+ if(left.length!==right.length)return false;
+ let mismatch=0;for(let i=0;i<left.length;i++)mismatch|=left.charCodeAt(i)^right.charCodeAt(i);
+ return mismatch===0;
+}
+async function sha256Hex(value){
+ const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(String(value)));
+ return [...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+function newMediaToken(){
+ const bytes=new Uint8Array(32);crypto.getRandomValues(bytes);
+ return [...bytes].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+function mediaHostOrigin(env){
+ const host=S(env?.MAGNANIMOUS_TV_MEDIA_HOST,253).toLowerCase();
+ const publicDomain=S(env?.MAGNANIMOUS_TV_MEDIA_PUBLIC_DOMAIN,253).toLowerCase();
+ if(!host||!publicDomain||host!==publicDomain||host.includes('/')||host.includes('@')||host.includes(':')||host==='localhost'||host.endsWith('.local'))return '';
+ try{
+  const u=new URL('https://'+host);
+  if(u.hostname!==host||u.protocol!=='https:'||u.username||u.password||u.port)return '';
+  return u.origin;
+ }catch{return ''}
+}
+async function issueMediaPublishAccess(request,env,user){
+ if(!mediaEnabled(env))return J({detail:'Live broadcasting is not enabled on this host. The media service remains disabled until its secure host, shared authentication secret and network limits are configured.'},503);
+ const origin=mediaHostOrigin(env);
+ if(!origin)return J({detail:'The secure Magnanimous TV media host has not been configured.'},503);
+ const b=await request.json().catch(()=>({}));
+ if(b.rights_attested!==true)return J({detail:'Confirm that you have permission to broadcast every video, voice, music track and other item in this live programme.'},400);
+ if(S(b.protocol,20)!=='webrtc')return J({detail:'The free-first live ingest currently supports secure browser/WHIP WebRTC only.'},400);
+ const stationId=S(b.station_id,64),channelKey=S(b.channel_key,20).toLowerCase();
+ let station=null,path='',stationRef=null;
+ if(stationId){
+  station=await currentOwnerStation(env,user,stationId);
+  if(!station)return J({detail:'The selected station does not belong to your account.'},403);
+  path='tv-station-'+station.slug;
+  stationRef=station.id;
+ }else if(CHANNELS.has(channelKey)){
+  if(!await isPlatformOwnerUser(env,user))return J({detail:'Only the platform owner can publish to a network-wide channel.'},403);
+  path='tv-'+channelKey;
+ }else return J({detail:'Choose one of your own TV stations or an owner-managed network channel.'},400);
+ const timestamp=now();
+ await env.DB.prepare("DELETE FROM magnanimous_tv_media_tokens WHERE path=? AND action='publish' AND expires_at<=?").bind(path,timestamp).run();
+ const active=await env.DB.prepare("SELECT COUNT(*) AS count FROM magnanimous_tv_media_tokens WHERE path=? AND action='publish' AND expires_at>? AND revoked_at IS NULL").bind(path,timestamp).first();
+ if(Number(active?.count||0)>0)return J({detail:'This station already has an active broadcast key. Revoke that key before creating another.'},409);
+ const expiresAt=timestamp+3600,id=ID(),token=newMediaToken();
+ try{
+  await env.DB.prepare("INSERT INTO magnanimous_tv_media_tokens(id,tenant_id,user_id,station_id,path,action,protocol,token_hash,rights_attested_at,expires_at,revoked_at,created_at) VALUES(?,?,?,?,?,'publish','webrtc',?,?,?,NULL,?)").bind(
+   id,String(user.tenant_id),String(user.id),stationRef,path,await sha256Hex(token),
+   timestamp,expiresAt,timestamp
+  ).run();
+ }catch{return J({detail:'A broadcast credential was created at the same time from another session. Use the existing key or revoke it first.'},409)}
+ const whipUrl=origin+'/tv-media/webrtc/'+encodeURIComponent(path)+'/whip';
+ const playbackUrl=origin+'/tv-media/hls/'+encodeURIComponent(path)+'/index.m3u8';
+ return J({
+  access:{id,path,protocol:'webrtc',action:'publish',whip_url:whipUrl,bearer_token:token,playback_url:playbackUrl,expires_at:expiresAt},
+  broadcast_active:false,
+  message:'A one-hour private ingest credential was created. The stream is not live until a publisher connects successfully.'
+ },201);
+}
+async function revokeMediaAccess(env,user,id){
+ const row=await env.DB.prepare('SELECT id FROM magnanimous_tv_media_tokens WHERE id=? AND tenant_id=? AND user_id=? AND revoked_at IS NULL').bind(id,String(user.tenant_id),String(user.id)).first();
+ if(!row)return J({detail:'Active broadcast key not found.'},404);
+ await env.DB.prepare('UPDATE magnanimous_tv_media_tokens SET revoked_at=? WHERE id=? AND tenant_id=? AND user_id=? AND revoked_at IS NULL').bind(now(),id,String(user.tenant_id),String(user.id)).run();
+ return J({revoked:true,id,new_publish_blocked:true,existing_publisher_must_stop:true,note:'This blocks new publishing with the key. An already-established OBS session must be stopped in OBS; the server also expires the authorization at the one-hour key deadline.'});
+}
+async function authenticateMediaNode(request,env,url){
+ const secret=String(env?.MAGNANIMOUS_MEDIA_AUTH_SECRET||'');
+ const supplied=String(url.searchParams.get('key')||'');
+ if(!mediaEnabled(env)||secret.length<32||!constantTimeTextEqual(secret,supplied))return J({detail:'Media server authentication denied.'},401);
+ if(request.method!=='POST')return J({detail:'Method not allowed.'},405);
+ const length=Number(request.headers.get('content-length')||0);
+ if(length>12000)return J({detail:'Authentication payload too large.'},413);
+ let payload={};
+ try{
+  const raw=await request.text();if(raw.length>12000)return J({detail:'Authentication payload too large.'},413);
+  payload=JSON.parse(raw||'{}');
+ }catch{return J({detail:'Invalid media authentication payload.'},400)}
+ const action=S(payload.action,24),path=S(payload.path,96),protocol=S(payload.protocol,24);
+ if(!path||!new Set(['publish','read']).has(action))return J({detail:'Media action denied.'},401);
+ const expires=now()+300;
+ if(action==='read'){
+  if(!new Set(['hls','webrtc']).has(protocol))return J({detail:'Only HLS and WebRTC public read access is enabled.'},401);
+  if(path==='tv-philippines'||path==='tv-worldwide')return J({expireAt:new Date(expires*1000).toISOString()});
+  const match=path.match(/^tv-station-([a-z0-9-]{3,48})$/);
+  if(!match)return J({detail:'Unknown public TV stream.'},401);
+  const station=await env.DB.prepare("SELECT id FROM magnanimous_tv_stations WHERE slug=? AND visibility IN ('public','unlisted') LIMIT 1").bind(match[1]).first();
+  return station?J({expireAt:new Date(expires*1000).toISOString()}):J({detail:'This TV station is not publicly available.'},401);
+ }
+ if(protocol!=='webrtc')return J({detail:'Only WebRTC/WHIP publishing is enabled.'},401);
+ const rawToken=S(payload.token||payload.password,256);
+ if(!rawToken)return J({detail:'A short-lived Magnanimous broadcast key is required.'},401);
+ const tokenHash=await sha256Hex(rawToken),timestamp=now();
+ const record=await env.DB.prepare("SELECT * FROM magnanimous_tv_media_tokens WHERE token_hash=? AND action='publish' AND path=? AND protocol='webrtc' AND expires_at>? AND revoked_at IS NULL LIMIT 1").bind(tokenHash,path,timestamp).first();
+ if(!record)return J({detail:'Broadcast key is invalid, expired, revoked or assigned to another stream.'},401);
+ const owner=await env.DB.prepare('SELECT id,tenant_id,name,email,role,active FROM users WHERE id=? AND tenant_id=? AND active=1').bind(record.user_id,record.tenant_id).first();
+ if(!owner)return J({detail:'Broadcast account is no longer active.'},401);
+ if(record.station_id){
+  const station=await env.DB.prepare('SELECT id FROM magnanimous_tv_stations WHERE id=? AND tenant_id=? AND user_id=?').bind(record.station_id,record.tenant_id,record.user_id).first();
+  if(!station)return J({detail:'Broadcast station ownership is no longer valid.'},401);
+ }else if(!await isPlatformOwnerUser(env,owner))return J({detail:'Network broadcast permission is no longer valid.'},401);
+ return J({expireAt:new Date(Number(record.expires_at)*1000).toISOString()});
+}
+
 async function publicGuide(env,url){
  const channel=S(url.searchParams.get('channel'),20).toLowerCase();
  const stationSlug=S(url.searchParams.get('station'),48).toLowerCase();
@@ -252,16 +373,19 @@ export async function scheduledMagnanimousTvProgramming(env){
  if(!env?.DB)return{completed:0,revoked:0};
  await schema(env);
  const timestamp=now();
+ await env.DB.prepare('DELETE FROM magnanimous_tv_media_tokens WHERE expires_at<? OR revoked_at IS NOT NULL').bind(timestamp-86400).run();
  const expired=await env.DB.prepare("UPDATE magnanimous_tv_schedule SET status='completed',updated_at=? WHERE status='scheduled' AND ends_at<=?").bind(timestamp,timestamp).run();
  const revoked=await env.DB.prepare("UPDATE magnanimous_tv_schedule SET status='cancelled',updated_at=? WHERE status='scheduled' AND programme_id IN (SELECT id FROM magnanimous_tv_programmes WHERE rights_expires_at IS NOT NULL AND rights_expires_at<=?)").bind(timestamp,timestamp).run();
  return{completed:Number(expired?.meta?.changes||0),revoked:Number(revoked?.meta?.changes||0),playout_connected:false};
 }
 export async function handleMagnanimousTvProgramming(request,env){
  const url=new URL(request.url),path=url.pathname;
+ if(path==='/api/tv/media/auth'){if(!env?.DB)return J({detail:'TV media authorization storage is unavailable.'},503);try{await schema(env);return await authenticateMediaNode(request,env,url)}catch{return J({detail:'TV media authorization is unavailable.'},503)}}
+ if(path==='/api/tv/media/status'&&request.method==='GET'){const origin=mediaHostOrigin(env),bind=String(env?.MAGNANIMOUS_TV_WEBRTC_UDP_BIND||'127.0.0.1').trim().toLowerCase(),udp_ready=Boolean(bind)&&!['127.0.0.1','::1','localhost'].includes(bind);return J({enabled:mediaEnabled(env),host_configured:Boolean(origin),udp_ready,media_host:mediaEnabled(env)?origin:null,ingest_protocol:'webrtc-whip',viewer_protocols:['webrtc-whep','hls'],maximum_readers_per_stream:40,recording_enabled:false,http_control_ports_public:false,media_process_health:'not_probed'});}
  if(path==='/api/tv/programming/public'&&request.method==='GET'){
   try{await schema(env);return await publicGuide(env,url)}catch(error){console.error('Magnanimous TV public guide failed',error);return J({detail:'The TV programme guide is temporarily unavailable.'},503)}
  }
- if(!path.startsWith('/api/tv/programmes')&&!path.startsWith('/api/tv/programming'))return null;
+ if(!path.startsWith('/api/tv/programmes')&&!path.startsWith('/api/tv/programming')&&!path.startsWith('/api/tv/media'))return null;
  if(!env?.DB)return J({detail:'TV programme storage is unavailable.'},503);
  try{
   await schema(env);
@@ -269,6 +393,9 @@ export async function handleMagnanimousTvProgramming(request,env){
   if(!user)return J({detail:'Sign in to manage TV programming.'},401);
   const tenant=String(user.tenant_id||''),uid=String(user.id||'');
   if(!tenant||!uid)return J({detail:'Your account does not have a valid workspace identity.'},403);
+  if(path==='/api/tv/media/access'&&request.method==='POST')return await issueMediaPublishAccess(request,env,user);
+  const revoke=path.match(/^\/api\/tv\/media\/access\/([a-f0-9-]{36})\/revoke$/);
+  if(revoke&&request.method==='POST')return await revokeMediaAccess(env,user,revoke[1]);
   if(path==='/api/tv/programmes'&&request.method==='GET')return await listPrivate(env,user);
   if(path==='/api/tv/programmes'&&request.method==='POST')return await submitProgramme(request,env,user);
   const review=path.match(/^\/api\/tv\/programmes\/([a-z0-9-]{8,80})\/review$/);

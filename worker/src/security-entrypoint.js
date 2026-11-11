@@ -298,7 +298,7 @@ export default {
       const url=new URL(request.url);
       const credentialMigrationResponse=await handleCredentialVaultMigration(request,env);
       if(credentialMigrationResponse)return finalizeResponse(request,await securityPostflight(request,credentialMigrationResponse,env));
-      if(url.pathname.startsWith('/api/tv/programmes')||url.pathname.startsWith('/api/tv/programming')){const tvProgrammingEnv=await getProviderRuntimeEnv(env);const tvProgramming=await handleMagnanimousTvProgramming(request,tvProgrammingEnv);if(tvProgramming)return finalizeResponse(request,await securityPostflight(request,tvProgramming,env));}
+      if(url.pathname.startsWith('/api/tv/programmes')||url.pathname.startsWith('/api/tv/programming')||url.pathname.startsWith('/api/tv/media')){const tvProgrammingEnv=await getProviderRuntimeEnv(env);const tvProgramming=await handleMagnanimousTvProgramming(request,tvProgrammingEnv);if(tvProgramming)return finalizeResponse(request,await securityPostflight(request,tvProgramming,env));}
       const tvDataResponse=await handleMagnanimousTvData(request);
       if(tvDataResponse)return finalizeResponse(request,await securityPostflight(request,tvDataResponse,env));
       if(url.pathname.startsWith('/api/tv/stations')){const tvStationsEnv=await getProviderRuntimeEnv(env);const tvStationsResponse=await handleMagnanimousTvStations(request,tvStationsEnv);if(tvStationsResponse)return finalizeResponse(request,await securityPostflight(request,tvStationsResponse,env));}
