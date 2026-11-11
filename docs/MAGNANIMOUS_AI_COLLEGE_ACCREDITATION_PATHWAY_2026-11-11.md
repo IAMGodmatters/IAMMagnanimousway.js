@@ -1,5 +1,5 @@
-# Magnanimous AI College — Philippine Degree Recognition Pathway
-Research date: 11 November 2026`nStatus: Planning and partner outreach required. No accreditation or degree-awarding authority is claimed.
+# Magnanimous AI College - Philippine Degree Recognition Pathway
+Research date: 11 November 2026\nStatus: Planning and partner outreach required. No accreditation or degree-awarding authority is claimed.
 
 ## Recommended route
 Build Magnanimous AI as the learning platform, instructional technology, AI lab and student-support layer. Partner with an existing Philippine Higher Education Institution (HEI) that already has the relevant CHED-recognized undergraduate program. The HEI—not Magnanimous AI alone—must control admissions, academic governance, curriculum approval, faculty appointments, assessment, official student records, transcripts and degree issuance.
