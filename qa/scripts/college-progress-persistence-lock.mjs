@@ -38,6 +38,7 @@ assert.ok(page.includes("request('/api/operations/workspaces?mine=1')"),'Student
 assert.ok(runtime.includes("async function canAccessCollegeBoard(env,t,user,board)"),'College board access is checked against the authenticated owner.');
 assert.ok(runtime.includes("workspace.owner_user_id===String(user.id||'')"),'College workspaces are restricted to their creating student, even inside a shared tenant.');
 assert.ok(runtime.includes("const mine=url.searchParams.get('mine')==='1'"),'The workspace API supports owner-filtered reads without accepting a caller-supplied user ID.');
+assert.ok(runtime.includes("AND (kind<>'college-progress' OR owner_user_id=?)"),'Default workspace lists also hide other students’ College workspace metadata.');
 assert.ok(runtime.includes("if(workspace.kind==='college-progress'&&workspace.owner_user_id!==String(user.id||''))"),'Only the owner can open a College workspace or create its board.');
 assert.ok((runtime.match(/canAccessCollegeBoard\(env,t,user,board\)/g)||[]).length>=3,'College record reads, creates and updates enforce owner access.');
 
