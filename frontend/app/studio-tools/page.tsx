@@ -4,12 +4,13 @@ import {useCallback,useEffect,useMemo,useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {getPlatformAuthToken} from '../lib/magnanimous-session';
 import TalkingRecorder from './talking-recorder';
+import UtilityTools, { type RestoreRecord } from './utility-tools';
 
 type Item={id:string;title:string;status:string;due_at:number|null;data:Record<string,unknown>;updated_at:number};
-type Kind='task'|'note'|'planner'|'habit'|'voice';
+type Kind='task'|'note'|'planner'|'habit'|'voice'|'utilities';
 const API=process.env.NEXT_PUBLIC_API_BASE_URL||'';
-const KINDS:Kind[]=['task','note','planner','habit','voice'];
-const LABEL:Record<Kind,string>={task:'Tasks',note:'Notes',planner:'Planner',habit:'Habits',voice:'Talking Recorder'};
+const KINDS:Kind[]=['task','note','planner','habit','voice','utilities'];
+const LABEL:Record<Kind,string>={task:'Tasks',note:'Notes',planner:'Planner',habit:'Habits',voice:'Talking Recorder',utilities:'More Tools'};
 async function read(r:Response){const raw=await r.text();try{return JSON.parse(raw)}catch{return{detail:raw}}}
 function dateLabel(value:number|null){return value?new Date(value*1000).toLocaleString():''}
 
@@ -52,7 +53,7 @@ export default function StudioToolsPage(){
    if(!board?.id)throw new Error('Your private tools list could not be opened.');
    setBoardId(board.id);
    const records=await request('/api/operations/records?board_id='+encodeURIComponent(board.id)+'&limit=500');
-   setItems((records.items||[]).filter((x:any)=>KINDS.includes(x.data?.kind)).map((x:any)=>({...x,data:x.data||{}})));
+   setItems((records.items||[]).filter((x:any)=>['task','note','planner','habit','voice'].includes(x.data?.kind)).map((x:any)=>({...x,data:x.data||{}})));
   }catch(e:any){setError(e.message||'Could not load your workspace.')}
   finally{setLoading(false)}
  },[token,request]);
@@ -76,6 +77,25 @@ export default function StudioToolsPage(){
   catch(e:any){setError(e.message||'Could not update this item.')}
  };
  const count=(k:Kind)=>items.filter(x=>x.data.kind===k&&x.status!=='archived').length;
+ const restoreBackup=async(records:RestoreRecord[])=>{
+  if(!boardId)throw new Error('Your private workspace is still loading.');
+  const known=new Set(items.map(item=>String(item.data?.backup_source_id||'')));
+  let imported=0,skipped=0,failed=0;
+  for(const record of records){
+   const sourceId=record.kind+':'+record.sourceId;
+   if(known.has(sourceId)){skipped++;continue;}
+   try{
+    await request('/api/operations/records',{method:'POST',body:JSON.stringify({
+     board_id:boardId,title:record.title,status:record.status,due_at:record.due_at,
+     data:{...record.data,kind:record.kind,backup_source_id:sourceId}
+    })});
+    known.add(sourceId);imported++;
+   }catch{failed++;}
+  }
+  await load();
+  if(failed)throw new Error('Import partially completed: '+imported+' added, '+skipped+' already present, '+failed+' failed. Import the same file again to safely retry only missing records.');
+  return {imported,skipped};
+ };
  const saveVoice=async(voiceTitle:string,transcript:string,duration:number,mimeType:string)=>{
   if(!boardId)throw new Error('Your private workspace is still loading.');
   const result=await request('/api/operations/records',{method:'POST',body:JSON.stringify({board_id:boardId,title:voiceTitle.slice(0,240),status:'open',due_at:null,data:{kind:'voice',body:transcript.slice(0,12000),duration_seconds:duration,mime_type:mimeType,recorded_at:new Date().toISOString(),audio_storage:'downloaded_on_device'}})});
@@ -87,7 +107,7 @@ export default function StudioToolsPage(){
    <header className="st-head"><div><p className="st-kicker">I AM MAGNANIMOUS WAY™</p><h1>Studio Tools</h1><p className="st-sub">Your own private space to organize everyday work.</p></div><a className="st-home" href="/">Back to platform</a></header>
    <section className="st-intro"><div><h2>One simple place to keep things moving.</h2><p>Save tasks, notes, plans and habits. Sign in from another device and continue in your own account workspace.</p></div><span className="st-lock">PRIVATE WORKSPACE</span></section>
    <nav className="st-tabs" aria-label="Studio tools">{KINDS.map(k=><button key={k} className={kind===k?'active':''} onClick={()=>setKind(k)}>{LABEL[k]} <small>{count(k)}</small></button>)}</nav>
-   {kind==='voice'?<TalkingRecorder onSave={saveVoice} savedItems={items.filter(x=>x.data.kind==='voice'&&x.status!=='archived').map(x=>({id:x.id,title:x.title,data:x.data}))}/>:<section className="st-panel">
+   {kind==='utilities'?<UtilityTools items={items} onRestore={restoreBackup}/>:kind==='voice'?<TalkingRecorder onSave={saveVoice} savedItems={items.filter(x=>x.data.kind==='voice'&&x.status!=='archived').map(x=>({id:x.id,title:x.title,data:x.data}))}/>:<section className="st-panel">
     <div className="st-toolbar"><h2>{LABEL[kind]}</h2><input aria-label="Search items" value={search} onChange={e=>setSearch(e.target.value)} placeholder={'Search '+LABEL[kind].toLowerCase()}/></div>
     <div className="st-create"><input aria-label="Title" value={title} onChange={e=>setTitle(e.target.value)} placeholder={kind==='task'?'What needs to get done?':kind==='note'?'Note title':kind==='planner'?'Plan or event title':'Habit name'} maxLength={240}/>{kind!=='note'&&<input aria-label="Due date" type="datetime-local" value={due} onChange={e=>setDue(e.target.value)}/>}<textarea aria-label="Details" value={body} onChange={e=>setBody(e.target.value)} placeholder="Add details (optional)" rows={2}/><button disabled={saving||!title.trim()} onClick={add}>{saving?'Saving…':'Save '+(kind==='task'?'task':kind==='note'?'note':kind==='planner'?'plan':'habit')}</button></div>
     {error&&<p className="st-error" role="alert">{error}</p>}{notice&&<p className="st-notice" role="status">{notice}</p>}
