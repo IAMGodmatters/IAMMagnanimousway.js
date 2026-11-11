@@ -21,7 +21,7 @@ for(const marker of [
 
 assert.ok(page.includes("localStorage.getItem('magnanimous-college-open-progress-v1')"),'Existing local progress is retained for migration/fallback.');
 assert.ok(page.includes("localStorage.setItem('magnanimous-college-open-progress-v1'"),'Local progress remains a fallback.');
-assert.ok(page.includes("setDone(saved)"),'A signed-in account restores its saved study marks.');
+assert.ok(page.includes("setDone([...new Set([...saved,...done])])"),'A signed-in account restores saved study marks without discarding local marks.');
 assert.ok(page.includes("method:'PUT'"),'Progress updates are written to the account record.');
 assert.ok(page.includes("method:'POST'"),'A first-time student receives a durable progress record.');
 assert.ok(!/tenant_id\s*:/.test(page),'The browser must never choose or submit its own tenant ID.');
