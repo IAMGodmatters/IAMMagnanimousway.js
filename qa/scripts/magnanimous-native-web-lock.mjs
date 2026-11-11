@@ -65,7 +65,10 @@ for(const needle of [
 ])assert(agent.includes(needle),'Native browser agent contract missing: '+needle);
 
 assert(!agent.includes('shell=True'),'native browser must not reopen a generic shell surface');
-assert(!agent.includes('subprocess.Popen('),'native browser must not add unsupervised process spawning');
+assert.equal((agent.match(/subprocess\.Popen\(/g)||[]).length,1,'only the allowlisted Android emulator start action may spawn a detached process');
+assert(agent.includes('def action_android_emulator_start(config, payload):'),'detached process must be limited to the Android emulator lifecycle');
+assert(agent.includes('argv = [str(emulator), "-avd", name, "-no-boot-anim"]'),'Android emulator startup must use an explicit, validated argument vector');
+assert(agent.includes('shell=False'),'Android emulator startup must not invoke a shell');
 assert(installer.includes('"playwright==1.63.0"'),'Local Bridge installer must pin the researched Playwright release');
 assert(installer.includes('-m playwright install chromium'),'Local Bridge installer must install Chromium');
 assert(installer.includes('will continue without native browser automation'),'browser setup failure must preserve existing Local Bridge capability');

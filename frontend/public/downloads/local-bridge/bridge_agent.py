@@ -39,6 +39,7 @@ SAFE_PROJECT_SCRIPTS = {
 }
 BASE_CAPS = {
     "system_info","health","workspace_list","read_file","search_text","heimdall_status",
+    "android_emulator_status","android_emulator_list",
     "git_status","git_diff","git_log","web_fetch",
     "apply_patch","git_create_branch","git_commit","desktop_tools_status",
 }
@@ -410,6 +411,311 @@ def action_heimdall_detect(config, payload):
             "firmware_writes_enabled": False}
 
 
+
+
+ANDROID_CLOUD_IMAGE = "us-docker.pkg.dev/android-emulator-268719/images/30-google-x64:30.1.2"
+ANDROID_AVD_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$")
+ANDROID_IMAGE_RE = re.compile(r"^system-images;android-(?:29|3[0-9]);google_apis;x86_64$")
+ANDROID_DEVICE_PROFILES = {"pixel_2", "pixel", "pixel_3", "pixel_4"}
+ANDROID_CLOUD_PREFIX = "magnanimous-android-emulator-"
+
+
+def _android_sdk_root():
+    candidates = []
+    for key in ("ANDROID_SDK_ROOT", "ANDROID_HOME"):
+        value = os.environ.get(key)
+        if value:
+            candidates.append(Path(value).expanduser())
+    if os.name == "nt":
+        local = os.environ.get("LOCALAPPDATA")
+        if local:
+            candidates.append(Path(local) / "Android" / "Sdk")
+    candidates.extend([Path.home() / "Android" / "Sdk", Path.home() / "Library" / "Android" / "sdk"])
+    for candidate in candidates:
+        try:
+            if candidate.is_dir():
+                return candidate.resolve()
+        except Exception:
+            pass
+    return None
+
+
+def _android_tools():
+    root = _android_sdk_root()
+    if not root:
+        return {}
+    suffix = ".exe" if os.name == "nt" else ""
+    tools = {"emulator": root / "emulator" / ("emulator" + suffix),
+             "adb": root / "platform-tools" / ("adb" + suffix),
+             "sdkmanager": None, "avdmanager": None}
+    bins = []
+    cmdline = root / "cmdline-tools"
+    if cmdline.is_dir():
+        bins.extend(sorted(cmdline.glob("*/bin"), reverse=True))
+    bins.append(root / "tools" / "bin")
+    for folder in bins:
+        if folder.is_dir():
+            for key in ("sdkmanager", "avdmanager"):
+                candidate = folder / (key + (".bat" if os.name == "nt" else ""))
+                if candidate.is_file() and tools[key] is None:
+                    tools[key] = candidate.resolve()
+    for key in ("emulator", "adb"):
+        if not tools[key].is_file():
+            found = shutil.which(key)
+            tools[key] = Path(found).resolve() if found else None
+    return {key: value for key, value in tools.items() if value and value.is_file()}
+
+
+def _android_run(tool, args, timeout=180, input_text=None):
+    argv = [str(tool), *[str(x) for x in args]]
+    if os.name == "nt" and str(tool).lower().endswith(".bat"):
+        argv = [os.environ.get("COMSPEC", "cmd.exe"), "/d", "/c", subprocess.list2cmdline(argv)]
+    return _run(argv, timeout=timeout, input_text=input_text)
+
+
+def _android_name(value):
+    name = str(value or "")
+    if not ANDROID_AVD_NAME_RE.fullmatch(name):
+        raise RuntimeError("AVD name must use letters, numbers, dot, underscore or hyphen and be at most 40 characters.")
+    return name
+
+
+def _android_image(value):
+    image = str(value or "")
+    if not ANDROID_IMAGE_RE.fullmatch(image):
+        raise RuntimeError("Use an approved Google APIs x86_64 system image, e.g. system-images;android-35;google_apis;x86_64.")
+    return image
+
+
+def _android_avd_names(tools):
+    emulator = tools.get("emulator")
+    if not emulator:
+        return []
+    result = _android_run(emulator, ["-list-avds"], timeout=30)
+    return [line.strip() for line in (result.get("stdout") or "").splitlines() if ANDROID_AVD_NAME_RE.fullmatch(line.strip())] if result["code"] == 0 else []
+
+
+def action_android_emulator_status(config, payload):
+    root, tools = _android_sdk_root(), _android_tools()
+    accel = None
+    if tools.get("emulator"):
+        result = _android_run(tools["emulator"], ["-accel-check"], timeout=30)
+        accel = {"code": result["code"], "detail": ((result.get("stdout") or "") + "\n" + (result.get("stderr") or ""))[-1800:]}
+    packages = []
+    if tools.get("sdkmanager"):
+        result = _android_run(tools["sdkmanager"], ["--list_installed"], timeout=90)
+        if result["code"] == 0:
+            packages = [line.strip() for line in (result.get("stdout") or "").splitlines() if "system-images;android-" in line][:40]
+    adb_version = ""
+    if tools.get("adb"):
+        result = _android_run(tools["adb"], ["version"], timeout=20)
+        adb_version = ((result.get("stdout") or "") + (result.get("stderr") or "")).strip()[:500]
+    return {"ok": True, "ready": bool(root and tools.get("emulator") and tools.get("adb") and tools.get("avdmanager")),
+            "host": platform.platform(), "sdk_root": str(root) if root else "",
+            "tools": {k: str(v) for k, v in tools.items()}, "avds": _android_avd_names(tools),
+            "installed_system_images": packages, "acceleration": accel, "adb_version": adb_version,
+            "license_note": "SDK licenses must be reviewed and accepted by the owner locally. Magnanimous never auto-accepts licenses."}
+
+
+def action_android_emulator_list(config, payload):
+    tools = _android_tools()
+    if not tools.get("emulator"):
+        return {"ok": True, "ready": False, "avds": [], "running": [], "reason": "android-emulator-sdk-not-found"}
+    avds, running = _android_avd_names(tools), []
+    if tools.get("adb"):
+        result = _android_run(tools["adb"], ["devices", "-l"], timeout=30)
+        for line in (result.get("stdout") or "").splitlines()[1:]:
+            parts = line.split()
+            if len(parts) >= 2 and parts[0].startswith("emulator-") and parts[1] == "device":
+                detail = _android_run(tools["adb"], ["-s", parts[0], "emu", "avd", "name"], timeout=20)
+                reported = (detail.get("stdout") or "").splitlines()
+                running.append({"serial": parts[0], "name": reported[0].strip() if detail["code"] == 0 and reported else ""})
+    return {"ok": True, "ready": True, "avds": avds, "running": running, "count": len(avds)}
+
+
+def action_android_emulator_install_image(config, payload):
+    tools = _android_tools()
+    if not tools.get("sdkmanager"):
+        raise RuntimeError("Install Android SDK Command-line Tools first; sdkmanager is missing.")
+    image = _android_image(payload.get("image"))
+    result = _android_run(tools["sdkmanager"], ["--install", image], timeout=1800)
+    output = ((result.get("stdout") or "") + "\n" + (result.get("stderr") or ""))[-6000:]
+    if result["code"] != 0:
+        raise RuntimeError("Image installation failed. Accept Android SDK licenses interactively with sdkmanager --licenses if required; Magnanimous does not accept them for you. " + output)
+    return {"ok": True, "installed": image, "output": output}
+
+
+def action_android_emulator_create(config, payload):
+    tools = _android_tools()
+    if not tools.get("avdmanager") or not tools.get("sdkmanager"):
+        raise RuntimeError("Android SDK Command-line Tools are required.")
+    name, image = _android_name(payload.get("name")), _android_image(payload.get("image"))
+    profile = str(payload.get("device_profile") or "pixel_2")
+    if profile not in ANDROID_DEVICE_PROFILES:
+        raise RuntimeError("Virtual-device hardware profile is not allowlisted.")
+    if name in _android_avd_names(tools):
+        raise RuntimeError("An AVD with this name already exists. Existing AVDs are never overwritten.")
+    installed = _android_run(tools["sdkmanager"], ["--list_installed"], timeout=90)
+    if installed["code"] != 0 or image not in (installed.get("stdout") or ""):
+        raise RuntimeError("Install the requested Android system image first using the separate confirmed action.")
+    result = _android_run(tools["avdmanager"], ["create", "avd", "--name", name, "--package", image, "--device", profile], timeout=180, input_text="no\n")
+    output = ((result.get("stdout") or "") + "\n" + (result.get("stderr") or ""))[-4000:]
+    if result["code"] != 0:
+        raise RuntimeError("AVD creation failed: " + output)
+    return {"ok": True, "created": name, "image": image, "device_profile": profile, "output": output}
+
+
+def action_android_emulator_start(config, payload):
+    tools = _android_tools()
+    emulator = tools.get("emulator")
+    if not emulator:
+        raise RuntimeError("Android Emulator executable is not installed.")
+    name = _android_name(payload.get("name"))
+    if name not in _android_avd_names(tools):
+        raise RuntimeError("The requested AVD does not exist on this paired computer.")
+    flags = (getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)) if os.name == "nt" else 0
+    argv = [str(emulator), "-avd", name, "-no-boot-anim"]
+    if os.name != "nt" and not (os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")):
+        argv.extend(["-no-window", "-no-audio"])
+    child = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                             shell=False, close_fds=(os.name != "nt"), creationflags=flags)
+    return {"ok": True, "started": name, "pid": child.pid, "note": "Local emulator process launched; ADB boot completion still needs verification."}
+
+
+def action_android_emulator_stop(config, payload):
+    tools = _android_tools()
+    if not tools.get("adb"):
+        raise RuntimeError("Android SDK Platform-Tools adb is not installed.")
+    name = _android_name(payload.get("name"))
+    devices = _android_run(tools["adb"], ["devices"], timeout=30)
+    stopped = []
+    for line in (devices.get("stdout") or "").splitlines()[1:]:
+        parts = line.split()
+        if len(parts) >= 2 and parts[0].startswith("emulator-") and parts[1] == "device":
+            detail = _android_run(tools["adb"], ["-s", parts[0], "emu", "avd", "name"], timeout=20)
+            reported = (detail.get("stdout") or "").splitlines()
+            if detail["code"] == 0 and reported and reported[0].strip() == name:
+                result = _android_run(tools["adb"], ["-s", parts[0], "emu", "kill"], timeout=30)
+                if result["code"] != 0:
+                    raise RuntimeError("ADB could not stop " + name + ": " + (result.get("stderr") or "")[-1000:])
+                stopped.append(parts[0])
+    return {"ok": True, "stopped": name, "serials": stopped, "already_stopped": not bool(stopped)}
+
+
+def action_android_emulator_delete(config, payload):
+    tools = _android_tools()
+    if not tools.get("avdmanager"):
+        raise RuntimeError("Android SDK avdmanager is not installed.")
+    name = _android_name(payload.get("name"))
+    status = action_android_emulator_list(config, {})
+    if any(item.get("name") == name for item in status.get("running", [])):
+        raise RuntimeError("Stop the running emulator before deleting its AVD.")
+    if name not in status.get("avds", []):
+        raise RuntimeError("The requested AVD does not exist.")
+    result = _android_run(tools["avdmanager"], ["delete", "avd", "--name", name], timeout=120)
+    output = ((result.get("stdout") or "") + "\n" + (result.get("stderr") or ""))[-3000:]
+    if result["code"] != 0:
+        raise RuntimeError("AVD deletion failed: " + output)
+    return {"ok": True, "deleted": name, "output": output}
+
+
+def _android_cloud_host_status():
+    if platform.system().lower() != "linux":
+        return {"ok": True, "ready": False, "reason": "cloud-emulator-containers-require-linux-kvm-host"}
+    kvm = Path("/dev/kvm")
+    kvm_ready = kvm.exists() and os.access(str(kvm), os.R_OK | os.W_OK)
+    docker, adb = shutil.which("docker"), shutil.which("adb")
+    docker_ready, containers = False, []
+    if docker:
+        info = _run([docker, "info", "--format", "{{.ServerVersion}}"], timeout=30)
+        docker_ready = info["code"] == 0
+        listing = _run([docker, "ps", "-a", "--filter", "name=" + ANDROID_CLOUD_PREFIX, "--format", "{{.Names}}|{{.Status}}"], timeout=30)
+        if listing["code"] == 0:
+            for line in (listing.get("stdout") or "").splitlines():
+                parts = line.split("|", 1)
+                if parts:
+                    containers.append({"name": parts[0], "status": parts[1] if len(parts) > 1 else ""})
+    return {"ok": True, "ready": bool(kvm_ready and docker_ready and adb), "host": platform.platform(),
+            "kvm": {"present": kvm.exists(), "read_write": kvm_ready},
+            "docker": {"installed": bool(docker), "usable": docker_ready}, "adb": {"installed": bool(adb)},
+            "containers": containers, "image": ANDROID_CLOUD_IMAGE,
+            "ports": "ADB 5555 and emulator WebRTC 8554 are loopback-bound on the paired host."}
+
+
+def action_android_cloud_status(config, payload):
+    return _android_cloud_host_status()
+
+
+def action_android_cloud_start(config, payload):
+    if payload.get("google_sdk_license_accepted") is not True:
+        raise RuntimeError("Owner must review and affirm acceptance of the applicable Google Android SDK and emulator container terms before starting this container.")
+    status = _android_cloud_host_status()
+    if not status.get("ready"):
+        raise RuntimeError("Cloud node requires Linux, readable/writable /dev/kvm, usable Docker Engine, and adb. Magnanimous does not create or pay for a VM.")
+    slot = int(payload.get("slot") or 0)
+    if slot < 0 or slot > 9:
+        raise RuntimeError("Cloud emulator slot must be from 0 through 9.")
+    name, docker, adb = ANDROID_CLOUD_PREFIX + str(slot), shutil.which("docker"), shutil.which("adb")
+    inspect = _run([docker, "inspect", "--format", "{{.State.Status}}", name], timeout=20)
+    if inspect["code"] == 0:
+        if (inspect.get("stdout") or "").strip() != "running":
+            started = _run([docker, "start", name], timeout=60)
+            if started["code"] != 0:
+                raise RuntimeError("Existing emulator container could not be restarted: " + (started.get("stderr") or "")[-1200:])
+    else:
+        android_dir = Path.home() / ".android"
+        android_dir.mkdir(parents=True, exist_ok=True)
+        key = android_dir / "adbkey"
+        if not key.is_file():
+            generated = _run([adb, "keygen", str(key)], timeout=30)
+            if generated["code"] != 0 or not key.is_file():
+                raise RuntimeError("Could not create the local ADB authentication key.")
+        env_file = None
+        try:
+            handle = tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", prefix="magnanimous-adb-", suffix=".env", delete=False)
+            env_file = Path(handle.name)
+            try:
+                os.chmod(env_file, 0o600)
+            except Exception:
+                pass
+            with handle:
+                handle.write("ADBKEY=" + key.read_text(encoding="utf-8").strip().replace("\n", "") + "\n")
+            adb_port, rtc_port = 15555 + slot * 10, 18554 + slot * 10
+            run = _run([docker, "run", "-d", "--name", name, "--restart", "unless-stopped", "--device", "/dev/kvm",
+                        "--env-file", str(env_file), "--publish", f"127.0.0.1:{adb_port}:5555/tcp",
+                        "--publish", f"127.0.0.1:{rtc_port}:8554/tcp", ANDROID_CLOUD_IMAGE], timeout=900)
+        finally:
+            if env_file:
+                try:
+                    env_file.unlink(missing_ok=True)
+                except Exception:
+                    pass
+        if run["code"] != 0:
+            raise RuntimeError("Android emulator container could not start: " + (run.get("stderr") or "")[-2500:])
+    adb_port = 15555 + slot * 10
+    connected = _run([adb, "connect", f"127.0.0.1:{adb_port}"], timeout=30)
+    return {"ok": True, "name": name, "status": "started", "adb_target": f"127.0.0.1:{adb_port}",
+            "rtc_port_loopback": 18554 + slot * 10, "adb_output": (connected.get("stdout") or "")[-800:],
+            "note": "Container started; verify ADB device and Android boot completion separately."}
+
+
+def action_android_cloud_stop(config, payload):
+    slot = int(payload.get("slot") or 0)
+    if slot < 0 or slot > 9:
+        raise RuntimeError("Cloud emulator slot must be from 0 through 9.")
+    docker = shutil.which("docker")
+    if not docker:
+        raise RuntimeError("Docker is unavailable.")
+    name = ANDROID_CLOUD_PREFIX + str(slot)
+    result = _run([docker, "stop", "--time", "10", name], timeout=60)
+    if result["code"] != 0 and "No such container" not in (result.get("stderr") or ""):
+        raise RuntimeError("Container stop failed: " + (result.get("stderr") or "")[-1500:])
+    adb = shutil.which("adb")
+    if adb:
+        _run([adb, "disconnect", f"127.0.0.1:{15555 + slot * 10}"], timeout=20)
+    return {"ok": True, "name": name, "status": "stopped"}
+
+
 def action_android_device_status(config, payload):
     scrcpy = _approved_tool_path("scrcpy")
     if not scrcpy:
@@ -663,6 +969,15 @@ def capabilities(config):
         caps.update({"archive_list", "archive_test"})
     if _approved_tool_path("scrcpy"):
         caps.add("android_device_status")
+    tools = _android_tools()
+    if tools.get("sdkmanager"):
+        caps.add("android_emulator_install_image")
+    if tools.get("emulator") and tools.get("avdmanager") and tools.get("adb"):
+        caps.update({"android_emulator_create","android_emulator_start","android_emulator_stop","android_emulator_delete"})
+    if platform.system().lower() == "linux":
+        caps.add("android_cloud_status")
+        if _android_cloud_host_status().get("ready"):
+            caps.update({"android_cloud_start","android_cloud_stop"})
     if _heimdall_executable():
         caps.add("heimdall_detect")
     for root in _roots(config):
@@ -1746,6 +2061,16 @@ HANDLERS = {
     "archive_list": action_archive_list,
     "archive_test": action_archive_test,
     "android_device_status": action_android_device_status,
+    "android_emulator_status": action_android_emulator_status,
+    "android_emulator_list": action_android_emulator_list,
+    "android_emulator_install_image": action_android_emulator_install_image,
+    "android_emulator_create": action_android_emulator_create,
+    "android_emulator_start": action_android_emulator_start,
+    "android_emulator_stop": action_android_emulator_stop,
+    "android_emulator_delete": action_android_emulator_delete,
+    "android_cloud_status": action_android_cloud_status,
+    "android_cloud_start": action_android_cloud_start,
+    "android_cloud_stop": action_android_cloud_stop,
     "heimdall_status": action_heimdall_status,
     "heimdall_detect": action_heimdall_detect,
     "storage_status": action_storage_status,

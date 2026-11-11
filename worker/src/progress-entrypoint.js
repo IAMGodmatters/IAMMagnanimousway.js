@@ -142,7 +142,7 @@ export default{
     return json({detail:'Magnanimous B2B network could not complete this request.'},500);
    }
   }
-  if(path.startsWith('/api/magnanimous/local-bridge')){
+  if(path.startsWith('/api/magnanimous/local-bridge')||path==='/api/magnanimous/virtual-phone-farm/install-cloud-node.sh'){
    try{
     const bridge=await handleMagnanimousLocalBridge(request,env);
     if(bridge)return bridge;
