@@ -21,6 +21,12 @@ for(const [label,marker] of [
  ['record links','!await accessibleRecord(env,t,from,user)||!await accessibleRecord(env,t,to,user)'],
  ['view reads','accessibleBoard(env,t,bid,user)'],
  ['view creation','accessibleBoard(env,t,bid,user)']
+ ,['automation reads','COALESCE(w.kind,\'\')<>\'college-progress\' OR w.owner_user_id=?']
+ ,['automation creation','accessibleWorkspace(env,t,wid,user)']
+ ,['sequence reads','COALESCE(w.kind,\'\')<>\'college-progress\' OR w.owner_user_id=?']
+ ,['sequence creation','accessibleWorkspace(env,t,wid,user)']
+ ,['event writes','accessibleRecord(env,t,rid,user)']
+ ,['activity reads','magnanimous_ops_activity a LEFT JOIN magnanimous_ops_workspaces w']
 ]) assert.ok(runtime.includes(marker),`College ownership guard missing from ${label}.`);
 
 assert.ok(runtime.includes("const user=await currentUser(request,env);if(!user)return json({detail:'Sign in required.'},401);const t=tenant(user);if(!t)return json({detail:'Tenant context required.'},403);"),'All operations remain authenticated and tenant-scoped.');
