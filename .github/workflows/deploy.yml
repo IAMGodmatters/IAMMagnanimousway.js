@@ -85,6 +85,9 @@ jobs:
       - name: Install frontend
         working-directory: frontend
         run: npm ci --no-audit --no-fund
+      - name: Audit frontend dependency vulnerabilities
+        working-directory: frontend
+        run: npm audit --audit-level=high
 
       - name: Typecheck frontend
         working-directory: frontend
@@ -112,6 +115,9 @@ jobs:
       - name: Install Worker dependencies
         working-directory: worker
         run: npm ci --no-audit --no-fund
+      - name: Audit Worker dependency vulnerabilities
+        working-directory: worker
+        run: npm audit --audit-level=high
 
       - name: Bundle Worker before database changes
         working-directory: worker
