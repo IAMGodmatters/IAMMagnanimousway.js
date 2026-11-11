@@ -126,7 +126,7 @@ async function accessibleBoard(env,t,bid,user){
  return board;
 }
 async function accessibleRecord(env,t,rid,user){
- const record=await ownedRecord(env,t,rid,user);
+ const record=await ownedRecord(env,t,rid);
  if(!record)return null;
  return await accessibleBoard(env,t,record.board_id,user)?record:null;
 }
