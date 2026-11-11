@@ -133,7 +133,7 @@ async function accessibleRecord(env,t,rid,user){
  if(!record)return null;
  return await accessibleBoard(env,t,record.board_id,user)?record:null;
 }
-async function canAccessCollegeBoard(env,t,user,board){if(!board)return false;if(board.kind!=='college-progress')return true;const workspace=await ownedWorkspace(env,t,board.workspace_id);return Boolean(workspace&&workspace.kind==='college-progress'&&workspace.owner_user_id===String(user.id||''))}
+async function canAccessCollegeBoard(env,t,user,board){if(!board)return false;const workspace=await ownedWorkspace(env,t,board.workspace_id);if(!workspace)return false;if(workspace.kind==='college-progress'||board.kind==='college-progress')return workspace.owner_user_id===String(user.id||'');return true}
 
 async function summary(env,t){
  const count=async(table)=>Number((await env.DB.prepare(`SELECT COUNT(*) n FROM ${table} WHERE tenant_id=?`).bind(t).first())?.n||0);
