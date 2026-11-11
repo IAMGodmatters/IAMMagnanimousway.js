@@ -150,7 +150,7 @@ function extractUrls(message) {
 function needsFreshResearch(message) {
   const text=String(message||'');
   const intent=researchIntent(text);
-  return intent.needsResearch || /\\b(latest|current|today|recent|now|this week|this month|news|price|availability|status|updated|update|verify|source|citation|research|competitor|market|find|search|look up|lookup|website|official site|official website|web link|link to|where can i|where do i|apply online|requirements|eligibility|deadline|regulator|compliance|policy|law|tax|financial|security|safety|compare|best provider|recommend|review|documentation|api docs)\\b/i.test(text);
+  return intent.needsResearch || /\b(latest|current|today|recent|now|this week|this month|news|price|availability|status|updated|update|verify|source|citation|research|competitor|market|find|search|look up|lookup|website|official site|official website|web link|link to|where can i|where do i|apply online|requirements|eligibility|deadline|regulator|compliance|policy|law|tax|financial|security|safety|compare|best provider|recommend|review|documentation|api docs)\b/i.test(text);
 }
 function nativeCapability(message, task) {
   const m = String(message || '').toLowerCase();
