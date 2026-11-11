@@ -1,6 +1,7 @@
 'use client';
 
 import {useEffect,useMemo,useState} from 'react';
+import {useRouter} from 'next/navigation';
 import {getPlatformAuthToken} from '../lib/magnanimous-session';
 
 type Resource={id:string;title:string;provider:string;kind:string;description:string;url:string;phase:string;video:boolean};
@@ -25,6 +26,7 @@ const pathways=[
 const phases=['Orientation and Python','Math, data and machine learning','Neural networks and deep learning','NLP, transformers and LLMs','Retrieval and LLM applications','Agents, tools and MCP','Safety, evaluation and deployment','Capstone and portfolio'];
 
 export default function MagnanimousAICollege(){
+ const router=useRouter();
  const [query,setQuery]=useState('');
  const [filter,setFilter]=useState('All');
  const [done,setDone]=useState<string[]>([]);
@@ -40,7 +42,7 @@ export default function MagnanimousAICollege(){
   if(!hydrated||!authToken)return;
   let cancelled=false;
   const headers={'Content-Type':'application/json',Authorization:'Bearer '+authToken};
-  const request=async(path:string,init:RequestInit={})=>{const response=await fetch((process.env.NEXT_PUBLIC_API_BASE_URL||'')+path,{...init,headers:{...headers,...(init.headers||{})},cache:'no-store'});const raw=await response.text();let data:any={};try{data=JSON.parse(raw)}catch{}if(!response.ok)throw new Error(data.detail||'Account progress could not be loaded.');return data};
+  const request=async(path:string,init:RequestInit={})=>{const response=await fetch((process.env.NEXT_PUBLIC_API_BASE_URL||'')+path,{...init,headers:{...headers,...(init.headers||{})},cache:'no-store'});const raw=await response.text();let data:any={};try{data=JSON.parse(raw)}catch{}if(response.status===401){router.replace('/login?returnTo=%2Fai-college');throw new Error('Your session expired. Please sign in again.')}if(!response.ok)throw new Error(data.detail||'Account progress could not be loaded.');return data};
   (async()=>{
    setSyncStatus('loading');setSyncMessage('Connecting your private study record…');
    try{
@@ -72,7 +74,7 @@ export default function MagnanimousAICollege(){
   const timer=setTimeout(async()=>{
    try{
     const response=await fetch((process.env.NEXT_PUBLIC_API_BASE_URL||'')+'/api/operations/records/'+encodeURIComponent(progressRecordId),{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+authToken},body:JSON.stringify({data:{kind:'college-progress',done,resource_ids:resources.map(r=>r.id),schema_version:1}}),cache:'no-store'});
-    if(!response.ok)throw new Error('Progress sync could not be confirmed.');
+    if(response.status===401){router.replace('/login?returnTo=%2Fai-college');throw new Error('Your session expired. Please sign in again.')}if(!response.ok)throw new Error('Progress sync could not be confirmed.');
     setSyncMessage('Your study progress is saved to your signed-in account.');
    }catch{setSyncStatus('error');setSyncMessage('Account sync could not be confirmed. Your browser copy remains available.');}
   },300);
