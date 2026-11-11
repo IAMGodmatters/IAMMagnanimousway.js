@@ -21,10 +21,12 @@ No new Stripe product, price, or paid infrastructure is introduced by this featu
 
 ## Current boundaries
 
-- The first integrated release covers tasks, notes, planner entries and habits.
-- Calculator, converters, JSON formatter, text tools, backup/restore and focus timer from the standalone Preact app are not yet migrated into this route.
+- The authenticated workspace now covers tasks, notes, planner entries, habits and the Talking Recorder.
+- The More Tools area includes the standalone Preact Studio's focus timer, safe arithmetic calculator, length/weight/volume/temperature converter, text transformations, JSON formatter, and backup/restore.
+- The original local Preact Studio backup format is supported. Import is additive, validates file size and record limits, skips previously imported source records, and never deletes or replaces current workspace records.
+- Calculator, converter, text and JSON operations run locally in the browser; durable personal records continue to use the Magnanimous tenant-scoped Operations API.
 - The app requires an authenticated Magnanimous account and the existing Operations API / D1 database.
-- Verify cross-tenant isolation, mobile behavior, auth expiry, and persistence with two separate test tenants before production release.
+- Verify cross-tenant isolation, mobile behavior, auth expiry, persistence, and backup restore with two separate test tenants before production release. The focus timer and utility calculations do not require third-party services or new paid infrastructure.
 
 
 ## Talking Recorder and narration
