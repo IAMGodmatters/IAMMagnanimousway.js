@@ -18,7 +18,7 @@ for(const value of [
  'authHTTPExclude: []','api: false','metrics: false','pprof: false','playback: false',
  'rtsp: false','rtmp: false','srt: false','moq: false','hls: true','hlsAddress: :8888',
  'webrtc: true','webrtcAddress: :8889','webrtcLocalUDPAddress: :8189','webrtcLocalTCPAddress: ""',
- 'webrtcIPsFromInterfaces: false','maxReaders: 40','record: false'
+ 'webrtcIPsFromInterfaces: false','webrtcAdditionalHosts:\n  - standalone.iammagnanimousway.com','maxReaders: 40','record: false'
 ])assert.ok(mediamtx.includes(value),'MediaMTX config missing '+value);
 
 for(const [name,compose] of [['development',devCompose],['release',releaseCompose]]){
