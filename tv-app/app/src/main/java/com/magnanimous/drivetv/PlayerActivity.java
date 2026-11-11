@@ -150,7 +150,7 @@ public final class PlayerActivity extends Activity {
     savePosition();index=pos;activeUri=uris.get(pos);ending=false;
     captions.clear();subtitle.setVisibility(View.GONE);
     title.setText((index+1)+"/"+uris.size()+"   "+names.get(index));
-    message.setText("Opening "+names.get(index)+"â€¦");
+    message.setText("Opening "+names.get(index)+"…");
     music.setVisibility(audio(index)?View.VISIBLE:View.GONE);
     saved=getPreferences(0).getLong(key(activeUri),0);
     try{video.stopPlayback();video.setVideoURI(Uri.parse(activeUri));video.requestFocus();video.start();}
