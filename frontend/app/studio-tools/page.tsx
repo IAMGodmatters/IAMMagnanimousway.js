@@ -4,7 +4,8 @@ import {useCallback,useEffect,useMemo,useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {getPlatformAuthToken} from '../lib/magnanimous-session';
 import TalkingRecorder from './talking-recorder';
-import UtilityTools, { type RestoreRecord } from './utility-tools';
+import UtilityTools from './utility-tools';
+import type { RestoreRecord } from './utility-tools-core.mjs';
 
 type Item={id:string;title:string;status:string;due_at:number|null;data:Record<string,unknown>;updated_at:number};
 type Kind='task'|'note'|'planner'|'habit'|'voice'|'utilities';
