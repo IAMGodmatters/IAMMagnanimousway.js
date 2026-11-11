@@ -6,6 +6,8 @@ for(const marker of [
  "async function accessibleWorkspace(env,t,wid,user)",
  "async function accessibleBoard(env,t,bid,user)",
  "async function accessibleRecord(env,t,rid,user)",
+ "async function summary(env,t,user)",
+ "return json(await summary(env,t,user))",
  "workspace.kind==='college-progress'&&workspace.owner_user_id!==String(user.id||'')",
  "if(!bid||!await accessibleBoard(env,t,bid,user))",
  "if(!await accessibleRecord(env,t,from,user)||!await accessibleRecord(env,t,to,user))",
