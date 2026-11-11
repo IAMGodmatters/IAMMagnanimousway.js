@@ -1,4 +1,5 @@
 import app from './index.js';
+import { handleMagnanimousNativeWorkCrm } from './native-work-crm-runtime.js';
 import { handleLeadPhone } from './lead-phone.js';
 import { handlePhoneCarrier } from './phone-carrier-runtime.js';
 import { handleContactCenter } from './contact-center-runtime.js';
@@ -157,6 +158,8 @@ export default {
     if(phoneCarrier)return phoneCarrier;
     const feature=await handleLeadPhone(request,env);
     if(feature)return feature;
+    const nativeOperations=await handleMagnanimousNativeWorkCrm(request,env);
+    if(nativeOperations)return nativeOperations;
     return app.fetch(request,env,ctx);
   }
 };
