@@ -80,11 +80,11 @@ export default function StudioToolsPage(){
  const count=(k:Kind)=>items.filter(x=>x.data.kind===k&&x.status!=='archived').length;
  const restoreBackup=async(records:RestoreRecord[])=>{
   if(!boardId)throw new Error('Your private workspace is still loading.');
-  const known=new Set(items.map(item=>String(item.data?.backup_source_id||'')));
+  const known=new Set(items.flatMap(item=>[String(item.data?.kind||'')+':'+item.id,String(item.data?.backup_source_id||'')]));
   let imported=0,skipped=0,failed=0;
   for(const record of records){
    const sourceId=record.kind+':'+record.sourceId;
-   if(known.has(sourceId)){skipped++;continue;}
+   if(known.has(sourceId)||known.has(record.kind+':'+String(record.data?.backup_source_id||record.sourceId))){skipped++;continue;}
    try{
     await request('/api/operations/records',{method:'POST',body:JSON.stringify({
      board_id:boardId,title:record.title,status:record.status,due_at:record.due_at,
