@@ -18,7 +18,7 @@ for(const [label,marker] of [
  ['record reads','accessibleBoard(env,t,bid,user)'],
  ['record creation','accessibleBoard(env,t,bid,user)'],
  ['record updates','accessibleRecord(env,t,rid,user)'],
- ['record links','accessibleRecord(env,t,from,user)||!await accessibleRecord(env,t,to,user)'],
+ ['record links','!await accessibleRecord(env,t,from,user)||!await accessibleRecord(env,t,to,user)'],
  ['view reads','accessibleBoard(env,t,bid,user)'],
  ['view creation','accessibleBoard(env,t,bid,user)']
 ]) assert.ok(runtime.includes(marker),`College ownership guard missing from ${label}.`);
