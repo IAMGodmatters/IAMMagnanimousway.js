@@ -21,7 +21,9 @@ for(const marker of [
 
 assert.ok(page.includes("localStorage.getItem('magnanimous-college-open-progress-v1')"),'Existing local progress is retained for migration/fallback.');
 assert.ok(page.includes("localStorage.setItem('magnanimous-college-open-progress-v1'"),'Local progress remains a fallback.');
-assert.ok(page.includes("setDone([...new Set([...saved,...done])])"),'A signed-in account restores saved study marks without discarding local marks.');
+assert.ok(page.includes("magnanimous-college-migrated-v1:"),'Local marks are migrated only once per account record, so a later account reset is not undone by stale browser data.');
+assert.ok(page.includes("migrated?saved:[...new Set([...saved,...done])]"),'First-time migration preserves both account and device progress.');
+assert.ok(page.includes("localStorage.setItem(migrationKey,'1')"),'Migration is marked complete only after the account write succeeds.');
 assert.ok(page.includes("method:'PUT'"),'Progress updates are written to the account record.');
 assert.ok(page.includes("method:'POST'"),'A first-time student receives a durable progress record.');
 assert.ok(!/tenant_id\s*:/.test(page),'The browser must never choose or submit its own tenant ID.');
