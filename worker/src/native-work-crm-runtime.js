@@ -114,11 +114,20 @@ const mapSequence=r=>r&&({...r,audience:parse(r.audience_json,{}),steps:parse(r.
 async function ownedWorkspace(env,t,wid){return env.DB.prepare('SELECT * FROM magnanimous_ops_workspaces WHERE tenant_id=? AND id=?').bind(t,wid).first()}
 async function ownedBoard(env,t,bid){return env.DB.prepare('SELECT * FROM magnanimous_ops_boards WHERE tenant_id=? AND id=?').bind(t,bid).first()}
 async function ownedRecord(env,t,rid){return env.DB.prepare('SELECT * FROM magnanimous_ops_records WHERE tenant_id=? AND id=?').bind(t,rid).first()}
-async function canAccessCollegeBoard(env,t,user,board){if(!board)return false;if(board.kind!=='college-progress')return true;const workspace=await ownedWorkspace(env,t,board.workspace_id);return Boolean(workspace&&workspace.kind==='college-progress'&&workspace.owner_user_id===String(user.id||''))}
+async function canAccessCollegeWorkspace(env,t,user,workspace){return Boolean(workspace&&(workspace.kind!=='college-progress'||String(workspace.owner_user_id||'')===String(user.id||'')))}
+async function canAccessCollegeBoard(env,t,user,board){if(!board)return false;const workspace=await ownedWorkspace(env,t,board.workspace_id);return canAccessCollegeWorkspace(env,t,user,workspace)}
+async function canAccessCollegeRecord(env,t,user,record){if(!record)return false;const board=await ownedBoard(env,t,record.board_id);return canAccessCollegeBoard(env,t,user,board)}
 
-async function summary(env,t){
- const count=async(table)=>Number((await env.DB.prepare(`SELECT COUNT(*) n FROM ${table} WHERE tenant_id=?`).bind(t).first())?.n||0);
- const [workspaces,boards,records,automations,sequences]=await Promise.all([count('magnanimous_ops_workspaces'),count('magnanimous_ops_boards'),count('magnanimous_ops_records'),count('magnanimous_ops_automations'),count('magnanimous_ops_sequences')]);
+async function summary(env,t,user){
+ const owner=String(user?.id||'');
+ const count=async(sql)=>Number((await env.DB.prepare(sql).bind(t,owner).first())?.n||0);
+ const [workspaces,boards,records,automations,sequences]=await Promise.all([
+  count("SELECT COUNT(*) n FROM magnanimous_ops_workspaces WHERE tenant_id=? AND (kind<>'college-progress' OR owner_user_id=?)"),
+  count("SELECT COUNT(*) n FROM magnanimous_ops_boards b LEFT JOIN magnanimous_ops_workspaces w ON w.tenant_id=b.tenant_id AND w.id=b.workspace_id WHERE b.tenant_id=? AND (w.kind IS NULL OR w.kind<>'college-progress' OR w.owner_user_id=?)"),
+  count("SELECT COUNT(*) n FROM magnanimous_ops_records r LEFT JOIN magnanimous_ops_boards b ON b.tenant_id=r.tenant_id AND b.id=r.board_id LEFT JOIN magnanimous_ops_workspaces w ON w.tenant_id=b.tenant_id AND w.id=b.workspace_id WHERE r.tenant_id=? AND (w.kind IS NULL OR w.kind<>'college-progress' OR w.owner_user_id=?)"),
+  count("SELECT COUNT(*) n FROM magnanimous_ops_automations a LEFT JOIN magnanimous_ops_workspaces w ON w.tenant_id=a.tenant_id AND w.id=a.workspace_id WHERE a.tenant_id=? AND (w.kind IS NULL OR w.kind<>'college-progress' OR w.owner_user_id=?)"),
+  count("SELECT COUNT(*) n FROM magnanimous_ops_sequences s LEFT JOIN magnanimous_ops_workspaces w ON w.tenant_id=s.tenant_id AND w.id=s.workspace_id WHERE s.tenant_id=? AND (w.kind IS NULL OR w.kind<>'college-progress' OR w.owner_user_id=?)")
+ ]);
  let crm={contacts:0,deals:0,pipeline_value:0};
  try{crm.contacts=Number((await env.DB.prepare('SELECT COUNT(*) n FROM crm_contacts WHERE tenant_id=?').bind(t).first())?.n||0)}catch{}
  try{const r=await env.DB.prepare("SELECT COUNT(*) n,COALESCE(SUM(o.value),0) value FROM crm_opportunities o LEFT JOIN crm_pipeline_stages ps ON ps.id=o.stage_id AND ps.tenant_id=o.tenant_id WHERE o.tenant_id=? AND COALESCE(ps.kind,CASE WHEN lower(o.stage) IN ('won','lost','closed') THEN 'closed' ELSE 'open' END)='open'").bind(t).first();crm.deals=Number(r?.n||0);crm.pipeline_value=Number(r?.value||0)}catch{}
@@ -146,7 +155,10 @@ async function applyAction(env,user,automation,record,a){
 async function emitEvent(env,user,body){
  const t=tenant(user),event=text(body.event,120);if(!event)return{matched:0,ran:0};
  const recordId=text(body.record_id,80),recordRaw=recordId?await ownedRecord(env,t,recordId):null,record=mapRecord(recordRaw);
+ if(recordId&&(!record||!await canAccessCollegeRecord(env,t,user,record)))return{matched:0,ran:0};
  const boardId=text(body.board_id||record?.board_id,80),workspaceId=text(body.workspace_id,80);
+ if(boardId){const board=await ownedBoard(env,t,boardId);if(!board||!await canAccessCollegeBoard(env,t,user,board))return{matched:0,ran:0}}
+ if(workspaceId){const workspace=await ownedWorkspace(env,t,workspaceId);if(!workspace||!await canAccessCollegeWorkspace(env,t,user,workspace))return{matched:0,ran:0}}
  let sql='SELECT * FROM magnanimous_ops_automations WHERE tenant_id=? AND enabled=1';const args=[t];if(boardId){sql+=' AND (board_id=? OR board_id IS NULL)';args.push(boardId)}if(workspaceId){sql+=' AND workspace_id=?';args.push(workspaceId)}
  const{results=[]}=await env.DB.prepare(sql).bind(...args).all();let matched=0,ran=0;
  for(const raw of results){const a=mapAutomation(raw);if(String(a.trigger?.event||'')!==event)continue;matched++;if(record&&a.conditions.some(c=>!matchesCondition(record,c)))continue;for(const action of a.actions)await applyAction(env,user,a,record,action);await env.DB.prepare('UPDATE magnanimous_ops_automations SET run_count=run_count+1,last_run_at=?,updated_at=? WHERE id=? AND tenant_id=?').bind(now(),now(),a.id,t).run();ran++;}
@@ -551,7 +563,7 @@ export async function handleNativeWorkCrm(request,env){
   await log(env,user,'crm_task_updated',{detail:{task_id:taskId,completed:body.completed===undefined?Boolean(cur.completed):Boolean(body.completed)}});return json({item:await crmOwnedTask(env,t,taskId)});
  }
 
- if(url.pathname==='/api/operations/summary'&&request.method==='GET')return json(await summary(env,t));
+ if(url.pathname==='/api/operations/summary'&&request.method==='GET')return json(await summary(env,t,user));
  if(url.pathname==='/api/operations/bootstrap-crm'&&request.method==='POST'){const workspace=await seedCrmWorkspace(env,user);await log(env,user,'bootstrap_crm',{workspace_id:workspace.id});return json({workspace},201)}
 
  if(url.pathname==='/api/operations/workspaces'){
@@ -565,9 +577,11 @@ export async function handleNativeWorkCrm(request,env){
  }
 
  if(url.pathname==='/api/operations/fields'){
-  if(request.method==='GET'){const bid=text(url.searchParams.get('board_id'),80);if(!bid)return json({detail:'board_id required.'},400);const{results=[]}=await env.DB.prepare('SELECT * FROM magnanimous_ops_fields WHERE tenant_id=? AND board_id=? ORDER BY position,created_at').bind(t,bid).all();return json({items:results.map(mapField)})}
-  if(request.method==='POST'){const bid=text(body.board_id,80);if(!bid||!await ownedBoard(env,t,bid))return json({detail:'Board not found.'},404);const fid=id(),ts=now(),key=text(body.field_key||body.name,120).toLowerCase().replace(/[^a-z0-9_]+/g,'_').replace(/^_+|_+$/g,'');if(!key)return json({detail:'Field name required.'},400);await env.DB.prepare('INSERT INTO magnanimous_ops_fields(id,tenant_id,board_id,name,field_key,field_type,required,position,config_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)').bind(fid,t,bid,text(body.name||key,160),key,text(body.field_type||'text',60),body.required?1:0,Number(body.position)||0,JSON.stringify(body.config||{}).slice(0,30000),ts,ts).run();return json({item:mapField(await env.DB.prepare('SELECT * FROM magnanimous_ops_fields WHERE tenant_id=? AND id=?').bind(t,fid).first())},201)}
- }
+  if(request.method==='GET'){const bid=text(url.searchParams.get('board_id'),80);if(!bid)return json({detail:'board_id required.'},400);const board=await ownedBoard(env,t,bid);if(!board||!await canAccessCollegeBoard(env,t,user,board))return json({detail:'Board not found.'},404);const{results=[]}=await env.DB.prepare('SELECT * FROM magnanimous_ops_fields WHERE tenant_id=? AND board_id=? ORDER BY position,created_at').bind(t,bid).all();return json({items:results.map(mapField)})}
+  if(request.method==='POST'){const bid=text(body.board_id,80),board=bid&&await ownedBoard(env,t,bid);if(!board||!await canAccessCollegeBoard(env,t,user,board))return json({detail:'Board not found.'},404);const fid=id(),ts=now(),key=text(body.field_key||body.name,120).toLowerCase().replace(/[^a-z0-9_]+/g,'_').replace(/^_+|_+$/g,'');if(!key)return json({detail:'Field name required.'},400);await env.DB.prepare('INSERT INTO magnanimous_ops_fields(id,tenant_id,board_id,name,field_key,field_type,required,position,config_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)').bind(fid,t,bid,text(body.name||key,160),key,text(body.field_type||'text',60),body.required?1:0,Number(body.position)||0,JSON.stringify(body.config||{}).slice(0,30000),ts,ts).run();return json({item:mapField(await env.DB.prepare('SELECT * FROM magnanimous_ops_fields WHERE tenant_id=? AND id=?').bind(t,fid).first())},201)}
+  }
+
+ 
 
  if(url.pathname==='/api/operations/records'){
   if(request.method==='GET'){const bid=text(url.searchParams.get('board_id'),80);if(!bid)return json({detail:'board_id required.'},400);const board=await ownedBoard(env,t,bid);if(!board||!await canAccessCollegeBoard(env,t,user,board))return json({detail:'Board not found.'},404);const cap=Math.min(500,Math.max(1,Number(url.searchParams.get('limit'))||100));const{results=[]}=await env.DB.prepare('SELECT * FROM magnanimous_ops_records WHERE tenant_id=? AND board_id=? ORDER BY sort_order,updated_at DESC LIMIT ?').bind(t,bid,cap).all();return json({items:results.map(mapRecord)})}
@@ -579,25 +593,33 @@ export async function handleNativeWorkCrm(request,env){
  }
 
  if(url.pathname==='/api/operations/links'&&request.method==='POST'){
-  const from=text(body.from_record_id,80),to=text(body.to_record_id,80);if(!await ownedRecord(env,t,from)||!await ownedRecord(env,t,to))return json({detail:'Both records must exist.'},404);const lid=id();await env.DB.prepare('INSERT OR IGNORE INTO magnanimous_ops_links(id,tenant_id,from_record_id,to_record_id,relation_type,metadata_json,created_at) VALUES(?,?,?,?,?,?,?)').bind(lid,t,from,to,text(body.relation_type||'related',100),JSON.stringify(body.metadata||{}).slice(0,20000),now()).run();return json({id:lid},201)
- }
+  const from=text(body.from_record_id,80),to=text(body.to_record_id,80),fromRecord=await ownedRecord(env,t,from),toRecord=await ownedRecord(env,t,to);if(!fromRecord||!toRecord||!await canAccessCollegeRecord(env,t,user,fromRecord)||!await canAccessCollegeRecord(env,t,user,toRecord))return json({detail:'Both records must exist.'},404);const lid=id();await env.DB.prepare('INSERT OR IGNORE INTO magnanimous_ops_links(id,tenant_id,from_record_id,to_record_id,relation_type,metadata_json,created_at) VALUES(?,?,?,?,?,?,?)').bind(lid,t,from,to,text(body.relation_type||'related',100),JSON.stringify(body.metadata||{}).slice(0,20000),now()).run();return json({id:lid},201)
+  }
+
+ 
 
  if(url.pathname==='/api/operations/views'){
-  if(request.method==='GET'){const bid=text(url.searchParams.get('board_id'),80);const{results=[]}=await env.DB.prepare('SELECT * FROM magnanimous_ops_views WHERE tenant_id=? AND board_id=? ORDER BY updated_at DESC').bind(t,bid).all();return json({items:results.map(mapView)})}
-  if(request.method==='POST'){const bid=text(body.board_id,80);if(!await ownedBoard(env,t,bid))return json({detail:'Board not found.'},404);const vid=id(),ts=now();await env.DB.prepare('INSERT INTO magnanimous_ops_views(id,tenant_id,board_id,name,view_type,config_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)').bind(vid,t,bid,text(body.name||'New view',180),text(body.view_type||'table',60),JSON.stringify(body.config||{}).slice(0,40000),ts,ts).run();return json({item:mapView(await env.DB.prepare('SELECT * FROM magnanimous_ops_views WHERE tenant_id=? AND id=?').bind(t,vid).first())},201)}
- }
+  if(request.method==='GET'){const bid=text(url.searchParams.get('board_id'),80);if(!bid)return json({detail:'board_id required.'},400);const board=await ownedBoard(env,t,bid);if(!board||!await canAccessCollegeBoard(env,t,user,board))return json({detail:'Board not found.'},404);const{results=[]}=await env.DB.prepare('SELECT * FROM magnanimous_ops_views WHERE tenant_id=? AND board_id=? ORDER BY updated_at DESC').bind(t,bid).all();return json({items:results.map(mapView)})}
+  if(request.method==='POST'){const bid=text(body.board_id,80),board=bid&&await ownedBoard(env,t,bid);if(!board||!await canAccessCollegeBoard(env,t,user,board))return json({detail:'Board not found.'},404);const vid=id(),ts=now();await env.DB.prepare('INSERT INTO magnanimous_ops_views(id,tenant_id,board_id,name,view_type,config_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)').bind(vid,t,bid,text(body.name||'New view',180),text(body.view_type||'table',60),JSON.stringify(body.config||{}).slice(0,40000),ts,ts).run();return json({item:mapView(await env.DB.prepare('SELECT * FROM magnanimous_ops_views WHERE tenant_id=? AND id=?').bind(t,vid).first())},201)}
+  }
+
+ 
 
  if(url.pathname==='/api/operations/automations'){
-  if(request.method==='GET'){const wid=text(url.searchParams.get('workspace_id'),80);let sql='SELECT * FROM magnanimous_ops_automations WHERE tenant_id=?',args=[t];if(wid){sql+=' AND workspace_id=?';args.push(wid)}sql+=' ORDER BY updated_at DESC';const{results=[]}=await env.DB.prepare(sql).bind(...args).all();return json({items:results.map(mapAutomation)})}
-  if(request.method==='POST'){const wid=text(body.workspace_id,80);if(!await ownedWorkspace(env,t,wid))return json({detail:'Workspace not found.'},404);const aid=id(),ts=now(),bid=body.board_id?text(body.board_id,80):null;await env.DB.prepare('INSERT INTO magnanimous_ops_automations(id,tenant_id,workspace_id,board_id,name,enabled,trigger_json,conditions_json,actions_json,run_count,last_run_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(aid,t,wid,bid,text(body.name||'New automation',220),body.enabled===false?0:1,JSON.stringify(body.trigger||{}).slice(0,20000),JSON.stringify(body.conditions||[]).slice(0,30000),JSON.stringify(body.actions||[]).slice(0,30000),0,null,ts,ts).run();return json({item:mapAutomation(await env.DB.prepare('SELECT * FROM magnanimous_ops_automations WHERE tenant_id=? AND id=?').bind(t,aid).first())},201)}
- }
+  if(request.method==='GET'){const wid=text(url.searchParams.get('workspace_id'),80);let sql='SELECT a.* FROM magnanimous_ops_automations a LEFT JOIN magnanimous_ops_workspaces w ON w.tenant_id=a.tenant_id AND w.id=a.workspace_id WHERE a.tenant_id=? AND (w.kind IS NULL OR w.kind<>\'college-progress\' OR w.owner_user_id=?)',args=[t,String(user.id||'')];if(wid){const workspace=await ownedWorkspace(env,t,wid);if(!workspace||!await canAccessCollegeWorkspace(env,t,user,workspace))return json({detail:'Workspace not found.'},404);sql+=' AND a.workspace_id=?';args.push(wid)}sql+=' ORDER BY a.updated_at DESC';const{results=[]}=await env.DB.prepare(sql).bind(...args).all();return json({items:results.map(mapAutomation)})}
+  if(request.method==='POST'){const wid=text(body.workspace_id,80),workspace=wid&&await ownedWorkspace(env,t,wid);if(!workspace||!await canAccessCollegeWorkspace(env,t,user,workspace))return json({detail:'Workspace not found.'},404);const aid=id(),ts=now(),bid=body.board_id?text(body.board_id,80):null;if(bid){const board=await ownedBoard(env,t,bid);if(!board||board.workspace_id!==wid||!await canAccessCollegeBoard(env,t,user,board))return json({detail:'Board not found.'},404)}await env.DB.prepare('INSERT INTO magnanimous_ops_automations(id,tenant_id,workspace_id,board_id,name,enabled,trigger_json,conditions_json,actions_json,run_count,last_run_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(aid,t,wid,bid,text(body.name||'New automation',220),body.enabled===false?0:1,JSON.stringify(body.trigger||{}).slice(0,20000),JSON.stringify(body.conditions||[]).slice(0,30000),JSON.stringify(body.actions||[]).slice(0,30000),0,null,ts,ts).run();return json({item:mapAutomation(await env.DB.prepare('SELECT * FROM magnanimous_ops_automations WHERE tenant_id=? AND id=?').bind(t,aid).first())},201)}
+  }
+
+ 
  if(url.pathname==='/api/operations/events'&&request.method==='POST')return json(await emitEvent(env,user,body));
 
  if(url.pathname==='/api/operations/sequences'){
-  if(request.method==='GET'){const wid=text(url.searchParams.get('workspace_id'),80);let sql='SELECT * FROM magnanimous_ops_sequences WHERE tenant_id=?',args=[t];if(wid){sql+=' AND workspace_id=?';args.push(wid)}sql+=' ORDER BY updated_at DESC';const{results=[]}=await env.DB.prepare(sql).bind(...args).all();return json({items:results.map(mapSequence)})}
-  if(request.method==='POST'){const wid=text(body.workspace_id,80);if(!await ownedWorkspace(env,t,wid))return json({detail:'Workspace not found.'},404);const sid=id(),ts=now();await env.DB.prepare('INSERT INTO magnanimous_ops_sequences(id,tenant_id,workspace_id,name,status,audience_json,steps_json,settings_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(sid,t,wid,text(body.name||'New sequence',220),text(body.status||'draft',60),JSON.stringify(body.audience||{}).slice(0,30000),JSON.stringify(body.steps||[]).slice(0,50000),JSON.stringify(body.settings||{}).slice(0,30000),ts,ts).run();return json({item:mapSequence(await env.DB.prepare('SELECT * FROM magnanimous_ops_sequences WHERE tenant_id=? AND id=?').bind(t,sid).first())},201)}
- }
+  if(request.method==='GET'){const wid=text(url.searchParams.get('workspace_id'),80);let sql='SELECT s.* FROM magnanimous_ops_sequences s LEFT JOIN magnanimous_ops_workspaces w ON w.tenant_id=s.tenant_id AND w.id=s.workspace_id WHERE s.tenant_id=? AND (w.kind IS NULL OR w.kind<>\'college-progress\' OR w.owner_user_id=?)',args=[t,String(user.id||'')];if(wid){const workspace=await ownedWorkspace(env,t,wid);if(!workspace||!await canAccessCollegeWorkspace(env,t,user,workspace))return json({detail:'Workspace not found.'},404);sql+=' AND s.workspace_id=?';args.push(wid)}sql+=' ORDER BY s.updated_at DESC';const{results=[]}=await env.DB.prepare(sql).bind(...args).all();return json({items:results.map(mapSequence)})}
+  if(request.method==='POST'){const wid=text(body.workspace_id,80),workspace=wid&&await ownedWorkspace(env,t,wid);if(!workspace||!await canAccessCollegeWorkspace(env,t,user,workspace))return json({detail:'Workspace not found.'},404);const sid=id(),ts=now();await env.DB.prepare('INSERT INTO magnanimous_ops_sequences(id,tenant_id,workspace_id,name,status,audience_json,steps_json,settings_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(sid,t,wid,text(body.name||'New sequence',220),text(body.status||'draft',60),JSON.stringify(body.audience||{}).slice(0,30000),JSON.stringify(body.steps||[]).slice(0,50000),JSON.stringify(body.settings||{}).slice(0,30000),ts,ts).run();return json({item:mapSequence(await env.DB.prepare('SELECT * FROM magnanimous_ops_sequences WHERE tenant_id=? AND id=?').bind(t,sid).first())},201)}
+  }
 
- if(url.pathname==='/api/operations/activity'&&request.method==='GET'){const cap=Math.min(300,Math.max(1,Number(url.searchParams.get('limit'))||80));const{results=[]}=await env.DB.prepare('SELECT * FROM magnanimous_ops_activity WHERE tenant_id=? ORDER BY created_at DESC LIMIT ?').bind(t,cap).all();return json({items:results.map(r=>({...r,detail:parse(r.detail_json,{})}))})}
+ 
+
+ if(url.pathname==='/api/operations/activity'&&request.method==='GET'){const cap=Math.min(300,Math.max(1,Number(url.searchParams.get('limit'))||80));const{results=[]}=await env.DB.prepare("SELECT a.* FROM magnanimous_ops_activity a LEFT JOIN magnanimous_ops_records r ON r.tenant_id=a.tenant_id AND r.id=a.record_id LEFT JOIN magnanimous_ops_boards b ON b.tenant_id=a.tenant_id AND b.id=COALESCE(NULLIF(a.board_id,''),r.board_id) LEFT JOIN magnanimous_ops_workspaces w ON w.tenant_id=a.tenant_id AND w.id=COALESCE(NULLIF(a.workspace_id,''),b.workspace_id) WHERE a.tenant_id=? AND (w.kind IS NULL OR w.kind<>'college-progress' OR w.owner_user_id=?) ORDER BY a.created_at DESC LIMIT ?").bind(t,String(user.id||''),cap).all();return json({items:results.map(r=>({...r,detail:parse(r.detail_json,{})}))})}
  return json({detail:'Operations route not found.'},404);
 }
