@@ -19,7 +19,7 @@ check(!tools.includes('localStorage.setItem(STORAGE_KEY') && !tools.includes('lo
 check(page.includes("'/api/operations/records'") && page.includes('board_id:boardId') && page.includes('backup_source_id'), 'Workspace restore must write through the tenant-scoped Operations API.');
 check(page.includes("String(item.data?.kind||'')+':'+item.id") && page.includes('known.has(sourceId)'), 'Repeated cloud exports and previously imported backups must be deduplicated.');
 check(!page.includes('tenant_id:'), 'Browser requests must not submit a tenant identifier.');
-check(page.includes('<UtilityTools items={items} onRestore={restoreBackup}/>'), 'The authenticated Studio Tools route must mount the integrated utility suite.');
+check(page.includes('<UtilityTools items={items} loading={loading} onRestore={restoreBackup}/>'), 'The authenticated Studio Tools route must mount the integrated utility suite.');
 check(styles.includes('@media(max-width:560px)'), 'Utility tools must retain a narrow-screen responsive layout.');
 if (failures.length) { console.error('Studio Tools integration lock failed:\n- ' + failures.join('\n- ')); process.exit(1); }
 console.log('Studio Tools integration lock passed.');
