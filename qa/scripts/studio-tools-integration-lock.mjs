@@ -17,6 +17,7 @@ check(core.includes('backup_source_id') && tools.includes('Existing records will
 check(tools.includes('window.confirm(') && tools.includes('onRestore(data)') && tools.includes('normalizeBackup(JSON.parse(await file.text()))'), 'Backup import must require affirmative user confirmation and use the authenticated restore callback.');
 check(!tools.includes('localStorage.setItem(STORAGE_KEY') && !tools.includes('localStorage.setItem("magnanimous-studio-workspace'), 'Customer workspace records must not be stored in browser localStorage.');
 check(page.includes("'/api/operations/records'") && page.includes('board_id:boardId') && page.includes('backup_source_id'), 'Workspace restore must write through the tenant-scoped Operations API.');
+check(page.includes("String(item.data?.kind||'')+':'+item.id") && page.includes('known.has(sourceId)'), 'Repeated cloud exports and previously imported backups must be deduplicated.');
 check(!page.includes('tenant_id:'), 'Browser requests must not submit a tenant identifier.');
 check(page.includes('<UtilityTools items={items} onRestore={restoreBackup}/>'), 'The authenticated Studio Tools route must mount the integrated utility suite.');
 check(styles.includes('@media(max-width:560px)'), 'Utility tools must retain a narrow-screen responsive layout.');
