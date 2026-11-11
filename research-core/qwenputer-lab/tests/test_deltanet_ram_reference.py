@@ -57,10 +57,6 @@ class DeltaNetRAMReferenceTests(unittest.TestCase):
         self.assertEqual(bytes(ram._state), bytes(expected))
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class QwenputerPreflightTests(unittest.TestCase):
     def test_checkpoint_preflight_checks_selected_existing_drive(self):
         from collections import namedtuple
@@ -85,3 +81,7 @@ class QwenputerPreflightTests(unittest.TestCase):
         parent = Path(__file__).resolve().parents[1]
         requested = parent / "not-created" / "models"
         self.assertEqual(existing_storage_path(requested), parent)
+
+
+if __name__ == "__main__":
+    unittest.main()
