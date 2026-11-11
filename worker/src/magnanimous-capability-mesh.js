@@ -509,7 +509,7 @@ async function routeCapability(request,env,providerEnv,body){
   return json({mesh:{capability,surface:def.surface,operator:'Magnanimous AI'},...resolveUniversalCapabilities(input.goal||input.query||'',input.limit||20)});
  }
  if(capability==='social.connections'){
-  return wrap(await handleSocialPublishing(delegatedRequest(request,'/api/social-connect/connections','GET'),env),capability,def.surface);
+  return wrap(await handleSocialPublishing(delegatedRequest(request,'/api/social-connect/connections','GET'),providerEnv),capability,def.surface);
  }
  const socialPublish={
   'social.linkedin.publish':'linkedin',
@@ -519,7 +519,7 @@ async function routeCapability(request,env,providerEnv,body){
  if(socialPublish[capability]){
   if(input.confirm!==true)return json({detail:'Explicit confirmation is required before publishing to an external social account.',confirmation_required:true,capability},409);
   const provider=socialPublish[capability],payload={...input};delete payload.confirm;
-  if(provider==='linkedin'||provider==='tiktok')payload.explicit_consent=true;
+  payload.explicit_consent=true;
   return wrap(await handleSocialPublishing(delegatedRequest(request,`/api/social-connect/${provider}/publish`,'POST',payload),env),capability,def.surface);
  }
 
