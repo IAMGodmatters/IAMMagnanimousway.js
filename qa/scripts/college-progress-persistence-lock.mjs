@@ -34,5 +34,12 @@ assert.ok(runtime.includes("const user=await currentUser(request,env);if(!user)r
 assert.ok(runtime.includes("WHERE tenant_id=? AND id=?"),'Workspace/board/record ownership queries are tenant-scoped.');
 assert.ok(runtime.includes("FROM magnanimous_ops_workspaces WHERE tenant_id=?"),'Workspace reads are tenant-scoped.');
 assert.ok(runtime.includes("FROM magnanimous_ops_records WHERE tenant_id=? AND board_id=?"),'Progress record reads are tenant-scoped.');
+assert.ok(page.includes("request('/api/operations/workspaces?mine=1')"),'Students load only their own progress workspace.');
+assert.ok(runtime.includes("async function canAccessCollegeBoard(env,t,user,board)"),'College board access is checked against the authenticated owner.');
+assert.ok(runtime.includes("workspace.owner_user_id===String(user.id||'')"),'College workspaces are restricted to their creating student, even inside a shared tenant.');
+assert.ok(runtime.includes("const mine=url.searchParams.get('mine')==='1'"),'The workspace API supports owner-filtered reads without accepting a caller-supplied user ID.');
+assert.ok(runtime.includes("if(workspace.kind==='college-progress'&&workspace.owner_user_id!==String(user.id||''))"),'Only the owner can open a College workspace or create its board.');
+assert.ok((runtime.match(/canAccessCollegeBoard\(env,t,user,board\)/g)||[]).length>=3,'College record reads, creates and updates enforce owner access.');
+
 assert.ok(page.includes('not an accredited transcript or degree'),'Open Campus does not imply accreditation.');
 console.log('Magnanimous AI College account progress lock: PASS');
