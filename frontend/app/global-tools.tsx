@@ -20,7 +20,7 @@ export default function GlobalTools(){
    <div className="iam-tools-panel" aria-hidden={!open} hidden={!open}>
     <div className="iam-tools-head"><b>PLATFORM TOOLS</b><small>Enterprise & operations</small></div>
     <a className="work" href="/work-engine" title="Persistent Magnanimous workflows with resumable steps"><b>↻</b><span>Work Engine</span></a>
-    <a className="work" href="/studio-tools" title="Private tasks, notes, planning and habits"><b>✦</b><span>Studio Tools</span></a>
+    <a className="work" href="/studio-tools/" title="Private tasks, notes, planning, habits, and voice narration"><b>✦</b><span>Studio Tools</span></a>
     <a className="activity" href="/activity" title="Review saved checkpoints, failures and recoverable work"><b>◷</b><span>Activity</span></a>
     <a className="research" href="/research-notebook" title="Save source-backed research evidence for reuse"><b>⌕</b><span>Evidence</span></a>
     <a className="inbox" href="/inbox" title="Unified email, SMS, voice, social, chat and task queue"><b>✉</b><span>Inbox</span></a>
