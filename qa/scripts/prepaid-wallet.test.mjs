@@ -71,6 +71,29 @@ test('same debit reference is idempotent and a conflicting amount is rejected', 
   assert.equal(Number(events.total), 1);
 });
 
+test('concurrent distinct credits are atomic and a repeated Stripe reference cannot double-fund', async () => {
+  const DB = new LocalD1();
+  const env = { DB };
+  await Promise.all([
+    creditWallet(env, 'tenant-a', 5, { reference_id: 'stripe-credit-a' }),
+    creditWallet(env, 'tenant-a', 7, { reference_id: 'stripe-credit-b' }),
+  ]);
+  await creditWallet(env, 'tenant-a', 5, { reference_id: 'stripe-credit-a' });
+  await assert.rejects(creditWallet(env, 'tenant-a', 6, { reference_id: 'stripe-credit-a' }), /PREPAID_USAGE_REFERENCE_CONFLICT/);
+  const status = await walletStatus(env, 'tenant-a');
+  assert.equal(status.balance_usd, 12);
+  assert.equal(status.total_funded_usd, 12);
+  const events = await DB.prepare("SELECT COUNT(*) AS total FROM billing_usage_wallet_events WHERE tenant_id=? AND event_type='credit'").bind('tenant-a').first();
+  assert.equal(Number(events.total), 2);
+});
+
+test('wallet funding and debiting reject missing idempotency references and invalid amounts', async () => {
+  const env = await fundedWallet(5);
+  await assert.rejects(creditWallet(env, 'tenant-a', 1), /PREPAID_USAGE_REFERENCE_REQUIRED/);
+  await assert.rejects(debitWallet(env, 'tenant-a', Number.NaN, { reference_id: 'bad-amount' }), /PREPAID_USAGE_AMOUNT_INVALID/);
+  await assert.rejects(debitWallet(env, 'tenant-a', 1), /PREPAID_USAGE_REFERENCE_REQUIRED/);
+});
+
 test('prepaid debits remain tenant-isolated', async () => {
   const env = await fundedWallet(5);
   await debitWallet(env, 'tenant-a', 3, { reference_id: 'tenant-a-debit' });

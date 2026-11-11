@@ -85,18 +85,28 @@ export async function walletStatus(env,tenantId){
 }
 
 export async function creditWallet(env,tenantId,amountUsd,{reference_id='',detail='Stripe premium usage top-up'}={}){
- await ensureUsageSchema(env);const amount=Math.max(0,Number(amountUsd||0));if(!tenantId||amount<=0)return walletStatus(env,tenantId);
- const ref=String(reference_id||'');
- try{await env.DB.prepare('INSERT INTO billing_usage_wallet_events(tenant_id,event_type,amount_usd,reference_id,detail,created_at) VALUES(?,?,?,?,?,?)').bind(String(tenantId),'credit',amount,ref,String(detail||''),now()).run()}catch(error){if(String(error?.message||'').toLowerCase().includes('unique'))return walletStatus(env,tenantId);throw error}
- await env.DB.prepare(`INSERT INTO billing_usage_wallet(tenant_id,balance_usd,total_funded_usd,total_consumed_usd,updated_at) VALUES(?,?,?,?,?)
-  ON CONFLICT(tenant_id) DO UPDATE SET balance_usd=billing_usage_wallet.balance_usd+excluded.balance_usd,total_funded_usd=billing_usage_wallet.total_funded_usd+excluded.total_funded_usd,updated_at=excluded.updated_at`)
-  .bind(String(tenantId),amount,amount,0,now()).run();
- return walletStatus(env,tenantId);
+ await ensureUsageSchema(env);const amount=Number(amountUsd);
+ if(!tenantId||!Number.isFinite(amount)||amount<=0)throw new Error('PREPAID_USAGE_AMOUNT_INVALID');
+ const tenant=String(tenantId),ref=String(reference_id||'').trim(),ts=now();
+ if(!ref)throw new Error('PREPAID_USAGE_REFERENCE_REQUIRED');
+ // Credit ledger insertion and wallet funding must commit together. A duplicate
+ // Stripe event is a no-op; the same reference with a different amount is rejected.
+ const results=await env.DB.batch([
+  env.DB.prepare("INSERT INTO billing_usage_wallet_events(tenant_id,event_type,amount_usd,reference_id,detail,created_at) VALUES(?, 'credit', ?, ?, ?, ?) ON CONFLICT(tenant_id,event_type,reference_id) DO NOTHING").bind(tenant,amount,ref,String(detail||''),ts),
+  env.DB.prepare("INSERT INTO billing_usage_wallet(tenant_id,balance_usd,total_funded_usd,total_consumed_usd,updated_at) SELECT ?,?,?,0,? WHERE changes()=1 ON CONFLICT(tenant_id) DO UPDATE SET balance_usd=billing_usage_wallet.balance_usd+excluded.balance_usd,total_funded_usd=billing_usage_wallet.total_funded_usd+excluded.total_funded_usd,updated_at=excluded.updated_at").bind(tenant,amount,amount,ts)
+ ]);
+ if(Number(results?.[0]?.meta?.changes||0)!==1){
+  const duplicate=await env.DB.prepare("SELECT amount_usd FROM billing_usage_wallet_events WHERE tenant_id=? AND event_type='credit' AND reference_id=? LIMIT 1").bind(tenant,ref).first();
+  if(!duplicate||Math.abs(Number(duplicate.amount_usd||0)-amount)>1e-9)throw new Error('PREPAID_USAGE_REFERENCE_CONFLICT');
+ }
+ return walletStatus(env,tenant);
 }
 
 export async function debitWallet(env,tenantId,amountUsd,{reference_id='',detail='Premium usage overage'}={}){
- await ensureUsageSchema(env);const amount=Math.max(0,Number(amountUsd||0));if(!tenantId||amount<=0)return walletStatus(env,tenantId);
- const ref=String(reference_id||crypto.randomUUID()),tenant=String(tenantId),ts=now();
+ await ensureUsageSchema(env);const amount=Number(amountUsd);
+ if(!tenantId||!Number.isFinite(amount)||amount<=0)throw new Error('PREPAID_USAGE_AMOUNT_INVALID');
+ const ref=String(reference_id||'').trim(),tenant=String(tenantId),ts=now();
+ if(!ref)throw new Error('PREPAID_USAGE_REFERENCE_REQUIRED');
  // The conditional UPDATE is the concurrency gate. The debit ledger and
  // consumed total are committed in the same atomic D1 batch only when it wins.
  const results=await env.DB.batch([
