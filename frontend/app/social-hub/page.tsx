@@ -98,7 +98,7 @@ export default function SocialHub(){
  },[items,publishers]);
 
  return <main className="page">
-  <header><a href="/social-media">← Social Studio</a><span>UNIVERSAL SOCIAL AUTHORIZATION</span><a href="/assistant-actions">Magnanimous AI →</a></header>
+  <header><a href="/social-media">← Social Studio</a><span>UNIVERSAL SOCIAL AUTHORIZATION</span><a href="/social-calendar">Publishing Calendar →</a><a href="/assistant-actions">Magnanimous AI →</a></header>
   <section className="hero"><small>I AM MAGNANIMOUS WAY™ • OFFICIAL PROVIDER AUTHORIZATION</small><h1>One social hub. Every supported network. Your permission first.</h1><p>Connect every social or messaging provider currently supported by the platform from one place. The button opens the provider’s official sign-in/authorization flow; passwords are never collected by I AM.</p></section>
 
   <section className="consent" aria-label="Social account consent">
