@@ -19,7 +19,7 @@ const locked=String(lock.packages?.['node_modules/next']?.version||'');
 const rootLocked=String(lock.packages?.['']?.dependencies?.next||'');
 
 if(declared!==locked||declared!==rootLocked)fail('Next.js package.json and package-lock versions must match exactly.');
-if(!gte(versionParts(declared),[16,4,5]))fail('Next.js must remain at or above the November 2026 security baseline 16.4.5.');
+if(!gte(versionParts(declared),[16,4,6]))fail('Next.js must remain at or above the November 2026 security baseline 16.4.6.');
 if(lock.packages?.['node_modules/@next/env']?.version!==declared)fail('@next/env must track the exact Next.js patch version.');
 for(const name of [
   '@next/swc-darwin-arm64','@next/swc-darwin-x64','@next/swc-linux-arm64-gnu','@next/swc-linux-arm64-musl',

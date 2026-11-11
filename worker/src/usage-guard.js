@@ -96,11 +96,21 @@ export async function creditWallet(env,tenantId,amountUsd,{reference_id='',detai
 
 export async function debitWallet(env,tenantId,amountUsd,{reference_id='',detail='Premium usage overage'}={}){
  await ensureUsageSchema(env);const amount=Math.max(0,Number(amountUsd||0));if(!tenantId||amount<=0)return walletStatus(env,tenantId);
- const current=await walletStatus(env,tenantId);if(amount>current.balance_usd+1e-9)throw new Error('PREPAID_USAGE_BALANCE_EXHAUSTED');
- const ref=String(reference_id||crypto.randomUUID());
- await env.DB.prepare('INSERT INTO billing_usage_wallet_events(tenant_id,event_type,amount_usd,reference_id,detail,created_at) VALUES(?,?,?,?,?,?)').bind(String(tenantId),'debit',-amount,ref,String(detail||''),now()).run();
- await env.DB.prepare('UPDATE billing_usage_wallet SET balance_usd=MAX(0,balance_usd-?),total_consumed_usd=total_consumed_usd+?,updated_at=? WHERE tenant_id=?').bind(amount,amount,now(),String(tenantId)).run();
- return walletStatus(env,tenantId);
+ const ref=String(reference_id||crypto.randomUUID()),tenant=String(tenantId),ts=now();
+ // The conditional UPDATE is the concurrency gate. The debit ledger and
+ // consumed total are committed in the same atomic D1 batch only when it wins.
+ const results=await env.DB.batch([
+  env.DB.prepare("UPDATE billing_usage_wallet SET balance_usd=balance_usd-?,updated_at=? WHERE tenant_id=? AND balance_usd>=? AND NOT EXISTS (SELECT 1 FROM billing_usage_wallet_events WHERE tenant_id=? AND event_type='debit' AND reference_id=?)").bind(amount,ts,tenant,amount,tenant,ref),
+  env.DB.prepare("INSERT INTO billing_usage_wallet_events(tenant_id,event_type,amount_usd,reference_id,detail,created_at) SELECT ?, 'debit', ?, ?, ?, ? WHERE changes()=1").bind(tenant,-amount,ref,String(detail||''),ts),
+  env.DB.prepare("UPDATE billing_usage_wallet SET total_consumed_usd=total_consumed_usd+?,updated_at=? WHERE tenant_id=? AND changes()=1").bind(amount,ts,tenant)
+ ]);
+ const changed=Number(results?.[0]?.meta?.changes||0);
+ if(changed!==1){
+  const duplicate=await env.DB.prepare("SELECT amount_usd FROM billing_usage_wallet_events WHERE tenant_id=? AND event_type='debit' AND reference_id=? LIMIT 1").bind(tenant,ref).first();
+  if(!duplicate)throw new Error('PREPAID_USAGE_BALANCE_EXHAUSTED');
+  if(Math.abs(Number(duplicate.amount_usd||0)+amount)>1e-9)throw new Error('PREPAID_USAGE_REFERENCE_CONFLICT');
+ }
+ return walletStatus(env,tenant);
 }
 
 export async function usageStatus(env,tenantId){

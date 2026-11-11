@@ -1,53 +1,59 @@
-# Platform Deep Audit — 2026-11-11
+﻿# Magnanimous Platform Deep Audit — 2026-11-11
 
-## Authority and method
-- Repository authority: `IAMGodmatters/IAMMagnanimousway.js`, default branch `main`.
-- Production domain: `https://iammagnanimousway.com/`.
-- Product identity: Magnanimous AI remains the platform brain; external providers are replaceable execution rails.
-- Scope: public pages and navigation; authenticated account/session boundaries; Worker/API routing; workspace and tenant isolation; integrations and credentials; billing/payment/consent; media/voice/telecom; deployment, migrations, QA, and operational evidence.
-- Evidence standard: source inspection, automated checks, provider evidence, and live production verification are separate evidence classes. A route existing in source is not proof that its end-to-end workflow is operational.
+## Scope and governing decisions
+- Repository authority: `IAMGodmatters/IAMMagnanimousway.js`, `main`.
+- Production origin: `https://iammagnanimousway.com/`.
+- Magnanimous AI remains the sole platform identity and orchestration brain. External providers are replaceable services, never the owner of identity, memory, or policy.
+- Preserve working features and approved artwork. Prefer free/native execution. Do not enable paid infrastructure, consume paid API credits, create charges, or authorize supplier purchases without the user's explicit approval.
+- Evidence is classified separately as source contract, local build/test, CI, live public route, authenticated workflow, or provider-side activation. Passing a source lock does not prove an external account is connected.
 
-## Work completed in this audit pass
-1. Inspected the current main branch, frontend dependency manifests, Next.js configuration, Worker entrypoints, Wrangler configuration, billing runtime, provider credential overlay, security/session entrypoints, Operations API routing, and automated audit scripts.
-2. Identified the frontend Next.js dependency was pinned to 16.4.1 while November 2026 security advisories affected the 16.4.1 line.
-3. Merged Dependabot PR #919, upgrading both frontend package.json and package-lock.json to Next.js 16.4.5. Merge commit: `bd9eebc56dee50649cf550b5058ee78554e77de4`.
-4. Verified from main that package.json, lockfile root dependency, installed Next package, @next/env, and all eight platform-specific SWC lock entries match 16.4.5; @swc/helpers remains 0.5.23.
-5. Raised the repository's enforced Next.js minimum security baseline from 16.3.3 to 16.4.5. Commit: `23b41e629fb52507da2721a5e450860c81560a9f`.
-6. Confirmed the production workflow is configured to run deterministic regression tests, frontend typecheck/build, a large platform contract-lock suite, Worker bundling, D1 safety/migration steps, and production smoke tests on runtime-impacting main pushes.
+## Current main baseline and live CI evidence
+- Main revision inspected locally: `da6e3c15ab4685f117ce518aff4eeb0eb4494c61` (`ci: block production deploys on high severity dependency vulnerabilities`).
+- GitHub Actions associated with this main revision reported success for the Full Platform Surface Audit, voice conversation smoke, professional, SEO, mobile production visual, agent video, visual provider, Magnanimous Telecom, public teaching, business plan mobile, business email and owner email verification.
+- Business Operations Production Verification remained pending. The `Build and Deploy I AM` run, plus NVIDIA and managed-email secret-sync runs, were also pending with no jobs reported by the API at the time checked. Treat these as queued/unverified; do not call this revision newly deployed until deployment completes and the live revision is confirmed.
 
-## Findings and status
+## Local verification performed on the audit working copy
+- Interaction audit: PASS — 238 source files, 155 routes, 862 literal links, 765 buttons. It verifies literal internal route resolution, non-empty links, code-level button action paths, icon-only accessible names and mounted runtime layers. It does not prove every handler succeeds after a real authenticated action.
+- Platform contract audit: PASS — 93 OS/agency checks; Business Email Lite 34 checks; White Label brain 64 checks; Product boundary 144 checks; CRM intelligence 57 checks; CRM activation 35 checks; 47 Business AI capability families and adapter/readiness/handoff checks; White Label 63-app integrity; video, TV, telecom, storage, cost-control, consent, privacy, and provider-routing locks.
+- Deterministic native unit/integration tests: 30 passed, 0 failed. Added real SQLite-backed prepaid-wallet regression coverage for concurrent overspend attempts, idempotent replays, conflicting reference amounts and tenant isolation.
+- Frontend TypeScript: PASS.
+- Next.js optimized production build: PASS — Next.js 16.4.6, 174 static pages generated.
+- Playwright production navigation tests: 4 passed, including homepage internal links, `/persistent` recovery, unknown-route recovery, and accessible control identity on a 12-route sample.
+- Playwright production telecom routes: 9 passed, 0 failed.
+- Worker Wrangler dry-run: PASS — 1,576 static assets read; Worker bundle 5,647.18 KiB (1,363.50 KiB gzip); dry-run exited without deployment.
+- npm audit: PASS — frontend, Worker, video-gateway and QA workspaces each reported 0 vulnerabilities at the high-severity threshold.
+- Billing concurrency fix: implemented atomic prepaid-wallet debits in the audit working copy. A conditional balance update, debit-ledger insert and consumed-total increment now run in one D1 batch; repeated references are idempotent and a reused reference with a different amount is rejected. Added SQLite-backed concurrency, idempotency, conflict and tenant-isolation tests (30 native tests pass); the payment safety lock now enforces the atomic path (27 contract checks).
+- Store safety lock: PASS. Production supplier auto-fulfillment and print-on-demand auto-fulfillment are set to `false`, both automatic purchase caps are `0`, and the regression lock enforces those limits. I also fixed a fail-open POD runtime default (previously `true` / USD 100 when settings were missing) so missing settings now mean `false` / USD 0. The lock tests missing, disabled and explicit opt-in configurations. The manual, explicitly authorized fulfillment path remains separate.
+- Dependency hardening: Next.js updated from 16.4.5 to 16.4.6 in the audit working copy; the QA security baseline lock enforces 16.4.6. The upstream 16.4.6 release is a bug-fix backport after the 16.4.5 security release.
+- Navigation tests were hardened to avoid serial long-timeout failures and parallel request overload. The revised tests passed on production.
+- Opportunity Vault external references were corrected where authoritative pages confirmed the canonical path (ASEAN Digital Awards 2027 trailing-slash URL, EgoVista's sub-processor route, current DICT IIDB LinkedIn slug, and DOST-TAPI's current TechTrans portal). The final 275-destination external scan found 263 2xx, 12 blocked 403s, zero confirmed 404s, zero 5xx and zero network errors. Google Opinion Rewards links that returned 404 on HEAD were confirmed valid on GET through Google's Help Center. The old IIDB LinkedIn slug was the only confirmed dead link and is corrected. Blocked responses are not mislabeled as dead links.
 
-### Resolved in source
-- **Next.js security baseline:** patched to 16.4.5 and enforced by the QA lock. This addresses the November advisories fixed in 16.4.5. The later 16.4.6 release is a bug-fix release; it is not required for the November advisory fix.
-- **Dependency consistency:** frontend manifest and lockfile are aligned at 16.4.5, including @next/env and SWC platform packages.
-- **Worker entrypoint architecture:** main Worker uses the security entrypoint, which delegates to the operations entrypoint; this preserves the established operations layer rather than bypassing it.
-- **Authentication boundaries in source:** protected API flows use current-user/session resolution; owner-only routes include an additional platform-owner check; public health/catalogue routes are explicitly separated.
-- **Billing architecture in source:** Stripe webhook code includes timestamped signature verification, event deduplication, payment confirmation checks, tenant resolution and subscription persistence. This is source evidence, not a live payment test.
-- **Free-first cost controls:** Wrangler configuration sets metered provider execution off by default and uses Workers AI bindings; this is configuration evidence, not a complete cost audit.
-- **Navigation/static export:** Next.js is configured for static export and trailing-slash routes; Cloudflare assets use automatic trailing-slash handling.
+## Main platform capability areas inspected
+1. Magnanimous identity, single-brain routing, model/provider failover, native capability mesh, memory/search/link fabric, routine studio, companion and action-first execution.
+2. Public pages, static route generation, internal navigation, 47 Business AI capability families, CRM, workspace and 63 white-label app surfaces.
+3. Authentication/session ownership, tenant boundaries, provider credentials, API routing and owner-only controls.
+4. Stripe catalogue references, signed webhook/idempotency, accepted terms, subscriptions, usage wallets, prepaid/cost caps, plan/upgrade paths and customer-safe pricing projections.
+5. Business email, DNS intelligence, WhatsApp, social hub, voice conversations, call-center operations, carrier bridge and standalone telecom surfaces.
+6. Studio Tools and Talking Recorder, native video stack, renderer gateway, Movie Maker, video agents, music, media library, TV programming/network, creator growth and rights/provenance checks.
+7. Storage capacity, rclone-compatible cloud fabric, migrations, CI/CD, security and production smoke workflows.
 
-### Open verification work
-- **Production deployment:** the GitHub connector available for this audit does not expose a repository-wide Actions run listing for push-triggered deployments. Commit status queries returned no individual statuses. The two commits above therefore require confirmation through the deployment run and live production checks before they can be called deployed.
-- **Live end-to-end browser QA:** the production website and APIs still require real browser checks across desktop and mobile: signup/login/logout/recovery, workspace CRUD, every primary navigation link, form submissions, file upload/download, voice/microphone permissions, external OAuth returns, checkout/portal, and post-action receipts. Source-level link/button scanning is not a substitute.
-- **External provider connections:** OAuth client approvals, social publishing scopes, carrier credentials/numbers, voice/video providers, email/DNS, and other provider-side activation states must be read from provider status endpoints or owner settings; source presence alone cannot establish connected status.
-- **D1 and tenant isolation:** inspect migrations and run cross-tenant authorization tests against an isolated test database. Do not use production customer records as test fixtures.
-- **Billing safety:** validate the live Stripe product/price catalogue, accepted terms versions, webhook signatures, duplicate delivery, refunds/cancellations, idempotency, and prepaid wallet concurrency in test mode. Do not create live charges or consume paid provider credits during audit.
-- **Link coverage:** the frontend interaction audit statically checks literal internal routes and button action paths. It cannot verify dynamically generated links, external destinations, server response correctness, keyboard/screen-reader behavior, or that a button's handler completes successfully.
-- **Dependency security:** add/verify a complete dependency vulnerability scan for frontend, Worker, video gateway, and QA packages; npm install commands currently use --no-audit, so the workflow itself is not evidence of an npm audit pass.
-- **Worker compatibility:** Wrangler currently uses compatibility date 2026-08-27. Review a date update separately with Worker integration tests before changing runtime behavior.
-- **Open pull request backlog:** the repository currently has a large open PR queue, including overlapping feature proposals and dependency updates. Triage by current-main applicability, duplicate content, security relevance, test evidence, and provider cost. Do not mass-merge unreviewed feature PRs.
+## Known unresolved or separately gated work
+- The Open Campus feature PR #925 is still open and unmerged. It clearly labels itself a free, non-accredited learning program and stores study marks only in browser localStorage. It does not provide accredited bachelor-degree status, student accounts, cross-device progress, isolated labs, or live paid entitlements. Do not market it as an accredited degree. The separate CHED pathway research is documented in `docs/MAGNANIMOUS_AI_COLLEGE_ACCREDITATION_PATHWAY_2026-11-11.md`; NORSU is a prospective local partner only, not a confirmed partner or approved ODeL provider.
+- The older draft PR #896 contains the same prepaid-wallet race fix but is based on an outdated main revision. Its implementation has been strengthened in this audit working copy with reference-amount conflict detection and executable concurrency tests; close the old draft after the replacement PR merges.
+- The earlier Cloudflare FFmpeg Container PR #1 is closed without merge because Cloudflare Containers require a Workers Paid plan. Keep the free/native video path; do not activate a paid plan.
+- Full authenticated end-to-end verification is still required for signup/login/recovery, two-tenant workspace CRUD and media isolation, social OAuth scopes, real checkout in Stripe test mode, webhook replay/refund/cancellation, carrier calling, microphone permissions on iPhone Safari, and external provider account activation. No live charge or paid provider consumption is permitted during this audit.
+- Provider activation remains separate from source readiness: metered providers are disabled. Browser/device speech synthesis is the free voice path; live outbound carrier calling and paid TTS remain unverified/approval-gated. The current image provider is unavailable and the first-party procedural fallback is not equivalent to high-fidelity generative image creation. Do not claim every external provider is connected.
+- Some third-party sites block automated requests (403) or time out. Recheck through an ordinary browser GET or authoritative source before declaring a resource broken.
+- A clean production deployment and live revision verification are still required for any changes made in this local audit working copy.
 
-## Required acceptance gates before declaring the platform fully operational
-1. Frontend typecheck and static export build pass on the exact main commit.
-2. All deterministic unit/integration tests and every platform contract lock pass.
-3. Worker bundle/dry-run succeeds; migrations are additive, ordered, and verified against a disposable database.
-4. Production deployment succeeds for the exact commit; health, auth, public catalogue, and route smoke checks pass.
-5. Desktop and mobile browser tests exercise each public route and each authenticated product surface, including destination links and visible controls.
-6. Tenant-isolation tests prove one workspace cannot read or mutate another workspace's records, media, billing, or integrations.
-7. Test-mode Stripe checkout/webhook/cancellation/refund paths pass without live customer charges.
-8. Each external connector reports an accurate state: connected, authorization required, not configured, degraded, or disconnected.
-9. Accessibility checks cover keyboard navigation, accessible names, focus management, contrast, and mobile layout.
-10. Usage/cost guards, prepaid funding, opt-outs, consent, audit logs, retention, and tenant separation are verified from runtime evidence.
+## Release acceptance gates
+1. Exact branch commit passes typecheck, optimized build, deterministic tests, platform contract locks, dependency audits, and Wrangler dry-run.
+2. Required GitHub Actions checks complete successfully, including deploy, production surface audit, mobile visual, telecom, voice, business operations and email.
+3. Confirm production serves the exact deployed commit; test public routes and safe public APIs.
+4. Use isolated test tenants and Stripe test mode for authenticated workflows; prove cross-tenant denial and idempotent billing/refund behavior.
+5. Check mobile/iPhone behavior, keyboard/accessibility, microphone permission, focus handling, and actual post-click outcomes.
+6. Confirm provider states truthfully: connected, authorization required, not configured, degraded or disconnected.
+7. Verify consent, DNC/quiet hours, tenant separation, audit trails, retention, spending caps and prepaid funding before any paid execution.
 
-## Current truthful release statement
-The Next.js security update and its minimum-version guard are merged into main. The source architecture and existing QA coverage are substantial. This audit pass has not established that every platform page, tool, external provider, or production button has passed live end-to-end testing. Do not market the platform as fully production-verified until the acceptance gates above have evidence attached to the exact release commit.
+## Truthful status
+The source architecture and local QA are substantial and the local verification listed above passed. This does not establish that every external provider is connected or that every authenticated workflow, paid action, or user-specific integration has been tested in production. The audit working-copy changes must pass CI and deploy before they are considered live.

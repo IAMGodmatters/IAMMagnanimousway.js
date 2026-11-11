@@ -78,6 +78,7 @@ jobs:
           cache-dependency-path: |
             frontend/package-lock.json
             worker/package-lock.json
+            qa/package-lock.json
 
       - name: Run deterministic native unit and integration tests
         run: node qa/scripts/run-native-regression-tests.mjs
@@ -111,6 +112,13 @@ jobs:
           node qa/scripts/magnanimous-logistics-erp-lock.mjs
           node qa/scripts/magnanimous-public-api-lock.mjs
           node qa/scripts/magnanimous-software-directive-lock.mjs
+
+      - name: Install QA dependencies
+        working-directory: qa
+        run: npm ci --no-audit --no-fund
+      - name: Audit QA dependency vulnerabilities
+        working-directory: qa
+        run: npm audit --audit-level=high
 
       - name: Install Worker dependencies
         working-directory: worker
