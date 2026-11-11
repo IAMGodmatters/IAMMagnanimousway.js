@@ -34,6 +34,8 @@ export default function MagnanimousAICollege(){
  const [hydrated,setHydrated]=useState(false);
  const [authToken,setAuthToken]=useState('');
  const [progressRecordId,setProgressRecordId]=useState('');
+ const [migrationKey,setMigrationKey]=useState('');
+ const [migrationPending,setMigrationPending]=useState(false);
  const [syncStatus,setSyncStatus]=useState<'local'|'loading'|'account'|'error'>('local');
  const [syncMessage,setSyncMessage]=useState('Progress is saved on this device. Sign in to sync it with your account.');
  useEffect(()=>{try{const raw=localStorage.getItem('magnanimous-college-open-progress-v1');if(raw){const parsed=JSON.parse(raw);if(Array.isArray(parsed))setDone(parsed.filter(x=>typeof x==='string'&&resources.some(r=>r.id===x)));}}catch{}setHydrated(true);setAuthToken(getPlatformAuthToken())},[]);
@@ -58,12 +60,15 @@ export default function MagnanimousAICollege(){
     const existing=records.items?.find((x:any)=>x.data?.kind==='college-progress');
     if(existing?.id){
      const saved=Array.isArray(existing.data?.done)?existing.data.done.filter((x:any)=>typeof x==='string'&&resources.some(r=>r.id===x)):[];
-     if(!cancelled){setDone([...new Set([...saved,...done])]);setProgressRecordId(existing.id);setSyncStatus('account');setSyncMessage('Your study progress is connected to your signed-in account.');}
+     const key='magnanimous-college-migrated-v1:'+existing.id;
+     let migrated=false;try{migrated=localStorage.getItem(key)==='1'}catch{}
+     const restored=migrated?saved:[...new Set([...saved,...done])];
+     if(!cancelled){setDone(restored);setProgressRecordId(existing.id);setMigrationKey(key);setMigrationPending(!migrated);setSyncStatus('account');setSyncMessage('Your study progress is connected to your signed-in account.');}
     }else{
      const initial=done.filter(x=>resources.some(r=>r.id===x));
      const created=await request('/api/operations/records',{method:'POST',body:JSON.stringify({board_id:board.id,title:'Open Campus study progress',status:'active',data:{kind:'college-progress',done:initial,resource_ids:resources.map(r=>r.id),schema_version:1}})});
      if(!created.item?.id)throw new Error('Your study progress record could not be created.');
-     if(!cancelled){setProgressRecordId(created.item.id);setSyncStatus('account');setSyncMessage('Your study progress is now connected to your signed-in account.');}
+     if(!cancelled){setProgressRecordId(created.item.id);setMigrationKey('magnanimous-college-migrated-v1:'+created.item.id);setMigrationPending(true);setSyncStatus('account');setSyncMessage('Your study progress is now connected to your signed-in account.');}
     }
    }catch(error){if(!cancelled){setSyncStatus('error');setSyncMessage(error instanceof Error?error.message+' Your browser copy is still available.':'Account sync failed. Your browser copy is still available.');}}
   })();
@@ -75,11 +80,12 @@ export default function MagnanimousAICollege(){
    try{
     const response=await fetch((process.env.NEXT_PUBLIC_API_BASE_URL||'')+'/api/operations/records/'+encodeURIComponent(progressRecordId),{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+authToken},body:JSON.stringify({data:{kind:'college-progress',done,resource_ids:resources.map(r=>r.id),schema_version:1}}),cache:'no-store'});
     if(response.status===401){router.replace('/login?returnTo=%2Fai-college');throw new Error('Your session expired. Please sign in again.')}if(!response.ok)throw new Error('Progress sync could not be confirmed.');
+    if(migrationPending&&migrationKey){try{localStorage.setItem(migrationKey,'1')}catch{}setMigrationPending(false)}
     setSyncMessage('Your study progress is saved to your signed-in account.');
    }catch{setSyncStatus('error');setSyncMessage('Account sync could not be confirmed. Your browser copy remains available.');}
   },300);
   return()=>clearTimeout(timer);
- },[done,progressRecordId,authToken,syncStatus,router]);
+ },[done,progressRecordId,authToken,syncStatus,router,migrationPending,migrationKey]);
  const filtered=useMemo(()=>resources.filter(r=>(filter==='All'||(filter==='Videos'&&r.video)||(filter==='Courses'&&!r.video))&&[r.title,r.provider,r.description,r.phase].join(' ').toLowerCase().includes(query.toLowerCase())),[filter,query]);
  const total=resources.length;
  const progress=Math.round(done.length/total*100);
