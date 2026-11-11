@@ -1,60 +1,9 @@
 'use client';
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import './utility-tools.css';
+import { calculate, convert, normalizeBackup, type RestoreRecord } from './utility-tools-core.mjs';
 
 type StudioRecord = { id:string; title:string; status:string; due_at:number|null; data:Record<string,unknown>; updated_at:number };
-export type RestoreRecord = { sourceId:string; kind:'task'|'note'|'planner'|'habit'; title:string; status:string; due_at:number|null; data:Record<string,unknown> };
-type Props = { items:StudioRecord[]; onRestore:(records:RestoreRecord[])=>Promise<{imported:number;skipped:number}> };
-const UNITS:Record<string,Record<string,number>> = {
-  Length:{m:1,km:1000,cm:.01,mm:.001,ft:.3048,in:.0254,mi:1609.344},
-  Weight:{kg:1,g:.001,mg:.000001,lb:.45359237,oz:.028349523125},
-  Volume:{L:1,mL:.001,gal:3.785411784,cup:.2365882365}
-};
-const UNIT_NAMES:Record<string,string[]>={...Object.fromEntries(Object.entries(UNITS).map(([k,v])=>[k,Object.keys(v)])),Temperature:['°C','°F','K']};
-
-function calculate(source:string):number {
-  const s=source.replace(/\s+/g,'');
-  if(!s||!/^[\d.+\-*/%()]+$/.test(s))throw new Error('Enter a valid arithmetic expression.');
-  const t=s.match(/\d+(?:\.\d+)?|[()+\-*/%]/g)||[];
-  if(t.join('')!==s)throw new Error('Check the expression and try again.');
-  let i=0;
-  const primary=():number=>{const x=t[i++];if(x==='('){const n=expr();if(t[i++]!==')')throw new Error('A closing parenthesis is missing.');return n;}if(x===undefined||!/^\d+(?:\.\d+)?$/.test(x))throw new Error('A number is missing.');return Number(x);};
-  const unary=():number=>{if(t[i]==='+'){i++;return unary();}if(t[i]==='-'){i++;return -unary();}return primary();};
-  const term=():number=>{let n=unary();while(['*','/','%'].includes(t[i])){const op=t[i++],r=unary();if((op==='/'||op==='%')&&r===0)throw new Error('Division by zero is not allowed.');n=op==='*'?n*r:op==='/'?n/r:n%r;}return n;};
-  const expr=():number=>{let n=term();while(t[i]==='+'||t[i]==='-'){const op=t[i++],r=term();n=op==='+'?n+r:n-r;}return n;};
-  const result=expr();if(i!==t.length||!Number.isFinite(result))throw new Error('The expression could not be calculated.');return Number(result.toPrecision(12));
-}
-function convert(value:string,category:string,from:string,to:string):number {
-  const n=Number(value);if(!Number.isFinite(n))throw new Error('Enter a valid number.');
-  if(category==='Temperature'){const c=from==='°C'?n:from==='°F'?(n-32)*5/9:n-273.15;return to==='°C'?c:to==='°F'?c*9/5+32:c+273.15;}
-  const u=UNITS[category];if(!u||!(from in u)||!(to in u))throw new Error('Choose valid units.');return n*u[from]/u[to];
-}
-function normalizeBackup(backup:any):RestoreRecord[] {
-  if(Array.isArray(backup?.records)){
-    if(backup.records.length>500)throw new Error('A backup can contain no more than 500 records.');
-    return backup.records.map((x:any,i:number)=>{
-      const kind=x?.data?.kind;if(!['task','note','planner','habit'].includes(kind))throw new Error('The backup contains an unsupported record type.');
-      const title=String(x.title||'').trim(),body=String(x.data?.body||'');if(!title||title.length>240)throw new Error('Each item needs a title of 1–240 characters.');if(body.length>12000)throw new Error('An imported description is too long.');
-      const sourceId=String(x.id||x.sourceId||'record-'+i).slice(0,160);
-      return {sourceId,kind,title,status:['open','done','archived'].includes(x.status)?x.status:'open',due_at:Number.isFinite(x.due_at)?x.due_at:null,data:{...x.data,kind,body,backup_source_id:sourceId}};
-    });
-  }
-  const d=backup?.workspace||backup;
-  if(!d||!['tasks','notes','plans','habits'].every(k=>Array.isArray(d[k])))throw new Error('This is not a supported Magnanimous Studio backup.');
-  const out:RestoreRecord[]=[];
-  const add=(kind:RestoreRecord['kind'],x:any,i:number,due_at:number|null=null)=>{
-    const title=String(x?.title||x?.name||(kind==='note'?'Untitled note':'')).trim(),body=String(x?.body||'');
-    if(!title||title.length>240)throw new Error('Each item needs a title of 1–240 characters.');if(body.length>12000)throw new Error('An imported description is too long.');
-    const sourceId=String(x?.id||kind+'-'+i).slice(0,160);
-    out.push({sourceId,kind,title,status:kind==='task'&&x.done?'done':'open',due_at,data:{kind,body,...(kind==='habit'?{doneOn:String(x.doneOn||'')}:{}),...(kind==='planner'?{legacy_date:String(x.date||''),legacy_time:String(x.time||'')}:{}),backup_source_id:sourceId}});
-  };
-  d.tasks.forEach((x:any,i:number)=>add('task',x,i));
-  d.notes.forEach((x:any,i:number)=>add('note',x,i));
-  d.plans.forEach((x:any,i:number)=>{const date=x?.date&&x?.time?new Date(String(x.date)+'T'+String(x.time)):null;add('planner',x,i,date&&Number.isFinite(date.getTime())?Math.floor(date.getTime()/1000):null);});
-  d.habits.forEach((x:any,i:number)=>add('habit',x,i));
-  if(out.length>500)throw new Error('A backup can contain no more than 500 records.');return out;
-}
-
 export default function UtilityTools({items,onRestore}:Props) {
   const [active,setActive]=useState('focus'),[theme,setTheme]=useState<'dark'|'light'>('dark');
   const [seconds,setSeconds]=useState(1500),[mode,setMode]=useState<'Focus'|'Break'>('Focus'),[running,setRunning]=useState(false),deadline=useRef<number|null>(null);
