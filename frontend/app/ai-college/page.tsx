@@ -48,7 +48,7 @@ export default function MagnanimousAICollege(){
   (async()=>{
    setSyncStatus('loading');setSyncMessage('Connecting your private study record…');
    try{
-    const workspaces=await request('/api/operations/workspaces');
+    const workspaces=await request('/api/operations/workspaces?mine=1');
     let workspace=workspaces.items?.find((x:any)=>x.kind==='college-progress');
     if(!workspace){const created=await request('/api/operations/workspaces',{method:'POST',body:JSON.stringify({name:'My Magnanimous AI College Progress',kind:'college-progress',description:'Private student learning progress and resource completion marks.'})});workspace=created.item}
     if(!workspace?.id)throw new Error('Your private study workspace could not be opened.');
