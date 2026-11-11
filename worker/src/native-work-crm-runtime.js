@@ -166,7 +166,7 @@ async function emitEvent(env,user,body){
  const t=tenant(user),event=text(body.event,120);if(!event)return{matched:0,ran:0};
  const recordId=text(body.record_id,80),recordRaw=recordId?await ownedRecord(env,t,recordId):null,record=mapRecord(recordRaw);
  const boardId=text(body.board_id||record?.board_id,80),workspaceId=text(body.workspace_id,80);
- let sql='SELECT * FROM magnanimous_ops_automations WHERE tenant_id=? AND enabled=1';const args=[t];if(boardId){sql+=' AND (board_id=? OR board_id IS NULL)';args.push(boardId)}if(workspaceId){sql+=' AND workspace_id=?';args.push(workspaceId)}
+ let sql="SELECT a.* FROM magnanimous_ops_automations a LEFT JOIN magnanimous_ops_workspaces w ON w.tenant_id=a.tenant_id AND w.id=a.workspace_id WHERE a.tenant_id=? AND a.enabled=1 AND (COALESCE(w.kind,'')<>'college-progress' OR w.owner_user_id=?)";const args=[t,String(user.id||'')];if(boardId){sql+=' AND (a.board_id=? OR a.board_id IS NULL)';args.push(boardId)}if(workspaceId){sql+=' AND a.workspace_id=?';args.push(workspaceId)}
  const{results=[]}=await env.DB.prepare(sql).bind(...args).all();let matched=0,ran=0;
  for(const raw of results){const a=mapAutomation(raw);if(String(a.trigger?.event||'')!==event)continue;matched++;if(record&&a.conditions.some(c=>!matchesCondition(record,c)))continue;for(const action of a.actions)await applyAction(env,user,a,record,action);await env.DB.prepare('UPDATE magnanimous_ops_automations SET run_count=run_count+1,last_run_at=?,updated_at=? WHERE id=? AND tenant_id=?').bind(now(),now(),a.id,t).run();ran++;}
  return{matched,ran};
