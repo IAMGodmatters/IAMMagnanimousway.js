@@ -22,7 +22,7 @@ From PowerShell:
 
 `powershell
 cd "$HOME\Documents\MagnanimousResearch\qwenputer-lab"
-.\run-local-checks.ps1
+.\run-local-checks.ps1 -CheckpointDirectory 'D:\Qwenputer\models'
 `
 
 The `--checkpoint-dir` option checks the selected model-storage volume, not automatically just the Windows system drive. The folder does not need to exist yet; the nearest existing parent drive is checked. The PowerShell wrapper accepts the same setting with `-CheckpointDirectory`.
