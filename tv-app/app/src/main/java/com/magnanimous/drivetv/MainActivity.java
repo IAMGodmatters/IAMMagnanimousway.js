@@ -82,8 +82,8 @@ public class MainActivity extends Activity {
     root.setOrientation(LinearLayout.VERTICAL);
     root.setPadding(18, 12, 18, 12);
     root.setBackgroundColor(color("#081626"));
-    root.addView(label("MAGNANIMOUS  â€¢  DRIVE TV", 25));
-    status = label("Your videos, songs, and photos  â€¢  free personal TV edition", 14);
+    root.addView(label("MAGNANIMOUS  •  DRIVE TV", 25));
+    status = label("Your videos, songs, and photos  •  free personal TV edition", 14);
     root.addView(status);
     LinearLayout buttons = new LinearLayout(this);
     buttons.setOrientation(LinearLayout.HORIZONTAL);
@@ -199,7 +199,7 @@ public class MainActivity extends Activity {
   private void showRecent() {
     viewingFolder = false;
     items.removeAllViews();
-    hint("Recent media â€¢ Choose a video, song, photo, or folder to begin");
+    hint("Recent media • Choose a video, song, photo, or folder to begin");
     try {
       JSONArray a = new JSONArray(getPreferences(0).getString("recent", "[]"));
       if (a.length() == 0) items.addView(label(
@@ -214,7 +214,7 @@ public class MainActivity extends Activity {
     } catch (Exception ex) { items.addView(label("Unable to read your recent-media list.", 17)); }
   }
   private void addEntry(Entry entry, List<Entry> all) {
-    String symbol = entry.picture() ? "â–§  " : entry.audio() ? "â™«  " : "â–¶  ";
+    String symbol = entry.picture() ? "▣  " : entry.audio() ? "♫  " : "▶  ";
     Button b = button(symbol + entry.name);
     b.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
     b.setOnClickListener(v -> openEntry(entry, all));
@@ -245,9 +245,9 @@ public class MainActivity extends Activity {
     viewingFolder = true;
     items.removeAllViews();
     if (tree == null || documentId == null) { showRecent(); return; }
-    hint("Selected folder â€¢ Videos, songs and photos");
+    hint("Selected folder • Videos, songs and photos");
     if (!folderStack.isEmpty()) {
-      Button back = button("â—€  Back to previous folder");
+      Button back = button("◀  Back to previous folder");
       back.setOnClickListener(v -> {
         documentId = folderStack.remove(folderStack.size() - 1);
         showFolder();
@@ -277,7 +277,7 @@ public class MainActivity extends Activity {
         }
       }
       for (String[] folder : folders) {
-        Button b = button("â–£  " + folder[1] + "  â†’");
+        Button b = button("📁  " + folder[1] + "  →");
         b.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
         b.setOnClickListener(v -> {
           folderStack.add(documentId); documentId = folder[0]; showFolder();
