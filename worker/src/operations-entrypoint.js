@@ -1,5 +1,8 @@
 import app from './progress-entrypoint.js';
 import {currentUser} from './integrations.js';
+import {handleSocialPublishing} from './social-publishing-runtime.js';
+import {handleSocialScheduling,scheduledSocialPublishing} from './social-scheduling-runtime.js';
+import {getProviderRuntimeEnv} from './provider-runtime-env.js';
 import {requireConsequentialActionConfirmation} from './consequential-action-gate.js';
 import {checkpointProgress,listProgressCheckpoints} from './progress-checkpoint-runtime.js';
 import {listWork,getWork,createWork,updateWork,addWorkStep,updateWorkStep} from './work-engine-runtime.js';
@@ -158,6 +161,17 @@ async function operationsFetch(request,env,ctx){
 
   const consequential=await requireConsequentialActionConfirmation(request);
   if(consequential)return consequential;
+  try{
+   if(path.startsWith('/api/social-connect')){
+    const providerEnv=await getProviderRuntimeEnv(env);
+    const social=await handleSocialPublishing(request,providerEnv);
+    if(social)return social;
+   }
+   if(path.startsWith('/api/social-schedule')){
+    const social=await handleSocialScheduling(request,env);
+    if(social)return social;
+   }
+  }catch(error){console.error('native social publishing route failed',error);return json({detail:'Magnanimous social publishing could not complete this request.'},500)}
 
   try{const training=await handleContinuousLearning(request,env);if(training)return training}catch(error){console.error('continuous learning layer failed',error);return json({detail:'Magnanimous continuous learning could not complete this request.'},500)}
 
@@ -279,6 +293,7 @@ export default{
   const origin=String(env.PUBLIC_SITE_URL||'https://iammagnanimousway.com').replace(/\/$/,'');
   const scheduledTasks=[
    pruneExpiredMeetingRooms(env).catch(error=>console.error('meeting room retention cleanup failed',error)),
+   getProviderRuntimeEnv(env).then(providerEnv=>scheduledSocialPublishing(providerEnv)).catch(error=>console.error('scheduled social publishing failed',error)),
    scheduledGrowth(env,origin).catch(error=>console.error('scheduled growth automation failed',error)),
    scheduledNativeWeb(env).catch(error=>console.error('scheduled native web automation failed',error)),
    scheduledMagnanimousCapabilityMesh(env).catch(error=>console.error('scheduled capability mesh check failed',error)),
