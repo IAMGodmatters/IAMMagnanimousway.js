@@ -96,13 +96,13 @@ public final class PlayerActivity extends Activity {
     title.setSingleLine(true);root.addView(title);
     FrameLayout display=new FrameLayout(this);display.setBackgroundColor(Color.BLACK);
     video=new VideoView(this);display.addView(video,new FrameLayout.LayoutParams(-1,-1));
-    music=label("â™«\n\nMAGNANIMOUS MUSIC",32);music.setGravity(Gravity.CENTER);music.setBackgroundColor(0xff123047);
+    music=label("♫\n\nMAGNANIMOUS MUSIC",32);music.setGravity(Gravity.CENTER);music.setBackgroundColor(0xff123047);
     music.setVisibility(View.GONE);display.addView(music,new FrameLayout.LayoutParams(-1,-1));
     subtitle=label("",19);subtitle.setGravity(Gravity.CENTER);subtitle.setBackgroundColor(0xbb000000);subtitle.setVisibility(View.GONE);
     FrameLayout.LayoutParams sub=new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM);
     sub.setMargins(20,0,20,18);display.addView(subtitle,sub);
     root.addView(display,new LinearLayout.LayoutParams(-1,0,1));
-    message=label("Loadingâ€¦",14);root.addView(message);
+    message=label("Loading…",14);root.addView(message);
     LinearLayout controls=new LinearLayout(this);controls.setOrientation(LinearLayout.HORIZONTAL);
     button(controls,"Previous",v->previous());
     button(controls,"-10s",v->seek(-10000));
@@ -121,7 +121,7 @@ public final class PlayerActivity extends Activity {
     video.setOnPreparedListener(mp->{
       if(saved>0 && saved<Integer.MAX_VALUE)video.seekTo((int)saved);
       saved=0;video.start();pauseButton.setText("Pause");
-      message.setText("Playing â€¢ Use the TV remote to pause and seek.");
+      message.setText("Playing • Use the TV remote to pause and seek.");
       controller.show(3500);
     });
     video.setOnCompletionListener(mp->{
