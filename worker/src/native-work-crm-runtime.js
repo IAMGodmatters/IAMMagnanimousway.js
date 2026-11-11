@@ -135,13 +135,19 @@ async function accessibleRecord(env,t,rid,user){
 }
 async function canAccessCollegeBoard(env,t,user,board){if(!board)return false;const workspace=await ownedWorkspace(env,t,board.workspace_id);if(!workspace)return false;if(workspace.kind==='college-progress'||board.kind==='college-progress')return workspace.owner_user_id===String(user.id||'');return true}
 
-async function summary(env,t){
- const count=async(table)=>Number((await env.DB.prepare(`SELECT COUNT(*) n FROM ${table} WHERE tenant_id=?`).bind(t).first())?.n||0);
- const [workspaces,boards,records,automations,sequences]=await Promise.all([count('magnanimous_ops_workspaces'),count('magnanimous_ops_boards'),count('magnanimous_ops_records'),count('magnanimous_ops_automations'),count('magnanimous_ops_sequences')]);
+async function summary(env,t,user){
+ const uid=String(user?.id||'');
+ const [workspaces,boards,records,automations,sequences]=await Promise.all([
+  env.DB.prepare("SELECT COUNT(*) n FROM magnanimous_ops_workspaces WHERE tenant_id=? AND (kind<>'college-progress' OR owner_user_id=?)").bind(t,uid).first(),
+  env.DB.prepare("SELECT COUNT(*) n FROM magnanimous_ops_boards b LEFT JOIN magnanimous_ops_workspaces w ON w.tenant_id=b.tenant_id AND w.id=b.workspace_id WHERE b.tenant_id=? AND (COALESCE(w.kind,'')<>'college-progress' OR w.owner_user_id=?)").bind(t,uid).first(),
+  env.DB.prepare("SELECT COUNT(*) n FROM magnanimous_ops_records r LEFT JOIN magnanimous_ops_boards b ON b.tenant_id=r.tenant_id AND b.id=r.board_id LEFT JOIN magnanimous_ops_workspaces w ON w.tenant_id=b.tenant_id AND w.id=b.workspace_id WHERE r.tenant_id=? AND (COALESCE(w.kind,'')<>'college-progress' OR w.owner_user_id=?)").bind(t,uid).first(),
+  env.DB.prepare("SELECT COUNT(*) n FROM magnanimous_ops_automations a LEFT JOIN magnanimous_ops_workspaces w ON w.tenant_id=a.tenant_id AND w.id=a.workspace_id WHERE a.tenant_id=? AND (COALESCE(w.kind,'')<>'college-progress' OR w.owner_user_id=?)").bind(t,uid).first(),
+  env.DB.prepare("SELECT COUNT(*) n FROM magnanimous_ops_sequences s LEFT JOIN magnanimous_ops_workspaces w ON w.tenant_id=s.tenant_id AND w.id=s.workspace_id WHERE s.tenant_id=? AND (COALESCE(w.kind,'')<>'college-progress' OR w.owner_user_id=?)").bind(t,uid).first()
+ ]);
  let crm={contacts:0,deals:0,pipeline_value:0};
  try{crm.contacts=Number((await env.DB.prepare('SELECT COUNT(*) n FROM crm_contacts WHERE tenant_id=?').bind(t).first())?.n||0)}catch{}
  try{const r=await env.DB.prepare("SELECT COUNT(*) n,COALESCE(SUM(o.value),0) value FROM crm_opportunities o LEFT JOIN crm_pipeline_stages ps ON ps.id=o.stage_id AND ps.tenant_id=o.tenant_id WHERE o.tenant_id=? AND COALESCE(ps.kind,CASE WHEN lower(o.stage) IN ('won','lost','closed') THEN 'closed' ELSE 'open' END)='open'").bind(t).first();crm.deals=Number(r?.n||0);crm.pipeline_value=Number(r?.value||0)}catch{}
- return{workspaces,boards,records,automations,sequences,crm,capabilities:NATIVE_OPERATIONS_CAPABILITIES.length};
+ return{workspaces:Number(workspaces?.n||0),boards:Number(boards?.n||0),records:Number(records?.n||0),automations:Number(automations?.n||0),sequences:Number(sequences?.n||0),crm,capabilities:NATIVE_OPERATIONS_CAPABILITIES.length};
 }
 
 function matchesCondition(record,c){
@@ -570,7 +576,7 @@ export async function handleNativeWorkCrm(request,env){
   await log(env,user,'crm_task_updated',{detail:{task_id:taskId,completed:body.completed===undefined?Boolean(cur.completed):Boolean(body.completed)}});return json({item:await crmOwnedTask(env,t,taskId)});
  }
 
- if(url.pathname==='/api/operations/summary'&&request.method==='GET')return json(await summary(env,t));
+ if(url.pathname==='/api/operations/summary'&&request.method==='GET')return json(await summary(env,t,user));
  if(url.pathname==='/api/operations/bootstrap-crm'&&request.method==='POST'){const workspace=await seedCrmWorkspace(env,user);await log(env,user,'bootstrap_crm',{workspace_id:workspace.id});return json({workspace},201)}
 
  if(url.pathname==='/api/operations/workspaces'){
