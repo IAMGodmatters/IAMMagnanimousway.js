@@ -3,12 +3,13 @@
 import {useCallback,useEffect,useMemo,useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {getPlatformAuthToken} from '../lib/magnanimous-session';
+import TalkingRecorder from './talking-recorder';
 
 type Item={id:string;title:string;status:string;due_at:number|null;data:Record<string,unknown>;updated_at:number};
-type Kind='task'|'note'|'planner'|'habit';
+type Kind='task'|'note'|'planner'|'habit'|'voice';
 const API=process.env.NEXT_PUBLIC_API_BASE_URL||'';
-const KINDS:Kind[]=['task','note','planner','habit'];
-const LABEL:Record<Kind,string>={task:'Tasks',note:'Notes',planner:'Planner',habit:'Habits'};
+const KINDS:Kind[]=['task','note','planner','habit','voice'];
+const LABEL:Record<Kind,string>={task:'Tasks',note:'Notes',planner:'Planner',habit:'Habits',voice:'Talking Recorder'};
 async function read(r:Response){const raw=await r.text();try{return JSON.parse(raw)}catch{return{detail:raw}}}
 function dateLabel(value:number|null){return value?new Date(value*1000).toLocaleString():''}
 
@@ -75,18 +76,24 @@ export default function StudioToolsPage(){
   catch(e:any){setError(e.message||'Could not update this item.')}
  };
  const count=(k:Kind)=>items.filter(x=>x.data.kind===k&&x.status!=='archived').length;
+ const saveVoice=async(voiceTitle:string,transcript:string,duration:number,mimeType:string)=>{
+  if(!boardId)throw new Error('Your private workspace is still loading.');
+  const result=await request('/api/operations/records',{method:'POST',body:JSON.stringify({board_id:boardId,title:voiceTitle.slice(0,240),status:'open',due_at:null,data:{kind:'voice',body:transcript.slice(0,12000),duration_seconds:duration,mime_type:mimeType,recorded_at:new Date().toISOString(),audio_storage:'downloaded_on_device'}})});
+  setItems(old=>[result.item,...old]);setNotice('Recording transcript and details saved to your private workspace.');
+ };
 
  return <main className="st-page">
   <div className="st-wrap">
    <header className="st-head"><div><p className="st-kicker">I AM MAGNANIMOUS WAY™</p><h1>Studio Tools</h1><p className="st-sub">Your own private space to organize everyday work.</p></div><a className="st-home" href="/">Back to platform</a></header>
    <section className="st-intro"><div><h2>One simple place to keep things moving.</h2><p>Save tasks, notes, plans and habits. Sign in from another device and continue in your own account workspace.</p></div><span className="st-lock">PRIVATE WORKSPACE</span></section>
    <nav className="st-tabs" aria-label="Studio tools">{KINDS.map(k=><button key={k} className={kind===k?'active':''} onClick={()=>setKind(k)}>{LABEL[k]} <small>{count(k)}</small></button>)}</nav>
-   <section className="st-panel">
+   {kind==='voice'?<TalkingRecorder onSave={saveVoice}/>:<section className="st-panel">
     <div className="st-toolbar"><h2>{LABEL[kind]}</h2><input aria-label="Search items" value={search} onChange={e=>setSearch(e.target.value)} placeholder={'Search '+LABEL[kind].toLowerCase()}/></div>
     <div className="st-create"><input aria-label="Title" value={title} onChange={e=>setTitle(e.target.value)} placeholder={kind==='task'?'What needs to get done?':kind==='note'?'Note title':kind==='planner'?'Plan or event title':'Habit name'} maxLength={240}/>{kind!=='note'&&<input aria-label="Due date" type="datetime-local" value={due} onChange={e=>setDue(e.target.value)}/>}<textarea aria-label="Details" value={body} onChange={e=>setBody(e.target.value)} placeholder="Add details (optional)" rows={2}/><button disabled={saving||!title.trim()} onClick={add}>{saving?'Saving…':'Save '+(kind==='task'?'task':kind==='note'?'note':kind==='planner'?'plan':'habit')}</button></div>
     {error&&<p className="st-error" role="alert">{error}</p>}{notice&&<p className="st-notice" role="status">{notice}</p>}
     {loading?<p className="st-empty">Loading your private workspace…</p>:visible.length===0?<p className="st-empty">Nothing here yet. Add your first {kind} above.</p>:<ul className="st-list">{visible.map(item=><li key={item.id}><div className="st-item-main"><strong>{item.title}</strong>{item.data.body!=null&&String(item.data.body).length>0?<p>{String(item.data.body)}</p>:null}{item.due_at&&<small>{dateLabel(item.due_at)}</small>}</div><div className="st-actions">{kind!=='note'&&<button onClick={()=>update(item,{status:item.status==='done'?'open':'done'})}>{item.status==='done'?'Reopen':'Complete'}</button>}<button className="quiet" onClick={()=>update(item,{status:'archived'})}>Archive</button></div></li>)}</ul>}
-   </section>
+   </section>}
+   {notice&&kind==='voice'&&<p className="st-notice" role="status">{notice}</p>}
    <footer className="st-foot">Your records are stored under your signed-in Magnanimous workspace. Other customer workspaces are separated by the platform’s tenant controls.</footer>
   </div>
   <style jsx>{`
