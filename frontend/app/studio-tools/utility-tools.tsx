@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent 
 import './utility-tools.css';
 
 type StudioRecord = { id:string; title:string; status:string; due_at:number|null; data:Record<string,unknown>; updated_at:number };
-type RestoreRecord = { sourceId:string; kind:'task'|'note'|'planner'|'habit'; title:string; status:string; due_at:number|null; data:Record<string,unknown> };
+export type RestoreRecord = { sourceId:string; kind:'task'|'note'|'planner'|'habit'; title:string; status:string; due_at:number|null; data:Record<string,unknown> };
 type Props = { items:StudioRecord[]; onRestore:(records:RestoreRecord[])=>Promise<{imported:number;skipped:number}> };
 const UNITS:Record<string,Record<string,number>> = {
   Length:{m:1,km:1000,cm:.01,mm:.001,ft:.3048,in:.0254,mi:1609.344},
