@@ -58,7 +58,7 @@ export default function MagnanimousAICollege(){
     const existing=records.items?.find((x:any)=>x.data?.kind==='college-progress');
     if(existing?.id){
      const saved=Array.isArray(existing.data?.done)?existing.data.done.filter((x:any)=>typeof x==='string'&&resources.some(r=>r.id===x)):[];
-     if(!cancelled){setDone(saved);setProgressRecordId(existing.id);setSyncStatus('account');setSyncMessage('Your study progress is connected to your signed-in account.');}
+     if(!cancelled){setDone([...new Set([...saved,...done])]);setProgressRecordId(existing.id);setSyncStatus('account');setSyncMessage('Your study progress is connected to your signed-in account.');}
     }else{
      const initial=done.filter(x=>resources.some(r=>r.id===x));
      const created=await request('/api/operations/records',{method:'POST',body:JSON.stringify({board_id:board.id,title:'Open Campus study progress',status:'active',data:{kind:'college-progress',done:initial,resource_ids:resources.map(r=>r.id),schema_version:1}})});
