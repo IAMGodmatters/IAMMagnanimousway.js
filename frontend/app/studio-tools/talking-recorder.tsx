@@ -1,0 +1,43 @@
+'use client';
+
+import {useEffect,useRef,useState} from 'react';
+
+type Props={onSave:(title:string,transcript:string,duration:number,mimeType:string)=>Promise<void>};
+type SpeechResult={results?:ArrayLike<{0?:{transcript?:string};isFinal?:boolean}>};
+type SpeechRecognitionLike={continuous:boolean;interimResults:boolean;lang:string;onresult:((event:SpeechResult)=>void)|null;onerror:((event:{error?:string})=>void)|null;onend:(()=>void)|null;start:()=>void;stop:()=>void};
+type SpeechWindow=Window&{SpeechRecognition?:new()=>SpeechRecognitionLike;webkitSpeechRecognition?:new()=>SpeechRecognitionLike};
+
+export default function TalkingRecorder({onSave}:Props){
+ const[title,setTitle]=useState('');const[transcript,setTranscript]=useState('');const[recording,setRecording]=useState(false);const[seconds,setSeconds]=useState(0);const[busy,setBusy]=useState(false);const[message,setMessage]=useState('');const[audioUrl,setAudioUrl]=useState('');const[audioName,setAudioName]=useState('');
+ const media=useRef<MediaRecorder|null>(null);const stream=useRef<MediaStream|null>(null);const chunks=useRef<BlobPart[]>([]);const started=useRef(0);const speech=useRef<SpeechRecognitionLike|null>(null);const finalText=useRef('');
+ useEffect(()=>()=>{speech.current?.stop();stream.current?.getTracks().forEach(t=>t.stop());if(audioUrl)URL.revokeObjectURL(audioUrl)},[audioUrl]);
+ const start=async()=>{
+  setMessage('');setAudioUrl('');setAudioName('');setSeconds(0);setTranscript('');finalText.current='';chunks.current=[];
+  if(!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==='undefined'){setMessage('Audio recording is not supported in this browser. Try an updated Safari or Chrome browser.');return}
+  try{
+   const live=await navigator.mediaDevices.getUserMedia({audio:true});stream.current=live;
+   const recorder=new MediaRecorder(live);media.current=recorder;
+   recorder.ondataavailable=e=>{if(e.data.size)chunks.current.push(e.data)};
+   recorder.onstop=()=>{const blob=new Blob(chunks.current,{type:recorder.mimeType||'audio/webm'});const url=URL.createObjectURL(blob);setAudioUrl(url);const ext=blob.type.includes('mp4')?'m4a':blob.type.includes('ogg')?'ogg':'webm';setAudioName('magnanimous-narration-'+new Date().toISOString().replace(/[:.]/g,'-')+'.'+ext);live.getTracks().forEach(t=>t.stop());setRecording(false)};
+   recorder.start(1000);started.current=Date.now();setRecording(true);
+   const Speech=(window as SpeechWindow).SpeechRecognition||(window as SpeechWindow).webkitSpeechRecognition;
+   if(Speech){const recognition=new Speech();recognition.continuous=true;recognition.interimResults=true;recognition.lang=navigator.language||'en-US';recognition.onresult=e=>{let text='';for(let i=0;i<(e.results?.length||0);i++){const part=e.results?.[i]?.[0]?.transcript||'';text+=part+' '}setTranscript(text.trim());finalText.current=text.trim()};recognition.onerror=e=>setMessage('Audio is recording. Live transcription is unavailable ('+(e.error||'microphone speech service')+'). You can type or edit the transcript below.');recognition.start();speech.current=recognition}else setMessage('Audio is recording. This browser does not provide live speech-to-text; you can type the transcript below.');
+  }catch(e){setMessage(e instanceof Error?e.message:'Microphone permission was not granted.')}
+ };
+ const stop=()=>{speech.current?.stop();speech.current=null;if(media.current&&media.current.state!=='inactive')media.current.stop();setSeconds(Math.max(1,Math.round((Date.now()-started.current)/1000)))};
+ useEffect(()=>{if(!recording)return;const id=window.setInterval(()=>setSeconds(Math.floor((Date.now()-started.current)/1000)),500);return()=>window.clearInterval(id)},[recording]);
+ const save=async()=>{if(!title.trim()){setMessage('Give this recording a title first.');return}setBusy(true);setMessage('');try{await onSave(title.trim(),transcript.trim(),seconds,media.current?.mimeType||'audio/webm');setMessage('Transcript and recording details saved to your private workspace. Download the audio file below to keep the actual recording.')}catch(e){setMessage(e instanceof Error?e.message:'Could not save the recording details.')}finally{setBusy(false)}};
+ return <section className="tr-card">
+  <div className="tr-heading"><div><h2>Talking Recorder</h2><p>Speak your ideas, narrate a project, or capture instructions hands-free.</p></div><span className={recording?'tr-live':'tr-ready'}>{recording?'RECORDING':'MICROPHONE READY'}</span></div>
+  <label className="tr-label">Recording title<input value={title} onChange={e=>setTitle(e.target.value)} maxLength={240} placeholder="Project narration, meeting, idea…"/></label>
+  <div className="tr-controls"><button className="tr-record" onClick={recording?stop:start} disabled={busy}>{recording?'Stop recording':'Start recording'}</button><strong>{Math.floor(seconds/60).toString().padStart(2,'0')}:{(seconds%60).toString().padStart(2,'0')}</strong></div>
+  <p className="tr-help">Your browser will ask permission to use the microphone. Keep this page open while recording.</p>
+  <label className="tr-label">Transcript (automatic when your browser supports speech recognition)<textarea value={transcript} onChange={e=>setTranscript(e.target.value)} rows={7} placeholder="Your spoken words will appear here when live transcription is supported. You can also type or correct the transcript."/></label>
+  {message&&<p className="tr-message" role="status">{message}</p>}
+  <div className="tr-actions"><button onClick={save} disabled={busy||recording||!title.trim()}>{busy?'Saving…':'Save to my workspace'}</button>{audioUrl&&<a href={audioUrl} download={audioName}>Download audio recording</a>}</div>
+  <p className="tr-foot">Privacy and storage: the transcript and recording details are saved to your signed-in private workspace. The audio file is created in your browser and must be downloaded to keep it; it is not uploaded to the platform in this version. Speech-to-text depends on browser support and may use your browser’s speech service.</p>
+  <style jsx>{`
+  .tr-card{border:1px solid #315975;border-radius:16px;background:#0a2340;padding:20px;margin-top:18px}.tr-heading{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.tr-heading h2{margin:0;color:#ffe0a0}.tr-heading p,.tr-help,.tr-foot{color:#b9d2e7;line-height:1.55}.tr-live,.tr-ready{font-size:10px;letter-spacing:.1em;border:1px solid #39708b;border-radius:99px;padding:8px;color:#a5e8ff;white-space:nowrap}.tr-live{color:#ffc0c0;border-color:#a74a58}.tr-label{display:grid;gap:8px;margin-top:16px;color:#e6f4ff;font-size:13px}.tr-label input,.tr-label textarea{box-sizing:border-box;width:100%;border:1px solid #315975;border-radius:10px;background:#041326;color:#fff;padding:12px;font:inherit}.tr-label textarea{resize:vertical}.tr-controls{display:flex;align-items:center;gap:16px;margin-top:16px}.tr-controls strong{font-variant-numeric:tabular-nums;font-size:22px}.tr-record,.tr-actions button{border:0;border-radius:10px;padding:12px 16px;background:linear-gradient(90deg,#f4d18a,#b7eaff);color:#07182b;font-weight:900;cursor:pointer}.tr-record:disabled,.tr-actions button:disabled{opacity:.5}.tr-help,.tr-foot{font-size:12px}.tr-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:16px}.tr-actions a{color:#9de8ff}.tr-message{color:#a6f0c4;line-height:1.5}.tr-foot{border-top:1px solid #315975;padding-top:12px;margin-top:18px}@media(max-width:600px){.tr-heading{flex-direction:column}.tr-actions>*{width:100%;text-align:center}}
+  `}</style>
+ </section>
+}
