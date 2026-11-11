@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import './whatsapp-store-contact-lock.mjs';
 import {automaticCjFulfillmentAllowed,automaticCjSupplierCapCents} from '../../worker/src/cj-dropship-runtime.js';
+import {podProviderStatus} from '../../worker/src/pod-network-runtime.js';
 
 
 const read=p=>fs.readFileSync(new URL(`../../${p}`,import.meta.url),'utf8');
@@ -11,6 +12,12 @@ const assertNoSupplierAutoSpend=()=>{
  if(automaticCjSupplierCapCents(enabled)!==10000)throw Error('Existing explicitly authorized $100 cap must remain intact.');
 };
 assertNoSupplierAutoSpend();
+const podAbsent=await podProviderStatus({});
+if(podAbsent.autoFulfill||podAbsent.maxUsd!==0)throw Error('POD automatic purchasing must fail closed when its runtime settings are absent.');
+const podDisabled=await podProviderStatus({STORE_POD_AUTO_FULFILL:'false',STORE_POD_AUTO_FULFILL_MAX_USD:'0'});
+if(podDisabled.autoFulfill||podDisabled.maxUsd!==0)throw Error('POD automatic purchasing must remain disabled with a zero cap in production.');
+const podExplicit=await podProviderStatus({STORE_POD_AUTO_FULFILL:'true',STORE_POD_AUTO_FULFILL_MAX_USD:'25'});
+if(!podExplicit.autoFulfill||podExplicit.maxUsd!==25)throw Error('POD automatic purchasing must require an explicit opt-in and positive cap.');
 const storeSource=fs.readFileSync(new URL('../../worker/src/native-store-runtime.js',import.meta.url),'utf8');
 const supplierSource=fs.readFileSync(new URL('../../worker/src/cj-dropship-runtime.js',import.meta.url),'utf8');
 if(!storeSource.includes('purchaseActive=supplierFunded&&autoFulfill&&autoCapCents>0'))throw Error('Owner purchase-ready UI must require explicit permission, funding and positive cap.');
@@ -28,6 +35,7 @@ const ownerIntegrations=read('frontend/app/owner-integrations/page.tsx');
 const ownerStoreControl=read('frontend/app/owner-store-control/page.tsx');
 const productArt=read('frontend/app/store/products/[name]/route.ts');
 const runtime=read('worker/src/native-store-runtime.js');
+const podRuntime=read('worker/src/pod-network-runtime.js');
 const migration=read('worker/migrations/0097_native_magnanimous_store.sql');
 const expansion=read('worker/migrations/0098_native_store_catalog_expansion.sql');
 const sourcing=read('worker/migrations/0099_store_225_product_sourcing_queue.sql');
@@ -103,6 +111,9 @@ must(integrity.includes('stock_reserved')&&integrity.includes('stock_reservation
 must(integrity.includes('attempt_count')&&integrity.includes('next_attempt_at'),'POD processing must have durable bounded retry state.');
 must(consent.includes("url.pathname.startsWith('/store-api/')")&&consent.includes('securityPreflight(routedRequest,env)')&&consent.includes('handleNativeStore(routedRequest,env)')&&consent.includes('secureStorePostflight(routedRequest'),'Native store alias must stay on Worker/D1 and pass the same API security preflight/postflight.');
 must(wrangler.includes('"/store-api/*"'),'Cloudflare assets config must execute the Worker for store API requests.');
+must(wrangler.includes('"STORE_AUTO_FULFILL": "false"')&&wrangler.includes('"STORE_AUTO_FULFILL_MAX_USD": "0"'),'Production supplier auto-purchasing must remain disabled with a zero cap until the owner explicitly authorizes funded fulfillment.');
+must(wrangler.includes('"STORE_POD_AUTO_FULFILL": "false"')&&wrangler.includes('"STORE_POD_AUTO_FULFILL_MAX_USD": "0"'),'Production print-on-demand auto-purchasing must remain disabled with a zero cap until the owner explicitly authorizes funded fulfillment.');
+must(podRuntime.includes("rt.STORE_POD_AUTO_FULFILL??'false'")&&podRuntime.includes('rt.STORE_POD_AUTO_FULFILL_MAX_USD??0'),'Print-on-demand automatic purchasing must fail closed when runtime settings are missing.');
 must(stripeWebhook.includes('handleNativeStoreStripeEvent')&&stripeWebhook.includes('await handleNativeStoreStripeEvent(env,event)'),'Verified Stripe webhooks must durably confirm native-store payments.');
 must(runtime.includes('AUTO_REFUND_SECONDS=24*60*60')&&runtime.includes('scheduledNativeStoreRefunds'),'Store must automatically refund orders that fail to secure supplier fulfillment within 24 hours.');
 must(cj.includes('reconcileCjOrder')&&cj.includes('getOrderDetail')&&cj.includes('externalOrderId:orderId'),'Refunds must reconcile the actual supplier order id before returning customer funds.');

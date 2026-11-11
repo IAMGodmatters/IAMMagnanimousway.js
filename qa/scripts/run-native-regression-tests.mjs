@@ -6,6 +6,8 @@ import { resolve } from 'node:path';
 // fixtures/mocks, and must never place paid calls or mutate production services.
 const testFiles = [
   'qa/scripts/home-health.test.mjs',
+  'qa/scripts/prepaid-wallet.test.mjs',
+  'qa/scripts/magnanimous-brand-encoding-lock.mjs',
   'qa/scripts/tv-companion-lock.mjs',
   'worker/test/magnanimous-model-calibration.test.js',
   'video-gateway/test/security.test.mjs',

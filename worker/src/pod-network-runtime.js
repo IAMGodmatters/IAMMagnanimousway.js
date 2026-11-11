@@ -21,7 +21,7 @@ function publicOrigin(rt){try{return new URL(String(rt.PUBLIC_SITE_URL||'https:/
 export async function podProviderStatus(env){
  const rt=await runtime(env),requested=String(rt.POD_PROVIDER_PRIORITY||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean),rank=new Map(requested.map((id,i)=>[id,i]));
  const providers=PROVIDERS.map((p,index)=>({...p,connected:p.keys.every(k=>Boolean(String(rt[k]||'').trim())),priority:rank.has(p.id)?rank.get(p.id):requested.length+index})).sort((a,b)=>a.priority-b.priority);
- return{providers,connected:providers.filter(p=>p.connected).map(p=>p.id),autoFulfill:String(rt.STORE_POD_AUTO_FULFILL||'true').toLowerCase()==='true',maxUsd:Math.max(0,Number(rt.STORE_POD_AUTO_FULFILL_MAX_USD||100))};
+ return{providers,connected:providers.filter(p=>p.connected).map(p=>p.id),autoFulfill:String(rt.STORE_POD_AUTO_FULFILL??'false').toLowerCase()==='true',maxUsd:Math.max(0,Number(rt.STORE_POD_AUTO_FULFILL_MAX_USD??0)||0)};
 }
 async function templateForDay(env,theme,index){
  const {results=[]}=await env.DB.prepare('SELECT * FROM store_pod_design_templates WHERE active=1 AND theme=? ORDER BY id').bind(theme).all();

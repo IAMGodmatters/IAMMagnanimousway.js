@@ -20,3 +20,5 @@ jobs:
           node-version: 24
       - name: Verify payment safety contracts
         run: node qa/scripts/payment-safety-lock.mjs
+      - name: Exercise atomic prepaid wallet concurrency and tenant isolation
+        run: node --test qa/scripts/prepaid-wallet.test.mjs
