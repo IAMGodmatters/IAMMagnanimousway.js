@@ -123,7 +123,7 @@ export default function QwenputerLab() {
           It does not install the 18.8 GB model. Run the preflight before considering the
           full checkpoint.
         </p>
-        <pre>cd "$HOME\Documents\MagnanimousResearch\qwenputer-lab"{'\n'}.\run-local-checks.ps1</pre>
+        <pre>cd "$HOME\Documents\MagnanimousResearch\qwenputer-lab"{'\n'}.\run-local-checks.ps1 -CheckpointDirectory 'D:\Qwenputer\models'</pre>
         <p className="muted">
           The reference tests validate the memory model only. They do not claim to run
           the Qwenputer transformer or RISC-V instruction set.

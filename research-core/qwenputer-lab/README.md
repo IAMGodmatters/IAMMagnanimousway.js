@@ -22,13 +22,15 @@ From PowerShell:
 
 `powershell
 cd "$HOME\Documents\MagnanimousResearch\qwenputer-lab"
-.\run-local-checks.ps1
+.\run-local-checks.ps1 -CheckpointDirectory 'D:\Qwenputer\models'
 `
+
+The `--checkpoint-dir` option checks the selected model-storage volume, not automatically just the Windows system drive. The folder does not need to exist yet; the nearest existing parent drive is checked. The PowerShell wrapper accepts the same setting with `-CheckpointDirectory`.
 
 Or run the individual checks:
 
 `powershell
-python .\qwenputer_preflight.py
+python .\qwenputer_preflight.py --checkpoint-dir 'D:\Qwenputer\models'
 python -m unittest discover -s .\tests -v
 `
 

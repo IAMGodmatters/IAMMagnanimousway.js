@@ -57,5 +57,31 @@ class DeltaNetRAMReferenceTests(unittest.TestCase):
         self.assertEqual(bytes(ram._state), bytes(expected))
 
 
+class QwenputerPreflightTests(unittest.TestCase):
+    def test_checkpoint_preflight_checks_selected_existing_drive(self):
+        from collections import namedtuple
+        from unittest.mock import patch
+        from qwenputer_preflight import build_report
+
+        Usage = namedtuple("Usage", "total used free")
+        target = Path(__file__).resolve().parents[1]
+        with patch("qwenputer_preflight.physical_memory_bytes", return_value=8 * 1024**3), \
+             patch("qwenputer_preflight.nvidia_gpus", return_value=[]), \
+             patch("qwenputer_preflight.shutil.disk_usage", return_value=Usage(200 * 1024**3, 40 * 1024**3, 160 * 1024**3)) as disk_usage:
+            report = build_report(target)
+
+        disk_usage.assert_called_once_with(target)
+        self.assertEqual(report["disk_checked_path"], str(target))
+        self.assertEqual(report["free_disk_gb"], 160.0)
+        self.assertFalse(report["capacity_preflight_passes"])
+
+    def test_nonexistent_checkpoint_folder_resolves_to_existing_parent(self):
+        from qwenputer_preflight import existing_storage_path
+
+        parent = Path(__file__).resolve().parents[1]
+        requested = parent / "not-created" / "models"
+        self.assertEqual(existing_storage_path(requested), parent)
+
+
 if __name__ == "__main__":
     unittest.main()

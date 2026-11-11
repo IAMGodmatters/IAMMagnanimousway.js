@@ -75,11 +75,20 @@ def nvidia_gpus() -> list[dict[str, object]]:
     return devices
 
 
-def build_report() -> dict[str, object]:
+def existing_storage_path(path: str | Path) -> Path:
+    """Resolve a requested checkpoint folder to its nearest existing parent."""
+    candidate = Path(path).expanduser()
+    while not candidate.exists() and candidate != candidate.parent:
+        candidate = candidate.parent
+    return candidate
+
+
+def build_report(checkpoint_dir: str | Path | None = None) -> dict[str, object]:
     memory = physical_memory_bytes()
-    disk_root = Path.home().anchor or str(Path.home())
+    requested_dir = Path(checkpoint_dir or os.environ.get("QWENPUTER_CHECKPOINT_DIR") or Path.home()).expanduser()
+    storage_path = existing_storage_path(requested_dir)
     try:
-        disk_free_gb = round(shutil.disk_usage(disk_root).free / (1024**3), 2)
+        disk_free_gb = round(shutil.disk_usage(storage_path).free / (1024**3), 2)
     except OSError:
         disk_free_gb = None
 
@@ -112,6 +121,8 @@ def build_report() -> dict[str, object]:
         "system_ram_gb": round(memory / (1024**3), 2) if memory else None,
         "nvidia_gpus": gpus,
         "free_disk_gb": disk_free_gb,
+        "checkpoint_directory": str(requested_dir),
+        "disk_checked_path": str(storage_path),
         "requirements": {
             "main_checkpoint_size_gb": CHECKPOINT_SIZE_GB,
             "minimum_gpu_vram_gb": REQUIRED_GPU_VRAM_GB,
@@ -127,8 +138,9 @@ def build_report() -> dict[str, object]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--json", action="store_true", help="Print machine-readable JSON.")
+    parser.add_argument("--checkpoint-dir", default=os.environ.get("QWENPUTER_CHECKPOINT_DIR", str(Path.home())), help="Folder or drive where model weights would be stored; nearest existing parent is checked.")
     args = parser.parse_args()
-    report = build_report()
+    report = build_report(args.checkpoint_dir)
     if args.json:
         print(json.dumps(report, indent=2))
     else:
@@ -137,6 +149,8 @@ def main() -> int:
         print(f"OS: {report['operating_system']}")
         print(f"Processor: {report['processor']}")
         print(f"System RAM: {report['system_ram_gb']} GB")
+        print(f"Checkpoint directory: {report['checkpoint_directory']}")
+        print(f"Disk checked: {report['disk_checked_path']}")
         print(f"Free disk: {report['free_disk_gb']} GB")
         print(f"NVIDIA GPUs: {report['nvidia_gpus'] or 'none detected'}")
         print("CPU-only reference tests: AVAILABLE")
