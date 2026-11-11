@@ -142,7 +142,7 @@ has(directConnect,"visibility:'PUBLIC',feed_distribution:'MAIN_FEED'",'Immediate
 has(mainProtection,"/branches/main",'Main protection verification must read the actual main branch object.');
 has(wrangler,'*/15 * * * *','The native scheduler must have a bounded recurring Worker cron.');
 has(socialStudio,'/social-calendar','Social Studio must link to the native publishing calendar.');
-has(directConnect,"'/api/social-connect/'",'The social connection UI must use the native provider adapter.');
+has(directConnect,"/api/social-connect/",'The social connection UI must use the native provider adapter.');
 has(socialOutcome,"error?.preflight === true || error?.providerRejected === true",'Outcome classification must distinguish safe failures from uncertain writes.');
 
 console.log('Magnanimous native social scheduling lock passed.');
