@@ -2,6 +2,7 @@ name: Build Magnanimous Drive TV APK
 on:
   push:
     branches:
+      - main
       - drive-tv-android-build-20261023
       - drive-tv-android-build-20261107
     paths:
