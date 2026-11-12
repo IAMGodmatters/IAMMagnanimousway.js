@@ -14,7 +14,7 @@ export default function PublicTvStation(){
  return <main className={styles.page} style={{'--station-primary':station.primary_color,'--station-secondary':station.secondary_color} as CSSProperties}>
   <header className={styles.topbar}><Link href="/tv" className={styles.brand}><span className={styles.mark}>M</span><span><strong>MAGNANIMOUS TV</strong><small>POWERED BY I AM MAGNANIMOUS WAY™</small></span></Link><Link href="/tv" className={styles.back}>Magnanimous TV Network</Link></header>
   <section className={styles.hero}><p className={styles.eyebrow}>PERSONAL STATION · {station.visibility.toUpperCase()}</p><h1>{station.name}</h1><p>{station.description}</p><span className={styles.brandline}>A PERSONAL CHANNEL ON MAGNANIMOUS TV</span></section>
-  <section className={styles.player}><div className={styles.play}>▶</div><h2>Broadcast coming soon</h2><p>This station profile is ready. Its live stream and scheduled programme feed have not been connected yet.</p><span>MAGNANIMOUS TV · YOUR STATION</span></section>
+  <section className={styles.player}><div className={styles.play}>▶</div><h2>Live broadcast is not connected</h2><p>This station profile is ready. Its live stream and scheduled programme feed have not been connected yet.</p><span>MAGNANIMOUS TV · YOUR STATION</span></section>
   <section className={styles.starter}>
    <p className={styles.eyebrow}>FREE STARTER PROGRAMMING</p><h2>Something to watch while you build your station.</h2>
    <p>Every new station can start with this open-licensed Filipino folk performance and the Magnanimous automatic data bulletin. No creator upload is needed.</p>
