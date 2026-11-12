@@ -30,7 +30,7 @@ export function TvChannelPage({channel}:{channel:TvChannelKey}){
       <p className={styles.eyebrow}>{data.label}</p><div className={styles.channelHeroFlag}>{data.flag}</div><h1>{data.name}</h1><p>{data.intro}</p><span className={styles.prelaunch}>● BROADCAST FEED NOT CONNECTED</span>
     </section>
     <section className={styles.playerSection}>
-      <div className={styles.player} role="status" aria-label="Broadcast player not connected"><div className={styles.playIcon}>▶</div><strong>Coming soon</strong><span>The live television feed has not been connected yet.</span><small>We will show the broadcast here once a rights-cleared stream is configured and tested.</small></div>
+      <div className={styles.player} role="status" aria-label="Broadcast player not connected"><div className={styles.playIcon}>▶</div><strong>Live feed is not connected</strong><span>The live television feed has not been connected yet.</span><small>We will show the broadcast here once a rights-cleared stream is configured and tested.</small></div>
       <div className={styles.playerInfo}><p className={styles.eyebrow}>CHANNEL INFORMATION</p><h2>Watch {data.name}</h2><p>{data.audience}</p><p className={styles.territory}>{data.territory}</p><div className={styles.languagePill}>{data.languages}</div></div>
     </section>
     <section className={styles.channelPrograms}><p className={styles.eyebrow}>PROGRAMMING AREAS</p><h2>What this channel will cover</h2><div className={styles.focusGrid}>{data.focus.map((item,i)=><div className={styles.focusItem} key={item}><span>0{i+1}</span>{item}</div>)}</div></section>
