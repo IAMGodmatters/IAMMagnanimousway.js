@@ -19,7 +19,8 @@ assert.ok(mesh.includes('/assistant-actions'), 'Connected work requires real gua
 
 assert.match(voice, /tenantPlan\(env,user\.tenant_id\)/, 'Carrier eligibility must read verified billing subscriptions');
 assert.match(voice, /subscription\.status === 'active'/, 'Inactive or unverified billing must not activate carrier entitlements');
-assert.match(voice, /PLAN_LIMITS\.business\.rank/, 'Business Annual and authorized higher tiers must be honored');
+assert.match(voice, /PLAN_LIMITS\.crm\.rank/, 'CRM and higher active paid tiers with PSTN minutes must be honored');
+assert.match(voice, /subscription\.limits\.pstn_minutes > 0/, 'A paid plan without PSTN minutes must not receive carrier calling');
 assert.match(receptionist, /config\?\.twilio_configured && config\?\.full_business/, 'Phone readiness must require paid entitlement');
 assert.doesNotMatch(receptionist, /config\?\.twilio_configured && \(config\?\.full_business \|\| config\?\.platform_owner\)/, 'Owner role alone must not enable paid calls');
 assert.match(center, /Phone entitlement: \{voiceConfig\.full_business\?/, 'Call Center must show paid voice readiness truthfully');
