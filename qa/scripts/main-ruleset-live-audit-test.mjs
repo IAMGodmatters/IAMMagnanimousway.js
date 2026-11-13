@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { evaluateMainRulesets } from '../lib/main-ruleset-audit.mjs';
+import { evaluateMainRulesets, REQUIRED_MAIN_CHECK_CONTEXTS } from '../lib/main-ruleset-audit.mjs';
 
 const repository='IAMGodmatters/IAMMagnanimousway.js';
 const active=[{id:1,name:'Protect main',target:'branch',source:repository,source_type:'Repository',enforcement:'active'}];
@@ -8,7 +8,10 @@ const healthy={
     conditions:{ref_name:{include:['~DEFAULT_BRANCH'],exclude:[]}},
     rules:[
       {type:'pull_request',parameters:{required_approving_review_count:1}},
-      {type:'required_status_checks',parameters:{required_status_checks:[{context:'Full Platform QA'},{context:'Magnanimous Command Lock'}],strict_required_status_checks_policy:true}}
+      {type:'required_status_checks',parameters:{
+        required_status_checks:REQUIRED_MAIN_CHECK_CONTEXTS.map(context=>({context})),
+        strict_required_status_checks_policy:true
+      }}
     ],
     bypass_actors:[]
   }
@@ -17,6 +20,9 @@ const pass=evaluateMainRulesets(active,healthy,repository);
 assert.equal(pass.status,'pass');
 assert.equal(pass.requiredApprovals,1);
 assert.equal(pass.requiredChecks,2);
+assert.deepEqual(pass.requiredCheckContexts,[...REQUIRED_MAIN_CHECK_CONTEXTS].sort());
+assert.deepEqual(pass.missingRequiredChecks,[]);
+assert.equal(pass.strictRequiredStatusChecksPolicy,true);
 assert.equal(pass.alwaysBypassActors,0);
 
 const weak={
@@ -35,6 +41,55 @@ assert.ok(warning.gaps.some(item=>item.includes('pull_request')));
 assert.ok(warning.gaps.some(item=>item.includes('required_status_checks')));
 assert.ok(warning.gaps.some(item=>item.includes('bypass_mode=always')));
 
+const misleadingNames={
+  1:{
+    conditions:{ref_name:{include:['~DEFAULT_BRANCH'],exclude:[]}},
+    rules:[
+      {type:'pull_request',parameters:{required_approving_review_count:1}},
+      {type:'required_status_checks',parameters:{
+        required_status_checks:[{context:'Full Platform QA'},{context:'Magnanimous Command Lock'}],
+        strict_required_status_checks_policy:true
+      }}
+    ],
+    bypass_actors:[]
+  }
+};
+const misleading=evaluateMainRulesets(active,misleadingNames,repository);
+assert.equal(misleading.status,'warning');
+assert.deepEqual(misleading.missingRequiredChecks,[...REQUIRED_MAIN_CHECK_CONTEXTS].sort());
+assert.ok(misleading.gaps.some(item=>item.includes('Code health and builds')));
+assert.ok(misleading.gaps.some(item=>item.includes('verify-command-architecture')));
+
+const missingOne={
+  1:{
+    conditions:{ref_name:{include:['~DEFAULT_BRANCH'],exclude:[]}},
+    rules:[
+      {type:'pull_request',parameters:{required_approving_review_count:1}},
+      {type:'required_status_checks',parameters:{
+        required_status_checks:[{context:'Code health and builds'}],
+        strict_required_status_checks_policy:true
+      }}
+    ],
+    bypass_actors:[]
+  }
+};
+const incomplete=evaluateMainRulesets(active,missingOne,repository);
+assert.equal(incomplete.status,'warning');
+assert.deepEqual(incomplete.missingRequiredChecks,['verify-command-architecture']);
+
+const notStrict={
+  1:{
+    ...healthy[1],
+    rules:healthy[1].rules.map(rule=>rule.type==='required_status_checks'
+      ? {...rule,parameters:{...rule.parameters,strict_required_status_checks_policy:false}}
+      : rule)
+  }
+};
+const staleHead=evaluateMainRulesets(active,notStrict,repository);
+assert.equal(staleHead.status,'warning');
+assert.equal(staleHead.strictRequiredStatusChecksPolicy,false);
+assert.ok(staleHead.gaps.some(item=>item.includes('up to date')));
+
 const absent=evaluateMainRulesets([],{},repository);
 assert.equal(absent.status,'warning');
 const unreadable=evaluateMainRulesets(active,{},repository);
@@ -51,4 +106,4 @@ const excluded=evaluateMainRulesets([{...releaseOnly[0],id:2}],excludesMain,repo
 assert.equal(excluded.status,'warning');
 assert.equal(excluded.activeRulesets,0);
 
-console.log('Main ruleset audit assessment: 6 cases passed.');
+console.log('Main ruleset audit assessment: 9 cases passed.');
