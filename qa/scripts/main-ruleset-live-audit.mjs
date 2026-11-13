@@ -83,7 +83,7 @@ export async function runMainRulesetAudit(){
       'Unrestricted bypass actors: '+assessment.unrestrictedBypassActors+'.'
     ]);
   }else{
-    report('warning',assessment.gaps);
+    report(assessment.status==='manual'?'manual':'warning',assessment.gaps);
   }
   return assessment;
 }
