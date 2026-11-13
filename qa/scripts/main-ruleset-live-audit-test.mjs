@@ -39,7 +39,7 @@ const warning=evaluateMainRulesets(active,weak,repository);
 assert.equal(warning.status,'warning');
 assert.ok(warning.gaps.some(item=>item.includes('pull_request')));
 assert.ok(warning.gaps.some(item=>item.includes('required_status_checks')));
-assert.ok(warning.gaps.some(item=>item.includes('pull_request')));
+assert.ok(warning.gaps.some(item=>item.includes('mode other than pull_request')));
 
 const misleadingNames={
   1:{
