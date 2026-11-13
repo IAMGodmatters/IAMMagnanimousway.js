@@ -1,7 +1,15 @@
+export const REQUIRED_MAIN_CHECK_CONTEXTS = Object.freeze([
+  // These are the actual check-run names emitted by the current workflows.
+  // "Full Platform QA" and "Magnanimous Command Lock" are workflow labels,
+  // not the exact required status contexts GitHub receives.
+  'Code health and builds',
+  'verify-command-architecture'
+]);
+
 function patternMatchesMain(pattern){
   const value=String(pattern||'').toLowerCase();
   if(['~all','~default_branch','*','**','main','refs/heads/main'].includes(value))return true;
-  const normalized=value.replace(/^refs\/heads\//,'');
+  const normalized=value.replace(/^refs\\/heads\\//,'');
   if(normalized.endsWith('*'))return 'main'.startsWith(normalized.slice(0,-1));
   return false;
 }
@@ -37,6 +45,13 @@ export function evaluateMainRulesets(rulesets,detailsById,repository){
   const requiredChecks=Array.isArray(statusChecksRule?.parameters?.required_status_checks)
     ? statusChecksRule.parameters.required_status_checks
     : [];
+  const requiredCheckContexts=[...new Set(requiredChecks
+    .map(item=>String(item?.context||'').trim())
+    .filter(Boolean))].sort();
+  const missingRequiredChecks=REQUIRED_MAIN_CHECK_CONTEXTS.filter(
+    context=>!requiredCheckContexts.includes(context)
+  );
+  const strictRequiredStatusChecksPolicy=statusChecksRule?.parameters?.strict_required_status_checks_policy===true;
   const requiredApprovals=Number(pullRequestRule?.parameters?.required_approving_review_count||0);
   const alwaysBypass=details.flatMap(item=>Array.isArray(item.bypass_actors)?item.bypass_actors:[])
     .filter(actor=>actor.bypass_mode==='always');
@@ -45,14 +60,18 @@ export function evaluateMainRulesets(rulesets,detailsById,repository){
   else if(requiredApprovals<1)gaps.push('The pull_request rule does not verifiably require at least one approval.');
   if(!statusChecksRule)gaps.push('No required_status_checks rule is configured.');
   else if(requiredChecks.length===0)gaps.push('The required_status_checks rule contains no named required checks.');
-  if(statusChecksRule&&statusChecksRule.parameters?.strict_required_status_checks_policy!==true)gaps.push('Required status checks do not verifiably require the branch to be up to date.');
+  else if(missingRequiredChecks.length>0)gaps.push('Required status checks are missing: '+missingRequiredChecks.join(', ')+'.');
+  if(statusChecksRule&&!strictRequiredStatusChecksPolicy)gaps.push('Required status checks do not verifiably require the branch to be up to date.');
   if(alwaysBypass.length>0)gaps.push(alwaysBypass.length+' bypass actor(s) use bypass_mode=always.');
   return {
     status:gaps.length?'warning':'pass',
     activeRulesets:mainRulesets.length,
     hasPullRequestRule:Boolean(pullRequestRule),
     requiredApprovals,
-    requiredChecks:requiredChecks.length,
+    requiredChecks:requiredCheckContexts.length,
+    requiredCheckContexts,
+    missingRequiredChecks,
+    strictRequiredStatusChecksPolicy,
     alwaysBypassActors:alwaysBypass.length,
     gaps
   };
