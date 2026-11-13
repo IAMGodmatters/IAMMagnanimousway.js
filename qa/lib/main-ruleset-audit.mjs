@@ -9,7 +9,7 @@ export const REQUIRED_MAIN_CHECK_CONTEXTS = Object.freeze([
 function patternMatchesMain(pattern){
   const value=String(pattern||'').toLowerCase();
   if(['~all','~default_branch','*','**','main','refs/heads/main'].includes(value))return true;
-  const normalized=value.replace(/^refs\\/heads\\//,'');
+  const normalized=value.replace(/^refs\/heads\//,'');
   if(normalized.endsWith('*'))return 'main'.startsWith(normalized.slice(0,-1));
   return false;
 }
