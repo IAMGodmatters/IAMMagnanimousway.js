@@ -32,6 +32,7 @@ jobs:
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_TOKEN: ${{ github.token }}
+          RULESET_AUDIT_TOKEN: ${{ secrets.RULESET_AUDIT_TOKEN }}
         run: node qa/scripts/main-ruleset-live-audit.mjs
 
       - name: Lock descendant-safe Railway deployment behavior
