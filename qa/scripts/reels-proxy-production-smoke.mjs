@@ -28,5 +28,5 @@ if(response.status===200){
   assert.match(body,/href=["']\/movie-maker\/["']/);
   console.log('Magnanimous Reels production smoke passed: HTTP 503 branded fallback with working alternatives.');
 }else{
-  throw new Error(\`Magnanimous Reels entry route returned unexpected HTTP \${response.status}.\`);
+  throw new Error("Magnanimous Reels entry route returned unexpected HTTP "+response.status+".");
 }
