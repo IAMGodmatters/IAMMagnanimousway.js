@@ -21,7 +21,7 @@ function report(status,details){
     '',
     ...details.map(item=>'- '+item),
     '',
-    'This is a read-only audit. It does not change repository settings or block deployment. A protected:true branch response alone is not proof that required reviews and status checks are enforced.',
+    'This is a read-only audit. It does not change repository settings. A protected:true branch response alone is not proof that required reviews and status checks are enforced.',
     ''
   ].join('\n');
   console.log((status==='pass'?'::notice::':'::warning::')+heading+': '+details.join(' '));
@@ -78,7 +78,8 @@ export async function runMainRulesetAudit(){
     report('pass',[
       'Active rulesets: '+assessment.activeRulesets+'.',
       'Required pull-request approvals: '+assessment.requiredApprovals+'.',
-      'Named required status checks: '+assessment.requiredChecks+'.',
+      'Exact required status checks: '+assessment.requiredCheckContexts.join('; ')+'.',
+      'Strict up-to-date policy: enabled.',
       'Always-bypass actors: '+assessment.alwaysBypassActors+'.'
     ]);
   }else{
