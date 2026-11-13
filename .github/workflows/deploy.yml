@@ -2266,8 +2266,23 @@ jobs:
           echo "Worker-only production smoke passed: health, connector, public API fallback, auth status, and owner-only Capability Mesh routing are healthy."
 
       - name: Verify Magnanimous Reels route and outage fallback after deployment
-        if: needs.runtime-impact.outputs.standalone_changed != 'true'
         env:
           BASE_URL: https://iammagnanimousway.com
         run: node qa/scripts/reels-proxy-production-smoke.mjs
-
+  reels-route-smoke:
+    name: Verify Reels production route when deployment is skipped
+    needs: [runtime-impact, deploy]
+    if: ${{ always() && needs.runtime-impact.result == 'success' && needs.deploy.result == 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Verify current Reels production route
+        env:
+          BASE_URL: https://iammagnanimousway.com
+        run: node qa/scripts/reels-proxy-production-smoke.mjs
