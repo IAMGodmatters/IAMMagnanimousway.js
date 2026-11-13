@@ -1,0 +1,50 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {magnanimousEcosystemSummary} from '../../worker/src/magnanimous-ecosystem-capability-registry.js';
+import {buildMagnanimousEcosystemBlueprint} from '../../worker/src/magnanimous-ecosystem-blueprint.js';
+
+const source=magnanimousEcosystemSummary({});
+const blueprint=buildMagnanimousEcosystemBlueprint(source);
+const nodeIds=new Set(blueprint.graph.nodes.map(n=>n.id));
+assert.equal(blueprint.identity,'Magnanimous AI');
+assert.equal(blueprint.status,'source-mapped-not-live-verified');
+assert.equal(blueprint.counts.providers,source.provider_count);
+assert.equal(blueprint.counts.capabilities,source.capability_count);
+assert.equal(blueprint.counts.domains,new Set(source.providers.map(p=>p.category)).size);
+assert.equal(nodeIds.size,blueprint.graph.nodes.length,'No duplicate graph nodes.');
+assert.ok(blueprint.graph.edges.every(e=>nodeIds.has(e.from)&&nodeIds.has(e.to)),'No invented/dangling relationships.');
+assert.equal(blueprint.graph.edges.filter(e=>e.kind==='advertises').length,source.capability_count,'Every declared capability has one real provider edge.');
+assert.ok(blueprint.graph.nodes.every(n=>!['live','connected','verified-live'].includes(n.status)),'Catalog data is never live evidence.');
+assert.ok(blueprint.graph.nodes.filter(n=>n.kind==='capability').every(n=>n.status==='catalog-only'&&n.live_verified===false));
+assert.equal(blueprint.external_probes_performed,false);
+assert.equal(blueprint.live_provider_connections_verified,0);
+assert.equal(blueprint.safety.spending_allowed,false);
+assert.equal(blueprint.safety.provider_writes_allowed,false);
+assert.equal(blueprint.integrity.status,'passed');
+
+const secret='NEVER_ECHO_THIS_EXAMPLE_SECRET';
+const configured=buildMagnanimousEcosystemBlueprint(magnanimousEcosystemSummary({GITHUB_TOKEN:secret}));
+const github=configured.graph.nodes.find(n=>n.id==='provider:github');
+assert.equal(github.status,'configured-unverified');
+assert.equal(github.live_verified,false);
+assert.ok(!JSON.stringify(configured).includes(secret),'No credential values returned in the blueprint.');
+assert.equal(configured.counts.configured_unverified,2,'Public web and synthetically configured GitHub are not live probes.');
+
+assert.throws(()=>buildMagnanimousEcosystemBlueprint({providers:[source.providers[0],source.providers[0]]}),/Duplicate/);
+assert.throws(()=>buildMagnanimousEcosystemBlueprint({...source,provider_count:999}),/mismatch/);
+assert.throws(()=>buildMagnanimousEcosystemBlueprint({...source,capability_count:999}),/mismatch/);
+const altered=structuredClone(source);
+altered.providers.find(p=>p.id==='metro-by-tmobile').network_parent='nonexistent-network';
+const missingRelation=buildMagnanimousEcosystemBlueprint(altered);
+assert.equal(missingRelation.integrity.warnings.length,1);
+assert.ok(!missingRelation.graph.edges.some(e=>e.to==='provider:nonexistent-network'));
+
+const runtime=fs.readFileSync('worker/src/magnanimous-ecosystem-runtime.js','utf8');
+const ui=fs.readFileSync('frontend/app/owner-capability-mesh/page.tsx','utf8');
+assert.ok(runtime.includes("import { buildMagnanimousEcosystemBlueprint } from './magnanimous-ecosystem-blueprint.js'"));
+assert.ok(runtime.includes("path==='/api/ecosystem/blueprint'"));
+assert.ok(runtime.indexOf('if(!ownerOnly(user))')<runtime.indexOf("path==='/api/ecosystem/blueprint'"),'Owner gate precedes blueprint.');
+assert.ok(runtime.indexOf("request.method!=='GET'")<runtime.indexOf("path==='/api/ecosystem/blueprint'"),'Blueprint stays behind read-only method gate.');
+assert.ok(ui.includes("api+'/api/ecosystem/blueprint'"));
+assert.ok(ui.includes('VIEW SOURCE-TRUTH BLUEPRINT'));
+console.log('Magnanimous ecosystem truth blueprint PASS: complete derived graph, valid edges, no fabricated live status, no secret exposure, owner-only read path.');
