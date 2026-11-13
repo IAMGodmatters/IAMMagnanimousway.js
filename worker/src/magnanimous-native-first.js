@@ -5,6 +5,7 @@ import { upsertApprovedTeachingTool } from './magnanimous-tool-foundry.js';
 import { getPersistentConnectorAbsorptionManifest, getCapabilityAbsorptionManifest, getCapabilityResearchRecord, getConnectorAbsorptionCatalog, getConnectorAbsorptionSummary, getPluginIndependenceReadiness } from './magnanimous-connector-absorption.js';
 import { OGENIC_SKILL_SNAPSHOT, OGENIC_CAPABILITY_GROUPS, GOD_MODE_TOOL_FAMILIES, NETWALK_NATIVE_CONTRACT } from './magnanimous-ogenic-god-toolkit.js';
 import { getCapabilityRealizationSummary, listCapabilityRealizations } from './magnanimous-capability-realization.js';
+import { planMagnanimousSpecialists, listMagnanimousSquadRoles } from './magnanimous-squad-planner.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
@@ -304,6 +305,12 @@ export async function handleMagnanimousNativeFirst(request,env){
   return json({identity:'Magnanimous AI',scope,summary:getConnectorAbsorptionSummary(),total,limit,offset,next_offset:offset+results.length<total?offset+results.length:null,capabilities:results.map(x=>({...x,research:JSON.parse(x.research_json||'{}'),spec:JSON.parse(x.spec_json||'{}'),research_json:undefined,spec_json:undefined})),policy:getConnectorAbsorptionSummary().absorption_policy});
  }
  if(request.method==='GET'&&path==='/api/magnanimous/native-first/independence')return json(getPluginIndependenceReadiness());
+ if(request.method==='GET'&&path==='/api/magnanimous/native-first/squad-roles')return json({identity:'Magnanimous AI',roles:listMagnanimousSquadRoles(),execution_state:'catalog-only'});
+ if(request.method==='POST'&&path==='/api/magnanimous/native-first/squad-plan'){
+  const body=await request.json().catch(()=>({}));
+  try{return json(planMagnanimousSpecialists(body?.goal));}
+  catch(error){return json({detail:String(error?.message||'Invalid squad-planning goal.')},400);}
+ }
  if(request.method==='GET'&&path==='/api/magnanimous/native-first/realizations'){
   const status=clip(url.searchParams.get('status'),40),goal=clip(url.searchParams.get('goal'),1000),limit=Math.max(1,Math.min(200,Number(url.searchParams.get('limit')||80))),offset=Math.max(0,Number(url.searchParams.get('offset')||0));
   const rows=await listCapabilityRealizations(env,{status,goal,limit,offset}),summary=await getCapabilityRealizationSummary(env);
