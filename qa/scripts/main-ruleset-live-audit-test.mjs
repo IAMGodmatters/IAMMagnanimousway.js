@@ -131,6 +131,12 @@ assert.equal(absent.status,'warning');
 const unreadable=evaluateMainRulesets(active,{},repository);
 assert.equal(unreadable.status,'manual');
 
+const missingBypassActors={1:{...healthy[1]}};
+delete missingBypassActors[1].bypass_actors;
+const hiddenBypass=evaluateMainRulesets(active,missingBypassActors,repository);
+assert.equal(hiddenBypass.status,'manual');
+assert.ok(hiddenBypass.gaps.some(item=>item.includes('bypass-actor list')));
+
 const releaseOnly=[{id:2,name:'Protect releases',target:'branch',source:repository,source_type:'Repository',enforcement:'active'}];
 const releaseDetails={2:{conditions:{ref_name:{include:['refs/heads/release/*'],exclude:[]}},rules:[{type:'pull_request'}],bypass_actors:[]}};
 const releaseAssessment=evaluateMainRulesets(releaseOnly,releaseDetails,repository);
@@ -142,4 +148,4 @@ const excluded=evaluateMainRulesets([{...releaseOnly[0],id:2}],excludesMain,repo
 assert.equal(excluded.status,'warning');
 assert.equal(excluded.activeRulesets,0);
 
-console.log('Main ruleset audit assessment: 11 cases passed.');
+console.log('Main ruleset audit assessment: 12 cases passed.');
