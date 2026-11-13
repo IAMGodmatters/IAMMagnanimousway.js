@@ -76,6 +76,9 @@ jobs:
       - name: Exercise free-first runtime D1 schema safeguards
         run: node qa/scripts/free-first-runtime-plane-lock.mjs
 
+      - name: Exercise branded Magnanimous Reels outage fallback
+        run: node qa/scripts/reels-proxy-fallback-test.mjs
+
       - name: Lock durable active development checkpoint
         run: node qa/scripts/development-checkpoint-lock.mjs
 
