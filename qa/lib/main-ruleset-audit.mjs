@@ -1,3 +1,19 @@
+function patternMatchesMain(pattern){
+  const value=String(pattern||'').toLowerCase();
+  if(['~all','~default_branch','*','**','main','refs/heads/main'].includes(value))return true;
+  const normalized=value.replace(/^refs\/heads\//,'');
+  if(normalized.endsWith('*'))return 'main'.startsWith(normalized.slice(0,-1));
+  return false;
+}
+function rulesetAppliesToMain(detail){
+  const refName=detail?.conditions?.ref_name;
+  if(!refName)return true;
+  const include=Array.isArray(refName.include)?refName.include:[];
+  const exclude=Array.isArray(refName.exclude)?refName.exclude:[];
+  const included=include.length===0||include.some(patternMatchesMain);
+  const excluded=exclude.some(patternMatchesMain);
+  return included&&!excluded;
+}
 export function evaluateMainRulesets(rulesets,detailsById,repository){
   const active=(Array.isArray(rulesets)?rulesets:[]).filter(ruleSet=>
     ruleSet&&ruleSet.target==='branch'&&ruleSet.enforcement==='active'&&
@@ -6,10 +22,15 @@ export function evaluateMainRulesets(rulesets,detailsById,repository){
   if(active.length===0){
     return {status:'warning',activeRulesets:0,gaps:['No active repository ruleset targeting branches was found.']};
   }
-  const details=active.map(item=>detailsById?.[String(item.id)]).filter(Boolean);
-  if(details.length!==active.length){
-    return {status:'manual',activeRulesets:active.length,gaps:['Not every active main ruleset could be read; manual owner verification is required.']};
+  const unreadable=active.filter(item=>!detailsById?.[String(item.id)]);
+  if(unreadable.length){
+    return {status:'manual',activeRulesets:active.length,gaps:['Not every active branch ruleset could be read; manual owner verification is required.']};
   }
+  const mainRulesets=active.filter(item=>rulesetAppliesToMain(detailsById[String(item.id)]));
+  if(mainRulesets.length===0){
+    return {status:'warning',activeRulesets:0,gaps:['No active repository ruleset applies to the main branch.']};
+  }
+  const details=mainRulesets.map(item=>detailsById[String(item.id)]);
   const rules=details.flatMap(item=>Array.isArray(item.rules)?item.rules:[]);
   const pullRequestRule=rules.find(rule=>rule.type==='pull_request');
   const statusChecksRule=rules.find(rule=>rule.type==='required_status_checks');
@@ -27,7 +48,7 @@ export function evaluateMainRulesets(rulesets,detailsById,repository){
   if(alwaysBypass.length>0)gaps.push(alwaysBypass.length+' bypass actor(s) use bypass_mode=always.');
   return {
     status:gaps.length?'warning':'pass',
-    activeRulesets:active.length,
+    activeRulesets:mainRulesets.length,
     hasPullRequestRule:Boolean(pullRequestRule),
     requiredApprovals,
     requiredChecks:requiredChecks.length,
