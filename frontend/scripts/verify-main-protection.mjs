@@ -74,7 +74,7 @@ if (assessment.status !== 'pass') {
   for (const gap of assessment.gaps || ['The main ruleset could not be verified.']) {
     console.error('::error::' + gap);
   }
-  console.error('Required: at least one PR approval, exact checks "Code health and builds" and "verify-command-architecture", strict up-to-date checks, and no always-bypass actors.');
+  console.error('Required: at least one PR approval, exact checks "Code health and builds" and "verify-command-architecture", strict up-to-date checks, and no unrestricted bypass actors.');
   process.exit(1);
 }
 
