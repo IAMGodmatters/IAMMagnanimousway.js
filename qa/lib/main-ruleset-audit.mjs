@@ -38,41 +38,52 @@ export function evaluateMainRulesets(rulesets,detailsById,repository){
   if(mainRulesets.length===0){
     return {status:'warning',activeRulesets:0,gaps:['No active repository ruleset applies to the main branch.']};
   }
+
+  // GitHub combines applicable rulesets. Evaluate all of their requirements,
+  // not merely the first PR or status-check rule returned by the API.
   const details=mainRulesets.map(item=>detailsById[String(item.id)]);
   const rules=details.flatMap(item=>Array.isArray(item.rules)?item.rules:[]);
-  const pullRequestRule=rules.find(rule=>rule.type==='pull_request');
-  const statusChecksRule=rules.find(rule=>rule.type==='required_status_checks');
-  const requiredChecks=Array.isArray(statusChecksRule?.parameters?.required_status_checks)
-    ? statusChecksRule.parameters.required_status_checks
-    : [];
+  const pullRequestRules=rules.filter(rule=>rule.type==='pull_request');
+  const statusCheckRules=rules.filter(rule=>rule.type==='required_status_checks');
+  const requiredChecks=statusCheckRules.flatMap(rule=>
+    Array.isArray(rule?.parameters?.required_status_checks)
+      ? rule.parameters.required_status_checks
+      : []
+  );
   const requiredCheckContexts=[...new Set(requiredChecks
     .map(item=>String(item?.context||'').trim())
     .filter(Boolean))].sort();
   const missingRequiredChecks=REQUIRED_MAIN_CHECK_CONTEXTS.filter(
     context=>!requiredCheckContexts.includes(context)
   );
-  const strictRequiredStatusChecksPolicy=statusChecksRule?.parameters?.strict_required_status_checks_policy===true;
-  const requiredApprovals=Number(pullRequestRule?.parameters?.required_approving_review_count||0);
-  const alwaysBypass=details.flatMap(item=>Array.isArray(item.bypass_actors)?item.bypass_actors:[])
-    .filter(actor=>actor.bypass_mode==='always');
+  const strictRequiredStatusChecksPolicy=statusCheckRules.length>0&&statusCheckRules.every(
+    rule=>rule.parameters?.strict_required_status_checks_policy===true
+  );
+  const requiredApprovals=Math.max(0,...pullRequestRules.map(rule=>
+    Number(rule?.parameters?.required_approving_review_count||0)
+  ));
+  const bypassActors=details.flatMap(item=>Array.isArray(item.bypass_actors)?item.bypass_actors:[]);
+  const unrestrictedBypassActors=bypassActors.filter(actor=>actor.bypass_mode!=='pull_request');
+  const alwaysBypassActors=unrestrictedBypassActors.filter(actor=>actor.bypass_mode==='always').length;
   const gaps=[];
-  if(!pullRequestRule)gaps.push('No required pull_request rule is configured.');
+  if(pullRequestRules.length===0)gaps.push('No required pull_request rule is configured.');
   else if(requiredApprovals<1)gaps.push('The pull_request rule does not verifiably require at least one approval.');
-  if(!statusChecksRule)gaps.push('No required_status_checks rule is configured.');
-  else if(requiredChecks.length===0)gaps.push('The required_status_checks rule contains no named required checks.');
+  if(statusCheckRules.length===0)gaps.push('No required_status_checks rule is configured.');
+  else if(requiredChecks.length===0)gaps.push('The required_status_checks rules contain no named required checks.');
   else if(missingRequiredChecks.length>0)gaps.push('Required status checks are missing: '+missingRequiredChecks.join(', ')+'.');
-  if(statusChecksRule&&!strictRequiredStatusChecksPolicy)gaps.push('Required status checks do not verifiably require the branch to be up to date.');
-  if(alwaysBypass.length>0)gaps.push(alwaysBypass.length+' bypass actor(s) use bypass_mode=always.');
+  if(statusCheckRules.length>0&&!strictRequiredStatusChecksPolicy)gaps.push('Every required status-check rule must require the branch to be up to date.');
+  if(unrestrictedBypassActors.length>0)gaps.push(unrestrictedBypassActors.length+' bypass actor(s) use a mode other than pull_request.');
   return {
     status:gaps.length?'warning':'pass',
     activeRulesets:mainRulesets.length,
-    hasPullRequestRule:Boolean(pullRequestRule),
+    hasPullRequestRule:pullRequestRules.length>0,
     requiredApprovals,
     requiredChecks:requiredCheckContexts.length,
     requiredCheckContexts,
     missingRequiredChecks,
     strictRequiredStatusChecksPolicy,
-    alwaysBypassActors:alwaysBypass.length,
+    alwaysBypassActors,
+    unrestrictedBypassActors:unrestrictedBypassActors.length,
     gaps
   };
 }
