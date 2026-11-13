@@ -79,6 +79,9 @@ jobs:
       - name: Exercise branded Magnanimous Reels outage fallback
         run: node qa/scripts/reels-proxy-fallback-test.mjs
 
+      - name: Test Reels production smoke validator without live traffic
+        run: node qa/scripts/reels-proxy-production-smoke-test.mjs
+
       - name: Lock durable active development checkpoint
         run: node qa/scripts/development-checkpoint-lock.mjs
 
