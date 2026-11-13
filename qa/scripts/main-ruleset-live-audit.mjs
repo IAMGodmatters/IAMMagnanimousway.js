@@ -3,7 +3,7 @@ import { pathToFileURL } from 'node:url';
 import { evaluateMainRulesets } from '../lib/main-ruleset-audit.mjs';
 
 const repository=process.env.GITHUB_REPOSITORY||'IAMGodmatters/IAMMagnanimousway.js';
-const token=process.env.GITHUB_TOKEN||'';
+const token=process.env.RULESET_AUDIT_TOKEN||process.env.GITHUB_TOKEN||'';
 const apiRoot='https://api.github.com/repos/'+repository;
 const headers={
   Accept:'application/vnd.github+json',
