@@ -30,9 +30,12 @@ export function evaluateMainRulesets(rulesets,detailsById,repository){
   if(active.length===0){
     return {status:'warning',activeRulesets:0,gaps:['No active repository ruleset targeting branches was found.']};
   }
-  const unreadable=active.filter(item=>!detailsById?.[String(item.id)]);
+  const unreadable=active.filter(item=>{
+    const detail=detailsById?.[String(item.id)];
+    return !detail||!Array.isArray(detail.rules)||!Array.isArray(detail.bypass_actors);
+  });
   if(unreadable.length){
-    return {status:'manual',activeRulesets:active.length,gaps:['Not every active branch ruleset could be read; manual owner verification is required.']};
+    return {status:'manual',activeRulesets:active.length,gaps:['Not every active branch ruleset, rule list, and bypass-actor list could be read; manual owner verification is required.']};
   }
   const mainRulesets=active.filter(item=>rulesetAppliesToMain(detailsById[String(item.id)]));
   if(mainRulesets.length===0){
