@@ -28,5 +28,11 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/verify-main-protection.mjs
 
+      - name: Audit actual main ruleset requirements (read-only)
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node qa/scripts/main-ruleset-live-audit.mjs
+
       - name: Lock descendant-safe Railway deployment behavior
         run: node qa/scripts/railway-descendant-safe-deploy-lock.mjs
