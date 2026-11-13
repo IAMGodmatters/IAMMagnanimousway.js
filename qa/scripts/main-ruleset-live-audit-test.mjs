@@ -23,7 +23,7 @@ assert.equal(pass.requiredChecks,2);
 assert.deepEqual(pass.requiredCheckContexts,[...REQUIRED_MAIN_CHECK_CONTEXTS].sort());
 assert.deepEqual(pass.missingRequiredChecks,[]);
 assert.equal(pass.strictRequiredStatusChecksPolicy,true);
-assert.equal(pass.alwaysBypassActors,0);
+assert.equal(pass.unrestrictedBypassActors,0);
 
 const weak={
   1:{
@@ -39,7 +39,7 @@ const warning=evaluateMainRulesets(active,weak,repository);
 assert.equal(warning.status,'warning');
 assert.ok(warning.gaps.some(item=>item.includes('pull_request')));
 assert.ok(warning.gaps.some(item=>item.includes('required_status_checks')));
-assert.ok(warning.gaps.some(item=>item.includes('bypass_mode=always')));
+assert.ok(warning.gaps.some(item=>item.includes('pull_request')));
 
 const misleadingNames={
   1:{
@@ -90,6 +90,42 @@ assert.equal(staleHead.status,'warning');
 assert.equal(staleHead.strictRequiredStatusChecksPolicy,false);
 assert.ok(staleHead.gaps.some(item=>item.includes('up to date')));
 
+const exemptBypass={
+  1:{
+    ...healthy[1],
+    bypass_actors:[{actor_type:'RepositoryRole',bypass_mode:'exempt'}]
+  }
+};
+const exempt=evaluateMainRulesets(active,exemptBypass,repository);
+assert.equal(exempt.status,'warning');
+assert.equal(exempt.unrestrictedBypassActors,1);
+assert.ok(exempt.gaps.some(item=>item.includes('pull_request')));
+
+const splitRulesets=[
+  {...active[0],id:1},
+  {...active[0],id:2,name:'Main required checks'}
+];
+const splitDetails={
+  1:{
+    conditions:{ref_name:{include:['~DEFAULT_BRANCH'],exclude:[]}},
+    rules:[{type:'pull_request',parameters:{required_approving_review_count:1}}],
+    bypass_actors:[]
+  },
+  2:{
+    conditions:{ref_name:{include:['refs/heads/main'],exclude:[]}},
+    rules:[{type:'required_status_checks',parameters:{
+      required_status_checks:REQUIRED_MAIN_CHECK_CONTEXTS.map(context=>({context})),
+      strict_required_status_checks_policy:true
+    }}],
+    bypass_actors:[]
+  }
+};
+const combined=evaluateMainRulesets(splitRulesets,splitDetails,repository);
+assert.equal(combined.status,'pass');
+assert.equal(combined.activeRulesets,2);
+assert.equal(combined.requiredApprovals,1);
+assert.equal(combined.requiredChecks,2);
+
 const absent=evaluateMainRulesets([],{},repository);
 assert.equal(absent.status,'warning');
 const unreadable=evaluateMainRulesets(active,{},repository);
@@ -106,4 +142,4 @@ const excluded=evaluateMainRulesets([{...releaseOnly[0],id:2}],excludesMain,repo
 assert.equal(excluded.status,'warning');
 assert.equal(excluded.activeRulesets,0);
 
-console.log('Main ruleset audit assessment: 9 cases passed.');
+console.log('Main ruleset audit assessment: 11 cases passed.');
