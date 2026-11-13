@@ -2265,3 +2265,9 @@ jobs:
 
           echo "Worker-only production smoke passed: health, connector, public API fallback, auth status, and owner-only Capability Mesh routing are healthy."
 
+      - name: Verify Magnanimous Reels route and outage fallback after deployment
+        if: needs.runtime-impact.outputs.standalone_changed != 'true'
+        env:
+          BASE_URL: https://iammagnanimousway.com
+        run: node qa/scripts/reels-proxy-production-smoke.mjs
+
