@@ -24,14 +24,14 @@ jobs:
           GITHUB_ACTIONS: 'true'
           GITHUB_REF_NAME: main
           GITHUB_WORKFLOW: Branch Protection Gate Verification
-          GITHUB_REPOSITORY: \${{ github.repository }}
-          GITHUB_TOKEN: \${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/verify-main-protection.mjs
 
       - name: Audit actual main ruleset requirements (read-only)
         env:
-          GITHUB_REPOSITORY: \${{ github.repository }}
-          GITHUB_TOKEN: \${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: node qa/scripts/main-ruleset-live-audit.mjs
 
       - name: Lock descendant-safe Railway deployment behavior
