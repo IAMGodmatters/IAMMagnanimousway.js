@@ -80,7 +80,7 @@ export async function runMainRulesetAudit(){
       'Required pull-request approvals: '+assessment.requiredApprovals+'.',
       'Exact required status checks: '+assessment.requiredCheckContexts.join('; ')+'.',
       'Strict up-to-date policy: enabled.',
-      'Always-bypass actors: '+assessment.alwaysBypassActors+'.'
+      'Unrestricted bypass actors: '+assessment.unrestrictedBypassActors+'.'
     ]);
   }else{
     report('warning',assessment.gaps);
