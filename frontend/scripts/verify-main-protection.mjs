@@ -4,7 +4,7 @@ const inActions = process.env.GITHUB_ACTIONS === 'true';
 const branch = process.env.GITHUB_REF_NAME || '';
 const workflow = process.env.GITHUB_WORKFLOW || '';
 const repo = process.env.GITHUB_REPOSITORY || 'IAMGodmatters/IAMMagnanimousway.js';
-const token = process.env.GITHUB_TOKEN || '';
+const token = process.env.RULESET_AUDIT_TOKEN || process.env.GITHUB_TOKEN || '';
 
 // Local builds, feature branches, and diagnostic workflows remain runnable.
 // Only the actual production deployment build is subject to this fail-closed gate.
