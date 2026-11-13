@@ -343,9 +343,9 @@ const opportunities:Opportunity[]=[
  },
 
  {
-  id:'philippine-startup-week-2026',name:'Philippine Startup Week 2026 — Founder & Investor Networking Conference',status:'location-check',badge:'QUEZON CITY • NOVEMBER 9–12, 2026 • FREE PARTICIPANT PRE-REGISTRATION',
-  summary:'The official Philippine Startup Week portal lists the four-day conference at the M.I.C.E. Center in Quezon City for November 9–12, 2026. The government registration page lists free participant pre-registration; exhibitor, community-event and pre-event submissions require review and approval. The November 10 main-event schedule now shows an investor stage with Gobi Partners, Foxmont Capital Partners and Kickstart Ventures, plus DOST’s “HEADSTART: From Grant to Growth” session. These are networking and learning opportunities, not grants, jobs or guaranteed investment awards.',
-  requirements:['Official event dates: November 9–12, 2026; venue: M.I.C.E. Center, Quezon City','The official info portal is live at phsw.startup.gov.ph and its Pre-Register button routes to the government Startup Philippines registration page. The indexed registration page lists Participant pre-registration as free; exhibitor, community-event and pre-event submissions are reviewed and require approval','The registration page is dynamically rendered and the static web reader shows only its shell; if the form does not load, use the official portal button or contact startup.web@dict.gov.ph rather than an unofficial form','IGNITE X 2026 takes place November 10; registration opens at 8:30 AM and the Luma page says host approval is required. No separate attendance price is displayed for IGNITE X; confirm any fee or participation conditions before travel','The November 10 main-event schedule lists an investor stage from 10:20–11:30 AM with Gobi Partners, Foxmont Capital Partners and Kickstart Ventures, plus DOST’s “HEADSTART: From Grant to Growth” session from 1:00–5:00 PM in Vinta Hall; attendance does not guarantee investor meetings or funding','The published venues are in Quezon City. No virtual-attendance option or travel support was confirmed; do not assume remote participation','Do not confuse the closed Startup World Cup Philippines application (deadline October 30, 2026) with registration to attend IGNITE X or Philippine Startup Week'],
+  id:'philippine-startup-week-2026',name:'Philippine Startup Week 2026 — Founder & Investor Networking Conference',status:'closed',badge:'CLOSED • EVENT ENDED NOVEMBER 12, 2026 • QUEZON CITY',
+  summary:'The official Philippine Startup Week portal lists the four-day conference at the M.I.C.E. Center in Quezon City for November 9–12, 2026. The event ended November 12. Keep this entry as a historical reference only; it is no longer an active registration, grant, job, or investment opportunity. No future-cycle date or confirmed post-event recording access is published on the official pages checked.',
+  requirements:['Official event dates: November 9–12, 2026; venue: M.I.C.E. Center, Quezon City; the event ended November 12','Do not use the old 2026 pre-registration route as an active event registration; check the official portal for future events and any post-event material','The official event portal and schedule remain available as references; the registration page does not establish that a current registration window remains open','IGNITE X 2026 took place November 10; its registration required host approval, and no future event date or attendance price is confirmed here','The November 10 main-event schedule listed an investor stage and DOST session; attendance did not guarantee investor meetings or funding','No virtual-attendance option or travel support was confirmed; do not assume remote participation','Do not confuse the closed Startup World Cup Philippines application with attendance at Philippine Startup Week'],
   official:'https://phsw.startup.gov.ph/',
   secondary:'https://startup.gov.ph/phsw-register/',
   secondaryLabel:'Official government registration page — participant pre-registration listed as free',
@@ -355,8 +355,8 @@ const opportunities:Opportunity[]=[
    {label:'IGNITE X registration — host approval required',url:'https://luma.com/rdibkjhw'},
    {label:'Official IIDB announcements',url:'https://ph.linkedin.com/company/dict-iidb'}
   ],
-  cta:'Pre-register through the official Startup Week portal',
-  verified:'2026-11-09'
+  cta:'View official event information',
+  verified:'2026-11-13'
 },
  {
 
