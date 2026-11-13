@@ -45,6 +45,7 @@ export function evaluateMainRulesets(rulesets,detailsById,repository){
   else if(requiredApprovals<1)gaps.push('The pull_request rule does not verifiably require at least one approval.');
   if(!statusChecksRule)gaps.push('No required_status_checks rule is configured.');
   else if(requiredChecks.length===0)gaps.push('The required_status_checks rule contains no named required checks.');
+  if(statusChecksRule&&statusChecksRule.parameters?.strict_required_status_checks_policy!==true)gaps.push('Required status checks do not verifiably require the branch to be up to date.');
   if(alwaysBypass.length>0)gaps.push(alwaysBypass.length+' bypass actor(s) use bypass_mode=always.');
   return {
     status:gaps.length?'warning':'pass',
