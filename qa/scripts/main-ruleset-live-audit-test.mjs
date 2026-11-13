@@ -8,7 +8,7 @@ const healthy={
     conditions:{ref_name:{include:['~DEFAULT_BRANCH'],exclude:[]}},
     rules:[
       {type:'pull_request',parameters:{required_approving_review_count:1}},
-      {type:'required_status_checks',parameters:{required_status_checks:[{context:'Full Platform QA'},{context:'Magnanimous Command Lock'}]}}
+      {type:'required_status_checks',parameters:{required_status_checks:[{context:'Full Platform QA'},{context:'Magnanimous Command Lock'}],strict_required_status_checks_policy:true}}
     ],
     bypass_actors:[]
   }
