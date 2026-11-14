@@ -59,6 +59,7 @@ const expectations = [
     values: [
       'https://ph.linkedin.com/jobs/view/tagalog-filipino-ai-linguistic-expert-at-telus-digital-ai-community-4490341902',
       'USD $5.50–$7.00/hour',
+      'REMOTE STATUS TO CONFIRM',
       'remote work from outside the listed location is not explicit and must be confirmed',
       'subject-specific qualification exam'
     ]
