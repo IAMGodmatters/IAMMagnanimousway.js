@@ -445,9 +445,10 @@ async function handle(request, env) {
       try{toolPlanning=await getMagnanimousToolFoundryContext(request,env,userMessage)}catch(e){console.error('tool planning context failed',e)}
     }
     const observed=(computeOnly||body.use_tools===false)?null:await foundryCall(request,env,'/api/magnanimous/tool-foundry/observe',{capability,example_task:userMessage});
-    const learnedScores=computeOnly?new Map():await learnedProviderScores(request,env,task);
+    const simpleConversation=!computeOnly&&!autoResearch&&body.use_tools===false&&task!=='coding';
+    const learnedScores=(computeOnly||simpleConversation)?new Map():await learnedProviderScores(request,env,task);
     const learningState=[...learnedScores.entries()].map(([provider,x])=>({provider,...x}));
-    const signedInUser=computeOnly?null:await currentUser(request,env).catch(()=>null),localBridgeReady=signedInUser?await hasReadyLocalBridge(env,signedInUser.tenant_id).catch(()=>false):false;
+    const signedInUser=computeOnly?null:await currentUser(request,env).catch(()=>null),localBridgeReady=signedInUser&&body.use_tools!==false?await hasReadyLocalBridge(env,signedInUser.tenant_id).catch(()=>false):false;
     const ogenicRuntimeEnv=localBridgeReady?{...env,MAGNANIMOUS_LOCAL_BRIDGE_READY:true}:env;
     const ogenicPlan=computeOnly?{classification:'CLOUD',groups:[],initiative:'disabled',status:'compute-only',network_direction:'none'}:buildMagnanimousOgenicPlan(userMessage,ogenicRuntimeEnv),ogenicContext=computeOnly?'':getMagnanimousOgenicPrompt(userMessage),absorbedCapabilityContext=computeOnly?'':getConnectorAbsorptionPrompt(userMessage);
     let ogenicInitiative=null;
