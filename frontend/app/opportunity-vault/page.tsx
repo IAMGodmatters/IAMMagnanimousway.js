@@ -108,15 +108,91 @@ const opportunities:Opportunity[]=[
 
  {
   id:'welo',name:'Welo Global',status:'active-ph',badge:'PHILIPPINES • ACTIVE ROLES + LANGUAGE TALENT POOLS',
-  summary:'Current official Philippines listings include remote/freelance AI training, quality review, ads rating and video annotation. Cebuano, English, Tagalog and Ilocano AI Trainers Network listings are talent pools, not active paid job openings; work, scope and compensation are disclosed only if a matching project is offered.',
-  requirements:['Requirements differ by role; check the exact official listing before applying','Apply only through the official Welo/Lever listing; the Philippines is explicitly named on the role or talent-hub pages linked here','AI Trainers Network applications add contributors to a talent pool; they do not promise immediate work, hours or income','Do not assume every role is open indefinitely; the official Philippines board is the live source'],
-  examples:['AI Data Quality Specialist — English (Philippines)','AI Trainers Network — Cebuano / English / Tagalog (talent pools; no immediate work)','Shape the Future of AI — Ilocano Talent Hub (native/near-native Ilocano plus English; talent pool, not an active job)','Project Cursa — Robot Manipulation Video Annotator and QC (V2)','Andromeda Delta — Audio Transcription Reviewer (USD $4.55/hour; estimated 30h/week)','Andromeda Delta — Audio Transcription Adjudicator (USD $7/hour; estimated 15–20h/week)','Ads Quality Rater — Filipino (Philippines)'],
+  summary:'Current official Philippines listings include AI data quality, language talent pools, Andromeda Delta audio transcription review/adjudication, Project Cursa V2 video annotation/QC, Dutch-language rating and Filipino ads rating. The language hubs are talent pools, not active paid job openings; project scope and compensation vary by role.',
+  requirements:['Requirements differ by role; check the exact official listing before applying','Apply only through the official Welo/Lever listing; the Philippines is explicitly named on the role or talent-hub pages linked here','AI Trainers Network applications add contributors to a talent pool; they do not promise immediate work, hours or income','Dutch-language roles require full Dutch proficiency and pay USD $2.25/hour; their application forms warn that Hyperwallet is not supported for the required country and wire transfer may incur bank fees','An older Filipino Quality Control Specialist — Project Lyra page now returns 404 and is absent from the current Philippines board; treat cached or reposted application links as removed unless Welo republishes the job','Do not assume every role is open indefinitely; the official Philippines board is the live source'],
+  examples:['AI Data Quality Specialist — English (Philippines)','AI Trainers Network — Cebuano / English / Tagalog (talent pools; no immediate work)','Shape the Future of AI — Ilocano Talent Hub (native/near-native Ilocano plus English; talent pool, not an active job)','Andromeda Delta — Audio Transcription Reviewer (English US), USD $4.55/hour pilot','Andromeda Delta — Audio Transcription Adjudicator (English US), USD $7/hour','Project Cursa V2 — Robot Manipulation Video Annotator, USD $3.50/hour','Project Cursa V2 — Robot Manipulation Video Annotation QC, USD $4.03/hour','Remote Data Annotator — Dutch, USD $2.25/hour; wire-transfer payment warning','Artemis AI Data Rater — Dutch, USD $2.25/hour; wire-transfer payment warning','Ads Quality Rater — Filipino (Philippines)'],
   official:'https://jobs.lever.co/weloglobal/?location=Philippines',
   secondary:'https://jobs.lever.co/weloglobal/a7b1515b-4ec4-4154-97cf-459423c50709',
   secondaryLabel:'Official Ilocano AI Trainers talent hub (not an active job)',
   cta:'Open current Philippines roles',
-  verified:'2026-11-08'
+  verified:'2026-11-14'
  },
+ {
+  id:'welo-artemis-dutch-ai-data-rater',name:'Welo Global — Artemis AI Data Rater (Dutch)',status:'active-ph',badge:'PHILIPPINES • ENTRY-LEVEL AI DATA RATING • DUTCH FLUENCY • USD $2.25/HR',
+  summary:'Welo Global’s official Lever listing names the Philippines as an eligible location for this remote entry-level AI data-rating project. The work reviews e-commerce filters and product options in desktop/mobile views. It offers 5–15 hours weekly with a self-set schedule, but workload varies with project demand and pay is task-based at USD $2.25/hour. This is freelance independent-contract work, not guaranteed full-time employment.',
+  requirements:['The role explicitly lists Suriname, India, the Philippines and Nigeria; the work is remote and freelance/independent contract','Pay is USD $2.25/hour based on tasks completed; expected schedule is 5–15 hours per week with a self-set schedule, but actual workload may vary and is not guaranteed','Applicants must be fully proficient in Dutch and proficient in English. This is not suitable unless you can pass the Dutch language assessment','Tasks review e-commerce filters and product options in desktop and mobile views, checking relevance to customer searches and preferences','A reliable computer and internet connection, strong online research, accuracy and attention to detail are required. Prior Relevance/e-commerce experience is preferred, not mandatory','Applicants must sign an NDA and complete a language assessment, learning module and mandatory quality test before work begins','The official application form states Hyperwallet is not supported for the position’s required country and applicants will be paid by wire transfer; the receiving bank may charge a fee. Because the Philippines is one of the listed locations, confirm that this condition applies to the selected PH location and ask your bank about incoming USD wire fees before accepting. No application fee is stated; do not pay an intermediary'],
+  official:'https://jobs.lever.co/weloglobal/91247918-40a1-458c-a075-06a65e325023',
+  secondary:'https://jobs.lever.co/weloglobal/?location=Philippines',
+  secondaryLabel:'Official Welo Global Philippines job board',
+  tertiary:'https://jobs.lever.co/weloglobal/91247918-40a1-458c-a075-06a65e325023/apply',
+  tertiaryLabel:'Official application form with current-location and wire-transfer questions',
+  cta:'Apply only if fully Dutch-proficient',
+  verified:'2026-11-14'
+},
+
+ {
+  id:'agent-finance-ai-automation-specialist',name:'Agent — Finance & AI Automation Specialist',status:'active-ph',badge:'PHILIPPINES • FULL-TIME REMOTE • USD $1,500–$2,000/MO • US CENTRAL HOURS',
+  summary:'The recruiter’s official Ashby listing seeks a full-time remote candidate in the Philippines or Latin America to support finance operations, AI automation, technology systems and some HR administration. Compensation is USD $1,500–$2,000 per month depending on experience. This is an advanced role, not beginner annotation work; the public listing does not identify the end client or state whether the engagement is employee or contractor.',
+  requirements:['The employer-hosted listing explicitly names the Philippines as a remote location and lists full-time employment; no citizenship restriction is published, but a U.S. citizen residing in the Philippines should confirm onboarding eligibility and local work/tax treatment with the recruiter','Compensation is USD $1,500–$2,000 per month depending on experience. No closing deadline or payout method is published','Schedule is Monday–Friday, 8:00 AM–5:00 PM U.S. Central Time, roughly 10:00 PM–7:00 AM Philippine time under current U.S. standard time; the local equivalent shifts when U.S. daylight saving changes','Requires 3+ years of finance, accounting, financial operations, business operations or a related field; strong financial-record, reporting and spreadsheet skills; and proficiency in Excel and Google Sheets','Requires familiarity with AI tools such as ChatGPT or Claude, business systems, process improvement, organization and independent problem-solving. Make/Zapier automation, accounting/HRIS software and a related bachelor’s degree are preferred but not required','Responsibilities include expense tracking, reporting, budgets, cash flow, reconciliations, AI workflow automation, system integrations, software permissions and some HR/payroll administration','The role appears under the recruiter’s Recruiting department and the end client is not named publicly. Confirm the client identity, written contract, employee/contractor classification, payment method, currency, fees and tax onboarding before sharing passport or bank details','No application fee is listed. Do not pay the recruiter or an intermediary for placement or access to the role'],
+  official:'https://jobs.ashbyhq.com/agent/f979b657-94b5-48a6-8042-e458fa76c42d',
+  secondary:'https://getagents.co/',
+  secondaryLabel:'Official recruiting company website',
+  cta:'Review the official role and apply',
+  verified:'2026-11-14'
+ },
+
+ {
+  id:'welo-project-cursa-annotator-v2',name:'Welo Global — Project Cursa Robot Manipulation Video Annotator (V2)',status:'active-ph',badge:'PHILIPPINES • REMOTE FREELANCE • USD $3.50/HR • NO CODING REQUIRED',
+  summary:'Welo Data’s official Lever listing explicitly includes the Philippines and offers remote freelance annotation at USD $3.50/hour. Contributors review robot manipulation videos from three synchronized camera views, segment the actions and write structured descriptions at atomic-motion, subtask and overall-task levels. No coding or previous annotation experience is listed as a requirement; actual work volume is not guaranteed.',
+  requirements:['The official listing names the Philippines as an eligible location and classifies the work as remote freelance/independent-contractor work','The listed rate is USD $3.50 per hour. The page does not publish guaranteed weekly hours, project duration, payout method, cash-out threshold or tax onboarding; confirm these in writing before accepting','Review short robot-manipulation videos filmed from overhead and two wrist-mounted cameras; segment the action and describe atomic motions, subtasks and overall goals, including pauses, failed grasps and other unsuccessful actions','Required skills are strong written English, sharp observation, comfort with spatial/mechanical descriptions and consistent use of a detailed style guide. Prior annotation, transcription, data-labeling or QA experience is helpful but not required','The listing says contributors may choose when and how much to contribute, but this is project-based work, not guaranteed full-time employment','The listing explicitly includes the Philippines; it does not publish a citizenship restriction. Confirm local contractor onboarding, tax documents and the payout rail before providing financial details','Apply only through Welo Global’s official Lever listing. Do not pay for access, training, placement or equipment'],
+  official:'https://jobs.lever.co/weloglobal/c5c69abd-d960-42d6-ba72-0cba79615418',
+  secondary:'https://jobs.lever.co/weloglobal/?location=Philippines',
+  secondaryLabel:'Official Welo Global Philippines role board',
+  tertiary:'https://jobs.lever.co/weloglobal/c5c69abd-d960-42d6-ba72-0cba79615418/apply',
+  tertiaryLabel:'Official Cursa V2 annotator application form',
+  cta:'Apply through the official Welo listing',
+  verified:'2026-11-14'
+ },
+
+ {
+  id:'welo-project-cursa-qc-v2',name:'Welo Global — Project Cursa Robot Manipulation Video Annotation QC (V2)',status:'active-ph',badge:'PHILIPPINES • REMOTE FREELANCE • USD $4.03/HR • QC REVIEW',
+  summary:'Welo Data’s official Lever listing includes the Philippines and advertises freelance remote QC review at USD $4.03/hour. Reviewers check robot-manipulation video labels across three camera views, verify complete coverage and correct spatial/action descriptions, and give specific feedback to annotators. Weekly hours and project duration are not published.',
+  requirements:['The official listing explicitly includes the Philippines and classifies the work as remote freelance','Advertised rate is USD $4.03/hour. The listing does not promise a minimum weekly workload or project duration and does not publish a payout method, cash-out minimum or tax onboarding; confirm these before accepting','Review labels at atomic-motion, subtask and overall-task levels; compare the descriptions with overhead and two wrist-camera views; check for missing pauses, failed grasps, dropped objects and incorrect contact details','Requires excellent written English, close attention to detail, spatial/mechanical vocabulary, consistent use of a structured style guide and clear constructive feedback. Prior QC, editing, proofreading or annotation-review experience is helpful but not required','The listing says contributors may choose when and how much to contribute; this is project-based freelance work, not guaranteed employment or hours','The listing contains an unrelated sentence about expertise in the Legal field even though the role is robotics video QC. Treat that as a copy/template inconsistency and confirm the actual project scope with Welo before accepting','The Philippines is explicitly listed; no citizenship restriction is published. Confirm foreign-national contractor onboarding, tax documentation and payment method before sharing financial details'],
+  official:'https://jobs.lever.co/weloglobal/9bd19b88-42a1-4681-9625-120ea954f16c',
+  secondary:'https://jobs.lever.co/weloglobal/?location=Philippines',
+  secondaryLabel:'Official Welo Global Philippines role board',
+  tertiary:'https://jobs.lever.co/weloglobal/9bd19b88-42a1-4681-9625-120ea954f16c/apply',
+  tertiaryLabel:'Official Cursa V2 QC application form',
+  cta:'Review the official Welo QC listing',
+  verified:'2026-11-14'
+ },
+
+ {
+  id:'welo-andromeda-adjudicator-english-us',name:'Welo Global — Andromeda Delta Audio Transcription Adjudicator (English US)',status:'active-ph',badge:'PHILIPPINES • REMOTE FREELANCE • USD $7/HR • 15–20 HRS/WEEK',
+  summary:'Welo Data’s official listing includes the Philippines for a freelance English (US) speech-data adjudication project. The work resolves disputed word-level transcriptions and timestamps, with a listed rate of USD $7/hour and estimated 15–20 hours per week. It is an experienced review role, not entry-level transcription.',
+  requirements:['The official listing explicitly includes the Philippines, India, Indonesia, Cairo and Mexico; the engagement is remote freelance/contract','Advertised rate is USD $7.00/hour and estimated workload is 15–20 hours per week; actual hours and project continuity are not guaranteed','Review disputed word-level transcript segments and timestamp boundaries, apply the project style guide, make final adjudication decisions and explain the reasoning for difficult cases','Requires U.S. cultural expertise in English and excellent listening comprehension. Prior transcription/annotation QA, adjudication or linguistic-review experience is preferred; attention to detail and comfort with ambiguity are essential','The official application form asks for current application location and a résumé; it does not publish payout method, fees, cash-out threshold or tax onboarding. Confirm those terms in writing before accepting','The Philippines is an eligible location; the listing does not state a U.S. citizenship or U.S. work-authorization requirement. A U.S. citizen residing in the Philippines should still confirm foreign-national contractor onboarding and local tax paperwork with Welo'],
+  official:'https://jobs.lever.co/weloglobal/bfadf038-9d98-482e-b245-4def1c370253',
+  secondary:'https://jobs.lever.co/weloglobal/?location=Philippines',
+  secondaryLabel:'Official Welo Global Philippines role board',
+  tertiary:'https://jobs.lever.co/weloglobal/bfadf038-9d98-482e-b245-4def1c370253/apply',
+  tertiaryLabel:'Official Andromeda Delta adjudicator application form',
+  cta:'Review the official Welo adjudicator listing',
+  verified:'2026-11-14'
+ },
+
+ {
+  id:'welo-remote-data-annotator-dutch',name:'Welo Global — Remote Data Annotator (Dutch)',status:'active-ph',badge:'PHILIPPINES • REMOTE FREELANCE • USD $2.25/HR • 20 HRS/WEEK',
+  summary:'Welo Data’s official Lever listing includes the Philippines for an entry-level Dutch-language e-commerce data-rating project. The listed rate is USD $2.25/hour with an estimated 20 hours per week, although workload varies with project needs. The official application form warns that Hyperwallet is not supported for the required country and payment will be by wire transfer, potentially with bank fees.',
+  requirements:['The official listing explicitly names the Philippines and classifies the work as remote freelance/independent-contract work','Advertised rate is USD $2.25/hour based on tasks completed; the listing estimates 20 hours per week, but weekly hours vary with project needs and are not guaranteed','Tasks research e-commerce data, evaluate product filters/results and rate them against project guidelines','Applicants must be fully proficient in Dutch and proficient in English, web-savvy and attentive to detail. Prior annotation experience is not listed as required','The official application form asks which country you currently live in and how long you have lived there; use the actual Philippine residence rather than birthplace or citizenship','The application form states Hyperwallet is not supported for the position’s required country and applicants will be paid by wire transfer; the receiving bank may charge a fee. Because the Philippines is one of the listed locations, confirm the wire-transfer condition for the selected PH location and ask your bank about incoming USD fees before accepting','The form does not publish a cash-out threshold or tax onboarding details. Confirm contractor classification, payment timing, bank charges and local tax paperwork before sharing financial information'],
+  official:'https://jobs.lever.co/weloglobal/be3a92c6-de7f-42be-8c4a-a0c350c50443',
+  secondary:'https://jobs.lever.co/weloglobal/?location=Philippines',
+  secondaryLabel:'Official Welo Global Philippines role board',
+  tertiary:'https://jobs.lever.co/weloglobal/be3a92c6-de7f-42be-8c4a-a0c350c50443/apply',
+  tertiaryLabel:'Official application form with wire-transfer condition',
+  cta:'Apply only if fully Dutch-proficient and comfortable with wire transfer',
+  verified:'2026-11-14'
+ },
+
  {
   id:'ai-data-innovations-ai-safety-annotator',name:'AI Data Innovations — Technical Data Annotator (AI Safety & Guardrails)',status:'active-ph',badge:'PHILIPPINES • REMOTE • CONTRACT • USD $8.00/HR • ABOUT 12 WEEKS',
   summary:'The employer’s newer LinkedIn posting lists the same remote Philippines AI Safety & Guardrails project at USD $8.00/hour, approximately 12 weeks, with weekly hours still to be confirmed. The earlier USD $6.50/hour posting is now marked no longer accepting applications. This is a new employer-posted rate and application listing, not a guaranteed increase to an existing contract.',
