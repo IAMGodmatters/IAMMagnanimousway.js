@@ -17,7 +17,7 @@ const restored = [
   {
     id: 'welo-artemis-dutch-ai-data-rater',
     url: 'https://jobs.lever.co/weloglobal/91247918-40a1-458c-a075-06a65e325023',
-    checks: ['USD $2.25/hour', 'fully proficient in Dutch', 'confirm the actual Philippine payout method']
+    checks: ['USD $2.25/hour', 'fully proficient in Dutch', 'Confirm the actual Philippine payment method']
   },
   {
     id: 'agent-finance-ai-automation-specialist',
