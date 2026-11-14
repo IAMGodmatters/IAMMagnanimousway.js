@@ -75,7 +75,6 @@ const expectations = [
       '4481438265',
       '4481432662',
       '4481437269',
-      '4481437269',
       'at least 3 years'
     ]
   },
@@ -111,6 +110,10 @@ for (const item of expectations) {
   assert.ok(block.includes(item.date), item.id + ' has the wrong verification date');
   for (const value of item.values) assert.ok(block.includes(value), item.id + ' is missing required detail: ' + value);
 }
+
+const innodataActive = record('innodata-senior-ai-domain-expert-ph');
+assert.ok(innodataActive.includes('five current Philippines employer postings'), 'Active Innodata record must describe only the five current postings');
+assert.ok(!innodataActive.includes('4465525895'), 'Closed Innodata RLHF listing must not remain in the active record');
 
 const innodataRlhfClosed = record('innodata-senior-ai-evaluation-rlhf-ph-closed');
 assert.ok(innodataRlhfClosed.includes("status:'closed'"), 'Closed Innodata RLHF listing must not remain active');
