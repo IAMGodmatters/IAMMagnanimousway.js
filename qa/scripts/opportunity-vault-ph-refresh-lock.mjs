@@ -85,7 +85,8 @@ const expectations = [
     values: [
       'https://www.mytronlabs.com/join-as-contributor',
       'seven countries',
-      'Philippines',
+      'does not name the Philippines',
+      'onboarded by region',
       'recordings can include your face, voice, other people, private spaces',
       'confirm which method actually works in the Philippines'
     ]
@@ -96,6 +97,7 @@ const expectations = [
     date: "verified:'2026-11-14'",
     values: [
       'https://www.dost.gov.ph/knowledge-resources/news/4379-dost-landbank-to-grow-local-msmes-thru-technology-upgrades-and-financing.html',
+      'https://www.landbank.com/msme-lifting-msmes-lending-program',
       'loan, not a grant',
       'LANDBANK performs its own credit evaluation'
     ]
@@ -108,6 +110,10 @@ for (const item of expectations) {
   assert.ok(block.includes(item.date), item.id + ' has the wrong verification date');
   for (const value of item.values) assert.ok(block.includes(value), item.id + ' is missing required detail: ' + value);
 }
+
+const mytron = record('mytron-labs-ph-smartphone-data');
+assert.ok(!mytron.includes('PHILIPPINES LISTED'), 'MyTron must not claim Philippines eligibility without an explicit country listing');
+assert.ok(mytron.includes('does not name the Philippines'), 'MyTron must disclose that the public page does not name the Philippines');
 
 const closed = record('innodata-robotics-annotator-rater-remote-ph');
 assert.ok(closed.includes('status:"closed"'), 'Closed Innodata robotics listing must not remain active');
