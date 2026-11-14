@@ -8,7 +8,7 @@ export function primeNaturalSpeech(){
   if(typeof window==='undefined'||!('speechSynthesis'in window)||speechPrimed)return;
   try{
     const appleMobile=appleMobileSpeechRuntime();
-    const utterance=new SpeechSynthesisUtterance(appleMobile?'\\u00a0':' ');
+    const utterance=new SpeechSynthesisUtterance(appleMobile?'\u00a0':' ');
     utterance.volume=appleMobile?1:0;
     utterance.rate=2;
     utterance.pitch=1;
