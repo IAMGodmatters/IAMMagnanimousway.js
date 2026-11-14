@@ -3,7 +3,7 @@ import {useState} from 'react';
 
 type Opportunity={
  id:string;name:string;status:'active-ph'|'location-check'|'waitlist'|'closed';
- badge:string;summary:string;requirements:string[];examples?:string[];official:string;secondary?:string;secondaryLabel?:string;tertiary?:string;tertiaryLabel?:string;moreLinks?:{label:string;url:string}[];cta:string;referral?:string;verified:string;
+ badge:string;summary:string;requirements:string[];examples?:string[];official:string;secondary?:string;secondaryLabel?:string;tertiary?:string;tertiaryLabel?:string;quaternary?:string;quaternaryLabel?:string;moreLinks?:{label:string;url:string}[];cta:string;referral?:string;verified:string;
 };
 
 const opportunities:Opportunity[]=[
@@ -108,15 +108,91 @@ const opportunities:Opportunity[]=[
 
  {
   id:'welo',name:'Welo Global',status:'active-ph',badge:'PHILIPPINES • ACTIVE ROLES + LANGUAGE TALENT POOLS',
-  summary:'Current official Philippines listings include remote/freelance AI training, quality review, ads rating and video annotation. Cebuano, English, Tagalog and Ilocano AI Trainers Network listings are talent pools, not active paid job openings; work, scope and compensation are disclosed only if a matching project is offered.',
-  requirements:['Requirements differ by role; check the exact official listing before applying','Apply only through the official Welo/Lever listing; the Philippines is explicitly named on the role or talent-hub pages linked here','AI Trainers Network applications add contributors to a talent pool; they do not promise immediate work, hours or income','Do not assume every role is open indefinitely; the official Philippines board is the live source'],
-  examples:['AI Data Quality Specialist — English (Philippines)','AI Trainers Network — Cebuano / English / Tagalog (talent pools; no immediate work)','Shape the Future of AI — Ilocano Talent Hub (native/near-native Ilocano plus English; talent pool, not an active job)','Project Cursa — Robot Manipulation Video Annotator and QC (V2)','Andromeda Delta — Audio Transcription Reviewer (USD $4.55/hour; estimated 30h/week)','Andromeda Delta — Audio Transcription Adjudicator (USD $7/hour; estimated 15–20h/week)','Ads Quality Rater — Filipino (Philippines)'],
+  summary:'Current official Philippines listings include AI data quality, language talent pools, Andromeda Delta audio transcription review/adjudication, Project Cursa V2 video annotation/QC, Dutch-language rating and Filipino ads rating. The language hubs are talent pools, not active paid job openings; project scope and compensation vary by role.',
+  requirements:['Requirements differ by role; check the exact official listing before applying','Apply only through the official Welo/Lever listing; the Philippines is explicitly named on the role or talent-hub pages linked here','AI Trainers Network applications add contributors to a talent pool; they do not promise immediate work, hours or income','Dutch-language roles require full Dutch proficiency and pay USD $2.25/hour; their application forms warn that Hyperwallet is not supported for the required country and wire transfer may incur bank fees','An older Filipino Quality Control Specialist — Project Lyra page now returns 404 and is absent from the current Philippines board; treat cached or reposted application links as removed unless Welo republishes the job','Do not assume every role is open indefinitely; the official Philippines board is the live source'],
+  examples:['AI Data Quality Specialist — English (Philippines)','AI Trainers Network — Cebuano / English / Tagalog (talent pools; no immediate work)','Shape the Future of AI — Ilocano Talent Hub (native/near-native Ilocano plus English; talent pool, not an active job)','Andromeda Delta — Audio Transcription Reviewer (English US), USD $4.55/hour pilot','Andromeda Delta — Audio Transcription Adjudicator (English US), USD $7/hour','Project Cursa V2 — Robot Manipulation Video Annotator, USD $3.50/hour','Project Cursa V2 — Robot Manipulation Video Annotation QC, USD $4.03/hour','Remote Data Annotator — Dutch, USD $2.25/hour; wire-transfer payment warning','Artemis AI Data Rater — Dutch, USD $2.25/hour; wire-transfer payment warning','Ads Quality Rater — Filipino (Philippines)'],
   official:'https://jobs.lever.co/weloglobal/?location=Philippines',
   secondary:'https://jobs.lever.co/weloglobal/a7b1515b-4ec4-4154-97cf-459423c50709',
   secondaryLabel:'Official Ilocano AI Trainers talent hub (not an active job)',
   cta:'Open current Philippines roles',
-  verified:'2026-11-08'
+  verified:'2026-11-14'
  },
+ {
+  id:'welo-artemis-dutch-ai-data-rater',name:'Welo Global — Artemis AI Data Rater (Dutch)',status:'active-ph',badge:'PHILIPPINES • ENTRY-LEVEL AI DATA RATING • DUTCH FLUENCY • USD $2.25/HR',
+  summary:'Welo Global’s official Lever listing names the Philippines as an eligible location for this remote entry-level AI data-rating project. The work reviews e-commerce filters and product options in desktop/mobile views. It offers 5–15 hours weekly with a self-set schedule, but workload varies with project demand and pay is task-based at USD $2.25/hour. This is freelance independent-contract work, not guaranteed full-time employment.',
+  requirements:['The role explicitly lists Suriname, India, the Philippines and Nigeria; the work is remote and freelance/independent contract','Pay is USD $2.25/hour based on tasks completed; expected schedule is 5–15 hours per week with a self-set schedule, but actual workload may vary and is not guaranteed','Applicants must be fully proficient in Dutch and proficient in English. This is not suitable unless you can pass the Dutch language assessment','Tasks review e-commerce filters and product options in desktop and mobile views, checking relevance to customer searches and preferences','A reliable computer and internet connection, strong online research, accuracy and attention to detail are required. Prior Relevance/e-commerce experience is preferred, not mandatory','Applicants must sign an NDA and complete a language assessment, learning module and mandatory quality test before work begins','The official application form states Hyperwallet is not supported for the position’s required country and applicants will be paid by wire transfer; the receiving bank may charge a fee. Because the Philippines is one of the listed locations, confirm that this condition applies to the selected PH location and ask your bank about incoming USD wire fees before accepting. No application fee is stated; do not pay an intermediary'],
+  official:'https://jobs.lever.co/weloglobal/91247918-40a1-458c-a075-06a65e325023',
+  secondary:'https://jobs.lever.co/weloglobal/?location=Philippines',
+  secondaryLabel:'Official Welo Global Philippines job board',
+  tertiary:'https://jobs.lever.co/weloglobal/91247918-40a1-458c-a075-06a65e325023/apply',
+  tertiaryLabel:'Official application form with current-location and wire-transfer questions',
+  cta:'Apply only if fully Dutch-proficient',
+  verified:'2026-11-14'
+},
+
+ {
+  id:'agent-finance-ai-automation-specialist',name:'Agent — Finance & AI Automation Specialist',status:'active-ph',badge:'PHILIPPINES • FULL-TIME REMOTE • USD $1,500–$2,000/MO • US CENTRAL HOURS',
+  summary:'The recruiter’s official Ashby listing seeks a full-time remote candidate in the Philippines or Latin America to support finance operations, AI automation, technology systems and some HR administration. Compensation is USD $1,500–$2,000 per month depending on experience. This is an advanced role, not beginner annotation work; the public listing does not identify the end client or state whether the engagement is employee or contractor.',
+  requirements:['The employer-hosted listing explicitly names the Philippines as a remote location and lists full-time employment; no citizenship restriction is published, but a U.S. citizen residing in the Philippines should confirm onboarding eligibility and local work/tax treatment with the recruiter','Compensation is USD $1,500–$2,000 per month depending on experience. No closing deadline or payout method is published','Schedule is Monday–Friday, 8:00 AM–5:00 PM U.S. Central Time, roughly 10:00 PM–7:00 AM Philippine time under current U.S. standard time; the local equivalent shifts when U.S. daylight saving changes','Requires 3+ years of finance, accounting, financial operations, business operations or a related field; strong financial-record, reporting and spreadsheet skills; and proficiency in Excel and Google Sheets','Requires familiarity with AI tools such as ChatGPT or Claude, business systems, process improvement, organization and independent problem-solving. Make/Zapier automation, accounting/HRIS software and a related bachelor’s degree are preferred but not required','Responsibilities include expense tracking, reporting, budgets, cash flow, reconciliations, AI workflow automation, system integrations, software permissions and some HR/payroll administration','The role appears under the recruiter’s Recruiting department and the end client is not named publicly. Confirm the client identity, written contract, employee/contractor classification, payment method, currency, fees and tax onboarding before sharing passport or bank details','No application fee is listed. Do not pay the recruiter or an intermediary for placement or access to the role'],
+  official:'https://jobs.ashbyhq.com/agent/f979b657-94b5-48a6-8042-e458fa76c42d',
+  secondary:'https://getagents.co/',
+  secondaryLabel:'Official recruiting company website',
+  cta:'Review the official role and apply',
+  verified:'2026-11-14'
+ },
+
+ {
+  id:'welo-project-cursa-annotator-v2',name:'Welo Global — Project Cursa Robot Manipulation Video Annotator (V2)',status:'active-ph',badge:'PHILIPPINES • REMOTE FREELANCE • USD $3.50/HR • NO CODING REQUIRED',
+  summary:'Welo Data’s official Lever listing explicitly includes the Philippines and offers remote freelance annotation at USD $3.50/hour. Contributors review robot manipulation videos from three synchronized camera views, segment the actions and write structured descriptions at atomic-motion, subtask and overall-task levels. No coding or previous annotation experience is listed as a requirement; actual work volume is not guaranteed.',
+  requirements:['The official listing names the Philippines as an eligible location and classifies the work as remote freelance/independent-contractor work','The listed rate is USD $3.50 per hour. The page does not publish guaranteed weekly hours, project duration, payout method, cash-out threshold or tax onboarding; confirm these in writing before accepting','Review short robot-manipulation videos filmed from overhead and two wrist-mounted cameras; segment the action and describe atomic motions, subtasks and overall goals, including pauses, failed grasps and other unsuccessful actions','Required skills are strong written English, sharp observation, comfort with spatial/mechanical descriptions and consistent use of a detailed style guide. Prior annotation, transcription, data-labeling or QA experience is helpful but not required','The listing says contributors may choose when and how much to contribute, but this is project-based work, not guaranteed full-time employment','The listing explicitly includes the Philippines; it does not publish a citizenship restriction. Confirm local contractor onboarding, tax documents and the payout rail before providing financial details','Apply only through Welo Global’s official Lever listing. Do not pay for access, training, placement or equipment'],
+  official:'https://jobs.lever.co/weloglobal/c5c69abd-d960-42d6-ba72-0cba79615418',
+  secondary:'https://jobs.lever.co/weloglobal/?location=Philippines',
+  secondaryLabel:'Official Welo Global Philippines role board',
+  tertiary:'https://jobs.lever.co/weloglobal/c5c69abd-d960-42d6-ba72-0cba79615418/apply',
+  tertiaryLabel:'Official Cursa V2 annotator application form',
+  cta:'Apply through the official Welo listing',
+  verified:'2026-11-14'
+ },
+
+ {
+  id:'welo-project-cursa-qc-v2',name:'Welo Global — Project Cursa Robot Manipulation Video Annotation QC (V2)',status:'active-ph',badge:'PHILIPPINES • REMOTE FREELANCE • USD $4.03/HR • QC REVIEW',
+  summary:'Welo Data’s official Lever listing includes the Philippines and advertises freelance remote QC review at USD $4.03/hour. Reviewers check robot-manipulation video labels across three camera views, verify complete coverage and correct spatial/action descriptions, and give specific feedback to annotators. Weekly hours and project duration are not published.',
+  requirements:['The official listing explicitly includes the Philippines and classifies the work as remote freelance','Advertised rate is USD $4.03/hour. The listing does not promise a minimum weekly workload or project duration and does not publish a payout method, cash-out minimum or tax onboarding; confirm these before accepting','Review labels at atomic-motion, subtask and overall-task levels; compare the descriptions with overhead and two wrist-camera views; check for missing pauses, failed grasps, dropped objects and incorrect contact details','Requires excellent written English, close attention to detail, spatial/mechanical vocabulary, consistent use of a structured style guide and clear constructive feedback. Prior QC, editing, proofreading or annotation-review experience is helpful but not required','The listing says contributors may choose when and how much to contribute; this is project-based freelance work, not guaranteed employment or hours','The listing contains an unrelated sentence about expertise in the Legal field even though the role is robotics video QC. Treat that as a copy/template inconsistency and confirm the actual project scope with Welo before accepting','The Philippines is explicitly listed; no citizenship restriction is published. Confirm foreign-national contractor onboarding, tax documentation and payment method before sharing financial details'],
+  official:'https://jobs.lever.co/weloglobal/9bd19b88-42a1-4681-9625-120ea954f16c',
+  secondary:'https://jobs.lever.co/weloglobal/?location=Philippines',
+  secondaryLabel:'Official Welo Global Philippines role board',
+  tertiary:'https://jobs.lever.co/weloglobal/9bd19b88-42a1-4681-9625-120ea954f16c/apply',
+  tertiaryLabel:'Official Cursa V2 QC application form',
+  cta:'Review the official Welo QC listing',
+  verified:'2026-11-14'
+ },
+
+ {
+  id:'welo-andromeda-adjudicator-english-us',name:'Welo Global — Andromeda Delta Audio Transcription Adjudicator (English US)',status:'active-ph',badge:'PHILIPPINES • REMOTE FREELANCE • USD $7/HR • 15–20 HRS/WEEK',
+  summary:'Welo Data’s official listing includes the Philippines for a freelance English (US) speech-data adjudication project. The work resolves disputed word-level transcriptions and timestamps, with a listed rate of USD $7/hour and estimated 15–20 hours per week. It is an experienced review role, not entry-level transcription.',
+  requirements:['The official listing explicitly includes the Philippines, India, Indonesia, Cairo and Mexico; the engagement is remote freelance/contract','Advertised rate is USD $7.00/hour and estimated workload is 15–20 hours per week; actual hours and project continuity are not guaranteed','Review disputed word-level transcript segments and timestamp boundaries, apply the project style guide, make final adjudication decisions and explain the reasoning for difficult cases','Requires U.S. cultural expertise in English and excellent listening comprehension. Prior transcription/annotation QA, adjudication or linguistic-review experience is preferred; attention to detail and comfort with ambiguity are essential','The official application form asks for current application location and a résumé; it does not publish payout method, fees, cash-out threshold or tax onboarding. Confirm those terms in writing before accepting','The Philippines is an eligible location; the listing does not state a U.S. citizenship or U.S. work-authorization requirement. A U.S. citizen residing in the Philippines should still confirm foreign-national contractor onboarding and local tax paperwork with Welo'],
+  official:'https://jobs.lever.co/weloglobal/bfadf038-9d98-482e-b245-4def1c370253',
+  secondary:'https://jobs.lever.co/weloglobal/?location=Philippines',
+  secondaryLabel:'Official Welo Global Philippines role board',
+  tertiary:'https://jobs.lever.co/weloglobal/bfadf038-9d98-482e-b245-4def1c370253/apply',
+  tertiaryLabel:'Official Andromeda Delta adjudicator application form',
+  cta:'Review the official Welo adjudicator listing',
+  verified:'2026-11-14'
+ },
+
+ {
+  id:'welo-remote-data-annotator-dutch',name:'Welo Global — Remote Data Annotator (Dutch)',status:'active-ph',badge:'PHILIPPINES • REMOTE FREELANCE • USD $2.25/HR • 20 HRS/WEEK',
+  summary:'Welo Data’s official Lever listing includes the Philippines for an entry-level Dutch-language e-commerce data-rating project. The listed rate is USD $2.25/hour with an estimated 20 hours per week, although workload varies with project needs. The official application form warns that Hyperwallet is not supported for the required country and payment will be by wire transfer, potentially with bank fees.',
+  requirements:['The official listing explicitly names the Philippines and classifies the work as remote freelance/independent-contract work','Advertised rate is USD $2.25/hour based on tasks completed; the listing estimates 20 hours per week, but weekly hours vary with project needs and are not guaranteed','Tasks research e-commerce data, evaluate product filters/results and rate them against project guidelines','Applicants must be fully proficient in Dutch and proficient in English, web-savvy and attentive to detail. Prior annotation experience is not listed as required','The official application form asks which country you currently live in and how long you have lived there; use the actual Philippine residence rather than birthplace or citizenship','The application form states Hyperwallet is not supported for the position’s required country and applicants will be paid by wire transfer; the receiving bank may charge a fee. Because the Philippines is one of the listed locations, confirm the wire-transfer condition for the selected PH location and ask your bank about incoming USD fees before accepting','The form does not publish a cash-out threshold or tax onboarding details. Confirm contractor classification, payment timing, bank charges and local tax paperwork before sharing financial information'],
+  official:'https://jobs.lever.co/weloglobal/be3a92c6-de7f-42be-8c4a-a0c350c50443',
+  secondary:'https://jobs.lever.co/weloglobal/?location=Philippines',
+  secondaryLabel:'Official Welo Global Philippines role board',
+  tertiary:'https://jobs.lever.co/weloglobal/be3a92c6-de7f-42be-8c4a-a0c350c50443/apply',
+  tertiaryLabel:'Official application form with wire-transfer condition',
+  cta:'Apply only if fully Dutch-proficient and comfortable with wire transfer',
+  verified:'2026-11-14'
+ },
+
  {
   id:'ai-data-innovations-ai-safety-annotator',name:'AI Data Innovations — Technical Data Annotator (AI Safety & Guardrails)',status:'active-ph',badge:'PHILIPPINES • REMOTE • CONTRACT • USD $8.00/HR • ABOUT 12 WEEKS',
   summary:'The employer’s newer LinkedIn posting lists the same remote Philippines AI Safety & Guardrails project at USD $8.00/hour, approximately 12 weeks, with weekly hours still to be confirmed. The earlier USD $6.50/hour posting is now marked no longer accepting applications. This is a new employer-posted rate and application listing, not a guaranteed increase to an existing contract.',
@@ -343,9 +419,9 @@ const opportunities:Opportunity[]=[
  },
 
  {
-  id:'philippine-startup-week-2026',name:'Philippine Startup Week 2026 — Founder & Investor Networking Conference',status:'location-check',badge:'QUEZON CITY • NOVEMBER 9–12, 2026 • FREE PARTICIPANT PRE-REGISTRATION',
-  summary:'The official Philippine Startup Week portal lists the four-day conference at the M.I.C.E. Center in Quezon City for November 9–12, 2026. The government registration page lists free participant pre-registration; exhibitor, community-event and pre-event submissions require review and approval. The November 10 main-event schedule now shows an investor stage with Gobi Partners, Foxmont Capital Partners and Kickstart Ventures, plus DOST’s “HEADSTART: From Grant to Growth” session. These are networking and learning opportunities, not grants, jobs or guaranteed investment awards.',
-  requirements:['Official event dates: November 9–12, 2026; venue: M.I.C.E. Center, Quezon City','The official info portal is live at phsw.startup.gov.ph and its Pre-Register button routes to the government Startup Philippines registration page. The indexed registration page lists Participant pre-registration as free; exhibitor, community-event and pre-event submissions are reviewed and require approval','The registration page is dynamically rendered and the static web reader shows only its shell; if the form does not load, use the official portal button or contact startup.web@dict.gov.ph rather than an unofficial form','IGNITE X 2026 takes place November 10; registration opens at 8:30 AM and the Luma page says host approval is required. No separate attendance price is displayed for IGNITE X; confirm any fee or participation conditions before travel','The November 10 main-event schedule lists an investor stage from 10:20–11:30 AM with Gobi Partners, Foxmont Capital Partners and Kickstart Ventures, plus DOST’s “HEADSTART: From Grant to Growth” session from 1:00–5:00 PM in Vinta Hall; attendance does not guarantee investor meetings or funding','The published venues are in Quezon City. No virtual-attendance option or travel support was confirmed; do not assume remote participation','Do not confuse the closed Startup World Cup Philippines application (deadline October 30, 2026) with registration to attend IGNITE X or Philippine Startup Week'],
+  id:'philippine-startup-week-2026',name:'Philippine Startup Week 2026 — Founder & Investor Networking Conference',status:'closed',badge:'CLOSED • EVENT ENDED NOVEMBER 12, 2026 • QUEZON CITY',
+  summary:'The official Philippine Startup Week portal lists the four-day conference at the M.I.C.E. Center in Quezon City for November 9–12, 2026. The event ended November 12. Keep this entry as a historical reference only; it is no longer an active registration, grant, job, or investment opportunity. No future-cycle date or confirmed post-event recording access is published on the official pages checked.',
+  requirements:['Official event dates: November 9–12, 2026; venue: M.I.C.E. Center, Quezon City; the event ended November 12','Do not use the old 2026 pre-registration route as an active event registration; check the official portal for future events and any post-event material','The official event portal and schedule remain available as references; the registration page does not establish that a current registration window remains open','IGNITE X 2026 took place November 10; its registration required host approval, and no future event date or attendance price is confirmed here','The November 10 main-event schedule listed an investor stage and DOST session; attendance did not guarantee investor meetings or funding','No virtual-attendance option or travel support was confirmed; do not assume remote participation','Do not confuse the closed Startup World Cup Philippines application with attendance at Philippine Startup Week'],
   official:'https://phsw.startup.gov.ph/',
   secondary:'https://startup.gov.ph/phsw-register/',
   secondaryLabel:'Official government registration page — participant pre-registration listed as free',
@@ -355,8 +431,8 @@ const opportunities:Opportunity[]=[
    {label:'IGNITE X registration — host approval required',url:'https://luma.com/rdibkjhw'},
    {label:'Official IIDB announcements',url:'https://ph.linkedin.com/company/dict-iidb'}
   ],
-  cta:'Pre-register through the official Startup Week portal',
-  verified:'2026-11-09'
+  cta:'View official event information',
+  verified:'2026-11-13'
 },
  {
 
@@ -720,13 +796,13 @@ const opportunities:Opportunity[]=[
  {
   id:"innodata-robotics-annotator-rater-remote-ph",
   name:"Innodata — Robotics Annotator Rater (New Employer Posting)",
-  status:"active-ph",
-  badge:"PHILIPPINES • 100% REMOTE • PROJECT-BASED THROUGH DEC 31 • PAY NOT DISCLOSED",
-  summary:"A newer employer-posted Innodata LinkedIn listing is currently open for a 100% remote, project-based Robotics Annotator Rater assignment. The project is listed for October 28–December 31, 2026, with working hours still to follow. This is a newer posting, not the older duplicate that LinkedIn marked closed.",
-  requirements:["The current employer-posted LinkedIn listing identifies Mandaue, Philippines and states 100% remote work; it is a project-based contract scheduled October 28–December 31, 2026","The current listing requires a graduate of any four-year college course. Prior data annotation, AI training, video/image evaluation, QA, transcription or captioning experience is an advantage, not a stated requirement","Work involves reviewing household-task videos, identifying valid actions, marking accurate start/end timestamps, identifying hand designation and writing concise Natural Language Descriptions under project guidelines","You must have your own desktop or laptop and stable high-speed internet; mobile devices are explicitly unsupported","Working hours are still to follow and pay is not disclosed. Confirm the exact rate, schedule, paid onboarding, project continuity and payout terms before accepting","The older employer posting ID 4465962689 is closed; use only the newer employer listing ID 4476406055 and do not rely on third-party reposts of the closed predecessor","Never pay recruitment, training, equipment, assessment or release fees and never provide banking passwords, OTPs or account recovery codes"],
+  status:"closed",
+  badge:"CLOSED • EMPLOYER LISTING MARKED NOT ACCEPTING APPLICATIONS • DO NOT APPLY",
+  summary:"The employer-posted Philippines Robotics Annotator Rater listing ID 4476406055 is now marked “no longer accepting applications” on LinkedIn as of November 14, 2026. The earlier posting ID 4465962689 is also closed. Keep this record only as a historical reference; do not apply through reposts of either closed listing.",
+  requirements:["The current employer-posted LinkedIn listing identifies Mandaue, Philippines and states 100% remote work; it is a project-based contract scheduled October 28–December 31, 2026","The current listing requires a graduate of any four-year college course. Prior data annotation, AI training, video/image evaluation, QA, transcription or captioning experience is an advantage, not a stated requirement","Work involves reviewing household-task videos, identifying valid actions, marking accurate start/end timestamps, identifying hand designation and writing concise Natural Language Descriptions under project guidelines","You must have your own desktop or laptop and stable high-speed internet; mobile devices are explicitly unsupported","Working hours are still to follow and pay is not disclosed. Confirm the exact rate, schedule, paid onboarding, project continuity and payout terms before accepting","Both employer posting IDs 4465962689 and 4476406055 are marked no longer accepting applications; do not use third-party reposts","Never pay recruitment, training, equipment, assessment or release fees and never provide banking passwords, OTPs or account recovery codes"],
   official:"https://ph.linkedin.com/jobs/view/robotics-annotator-rater-work-from-home-at-innodata-inc-4476406055",
-  cta:"Open the current employer-posted listing",
-  verified:"2026-11-06"
+  cta:"View employer page for a future repost; current listing closed",
+  verified:"2026-11-14"
  },
  {
   id:"welo-ai-trainers-global-portal",
@@ -1193,6 +1269,78 @@ const opportunities:Opportunity[]=[
   cta:'Apply for the official Ambassador Academy',
   verified:'2026-11-09'
  },
+  {
+   id:'attapoll-ph-surveys',name:'AttaPoll — Paid Surveys & Mobile Rewards',status:'active-ph',badge:'PHILIPPINES • ANDROID + IPHONE • SURVEY PAYOUTS VARY',
+   summary:'AttaPoll is a free survey app with official Philippines iPhone and Android store listings, and its official referral-country page explicitly includes the Philippines. Surveys pay per completed activity, but the amount, screening and task supply vary; the app’s global store examples are not a guaranteed Philippines rate. The actual withdrawal methods and minimum are shown in-app for your country.',
+   requirements:['Free to download and join; the Philippines App Store listing is age 13+ and the Android app is published by AttaPoll Ltd','Complete your profile accurately and check the displayed reward before starting; survey screen-outs and limited local survey supply are possible, so no earnings are guaranteed','AttaPoll says payout thresholds and methods vary by country and are shown in the app. Do not assume the US/UK cash-out minimum or every global method applies in the Philippines; confirm the PH cashout method and threshold before investing time','Apple’s Philippines privacy disclosure says the app may collect location, contact information, user content, identifiers and sensitive information; Google Play lists app data and activity disclosures. Review the privacy policy and permissions before joining','Philippines store reviews include reports of infrequent surveys, disqualifications and game-task rewards not credited, alongside some positive payout reports. These are user reviews, not proof of systematic nonpayment; start with ordinary surveys and avoid spending money or grinding game offers until a first withdrawal is verified','Never pay to join, buy in-app items to unlock surveys, use VPN/proxy location masking or provide passwords/OTPs'],
+   official:'https://attapoll.com/en-us/terms-and-conditions/',
+   secondary:'https://apps.apple.com/ph/app/attapoll-surveys-earn-money/id1107631390',
+   secondaryLabel:'Official iPhone app — Philippines App Store',
+   tertiary:'https://play.google.com/store/apps/details?hl=fil&id=com.requapp.requ',
+   tertiaryLabel:'Official Android app — Google Play',
+   quaternary:'https://attapoll.com/en-sg/referral-program-countries/',
+   quaternaryLabel:'Official country list — Philippines included',
+   cta:'Open official AttaPoll information',
+   verified:'2026-11-14'
+  },
+  {
+   id:'deepgram-ph-filipino-labeling-editor',name:'Deepgram Philippines — Filipino Freelance Labeling Editor',status:'active-ph',badge:'PHILIPPINES • REMOTE FREELANCE • STEADY WEEKLY TASKS • RATE NOT DISCLOSED',
+   summary:'Deepgram’s current employer-posted Philippines role reviews, transcribes and labels speech data used to train voice AI models. The work is remote freelance with a steady weekly workload and flexible hours, but weekly output and quality targets apply. Most work is in English and Tagalog/Taglish; Cebuano, Ilocano, Hiligaynon and Kapampangan are useful additional languages.',
+   requirements:['Native or near-native Tagalog/Filipino fluency and strong English listening/reading comprehension are required; other Philippine languages are a plus','Experience in transcription, captioning, translation or data annotation is sought; careful contextual judgment and consistent guideline-following are important','Work includes transcription/labeling, correcting AI-generated transcripts, following style guides and meeting weekly quality and output targets','The employer describes a remote freelance arrangement based in the Philippines, with weekly task distribution and flexible working time; this is not quick occasional fill-in work','The public listing does not disclose a rate, minimum hours, equipment allowance or payout schedule. Confirm all of these in writing before accepting; no applicant fee is stated and no intermediary should be paid'],
+   official:'https://ph.linkedin.com/jobs/view/filipino-freelance-labeling-editor-at-deepgram-4487096695',
+   secondary:'https://deepgram.com/',
+   secondaryLabel:'Deepgram official company website',
+   cta:'View current employer listing',
+   verified:'2026-11-14'
+  },
+  {
+   id:'telus-tagalog-filipino-ai-linguistic-expert',name:'TELUS Digital AI Community — Tagalog/Filipino AI Linguistic Expert',status:'active-ph',badge:'PHILIPPINES • MANILA LISTING • PART-TIME CONTRACT • USD $5.50–$7.00/HR • REMOTE STATUS TO CONFIRM',
+   summary:'TELUS Digital AI Community’s current Manila listing seeks a native-level Tagalog/Filipino speaker to review AI-generated text, language quality, grammar, cultural nuance, prompts and localization. The posting advertises USD $5.50–$7.00 per hour and a part-time independent-contractor relationship. It identifies Manila but does not clearly state that the work can be performed from anywhere in the Philippines; confirm the actual work location and project hours before applying.',
+   requirements:['Requires native-level Filipino/Tagalog and basic B1 English; the public posting asks for a bachelor’s degree in any field with annotation experience','Work includes reviewing AI-generated text, grammar, spelling, syntax, fluency, cultural nuance, prompts, translations and localized content','A subject-specific qualification exam and identity verification are required; this is not guaranteed work or a guaranteed number of hours','Advertised pay is USD $5.50–$7.00/hour, but project payment terms and hours are defined separately; confirm the actual rate, schedule, payout method and contract before accepting','The listing is in Manila and says part-time contractor; remote work from outside the listed location is not explicit and must be confirmed','Apply only through the employer-posted listing. No applicant fee is stated; never pay a recruiter or intermediary'],
+   official:'https://ph.linkedin.com/jobs/view/tagalog-filipino-ai-linguistic-expert-at-telus-digital-ai-community-4490341902',
+   secondary:'https://www.telusdigital.com/careers/ai-community',
+   secondaryLabel:'TELUS Digital AI Community',
+   cta:'View current employer listing',
+   verified:'2026-11-14'
+  },
+  {
+   id:'innodata-senior-ai-domain-expert-ph',name:'Innodata — Senior AI Domain Expert Roles (Engineering, Computing, Energy, Social Science & Agriculture)',status:'active-ph',badge:'PHILIPPINES • PART-TIME • REMOTE-FRIENDLY • SPECIALIST EXPERIENCE • PAY NOT DISCLOSED',
+   summary:'Innodata has several current Philippines employer postings for senior subject-matter experts who evaluate complex technical or scientific material and AI-generated outputs, design benchmarks and provide gold-standard explanations. The postings are part-time and describe flexible or remote-friendly work, but exact work setup, weekly hours and compensation must be confirmed for each role. These are specialist positions, not general beginner annotation.',
+   requirements:['Current employer-posted disciplines include engineering; computing and IT; energy and environmental systems; social science and quantitative methods; agriculture, food and wine systems; and senior AI evaluation/RLHF','Most domain-expert postings require a relevant bachelor’s, master’s or PhD-level qualification (or equivalent specialist background) and at least 3 years of professional or academic experience in the stated discipline; the exact requirement differs by role','Tasks can include interpreting engineering drawings, technical diagrams, scientific charts and data, validating AI outputs, creating difficult assessment tasks and writing detailed reference solutions','The listings are part-time and remote-friendly, but do not assume every role is fully remote from every Philippine location; confirm work arrangement, hours and project availability with the employer','Pay is not disclosed on the public postings. Confirm rate, workload, contract duration and payment schedule before accepting; no applicant fee is stated and no recruiter/intermediary should be paid'],
+   official:'https://ph.linkedin.com/jobs/view/senior-engineering-domain-expert-ai-training-benchmarking-technical-evaluation-at-innodata-inc-4481426805',
+   secondary:'https://ph.linkedin.com/jobs/view/senior-computing-it-domain-expert-ai-training-benchmarking-technical-evaluation-at-innodata-inc-4481430713',
+   secondaryLabel:'Senior Computing & IT Domain Expert',
+   tertiary:'https://ph.linkedin.com/jobs/view/senior-energy-environmental-systems-domain-expert-ai-training-benchmarking-technical-evaluation-at-innodata-inc-4481438265',
+   tertiaryLabel:'Senior Energy & Environmental Systems Domain Expert',
+   quaternary:'https://ph.linkedin.com/jobs/view/senior-social-science-quantitative-methods-domain-expert-ai-training-benchmarking-technical-evaluation-at-innodata-inc-4481432662',
+   quaternaryLabel:'Senior Social Science & Quantitative Methods Domain Expert',
+   moreLinks:[{label:'Senior Agriculture, Food & Wine Systems Domain Expert',url:'https://ph.linkedin.com/jobs/view/senior-domain-expert-agriculture-food-wine-systems-ai-technical-evaluation-at-innodata-inc-4481437269'},{label:'Senior AI Evaluation & RLHF Specialist',url:'https://ph.linkedin.com/jobs/view/senior-ai-evaluation-rlhf-specialist-at-innodata-inc-4465525895'}],
+   cta:'Review official employer postings',
+   verified:'2026-11-14'
+  },
+  {
+   id:'mytron-labs-ph-smartphone-data',name:'MyTron Labs — Smartphone Video Data Contributor',status:'location-check',badge:'PHILIPPINES LISTED • $2–$10/HR ADVERTISED • PRIVACY / PAID-COUNTRY CHECK REQUIRED',
+   summary:'MyTron Labs’ contributor page lists the Philippines among countries currently accepting collectors and advertises free sign-up, smartphone video tasks, USD $2–$10/hour depending on project, and weekly payouts to local bank or mobile wallet. However, its Trust & Safety page reports contributors paid across only seven countries without naming them, so actual Philippine project and payout availability still needs confirmation. The company is MyTron Labs LLP, registered in India.',
+   requirements:['Free sign-up; contributors must be at least 18. The site says a modern smartphone is sufficient and no special equipment is needed; an optional two-minute environment video (MP4/MOV up to 200 MB) is preferred for setup review','The advertised rate is USD $2–$10/hour depending on project type and complexity; pay is for approved work and the rate shown in the app before starting. No minimum hours are promised','The sign-up page lists the Philippines, but the Trust & Safety page reports 250+ contributors paid across seven countries without identifying them. Confirm that a live Philippine project and Philippine bank/mobile-wallet payout are actually available before recording','The privacy policy says recordings can include your face, voice, other people, private spaces, objects and sensor data. Get consent from anyone who appears or is heard; never record children, passwords, bank cards, IDs, medical records, private screens or sensitive places','For partner-app tasks, the partner controls and receives the footage; MyTron says it receives only the hours report. For recordings it holds, the policy says accepted footage may be licensed to clients, faces/plates/screens are blurred before delivery, rejected raw footage is deleted within 90 days, and processed de-identified datasets may be retained as needed','Payout methods depend on country. The site lists local bank transfer, PayPal and mobile wallets; its Trust page also lists UPI, Wise and AirTM. Confirm which method actually works in the Philippines and review the recording consent and deletion limits before starting','The company advertises a 20% lifetime referral program, but referral income is optional and not a substitute for paid approved work; do not recruit others or rely on referral earnings'],
+   official:'https://www.mytronlabs.com/join-as-contributor',
+   secondary:'https://www.mytronlabs.com/privacy-policy',
+   secondaryLabel:'Official privacy policy and recording/data-retention terms',
+   tertiary:'https://www.mytronlabs.com/trust',
+   tertiaryLabel:'Official Trust & Safety, payout and contributor disclosures',
+   cta:'Confirm Philippine project availability before recording',
+   verified:'2026-11-14'
+  },
+  {
+   id:'landbank-dost-lifting',name:'LANDBANK + DOST — LIFTING MSMEs Lending Program',status:'location-check',badge:'PHILIPPINES • DOST-ASSISTED MSMEs / STARTUPS • LOAN, NOT GRANT • TERMS TO CONFIRM',
+   summary:'DOST and LANDBANK announced a partnership to support DOST-assisted MSMEs and startups through LANDBANK’s LIFTING MSMEs Lending Program. The official DOST announcement links the collaboration to programs such as SETUP, TECHNiCOM and the Startup Grant Fund. This is a financing/loan pathway, not a grant call; the public announcement does not provide a current application deadline, interest rate, collateral rules or complete loan terms.',
+   requirements:['The announcement focuses on DOST-assisted MSMEs and startups; DOST referral and LANDBANK credit review may apply','The DOST announcement identifies SETUP, TECHNiCOM and Startup Grant Fund beneficiaries as program areas; it does not guarantee that every startup or applicant qualifies','Ask DOST and LANDBANK for current eligibility, available loan amounts, interest, repayment term, collateral/security, fees, required financial statements and application procedure before preparing documents','LANDBANK performs its own credit evaluation and approval; a DOST referral does not guarantee a loan','This creates a repayment obligation and must not be presented as a grant or free money. Do not pay an intermediary or assume approval'],
+   official:'https://www.dost.gov.ph/knowledge-resources/news/4379-dost-landbank-to-grow-local-msmes-thru-technology-upgrades-and-financing.html',
+   secondary:'https://www.landbank.com/news/landbank-dost-strengthen-nationwide-support-for-msmes-startups',
+   secondaryLabel:'Official LANDBANK partnership announcement',
+   cta:'Check current DOST/LANDBANK loan eligibility and terms',
+   verified:'2026-11-14'
+  },
+
 ];
 
 const statusLabel=(s:Opportunity['status'])=>s==='active-ph'?'Verified PH path':s==='closed'?'Closed / deadline passed':s==='location-check'?'Check eligibility / location':'Waitlist / unavailable in PH';
@@ -1226,7 +1374,7 @@ export default function OpportunityVault(){
     <h3>Current facts</h3><ul>{o.requirements.map(x=><li key={x}>{x}</li>)}</ul>
     {o.examples?.length?<><h3>Examples seen in the current official listing</h3><ul>{o.examples.map(x=><li key={x}>{x}</li>)}</ul></>:null}
     {o.referral&&<div className="ref"><span>Optional referral code supplied by I AM Magnanimous Way™</span><b>{o.referral}</b><button onClick={()=>copy(o.referral!)}>Copy code</button><small>No bonus amount is promised here; current referral terms must be checked in the app.</small></div>}
-    <div className="actions"><a href={o.official} target="_blank" rel="noreferrer">{o.cta}</a>{o.secondary&&<a href={o.secondary} target="_blank" rel="noreferrer">{o.secondaryLabel||'Open secondary source'}</a>}{o.tertiary&&<a href={o.tertiary} target="_blank" rel="noreferrer">{o.tertiaryLabel||'Open third source'}</a>}{o.moreLinks?.map(link=><a key={link.url} href={link.url} target="_blank" rel="noreferrer">{link.label}</a>)}</div>
+    <div className="actions"><a href={o.official} target="_blank" rel="noreferrer">{o.cta}</a>{o.secondary&&<a href={o.secondary} target="_blank" rel="noreferrer">{o.secondaryLabel||'Open secondary source'}</a>}{o.tertiary&&<a href={o.tertiary} target="_blank" rel="noreferrer">{o.tertiaryLabel||'Open third source'}</a>}{o.quaternary&&<a href={o.quaternary} target="_blank" rel="noreferrer">{o.quaternaryLabel||'Open fourth source'}</a>}{o.moreLinks?.map(link=><a key={link.url} href={link.url} target="_blank" rel="noreferrer">{link.label}</a>)}</div>
     <footer>Last source verification: {o.verified}</footer>
    </article>)}
   </section>
