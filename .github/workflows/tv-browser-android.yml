@@ -38,7 +38,7 @@ jobs:
           gradle-version: '8.10.2'
       - name: Build TV debug APK
         run: gradle -p android-tv-browser :app:assembleDebug --no-daemon
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: magnanimous-tv-browser-debug-apk
           path: android-tv-browser/app/build/outputs/apk/debug/*.apk
