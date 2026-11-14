@@ -38,7 +38,7 @@ async function read(response: Response) {
 }
 
 function requiresSpecialistTools(message: string): boolean {
-  return /\\b(connect|sync|submit|send|publish|book|schedule|call|email|message|update|change|delete|remove|download|upload|install|configure|run|execute|browse|search|find|audit|test|verify|inspect|apply|purchase|order|monitor|track|open|click|fill|deploy|repair|fix|implement|build)\\b/i.test(message);
+  return /\b(connect|sync|submit|send|publish|book|schedule|call|email|message|update|change|delete|remove|download|upload|install|configure|run|execute|browse|search|find|audit|test|verify|inspect|apply|purchase|order|monitor|track|open|click|fill|deploy|repair|fix|implement|build)\b/i.test(message);
 }
 
 function auth(): Record<string, string> {
@@ -795,6 +795,7 @@ export default function AIChat() {
           font-size: 13px;
         }
         .listen-answer {
+          grid-column: 2 / -1;
           justify-self: start;
           width: fit-content;
           margin-top: 9px;
@@ -1064,6 +1065,9 @@ export default function AIChat() {
           .answer {
             grid-template-columns: 1fr;
             gap: 4px;
+          }
+          .listen-answer {
+            grid-column: 1;
           }
           .sources {
             margin-left: 0;
