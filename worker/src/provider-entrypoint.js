@@ -168,7 +168,8 @@ function nativeCapability(message, task) {
 }
 
 const PROVIDER_FETCH_TIMEOUT_MS=30000;
-const PROVIDER_REQUEST_BUDGET_MS=55000;
+// Bound automatic failover so an unavailable first engine cannot leave chat waiting nearly a minute.
+const PROVIDER_REQUEST_BUDGET_MS=30000;
 const CLOUDFLARE_MODEL_BUDGET_MS=45000;
 const CLOUDFLARE_ATTEMPT_TIMEOUT_MS=18000;
 let outcomeSchemaReady=false;
