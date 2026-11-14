@@ -160,6 +160,15 @@ jobs:
       - name: Lock cinematic 3-D homepage module marks
         run: node qa/scripts/home-3d-module-marks-lock.mjs
 
+      - name: Lock verified Philippines Opportunity Vault roles
+        run: node qa/scripts/opportunity-vault-ph-roles-lock.mjs
+
+      - name: Lock current Philippines Opportunity Vault refresh
+        run: node qa/scripts/opportunity-vault-ph-refresh-lock.mjs
+
+      - name: Lock recent platform invariants
+        run: node qa/scripts/platform-recent-conversation-invariants-lock.mjs
+
       - name: Lock Business AI D1 schema and request workload
         run: node qa/scripts/business-ai-request-workload-lock.mjs
 
