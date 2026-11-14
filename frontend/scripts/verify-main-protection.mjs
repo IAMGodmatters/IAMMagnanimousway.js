@@ -48,6 +48,24 @@ async function readJson(url, label) {
   }
 }
 
+async function readAllRulesets() {
+  const all = [];
+  for (let page = 1; page <= 10; page += 1) {
+    const rows = await readJson(
+      apiRoot + '/rulesets?includes_parents=true&targets=branch&per_page=100&page=' + page,
+      'GitHub repository and parent ruleset list'
+    );
+    if (!Array.isArray(rows)) {
+      console.error('::error::GitHub returned a non-array ruleset response. Production deployment is blocked closed for safety.');
+      process.exit(1);
+    }
+    all.push(...rows);
+    if (rows.length < 100) return all;
+  }
+  console.error('::error::Ruleset pagination exceeded 10 pages. Production deployment is blocked closed for safety.');
+  process.exit(1);
+}
+
 const branchData = await readJson(apiRoot + '/branches/main', 'GitHub main branch protection check');
 if (branchData?.protected !== true) {
   console.error('::error::PRODUCTION DEPLOYMENT BLOCKED: GitHub does not report main as protected.');
@@ -55,20 +73,31 @@ if (branchData?.protected !== true) {
   process.exit(1);
 }
 
-const rulesets = await readJson(apiRoot + '/rulesets', 'GitHub main ruleset list');
-const active = (Array.isArray(rulesets) ? rulesets : []).filter(item =>
-  item && item.target === 'branch' && item.enforcement === 'active' &&
-  (item.source === repo || item.source_type === 'Repository')
+const branchRules = await readJson(apiRoot + '/rules/branches/main', 'GitHub effective main-branch rules');
+if (!Array.isArray(branchRules)) {
+  console.error('::error::GitHub returned a non-array effective branch-rules response. Production deployment is blocked closed for safety.');
+  process.exit(1);
+}
+
+const rulesets = await readAllRulesets();
+const active = rulesets.filter(item =>
+  item && item.target === 'branch' && item.enforcement === 'active'
+);
+const applicableIds = new Set(
+  branchRules
+    .filter(rule => rule && rule.ruleset_id !== undefined && rule.ruleset_id !== null)
+    .map(rule => String(rule.ruleset_id))
 );
 const detailsById = {};
 for (const item of active) {
+  if (!applicableIds.has(String(item.id))) continue;
   detailsById[String(item.id)] = await readJson(
-    apiRoot + '/rulesets/' + encodeURIComponent(item.id),
+    apiRoot + '/rulesets/' + encodeURIComponent(item.id) + '?includes_parents=true',
     'GitHub ruleset ' + String(item.name || item.id)
   );
 }
 
-const assessment = evaluateMainRulesets(active, detailsById, repo);
+const assessment = evaluateMainRulesets(active, detailsById, branchRules);
 if (assessment.status !== 'pass') {
   console.error('::error::PRODUCTION DEPLOYMENT BLOCKED: GitHub main ruleset requirements are not satisfied.');
   for (const gap of assessment.gaps || ['The main ruleset could not be verified.']) {
@@ -82,5 +111,5 @@ console.log(
   'Main branch protection gate: PASS — ' +
   assessment.requiredApprovals + ' required PR approval(s); exact checks ' +
   assessment.requiredCheckContexts.join('; ') +
-  '; strict up-to-date policy enabled; no always-bypass actors.'
+  '; strict up-to-date policy enabled; no unrestricted bypass actors.'
 );
