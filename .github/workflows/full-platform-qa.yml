@@ -163,6 +163,9 @@ jobs:
       - name: Lock Business AI D1 schema and request workload
         run: node qa/scripts/business-ai-request-workload-lock.mjs
 
+      - name: Lock verified Philippines Opportunity Vault roles
+        run: node qa/scripts/opportunity-vault-ph-roles-lock.mjs
+
       - name: Frontend typecheck and production build
         working-directory: frontend
         run: |
