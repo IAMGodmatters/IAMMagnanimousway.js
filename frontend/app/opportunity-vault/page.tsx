@@ -3,7 +3,7 @@ import {useState} from 'react';
 
 type Opportunity={
  id:string;name:string;status:'active-ph'|'location-check'|'waitlist'|'closed';
- badge:string;summary:string;requirements:string[];examples?:string[];official:string;secondary?:string;secondaryLabel?:string;tertiary?:string;tertiaryLabel?:string;moreLinks?:{label:string;url:string}[];cta:string;referral?:string;verified:string;
+ badge:string;summary:string;requirements:string[];examples?:string[];official:string;secondary?:string;secondaryLabel?:string;tertiary?:string;tertiaryLabel?:string;quaternary?:string;quaternaryLabel?:string;moreLinks?:{label:string;url:string}[];cta:string;referral?:string;verified:string;
 };
 
 const opportunities:Opportunity[]=[
@@ -1298,7 +1298,7 @@ export default function OpportunityVault(){
     <h3>Current facts</h3><ul>{o.requirements.map(x=><li key={x}>{x}</li>)}</ul>
     {o.examples?.length?<><h3>Examples seen in the current official listing</h3><ul>{o.examples.map(x=><li key={x}>{x}</li>)}</ul></>:null}
     {o.referral&&<div className="ref"><span>Optional referral code supplied by I AM Magnanimous Way™</span><b>{o.referral}</b><button onClick={()=>copy(o.referral!)}>Copy code</button><small>No bonus amount is promised here; current referral terms must be checked in the app.</small></div>}
-    <div className="actions"><a href={o.official} target="_blank" rel="noreferrer">{o.cta}</a>{o.secondary&&<a href={o.secondary} target="_blank" rel="noreferrer">{o.secondaryLabel||'Open secondary source'}</a>}{o.tertiary&&<a href={o.tertiary} target="_blank" rel="noreferrer">{o.tertiaryLabel||'Open third source'}</a>}{o.moreLinks?.map(link=><a key={link.url} href={link.url} target="_blank" rel="noreferrer">{link.label}</a>)}</div>
+    <div className="actions"><a href={o.official} target="_blank" rel="noreferrer">{o.cta}</a>{o.secondary&&<a href={o.secondary} target="_blank" rel="noreferrer">{o.secondaryLabel||'Open secondary source'}</a>}{o.tertiary&&<a href={o.tertiary} target="_blank" rel="noreferrer">{o.tertiaryLabel||'Open third source'}</a>}{o.quaternary&&<a href={o.quaternary} target="_blank" rel="noreferrer">{o.quaternaryLabel||'Open fourth source'}</a>}{o.moreLinks?.map(link=><a key={link.url} href={link.url} target="_blank" rel="noreferrer">{link.label}</a>)}</div>
     <footer>Last source verification: {o.verified}</footer>
    </article>)}
   </section>
