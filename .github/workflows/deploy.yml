@@ -98,6 +98,7 @@ jobs:
         working-directory: frontend
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          RULESET_AUDIT_TOKEN: ${{ secrets.RULESET_AUDIT_TOKEN }}
         run: npm run build
 
       - name: Lock product and specialist QA contracts

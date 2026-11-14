@@ -82,6 +82,9 @@ jobs:
       - name: Test Reels production smoke validator without live traffic
         run: node qa/scripts/reels-proxy-production-smoke-test.mjs
 
+      - name: Test main ruleset audit assessment
+        run: node qa/scripts/main-ruleset-live-audit-test.mjs
+
       - name: Lock durable active development checkpoint
         run: node qa/scripts/development-checkpoint-lock.mjs
 
