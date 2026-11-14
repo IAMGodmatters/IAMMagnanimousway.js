@@ -445,9 +445,10 @@ async function handle(request, env) {
       try{toolPlanning=await getMagnanimousToolFoundryContext(request,env,userMessage)}catch(e){console.error('tool planning context failed',e)}
     }
     const observed=(computeOnly||body.use_tools===false)?null:await foundryCall(request,env,'/api/magnanimous/tool-foundry/observe',{capability,example_task:userMessage});
-    const learnedScores=computeOnly?new Map():await learnedProviderScores(request,env,task);
+    const simpleConversation=!computeOnly&&!autoResearch&&body.use_tools===false&&task!=='coding';
+    const learnedScores=(computeOnly||simpleConversation)?new Map():await learnedProviderScores(request,env,task);
     const learningState=[...learnedScores.entries()].map(([provider,x])=>({provider,...x}));
-    const signedInUser=computeOnly?null:await currentUser(request,env).catch(()=>null),localBridgeReady=signedInUser?await hasReadyLocalBridge(env,signedInUser.tenant_id).catch(()=>false):false;
+    const signedInUser=computeOnly?null:await currentUser(request,env).catch(()=>null),localBridgeReady=signedInUser&&body.use_tools!==false?await hasReadyLocalBridge(env,signedInUser.tenant_id).catch(()=>false):false;
     const ogenicRuntimeEnv=localBridgeReady?{...env,MAGNANIMOUS_LOCAL_BRIDGE_READY:true}:env;
     const ogenicPlan=computeOnly?{classification:'CLOUD',groups:[],initiative:'disabled',status:'compute-only',network_direction:'none'}:buildMagnanimousOgenicPlan(userMessage,ogenicRuntimeEnv),ogenicContext=computeOnly?'':getMagnanimousOgenicPrompt(userMessage),absorbedCapabilityContext=computeOnly?'':getConnectorAbsorptionPrompt(userMessage);
     let ogenicInitiative=null;
@@ -466,7 +467,10 @@ async function handle(request, env) {
     const acceleratorPool=computeOnly&&body.allow_metered_accelerator!==true?availableProviders(env).filter(p=>effectiveTier(env,p)==='free-first'):availableProviders(env);
     const providerPool=executableProviderPool(env,userMessage,body,learnedScores); const candidates = requested !== 'auto' ? acceleratorPool.filter(p => p.id === requested && configured(env,p)) : providerPool.ordered.filter(p=>acceleratorPool.some(a=>a.id===p.id));
     if (!candidates.length) return json({ detail: requested === 'auto' ? 'Magnanimous AI has no configured execution engine. Cloudflare Workers AI should be bound as AI, or another free-first provider must be configured.' : 'The requested execution engine is not configured or is disabled.', code: 'NO_AI_PROVIDER' }, 503);
-    const errors = [],providerDeadline=Date.now()+PROVIDER_REQUEST_BUDGET_MS;
+    const extendedExecution = computeOnly || autoResearch || body.use_tools === true || task === 'coding' || groundedMessage.length > 7000;
+    const requestBudgetMs = extendedExecution ? PROVIDER_REQUEST_BUDGET_MS : 28000;
+    const perProviderBudgetMs = extendedExecution ? 45000 : 24000;
+    const errors = [],providerDeadline=Date.now()+requestBudgetMs;
     for (const p of candidates) {
       const started=Date.now(),remaining=providerDeadline-started;
       if(remaining<1500){errors.push('Magnanimous AI execution budget exhausted before another provider could start.');break}
@@ -487,7 +491,7 @@ async function handle(request, env) {
           if(!fundingGate.ok){errors.push(`${p.name}: ${fundingGate.code||'customer-funded prepaid balance unavailable'}`);continue}
         }
         const freeFailoverAvailable=requested==='auto'&&candidates.slice(candidates.indexOf(p)+1).some(candidate=>candidate.id!==p.id&&configured(env,candidate)&&providerEnabled(env,candidate)&&effectiveTier(env,candidate)==='free-first');
-        const result = await withinProviderBudget(callProvider(p.id, env, groundedMessage, executionModel,{freeFailoverAvailable}),Math.min(45000,remaining),`${p.name} execution`);
+        const result = await withinProviderBudget(callProvider(p.id, env, groundedMessage, executionModel,{freeFailoverAvailable}),Math.min(perProviderBudgetMs,remaining),`${p.name} execution`);
         if (!result?.text?.trim()) throw new Error('Provider returned an empty response');
         if(paidExecution){
           const priced=providerOriginCost({provider:p.id,model:result.model,usage:result.usage,billing_mode:billingMode});

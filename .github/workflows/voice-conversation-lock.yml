@@ -21,3 +21,5 @@ jobs:
         run: node qa/scripts/voice-conversation-lock.mjs
       - name: Verify song fallback and AI outage recovery
         run: node qa/scripts/voice-response-recovery-lock.mjs
+      - name: Verify fast chat and spoken answer controls
+        run: node qa/scripts/chat-experience-responsiveness-lock.mjs

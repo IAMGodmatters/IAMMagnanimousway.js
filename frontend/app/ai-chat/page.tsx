@@ -6,6 +6,8 @@ import ModeHero from "../../components/ModeHero";
 import AIProcessingIndicator from "../../components/AIProcessingIndicator";
 import AIInteractionDisclosure from "../../components/AIInteractionDisclosure";
 import { postMagnanimousChat } from "../../lib/magnanimous-chat-transport";
+import { speakTextNaturally, stopNaturalSpeech } from "../../lib/natural-speech";
+import { configurePersonaVoice } from "../../lib/persona-voice";
 import {
   MODE_OPTIONS,
   MODE_VISUALS,
@@ -35,6 +37,10 @@ async function read(response: Response) {
   }
 }
 
+function requiresSpecialistTools(message: string): boolean {
+  return /\b(connect|sync|submit|send|publish|book|schedule|call|email|message|update|change|delete|remove|download|upload|install|configure|run|execute|browse|search|find|audit|test|verify|inspect|apply|purchase|order|monitor|track|open|click|fill|deploy|repair|fix|implement|build)\b/i.test(message);
+}
+
 function auth(): Record<string, string> {
   const token =
     localStorage.getItem("odin_admin_token") ||
@@ -53,6 +59,7 @@ export default function AIChat() {
   const [webSearchReady, setWebSearchReady] = useState(false);
   const [notice, setNotice] = useState("");
   const [activeQuestion, setActiveQuestion] = useState("");
+  const [speakingAnswer, setSpeakingAnswer] = useState<number | null>(null);
 
   useEffect(() => {
     const query = new URLSearchParams(location.search);
@@ -108,16 +115,23 @@ export default function AIChat() {
       : "";
     const requestMessage = `${modeInstruction}${continuity}New request: ${question}`;
     const research = mode === "Research" && webSearchReady;
+    // Normal conversation should not wait for specialist tool discovery.
+    // Only requests that ask Magnanimous to execute or inspect an external action open that path.
+    const useTools = !research && requiresSpecialistTools(question);
+    const timeoutMs = research || useTools ? 70000 : 35000;
+    const controller = new AbortController();
+    const requestTimer = window.setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       const response = await postMagnanimousChat(`${api}/api/chat`, {
         method: "POST",
+        signal: controller.signal,
         headers: { "Content-Type": "application/json", ...auth() },
         body: JSON.stringify({
           message: requestMessage,
           provider: "auto",
           use_knowledge: true,
-          use_tools: !research,
+          use_tools: useTools,
           live_search: research,
           news: research,
           freshness: research ? "pw" : "",
@@ -131,6 +145,8 @@ export default function AIChat() {
       const answer = String(data.output || "").trim();
       if (!answer)
         throw new Error("Magnanimous AI returned an empty response.");
+      stopNaturalSpeech();
+      setSpeakingAnswer(null);
       setHistory((items) => [
         ...items,
         {
@@ -139,20 +155,80 @@ export default function AIChat() {
           sources: Array.isArray(data.sources) ? data.sources : [],
         },
       ]);
+      // Send the finished answer straight to the shared voice orchestrator.
+      // A per-answer HEAR button below remains available when the browser blocks autoplay.
+      window.dispatchEvent(new CustomEvent("iam:voice-reply-ready", {
+        detail: { text: answer, persona: "Magnanimous AI" },
+      }));
       if (mode === "Research" && data.web_search_configured === false)
         setNotice(
           "Answer created without live web search because live search is not connected.",
         );
     } catch (error: any) {
       setMessage(question);
-      setNotice(error?.message || "Unable to reach Magnanimous AI.");
+      setNotice(error?.name === "AbortError"
+        ? "Magnanimous AI took too long to respond. Your question has been restored. Please try again."
+        : error?.message || "Unable to reach Magnanimous AI.");
     } finally {
+      window.clearTimeout(requestTimer);
       setBusy(false);
       setActiveQuestion("");
     }
   }
 
+  function speakAnswer(answer: string, index: number) {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      setNotice("Spoken playback is not supported by this browser. Your written answer is still available.");
+      return;
+    }
+    if (speakingAnswer === index) {
+      stopNaturalSpeech();
+      setSpeakingAnswer(null);
+      return;
+    }
+    stopNaturalSpeech();
+    setNotice("");
+    setSpeakingAnswer(index);
+    let started = false;
+    let watchdog: number | undefined = window.setTimeout(() => {
+      if (!started) {
+        setSpeakingAnswer(null);
+        setNotice("Your answer is ready. Tap HEAR ANSWER again to start spoken playback.");
+      }
+    }, 1800);
+    const queued = speakTextNaturally(answer, {
+      configure: (utterance) => configurePersonaVoice(utterance, "Magnanimous AI"),
+      maxChunkChars: 220,
+      interChunkDelayMs: 60,
+      onStart: () => {
+        started = true;
+        if (watchdog !== undefined) window.clearTimeout(watchdog);
+        watchdog = undefined;
+        setNotice("");
+        setSpeakingAnswer(index);
+      },
+      onEnd: () => {
+        if (watchdog !== undefined) window.clearTimeout(watchdog);
+        watchdog = undefined;
+        setSpeakingAnswer(null);
+      },
+      onError: () => {
+        if (watchdog !== undefined) window.clearTimeout(watchdog);
+        watchdog = undefined;
+        setSpeakingAnswer(null);
+        setNotice("The answer is ready, but this device could not play the voice. Check silent mode and volume, then tap HEAR ANSWER.");
+      },
+    });
+    if (!queued) {
+      if (watchdog !== undefined) window.clearTimeout(watchdog);
+      setSpeakingAnswer(null);
+      setNotice("The browser could not start spoken playback. Try HEAR ANSWER once more.");
+    }
+  }
+
   function newConversation() {
+    stopNaturalSpeech();
+    setSpeakingAnswer(null);
     setHistory([]);
     setMessage("");
     setNotice("");
@@ -247,6 +323,14 @@ export default function AIChat() {
                   <div className="answer">
                     <b>MAGNANIMOUS</b>
                     <p>{item.answer}</p>
+                    <button
+                      type="button"
+                      className="listen-answer"
+                      onClick={() => speakAnswer(item.answer, index)}
+                      aria-label={speakingAnswer === index ? "Stop spoken answer" : "Hear Magnanimous AI answer"}
+                    >
+                      {speakingAnswer === index ? "STOP SPEAKING" : "🔊 HEAR ANSWER"}
+                    </button>
                   </div>
                   {item.sources.length > 0 && (
                     <div className="sources">
@@ -710,6 +794,25 @@ export default function AIChat() {
           padding: 11px 13px;
           font-size: 13px;
         }
+        .listen-answer {
+          grid-column: 2 / -1;
+          justify-self: start;
+          width: fit-content;
+          margin-top: 9px;
+          border: 1px solid color-mix(in srgb, var(--mode-accent) 58%, transparent);
+          border-radius: 9px;
+          background: color-mix(in srgb, var(--mode-bg-2) 48%, #05070d);
+          color: #f5f8ff;
+          padding: 9px 12px;
+          font-size: 11px;
+          font-weight: 900;
+          letter-spacing: .06em;
+          cursor: pointer;
+        }
+        .listen-answer:hover {
+          border-color: var(--mode-accent);
+          background: color-mix(in srgb, var(--mode-bg-2) 70%, #05070d);
+        }
         .sources {
           margin: 14px 0 0 132px;
           border-left: 2px solid var(--mode-accent);
@@ -962,6 +1065,9 @@ export default function AIChat() {
           .answer {
             grid-template-columns: 1fr;
             gap: 4px;
+          }
+          .listen-answer {
+            grid-column: 1;
           }
           .sources {
             margin-left: 0;
