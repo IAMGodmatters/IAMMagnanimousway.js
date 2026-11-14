@@ -160,6 +160,9 @@ jobs:
       - name: Lock cinematic 3-D homepage module marks
         run: node qa/scripts/home-3d-module-marks-lock.mjs
 
+      - name: Lock responsive Virtual Assistant palace
+        run: node qa/scripts/virtual-assistant-palace-lock.mjs
+
       - name: Lock verified Philippines Opportunity Vault roles
         run: node qa/scripts/opportunity-vault-ph-roles-lock.mjs
 
