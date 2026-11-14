@@ -26,6 +26,9 @@ function record(id) {
   return source.slice(startOffset, endOffset);
 }
 
+assert.ok(source.includes('quaternary?:string;quaternaryLabel?:string'), 'Opportunity type must support a fourth source link');
+assert.ok(source.includes('{o.quaternary&&<a href={o.quaternary}'), 'Opportunity cards must render the fourth source link');
+
 const expectations = [
   {
     id: 'attapoll-ph-surveys',
