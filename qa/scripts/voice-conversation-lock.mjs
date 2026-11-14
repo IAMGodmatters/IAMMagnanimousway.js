@@ -48,7 +48,7 @@ const contracts = [
   ['iPhone primes the real speech queue from a user gesture', /new SpeechSynthesisUtterance\(apple\?'\\u00a0':' '\)[\s\S]*?u\.volume=apple\?1:0/, source],
   ['main AI chat primes speech from the send gesture for iOS playback', /primeNaturalSpeech\(\)/, aiChat],
   ['main AI chat dispatches completed replies directly to the voice orchestrator', /iam:voice-reply-ready/, aiChat],
-  ['ordinary main chat skips optional tool planning and link ingestion', /learn_links: research/, aiChat],
+  ['ordinary main chat skips optional tool planning and link ingestion', /learn_links: false/, aiChat],
   ['standalone direct replies signal the voice orchestrator without waiting on DOM polling', /iam:voice-reply-ready/, standalone],
   ['voice orchestrator listens for direct standalone reply signals', /addEventListener\('iam:voice-reply-ready'/, source],
   ['voice playback watchdog exposes a manual recovery path', /Tap HEAR to play it aloud/, source],
