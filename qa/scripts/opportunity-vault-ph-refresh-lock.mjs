@@ -98,7 +98,7 @@ const expectations = [
     values: [
       'https://www.dost.gov.ph/knowledge-resources/news/4379-dost-landbank-to-grow-local-msmes-thru-technology-upgrades-and-financing.html',
       'https://www.landbank.com/msme-lifting-msmes-lending-program',
-      'loan, not a grant',
+      'LOAN, NOT GRANT',
       'LANDBANK performs its own credit evaluation'
     ]
   }
