@@ -121,8 +121,8 @@ export default function AIChat() {
           provider: "auto",
           use_knowledge: true,
           // Ordinary conversation skips optional tool-planning work; Research mode retains it.
-          use_tools: research,
-          learn_links: research,
+          use_tools: false,
+          learn_links: false,
           live_search: research,
           news: research,
           freshness: research ? "pw" : "",
