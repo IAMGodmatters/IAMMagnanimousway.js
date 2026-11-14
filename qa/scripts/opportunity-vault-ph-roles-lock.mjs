@@ -42,7 +42,7 @@ const restored = [
   {
     id: 'welo-remote-data-annotator-dutch',
     url: 'https://jobs.lever.co/weloglobal/be3a92c6-de7f-42be-8c4a-a0c350c50443',
-    checks: ['USD $2.25/hour', '20 hours per week', 'confirm whether the Philippines is paid by wire transfer or another method']
+    checks: ['USD $2.25/hour', '20 hours per week', 'Confirm whether the Philippines is paid by wire transfer or another method']
   }
 ];
 
