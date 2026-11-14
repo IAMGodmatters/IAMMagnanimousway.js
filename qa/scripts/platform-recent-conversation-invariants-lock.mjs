@@ -44,6 +44,6 @@ assert.ok(vault.includes('{o.quaternary&&<a href={o.quaternary}'), 'Opportunity 
 assert.ok(!/referral[^.]{0,120}\$3\b|\$3\b[^.]{0,120}referral/i.test(vault), 'Opportunity Vault must not preserve stale $3 referral-bonus claims without current verification');
 assert.ok(vault.includes("id:'swc-ph-2026',name:'Startup World Cup Philippines Regional 2026 — Pitch Competition',status:'closed'"), 'Expired Startup World Cup application must remain closed');
 assert.ok(vault.includes('The official iPhone app is listed in the Philippines App Store'), 'Premise Android availability must not be overstated');
-assert.ok(vault.includes('Philippines eligibility is not stated') || vault.includes('Philippines storefront availability'), 'Unverified country eligibility must remain visible');
+assert.ok(vault.includes('not confirmed Philippine eligibility') || vault.includes('Philippines eligibility is not confirmed'), 'Unverified country eligibility must remain visible');
 
 console.log('Recent platform invariants lock passed: branded mode art, Opportunity Vault navigation, Kids Drive DDL-free preflight, credential hot path, migrations and source-link rendering.');
