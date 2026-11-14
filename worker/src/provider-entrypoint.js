@@ -450,11 +450,10 @@ async function handle(request, env) {
       try{toolPlanning=await getMagnanimousToolFoundryContext(request,env,userMessage)}catch(e){console.error('tool planning context failed',e)}
     }
     const observed=(computeOnly||body.use_tools===false)?null:await foundryCall(request,env,'/api/magnanimous/tool-foundry/observe',{capability,example_task:userMessage});
-    let learnedScores=computeOnly?new Map():withinProviderBudget(learnedProviderScores(request,env,task),1200,'Provider learning lookup').catch(()=>new Map());
+    const learnedScores=computeOnly?new Map():withinProviderBudget(learnedProviderScores(request,env,task),1200,'Provider learning lookup').catch(()=>new Map());
     const signedInUserTask=computeOnly?null:withinProviderBudget(currentUser(request,env),1200,'Workspace identity lookup').catch(()=>null);
-    const [learnedScoresResolved,signedInUser]=await Promise.all([Promise.resolve(learnedScores),Promise.resolve(signedInUserTask)]);
-    learnedScores=learnedScoresResolved;
-    const learningState=[...learnedScores.entries()].map(([provider,x])=>({provider,...x}));
+    const [resolvedLearnedScores,signedInUser]=await Promise.all([Promise.resolve(learnedScores),Promise.resolve(signedInUserTask)]);
+    const learningState=[...resolvedLearnedScores.entries()].map(([provider,x])=>({provider,...x}));
     const localBridgeReady=signedInUser?await withinProviderBudget(hasReadyLocalBridge(env,signedInUser.tenant_id),900,'Local bridge readiness').catch(()=>false):false;
     const [resolvedBrainContext,resolvedGrounding]=await Promise.all([brainContextTask,groundingTask]);
     brainContext=resolvedBrainContext||'';
@@ -475,7 +474,7 @@ async function handle(request, env) {
     const groundedMessage=computeOnly?`MAGNANIMOUS COMPUTE-ONLY EXECUTION\nYou are a replaceable compute engine beneath Magnanimous AI. Advisory analysis only. You have no tool, memory, account, repository, approval, merge, deployment, publishing, payment, deletion, credential or security-policy authority. Never claim an external action occurred.\n\n${userMessage}`:`${COMMANDER_PROTOCOL}\n\n${ogenicContext}\n\nUSER REQUEST:\n${userMessage}${brainContext||''}${grounding.context||''}${toolPlanning.context||''}${absorbedCapabilityContext?`\n\n${absorbedCapabilityContext}`:''}\n\nCURRENT MAGNANIMOUS ROUTING STATE:\nTask class: ${task}\nNative capability family: ${capability}\nLinks absorbed this turn: ${absorbedLinks.length}\nStored/fresh sources available: ${grounding.sources?.length||0}${initiativeContext}\nUse external execution engines only as needed; return one unified Magnanimous answer.`;
     const requested = String(body.provider || 'auto').toLowerCase();
     const acceleratorPool=computeOnly&&body.allow_metered_accelerator!==true?availableProviders(env).filter(p=>effectiveTier(env,p)==='free-first'):availableProviders(env);
-    const providerPool=executableProviderPool(env,userMessage,body,learnedScores); const candidates = requested !== 'auto' ? acceleratorPool.filter(p => p.id === requested && configured(env,p)) : providerPool.ordered.filter(p=>acceleratorPool.some(a=>a.id===p.id));
+    const providerPool=executableProviderPool(env,userMessage,body,resolvedLearnedScores); const candidates = requested !== 'auto' ? acceleratorPool.filter(p => p.id === requested && configured(env,p)) : providerPool.ordered.filter(p=>acceleratorPool.some(a=>a.id===p.id));
     if (!candidates.length) return json({ detail: requested === 'auto' ? 'Magnanimous AI has no configured execution engine. Cloudflare Workers AI should be bound as AI, or another free-first provider must be configured.' : 'The requested execution engine is not configured or is disabled.', code: 'NO_AI_PROVIDER' }, 503);
     const errors = [],providerDeadline=Date.now()+PROVIDER_REQUEST_BUDGET_MS;
     for (const p of candidates) {
