@@ -74,7 +74,7 @@ const expectations = [
       '4481438265',
       '4481432662',
       '4481437269',
-      '4465525895',
+      '4481437269',
       'at least 3 years'
     ]
   },
@@ -111,6 +111,12 @@ for (const item of expectations) {
   for (const value of item.values) assert.ok(block.includes(value), item.id + ' is missing required detail: ' + value);
 }
 
+const innodataRlhfClosed = record('innodata-senior-ai-evaluation-rlhf-ph-closed');
+assert.ok(innodataRlhfClosed.includes("status:'closed'"), 'Closed Innodata RLHF listing must not remain active');
+assert.ok(innodataRlhfClosed.includes('no longer accepting applications'), 'Closed Innodata RLHF listing must explain the reason');
+assert.ok(innodataRlhfClosed.includes('4465525895'), 'Closed Innodata RLHF listing must preserve its official historical source');
+assert.ok(innodataRlhfClosed.includes("verified:'2026-11-14'"), 'Closed Innodata RLHF status must be freshly verified');
+
 const mytron = record('mytron-labs-ph-smartphone-data');
 assert.ok(!mytron.includes('PHILIPPINES LISTED'), 'MyTron must not claim Philippines eligibility without an explicit country listing');
 assert.ok(mytron.includes('does not name the Philippines'), 'MyTron must disclose that the public page does not name the Philippines');
@@ -120,4 +126,4 @@ assert.ok(closed.includes('status:"closed"'), 'Closed Innodata robotics listing 
 assert.ok(closed.includes('no longer accepting applications'), 'Closed Innodata robotics listing must explain the reason');
 assert.ok(closed.includes('verified:"2026-11-14"'), 'Closed Innodata robotics status must be freshly verified');
 
-console.log('Opportunity Vault PH refresh lock passed: six new records, one closed employer listing, official sources, current dates, and unique IDs.');
+console.log('Opportunity Vault PH refresh lock passed: six new records, two closed employer listings, official sources, current dates, and unique IDs.');
