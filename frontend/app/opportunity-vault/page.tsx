@@ -720,13 +720,13 @@ const opportunities:Opportunity[]=[
  {
   id:"innodata-robotics-annotator-rater-remote-ph",
   name:"Innodata — Robotics Annotator Rater (New Employer Posting)",
-  status:"active-ph",
-  badge:"PHILIPPINES • 100% REMOTE • PROJECT-BASED THROUGH DEC 31 • PAY NOT DISCLOSED",
-  summary:"A newer employer-posted Innodata LinkedIn listing is currently open for a 100% remote, project-based Robotics Annotator Rater assignment. The project is listed for October 28–December 31, 2026, with working hours still to follow. This is a newer posting, not the older duplicate that LinkedIn marked closed.",
-  requirements:["The current employer-posted LinkedIn listing identifies Mandaue, Philippines and states 100% remote work; it is a project-based contract scheduled October 28–December 31, 2026","The current listing requires a graduate of any four-year college course. Prior data annotation, AI training, video/image evaluation, QA, transcription or captioning experience is an advantage, not a stated requirement","Work involves reviewing household-task videos, identifying valid actions, marking accurate start/end timestamps, identifying hand designation and writing concise Natural Language Descriptions under project guidelines","You must have your own desktop or laptop and stable high-speed internet; mobile devices are explicitly unsupported","Working hours are still to follow and pay is not disclosed. Confirm the exact rate, schedule, paid onboarding, project continuity and payout terms before accepting","The older employer posting ID 4465962689 is closed; use only the newer employer listing ID 4476406055 and do not rely on third-party reposts of the closed predecessor","Never pay recruitment, training, equipment, assessment or release fees and never provide banking passwords, OTPs or account recovery codes"],
+  status:"closed",
+  badge:"CLOSED • EMPLOYER LISTING MARKED NOT ACCEPTING APPLICATIONS • DO NOT APPLY",
+  summary:"The employer-posted Philippines Robotics Annotator Rater listing ID 4476406055 is now marked “no longer accepting applications” on LinkedIn as of November 14, 2026. The earlier posting ID 4465962689 is also closed. Keep this record only as a historical reference; do not apply through reposts of either closed listing.",
+  requirements:["The current employer-posted LinkedIn listing identifies Mandaue, Philippines and states 100% remote work; it is a project-based contract scheduled October 28–December 31, 2026","The current listing requires a graduate of any four-year college course. Prior data annotation, AI training, video/image evaluation, QA, transcription or captioning experience is an advantage, not a stated requirement","Work involves reviewing household-task videos, identifying valid actions, marking accurate start/end timestamps, identifying hand designation and writing concise Natural Language Descriptions under project guidelines","You must have your own desktop or laptop and stable high-speed internet; mobile devices are explicitly unsupported","Working hours are still to follow and pay is not disclosed. Confirm the exact rate, schedule, paid onboarding, project continuity and payout terms before accepting","Both employer posting IDs 4465962689 and 4476406055 are marked no longer accepting applications; do not use third-party reposts","Never pay recruitment, training, equipment, assessment or release fees and never provide banking passwords, OTPs or account recovery codes"],
   official:"https://ph.linkedin.com/jobs/view/robotics-annotator-rater-work-from-home-at-innodata-inc-4476406055",
-  cta:"Open the current employer-posted listing",
-  verified:"2026-11-06"
+  cta:"View employer page for a future repost; current listing closed",
+  verified:"2026-11-14"
  },
  {
   id:"welo-ai-trainers-global-portal",
@@ -1193,6 +1193,78 @@ const opportunities:Opportunity[]=[
   cta:'Apply for the official Ambassador Academy',
   verified:'2026-11-09'
  },
+  {
+   id:'attapoll-ph-surveys',name:'AttaPoll — Paid Surveys & Mobile Rewards',status:'active-ph',badge:'PHILIPPINES • ANDROID + IPHONE • SURVEY PAYOUTS VARY',
+   summary:'AttaPoll is a free survey app with official Philippines iPhone and Android store listings, and its official referral-country page explicitly includes the Philippines. Surveys pay per completed activity, but the amount, screening and task supply vary; the app’s global store examples are not a guaranteed Philippines rate. The actual withdrawal methods and minimum are shown in-app for your country.',
+   requirements:['Free to download and join; the Philippines App Store listing is age 13+ and the Android app is published by AttaPoll Ltd','Complete your profile accurately and check the displayed reward before starting; survey screen-outs and limited local survey supply are possible, so no earnings are guaranteed','AttaPoll says payout thresholds and methods vary by country and are shown in the app. Do not assume the US/UK cash-out minimum or every global method applies in the Philippines; confirm the PH cashout method and threshold before investing time','Apple’s Philippines privacy disclosure says the app may collect location, contact information, user content, identifiers and sensitive information; Google Play lists app data and activity disclosures. Review the privacy policy and permissions before joining','Philippines store reviews include reports of infrequent surveys, disqualifications and game-task rewards not credited, alongside some positive payout reports. These are user reviews, not proof of systematic nonpayment; start with ordinary surveys and avoid spending money or grinding game offers until a first withdrawal is verified','Never pay to join, buy in-app items to unlock surveys, use VPN/proxy location masking or provide passwords/OTPs'],
+   official:'https://attapoll.com/en-us/terms-and-conditions/',
+   secondary:'https://apps.apple.com/ph/app/attapoll-surveys-earn-money/id1107631390',
+   secondaryLabel:'Official iPhone app — Philippines App Store',
+   tertiary:'https://play.google.com/store/apps/details?hl=fil&id=com.requapp.requ',
+   tertiaryLabel:'Official Android app — Google Play',
+   quaternary:'https://attapoll.com/en-sg/referral-program-countries/',
+   quaternaryLabel:'Official country list — Philippines included',
+   cta:'Open official AttaPoll information',
+   verified:'2026-11-14'
+  },
+  {
+   id:'deepgram-ph-filipino-labeling-editor',name:'Deepgram Philippines — Filipino Freelance Labeling Editor',status:'active-ph',badge:'PHILIPPINES • REMOTE FREELANCE • STEADY WEEKLY TASKS • RATE NOT DISCLOSED',
+   summary:'Deepgram’s current employer-posted Philippines role reviews, transcribes and labels speech data used to train voice AI models. The work is remote freelance with a steady weekly workload and flexible hours, but weekly output and quality targets apply. Most work is in English and Tagalog/Taglish; Cebuano, Ilocano, Hiligaynon and Kapampangan are useful additional languages.',
+   requirements:['Native or near-native Tagalog/Filipino fluency and strong English listening/reading comprehension are required; other Philippine languages are a plus','Experience in transcription, captioning, translation or data annotation is sought; careful contextual judgment and consistent guideline-following are important','Work includes transcription/labeling, correcting AI-generated transcripts, following style guides and meeting weekly quality and output targets','The employer describes a remote freelance arrangement based in the Philippines, with weekly task distribution and flexible working time; this is not quick occasional fill-in work','The public listing does not disclose a rate, minimum hours, equipment allowance or payout schedule. Confirm all of these in writing before accepting; no applicant fee is stated and no intermediary should be paid'],
+   official:'https://ph.linkedin.com/jobs/view/filipino-freelance-labeling-editor-at-deepgram-4487096695',
+   secondary:'https://deepgram.com/',
+   secondaryLabel:'Deepgram official company website',
+   cta:'View current employer listing',
+   verified:'2026-11-14'
+  },
+  {
+   id:'telus-tagalog-filipino-ai-linguistic-expert',name:'TELUS Digital AI Community — Tagalog/Filipino AI Linguistic Expert',status:'active-ph',badge:'PHILIPPINES • MANILA LISTING • PART-TIME CONTRACT • USD $5.50–$7.00/HR • REMOTE STATUS TO CONFIRM',
+   summary:'TELUS Digital AI Community’s current Manila listing seeks a native-level Tagalog/Filipino speaker to review AI-generated text, language quality, grammar, cultural nuance, prompts and localization. The posting advertises USD $5.50–$7.00 per hour and a part-time independent-contractor relationship. It identifies Manila but does not clearly state that the work can be performed from anywhere in the Philippines; confirm the actual work location and project hours before applying.',
+   requirements:['Requires native-level Filipino/Tagalog and basic B1 English; the public posting asks for a bachelor’s degree in any field with annotation experience','Work includes reviewing AI-generated text, grammar, spelling, syntax, fluency, cultural nuance, prompts, translations and localized content','A subject-specific qualification exam and identity verification are required; this is not guaranteed work or a guaranteed number of hours','Advertised pay is USD $5.50–$7.00/hour, but project payment terms and hours are defined separately; confirm the actual rate, schedule, payout method and contract before accepting','The listing is in Manila and says part-time contractor; remote work from outside the listed location is not explicit and must be confirmed','Apply only through the employer-posted listing. No applicant fee is stated; never pay a recruiter or intermediary'],
+   official:'https://ph.linkedin.com/jobs/view/tagalog-filipino-ai-linguistic-expert-at-telus-digital-ai-community-4490341902',
+   secondary:'https://www.telusdigital.com/careers/ai-community',
+   secondaryLabel:'TELUS Digital AI Community',
+   cta:'View current employer listing',
+   verified:'2026-11-14'
+  },
+  {
+   id:'innodata-senior-ai-domain-expert-ph',name:'Innodata — Senior AI Domain Expert Roles (Engineering, Computing, Energy, Social Science & Agriculture)',status:'active-ph',badge:'PHILIPPINES • PART-TIME • REMOTE-FRIENDLY • SPECIALIST EXPERIENCE • PAY NOT DISCLOSED',
+   summary:'Innodata has several current Philippines employer postings for senior subject-matter experts who evaluate complex technical or scientific material and AI-generated outputs, design benchmarks and provide gold-standard explanations. The postings are part-time and describe flexible or remote-friendly work, but exact work setup, weekly hours and compensation must be confirmed for each role. These are specialist positions, not general beginner annotation.',
+   requirements:['Current employer-posted disciplines include engineering; computing and IT; energy and environmental systems; social science and quantitative methods; agriculture, food and wine systems; and senior AI evaluation/RLHF','Most domain-expert postings require a relevant bachelor’s, master’s or PhD-level qualification (or equivalent specialist background) and at least 3 years of professional or academic experience in the stated discipline; the exact requirement differs by role','Tasks can include interpreting engineering drawings, technical diagrams, scientific charts and data, validating AI outputs, creating difficult assessment tasks and writing detailed reference solutions','The listings are part-time and remote-friendly, but do not assume every role is fully remote from every Philippine location; confirm work arrangement, hours and project availability with the employer','Pay is not disclosed on the public postings. Confirm rate, workload, contract duration and payment schedule before accepting; no applicant fee is stated and no recruiter/intermediary should be paid'],
+   official:'https://ph.linkedin.com/jobs/view/senior-engineering-domain-expert-ai-training-benchmarking-technical-evaluation-at-innodata-inc-4481426805',
+   secondary:'https://ph.linkedin.com/jobs/view/senior-computing-it-domain-expert-ai-training-benchmarking-technical-evaluation-at-innodata-inc-4481430713',
+   secondaryLabel:'Senior Computing & IT Domain Expert',
+   tertiary:'https://ph.linkedin.com/jobs/view/senior-energy-environmental-systems-domain-expert-ai-training-benchmarking-technical-evaluation-at-innodata-inc-4481438265',
+   tertiaryLabel:'Senior Energy & Environmental Systems Domain Expert',
+   quaternary:'https://ph.linkedin.com/jobs/view/senior-social-science-quantitative-methods-domain-expert-ai-training-benchmarking-technical-evaluation-at-innodata-inc-4481432662',
+   quaternaryLabel:'Senior Social Science & Quantitative Methods Domain Expert',
+   moreLinks:[{label:'Senior Agriculture, Food & Wine Systems Domain Expert',url:'https://ph.linkedin.com/jobs/view/senior-domain-expert-agriculture-food-wine-systems-ai-technical-evaluation-at-innodata-inc-4481437269'},{label:'Senior AI Evaluation & RLHF Specialist',url:'https://ph.linkedin.com/jobs/view/senior-ai-evaluation-rlhf-specialist-at-innodata-inc-4465525895'}],
+   cta:'Review official employer postings',
+   verified:'2026-11-14'
+  },
+  {
+   id:'mytron-labs-ph-smartphone-data',name:'MyTron Labs — Smartphone Video Data Contributor',status:'location-check',badge:'PHILIPPINES LISTED • $2–$10/HR ADVERTISED • PRIVACY / PAID-COUNTRY CHECK REQUIRED',
+   summary:'MyTron Labs’ contributor page lists the Philippines among countries currently accepting collectors and advertises free sign-up, smartphone video tasks, USD $2–$10/hour depending on project, and weekly payouts to local bank or mobile wallet. However, its Trust & Safety page reports contributors paid across only seven countries without naming them, so actual Philippine project and payout availability still needs confirmation. The company is MyTron Labs LLP, registered in India.',
+   requirements:['Free sign-up; contributors must be at least 18. The site says a modern smartphone is sufficient and no special equipment is needed; an optional two-minute environment video (MP4/MOV up to 200 MB) is preferred for setup review','The advertised rate is USD $2–$10/hour depending on project type and complexity; pay is for approved work and the rate shown in the app before starting. No minimum hours are promised','The sign-up page lists the Philippines, but the Trust & Safety page reports 250+ contributors paid across seven countries without identifying them. Confirm that a live Philippine project and Philippine bank/mobile-wallet payout are actually available before recording','The privacy policy says recordings can include your face, voice, other people, private spaces, objects and sensor data. Get consent from anyone who appears or is heard; never record children, passwords, bank cards, IDs, medical records, private screens or sensitive places','For partner-app tasks, the partner controls and receives the footage; MyTron says it receives only the hours report. For recordings it holds, the policy says accepted footage may be licensed to clients, faces/plates/screens are blurred before delivery, rejected raw footage is deleted within 90 days, and processed de-identified datasets may be retained as needed','Payout methods depend on country. The site lists local bank transfer, PayPal and mobile wallets; its Trust page also lists UPI, Wise and AirTM. Confirm which method actually works in the Philippines and review the recording consent and deletion limits before starting','The company advertises a 20% lifetime referral program, but referral income is optional and not a substitute for paid approved work; do not recruit others or rely on referral earnings'],
+   official:'https://www.mytronlabs.com/join-as-contributor',
+   secondary:'https://www.mytronlabs.com/privacy-policy',
+   secondaryLabel:'Official privacy policy and recording/data-retention terms',
+   tertiary:'https://www.mytronlabs.com/trust',
+   tertiaryLabel:'Official Trust & Safety, payout and contributor disclosures',
+   cta:'Confirm Philippine project availability before recording',
+   verified:'2026-11-14'
+  },
+  {
+   id:'landbank-dost-lifting',name:'LANDBANK + DOST — LIFTING MSMEs Lending Program',status:'location-check',badge:'PHILIPPINES • DOST-ASSISTED MSMEs / STARTUPS • LOAN, NOT GRANT • TERMS TO CONFIRM',
+   summary:'DOST and LANDBANK announced a partnership to support DOST-assisted MSMEs and startups through LANDBANK’s LIFTING MSMEs Lending Program. The official DOST announcement links the collaboration to programs such as SETUP, TECHNiCOM and the Startup Grant Fund. This is a financing/loan pathway, not a grant call; the public announcement does not provide a current application deadline, interest rate, collateral rules or complete loan terms.',
+   requirements:['The announcement focuses on DOST-assisted MSMEs and startups; DOST referral and LANDBANK credit review may apply','The DOST announcement identifies SETUP, TECHNiCOM and Startup Grant Fund beneficiaries as program areas; it does not guarantee that every startup or applicant qualifies','Ask DOST and LANDBANK for current eligibility, available loan amounts, interest, repayment term, collateral/security, fees, required financial statements and application procedure before preparing documents','LANDBANK performs its own credit evaluation and approval; a DOST referral does not guarantee a loan','This creates a repayment obligation and must not be presented as a grant or free money. Do not pay an intermediary or assume approval'],
+   official:'https://www.dost.gov.ph/knowledge-resources/news/4379-dost-landbank-to-grow-local-msmes-thru-technology-upgrades-and-financing.html',
+   secondary:'https://www.landbank.com/news/landbank-dost-strengthen-nationwide-support-for-msmes-startups',
+   secondaryLabel:'Official LANDBANK partnership announcement',
+   cta:'Check current DOST/LANDBANK loan eligibility and terms',
+   verified:'2026-11-14'
+  },
+
 ];
 
 const statusLabel=(s:Opportunity['status'])=>s==='active-ph'?'Verified PH path':s==='closed'?'Closed / deadline passed':s==='location-check'?'Check eligibility / location':'Waitlist / unavailable in PH';
