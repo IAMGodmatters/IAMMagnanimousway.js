@@ -6,6 +6,7 @@ import ModeHero from "../../components/ModeHero";
 import AIProcessingIndicator from "../../components/AIProcessingIndicator";
 import AIInteractionDisclosure from "../../components/AIInteractionDisclosure";
 import { postMagnanimousChat } from "../../lib/magnanimous-chat-transport";
+import { primeNaturalSpeech } from "../../lib/natural-speech";
 import {
   MODE_OPTIONS,
   MODE_VISUALS,
@@ -93,6 +94,8 @@ export default function AIChat() {
   async function ask() {
     const question = message.trim();
     if (!question || busy || !ready) return;
+    // Prime speech inside the send gesture so iOS Safari can speak the later async reply.
+    primeNaturalSpeech();
     setBusy(true);
     setActiveQuestion(question);
     setNotice("");
@@ -117,7 +120,9 @@ export default function AIChat() {
           message: requestMessage,
           provider: "auto",
           use_knowledge: true,
-          use_tools: !research,
+          // Ordinary conversation skips optional tool-planning work; Research mode retains it.
+          use_tools: research,
+          learn_links: research,
           live_search: research,
           news: research,
           freshness: research ? "pw" : "",
@@ -139,6 +144,10 @@ export default function AIChat() {
           sources: Array.isArray(data.sources) ? data.sources : [],
         },
       ]);
+      // Explicit event makes voice delivery deterministic instead of relying only on DOM polling.
+      window.dispatchEvent(new CustomEvent("iam:voice-reply-ready", {
+        detail: { text: answer, persona: "Magnanimous AI" },
+      }));
       if (mode === "Research" && data.web_search_configured === false)
         setNotice(
           "Answer created without live web search because live search is not connected.",
