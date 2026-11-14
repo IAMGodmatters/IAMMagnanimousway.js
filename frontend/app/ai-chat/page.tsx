@@ -6,6 +6,7 @@ import ModeHero from "../../components/ModeHero";
 import AIProcessingIndicator from "../../components/AIProcessingIndicator";
 import AIInteractionDisclosure from "../../components/AIInteractionDisclosure";
 import { postMagnanimousChat } from "../../lib/magnanimous-chat-transport";
+import { primeNaturalSpeech } from "../../lib/natural-speech";
 import {
   MODE_OPTIONS,
   MODE_VISUALS,
@@ -48,7 +49,7 @@ export default function AIChat() {
   const [history, setHistory] = useState<Exchange[]>([]);
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(true);
-  const [ready, setReady] = useState(false);
+  const [ready, setReady] = useState(true);
   const [mode, setMode] = useState<MagnanimousMode>("General");
   const [webSearchReady, setWebSearchReady] = useState(false);
   const [notice, setNotice] = useState("");
@@ -61,38 +62,36 @@ export default function AIChat() {
     if (requestedMode) setMode(normalizeMode(requestedMode));
     if (prompt) setMessage(prompt);
 
-    Promise.all([
-      fetch(`${api}/api/providers`).then(async (response) => ({
-        response,
-        data: await read(response),
-      })),
-      fetch(`${api}/api/magnanimous/health`).then(async (response) => ({
-        response,
-        data: await read(response),
-      })),
-    ])
-      .then(([providersResult, healthResult]) => {
-        const providers = Array.isArray(providersResult.data.providers)
-          ? providersResult.data.providers
-          : [];
+    // Keep the composer usable while readiness checks run; a slow health probe must not block chat.
+    fetch(`${api}/api/providers`)
+      .then(async (response) => ({ response, data: await read(response) }))
+      .then(({ response, data }) => {
+        const providers = Array.isArray(data.providers) ? data.providers : [];
         const available = providers.filter(
           (item: any) => item.configured && item.enabled !== false,
         );
-        setReady(providersResult.response.ok && available.length > 0);
+        // A failed readiness probe is not proof that chat is unavailable; the chat endpoint is authoritative.
+        if (response.ok) setReady(available.length > 0);
+      })
+      .catch(() => setReady(true))
+      .finally(() => setChecking(false));
+
+    // Research readiness is independent and must never hold up ordinary conversation.
+    fetch(`${api}/api/magnanimous/health`)
+      .then(async (response) => ({ response, data: await read(response) }))
+      .then(({ response, data }) => {
         setWebSearchReady(
-          healthResult.response.ok &&
-            Boolean(healthResult.data.web_search_configured),
+          response.ok && Boolean(data.web_search_configured),
         );
       })
-      .catch(() => {
-        setReady(false);
-      })
-      .finally(() => setChecking(false));
+      .catch(() => setWebSearchReady(false));
   }, []);
 
   async function ask() {
     const question = message.trim();
     if (!question || busy || !ready) return;
+    // Prime speech inside the send gesture so iOS Safari can speak the later async reply.
+    primeNaturalSpeech();
     setBusy(true);
     setActiveQuestion(question);
     setNotice("");
@@ -117,7 +116,9 @@ export default function AIChat() {
           message: requestMessage,
           provider: "auto",
           use_knowledge: true,
-          use_tools: !research,
+          // Ordinary conversation skips optional tool-planning work; Research mode retains it.
+          use_tools: false,
+          learn_links: false,
           live_search: research,
           news: research,
           freshness: research ? "pw" : "",
@@ -139,6 +140,10 @@ export default function AIChat() {
           sources: Array.isArray(data.sources) ? data.sources : [],
         },
       ]);
+      // Explicit event makes voice delivery deterministic instead of relying only on DOM polling.
+      window.dispatchEvent(new CustomEvent("iam:voice-reply-ready", {
+        detail: { text: answer, persona: "Magnanimous AI" },
+      }));
       if (mode === "Research" && data.web_search_configured === false)
         setNotice(
           "Answer created without live web search because live search is not connected.",
@@ -299,7 +304,7 @@ export default function AIChat() {
                 ? "Continue this conversation…"
                 : `Ask for help with ${mode.toLowerCase()}…`
             }
-            disabled={busy || checking}
+            disabled={busy}
           />
           <div className="actions">
             <span>
@@ -311,7 +316,7 @@ export default function AIChat() {
             </span>
             <button
               onClick={ask}
-              disabled={busy || checking || !ready || !message.trim()}
+              disabled={busy || !ready || !message.trim()}
             >
               {busy ? "WORKING…" : "SEND →"}
             </button>

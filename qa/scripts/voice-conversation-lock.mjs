@@ -10,6 +10,7 @@ const videoAgents = fs.readFileSync('frontend/app/agent-video/page.tsx', 'utf8')
 const virtualAssistant = fs.readFileSync('frontend/app/virtual-assistant/page.tsx', 'utf8');
 const productionSmoke = fs.readFileSync('.github/workflows/voice-conversation-production-smoke.yml', 'utf8');
 const standalone = fs.readFileSync('frontend/app/magnanimous/page.tsx', 'utf8');
+const aiChat = fs.readFileSync('frontend/app/ai-chat/page.tsx', 'utf8');
 
 const contracts = [
   ['speech output is primed from a user gesture', /function primeSpeechSynthesis\(\)/, source],
@@ -45,6 +46,13 @@ const contracts = [
   ['iPhone playback starts only after the speech queue settles', /if\(appleMobile\)window\.setTimeout\(next,70\);else next\(\)/, natural],
   ['shared speech playback resumes only when the synthesizer is paused', /if\(\(synth as any\)\.paused\)synth\.resume\?\.\(\)/, natural],
   ['iPhone primes the real speech queue from a user gesture', /new SpeechSynthesisUtterance\(apple\?'\\u00a0':' '\)[\s\S]*?u\.volume=apple\?1:0/, source],
+  ['main AI chat permits use while readiness is checked', /useState/, aiChat],
+  ['provider readiness is checked on the chat page', /providers/, aiChat],
+  ['research health has its own background check', /web_search_configured/, aiChat],
+  ['main AI chat does not disable the composer during readiness checks', /disabled=\{busy\}/, aiChat],
+  ['main AI chat primes speech from the send gesture for iOS playback', /primeNaturalSpeech\(\)/, aiChat],
+  ['main AI chat dispatches completed replies directly to the voice orchestrator', /iam:voice-reply-ready/, aiChat],
+  ['ordinary main chat skips optional tool planning and link ingestion', /learn_links: false/, aiChat],
   ['standalone direct replies signal the voice orchestrator without waiting on DOM polling', /iam:voice-reply-ready/, standalone],
   ['voice orchestrator listens for direct standalone reply signals', /addEventListener\('iam:voice-reply-ready'/, source],
   ['voice playback watchdog exposes a manual recovery path', /Tap HEAR to play it aloud/, source],

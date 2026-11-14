@@ -93,14 +93,14 @@ includes(knowledgeRuntime, 'const SEARCH_TIMEOUT_MS=7000', 'reliability: live re
 includes(knowledgeRuntime, 'Promise.allSettled([', 'reliability: web and news research can run concurrently instead of serially');
 includes(knowledgeRuntime, 'continuing with D1-independent research', 'reliability: live research remains available during transient D1 faults');
 includes(knowledgeRuntime, 'SEARCH_MEMORY_TIMEOUT_MS=2500', 'reliability: research-memory persistence cannot hold the answer open indefinitely');
-includes(providerEntrypoint, 'const PROVIDER_REQUEST_BUDGET_MS=55000', 'reliability: AI execution has a bounded total request budget');
+includes(providerEntrypoint, 'const PROVIDER_REQUEST_BUDGET_MS=30000', 'reliability: AI execution has a bounded total request budget');
 includes(providerEntrypoint, 'const CLOUDFLARE_ATTEMPT_TIMEOUT_MS=18000', 'reliability: individual Workers AI model attempts have a bounded timeout');
 includes(providerEntrypoint, 'providerDeadline=Date.now()+PROVIDER_REQUEST_BUDGET_MS', 'reliability: provider failover respects one overall request deadline');
 includes(progressEntrypoint, 'continuing request without checkpointing', 'reliability: transient D1 checkpoint failure cannot block chat execution');
 includes(branchEntrypoint, 'specialist schema unavailable; continuing core chat', 'reliability: specialist storage faults degrade to core chat instead of blocking it');
 includes(chatTransport, 'retryTransientEdgeOnce', 'reliability: research chat can retry one transient edge failure');
 includes(chatTransport, '[502,503,504]', 'reliability: automatic retry is limited to transient gateway/service errors');
-includes(aiChatPage, 'use_tools: !research', 'reliability: main Research mode is read-only when edge retry is enabled');
+includes(aiChatPage, 'use_tools: false', 'reliability: main chat remains read-only and skips side-effect tool planning');
 includes(aiChatPage, 'retryTransientEdgeOnce: research', 'reliability: main Research mode retries transient HTML edge failures once');
 includes(standalonePage, 'use_tools:!researchMode', 'reliability: standalone Research mode is read-only when edge retry is enabled');
 includes(standalonePage, 'retryTransientEdgeOnce:researchMode', 'reliability: standalone Research mode retries transient HTML edge failures once');

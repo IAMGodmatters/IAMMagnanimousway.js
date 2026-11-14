@@ -1,6 +1,22 @@
 'use client';
 
 let speechGeneration=0;
+let speechPrimed=false;
+
+/** Unlock browser speech synchronously from a real user gesture (notably iOS Safari). */
+export function primeNaturalSpeech(){
+  if(typeof window==='undefined'||!('speechSynthesis'in window)||speechPrimed)return;
+  try{
+    const appleMobile=appleMobileSpeechRuntime();
+    const utterance=new SpeechSynthesisUtterance(appleMobile?'\u00a0':' ');
+    utterance.volume=appleMobile?1:0;
+    utterance.rate=2;
+    utterance.pitch=1;
+    window.speechSynthesis.speak(utterance);
+    if((window.speechSynthesis as any).paused)window.speechSynthesis.resume?.();
+    speechPrimed=true;
+  }catch{}
+}
 
 function appleMobileSpeechRuntime(){
   if(typeof navigator==='undefined')return false;

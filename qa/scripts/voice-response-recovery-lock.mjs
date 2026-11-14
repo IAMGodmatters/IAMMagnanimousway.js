@@ -32,6 +32,7 @@ assert.equal(song('Give me the latest headlines'),'','research tasks must route 
 assert.match(provider,/if\(originalLyrics\)return json\(\{output:originalLyrics/);
 assert.match(provider,/native_song:true/);
 assert.match(provider,/voice_performance:'not-generated'/);
+assert.match(provider,/const PROVIDER_REQUEST_BUDGET_MS=30000;/,'automatic provider failover must have a bounded 30-second ceiling');
 assert.match(provider,/const otherFreeReady=Boolean\(freeFailoverAvailable\)/,'only shorten Workers AI budget for real alternate candidates');
 assert.match(provider,/freeFailoverAvailable=requested==='auto'&&candidates\.slice/,'honor explicit provider selection and remaining failover candidates');
 assert.match(provider,/otherFreeReady\?24000:CLOUDFLARE_MODEL_BUDGET_MS/,'reserve failover time only when another free engine exists');
