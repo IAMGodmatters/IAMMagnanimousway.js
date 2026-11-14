@@ -83,7 +83,7 @@ const expectations = [
       'seven countries',
       'Philippines',
       'recordings can include your face, voice, other people, private spaces',
-      'confirm the PH cashout method'
+      'confirm which method actually works in the Philippines'
     ]
   },
   {
