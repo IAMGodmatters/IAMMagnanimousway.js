@@ -100,7 +100,7 @@ includes(progressEntrypoint, 'continuing request without checkpointing', 'reliab
 includes(branchEntrypoint, 'specialist schema unavailable; continuing core chat', 'reliability: specialist storage faults degrade to core chat instead of blocking it');
 includes(chatTransport, 'retryTransientEdgeOnce', 'reliability: research chat can retry one transient edge failure');
 includes(chatTransport, '[502,503,504]', 'reliability: automatic retry is limited to transient gateway/service errors');
-includes(aiChatPage, 'use_tools: !research', 'reliability: main Research mode is read-only when edge retry is enabled');
+includes(aiChatPage, 'use_tools: false', 'reliability: main chat remains read-only and skips side-effect tool planning');
 includes(aiChatPage, 'retryTransientEdgeOnce: research', 'reliability: main Research mode retries transient HTML edge failures once');
 includes(standalonePage, 'use_tools:!researchMode', 'reliability: standalone Research mode is read-only when edge retry is enabled');
 includes(standalonePage, 'retryTransientEdgeOnce:researchMode', 'reliability: standalone Research mode retries transient HTML edge failures once');
