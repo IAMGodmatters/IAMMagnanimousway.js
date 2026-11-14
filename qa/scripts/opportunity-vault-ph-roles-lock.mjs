@@ -17,7 +17,7 @@ const restored = [
   {
     id: 'welo-artemis-dutch-ai-data-rater',
     url: 'https://jobs.lever.co/weloglobal/91247918-40a1-458c-a075-06a65e325023',
-    checks: ['USD $2.25/hour', 'fully proficient in Dutch', 'wire transfer']
+    checks: ['USD $2.25/hour', 'fully proficient in Dutch', 'confirm the actual Philippine payout method']
   },
   {
     id: 'agent-finance-ai-automation-specialist',
@@ -42,7 +42,7 @@ const restored = [
   {
     id: 'welo-remote-data-annotator-dutch',
     url: 'https://jobs.lever.co/weloglobal/be3a92c6-de7f-42be-8c4a-a0c350c50443',
-    checks: ['USD $2.25/hour', '20 hours per week', 'wire transfer']
+    checks: ['USD $2.25/hour', '20 hours per week', 'confirm whether the Philippines is paid by wire transfer or another method']
   }
 ];
 
