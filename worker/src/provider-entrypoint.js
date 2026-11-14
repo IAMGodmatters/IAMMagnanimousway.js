@@ -450,9 +450,10 @@ async function handle(request, env) {
       try{toolPlanning=await getMagnanimousToolFoundryContext(request,env,userMessage)}catch(e){console.error('tool planning context failed',e)}
     }
     const observed=(computeOnly||body.use_tools===false)?null:await foundryCall(request,env,'/api/magnanimous/tool-foundry/observe',{capability,example_task:userMessage});
-    const learnedScoresTask=computeOnly?new Map():withinProviderBudget(learnedProviderScores(request,env,task),1200,'Provider learning lookup').catch(()=>new Map());
+    let learnedScores=computeOnly?new Map():withinProviderBudget(learnedProviderScores(request,env,task),1200,'Provider learning lookup').catch(()=>new Map());
     const signedInUserTask=computeOnly?null:withinProviderBudget(currentUser(request,env),1200,'Workspace identity lookup').catch(()=>null);
-    const [learnedScores,signedInUser]=await Promise.all([Promise.resolve(learnedScoresTask),Promise.resolve(signedInUserTask)]);
+    const [learnedScoresResolved,signedInUser]=await Promise.all([Promise.resolve(learnedScores),Promise.resolve(signedInUserTask)]);
+    learnedScores=learnedScoresResolved;
     const learningState=[...learnedScores.entries()].map(([provider,x])=>({provider,...x}));
     const localBridgeReady=signedInUser?await withinProviderBudget(hasReadyLocalBridge(env,signedInUser.tenant_id),900,'Local bridge readiness').catch(()=>false):false;
     const [resolvedBrainContext,resolvedGrounding]=await Promise.all([brainContextTask,groundingTask]);
