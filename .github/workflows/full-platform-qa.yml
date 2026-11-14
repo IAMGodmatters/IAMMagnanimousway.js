@@ -165,7 +165,6 @@ jobs:
 
       - name: Lock recent platform invariants
         run: node qa/scripts/platform-recent-conversation-invariants-lock.mjs
-        run: node qa/scripts/home-3d-module-marks-lock.mjs
 
       - name: Lock Business AI D1 schema and request workload
         run: node qa/scripts/business-ai-request-workload-lock.mjs
