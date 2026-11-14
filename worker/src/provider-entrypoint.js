@@ -430,7 +430,10 @@ async function handle(request, env) {
     const task=taskClass(userMessage,body);
     const capability=nativeCapability(userMessage,task);
     let brainContext=computeOnly?'':extractBrainContext(message);
-    if(!computeOnly&&!brainContext){try{brainContext=await getMagnanimousMemoryContext(request,env)}catch{brainContext=''}}
+    // Memory is valuable, but a slow workspace database must never hold a live answer hostage.
+    const brainContextTask=!computeOnly&&!brainContext
+      ?withinProviderBudget(getMagnanimousMemoryContext(request,env),1800,'Magnanimous memory retrieval').catch(error=>{console.warn('Magnanimous memory retrieval skipped for this turn',error?.message||error);return''})
+      :Promise.resolve(brainContext);
 
     const linkLearning=computeOnly?[]:await learnFromLinks(request,env,userMessage,body.learn_links!==false);
     const absorbedLinks=linkLearning.filter(x=>x.ok);
@@ -438,17 +441,24 @@ async function handle(request, env) {
     const rememberResearch=computeOnly?false:(body.remember_search!==false&&(autoResearch||absorbedLinks.length>0));
 
     let grounding={context:'',sources:[],search_configured:true};
-    if(!computeOnly&&body.use_knowledge!==false){
-      try{grounding=await getKnowledgeContext(request,env,userMessage,{liveSearch:autoResearch,news:Boolean(body.news),remember:rememberResearch,freshness:String(body.freshness||''),localLimit:8,webLimit:6,newsLimit:5})}catch(e){console.error('knowledge grounding failed',e)}
-    }
+    // Start retrieval immediately, but cap its contribution to the response's startup latency.
+    const groundingTask=!computeOnly&&body.use_knowledge!==false
+      ?withinProviderBudget(getKnowledgeContext(request,env,userMessage,{liveSearch:autoResearch,news:Boolean(body.news),remember:rememberResearch,freshness:String(body.freshness||''),localLimit:8,webLimit:6,newsLimit:5}),autoResearch?7000:2200,'Magnanimous knowledge retrieval').catch(e=>{console.error('knowledge grounding skipped for this turn',e?.message||e);return{context:'',sources:[],search_configured:true}})
+      :Promise.resolve(grounding);
     let toolPlanning={context:'',tools:[],recommended_integrations:[]};
     if(!computeOnly&&body.use_tools!==false){
       try{toolPlanning=await getMagnanimousToolFoundryContext(request,env,userMessage)}catch(e){console.error('tool planning context failed',e)}
     }
     const observed=(computeOnly||body.use_tools===false)?null:await foundryCall(request,env,'/api/magnanimous/tool-foundry/observe',{capability,example_task:userMessage});
-    const learnedScores=computeOnly?new Map():await learnedProviderScores(request,env,task);
+    const [learnedScores,signedInUser]=await Promise.all([
+      computeOnly?Promise.resolve(new Map()):withinProviderBudget(learnedProviderScores(request,env,task),1200,'Provider learning lookup').catch(()=>new Map()),
+      computeOnly?Promise.resolve(null):withinProviderBudget(currentUser(request,env),1200,'Workspace identity lookup').catch(()=>null)
+    ]);
     const learningState=[...learnedScores.entries()].map(([provider,x])=>({provider,...x}));
-    const signedInUser=computeOnly?null:await currentUser(request,env).catch(()=>null),localBridgeReady=signedInUser?await hasReadyLocalBridge(env,signedInUser.tenant_id).catch(()=>false):false;
+    const localBridgeReady=signedInUser?await withinProviderBudget(hasReadyLocalBridge(env,signedInUser.tenant_id),900,'Local bridge readiness').catch(()=>false):false;
+    const [resolvedBrainContext,resolvedGrounding]=await Promise.all([brainContextTask,groundingTask]);
+    brainContext=resolvedBrainContext||'';
+    grounding=resolvedGrounding||grounding;
     const ogenicRuntimeEnv=localBridgeReady?{...env,MAGNANIMOUS_LOCAL_BRIDGE_READY:true}:env;
     const ogenicPlan=computeOnly?{classification:'CLOUD',groups:[],initiative:'disabled',status:'compute-only',network_direction:'none'}:buildMagnanimousOgenicPlan(userMessage,ogenicRuntimeEnv),ogenicContext=computeOnly?'':getMagnanimousOgenicPrompt(userMessage),absorbedCapabilityContext=computeOnly?'':getConnectorAbsorptionPrompt(userMessage);
     let ogenicInitiative=null;
