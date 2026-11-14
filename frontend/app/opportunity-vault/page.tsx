@@ -1353,7 +1353,7 @@ const opportunities:Opportunity[]=[
 
 ];
 
-const statusLabel=(s:Opportunity['status'])=>s==='active-ph'?'Verified PH path':s==='closed'?'Closed / deadline passed':s==='location-check'?'Check eligibility / location':'Waitlist / unavailable in PH';
+const statusLabel=(s:Opportunity['status'])=>s==='active-ph'?'Verified PH path':s==='closed'?'Closed / no longer available':s==='location-check'?'Check eligibility / location':'Waitlist / unavailable in PH';
 
 export default function OpportunityVault(){
  const[filter,setFilter]=useState<'all'|'active-ph'|'location-check'|'waitlist'|'closed'>('all'),[msg,setMsg]=useState('');
