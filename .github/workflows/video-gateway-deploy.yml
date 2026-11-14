@@ -22,7 +22,7 @@ jobs:
       VIDEO_GATEWAY_URL: https://iam-magnanimous-video-gateway.iam-magnanimous.workers.dev
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Node
         uses: actions/setup-node@v6
