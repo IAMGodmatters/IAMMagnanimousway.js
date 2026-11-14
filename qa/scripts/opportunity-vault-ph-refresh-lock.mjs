@@ -88,7 +88,7 @@ const expectations = [
       'does not name the Philippines',
       'onboarded by region',
       'recordings can include your face, voice, other people, private spaces',
-      'confirm which method actually works in the Philippines'
+      'Confirm which method actually works in the Philippines'
     ]
   },
   {
