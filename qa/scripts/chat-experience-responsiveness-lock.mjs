@@ -40,6 +40,7 @@ assert.match(standalone,/const extendedResearch=researchMode\|\|isPublicInfoRequ
 assert.match(standalone,/const timeoutMs=extendedResearch\?70000:35000/,'The primary standalone chat must enforce bounded response deadlines');
 assert.match(standalone,/signal:controller\.signal/,'The primary standalone chat request must be abortable');
 assert.match(standalone,/window\.clearTimeout\(requestTimer\)/,'The primary standalone timeout must be cleaned up');
+assert.match(standalone,/setInput\(current=>current\.trim\(\)===text\?'':current\)/,'A successful retry must clear the restored composer without erasing newer text');
 assert.match(standalone,/use_tools:!researchMode/,'The primary standalone chat must preserve specialist tool routing outside Research mode');
 assert.match(standalone,/learn_links:!researchMode/,'The primary standalone chat must preserve link learning outside Research mode');
 assert.match(standalone,/className="mag-hear-answer"/,'Each successful standalone answer must expose direct spoken playback');
