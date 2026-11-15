@@ -3,12 +3,16 @@ import fs from 'node:fs';
 
 const chat=fs.readFileSync('frontend/app/ai-chat/page.tsx','utf8');
 const natural=fs.readFileSync('frontend/lib/natural-speech.ts','utf8');
+const transport=fs.readFileSync('frontend/lib/magnanimous-chat-transport.ts','utf8');
 const orchestrator=fs.readFileSync('frontend/app/voice-orchestrator.tsx','utf8');
 const provider=fs.readFileSync('worker/src/provider-entrypoint.js','utf8');
 
 assert.match(chat,/use_tools: false/,'Main AI chat must remain read-only and skip side-effect tool planning');
 assert.match(chat,/learn_links: false/,'Main AI chat must keep link ingestion out of ordinary conversations');
-assert.match(chat,/const timeoutMs = research \? 70000 : 35000/,'The browser must enforce a bounded request deadline');
+assert.match(chat,/const extendedResearch = research \|\| isPublicInfoRequest\(question\)/,'Public-information grounding must extend the browser deadline');
+assert.match(chat,/const timeoutMs = extendedResearch \? 70000 : 35000/,'The browser must enforce a bounded request deadline');
+assert.match(transport,/export function isPublicInfoRequest/,'The transport and browser must share one public-information intent classifier');
+assert.match(transport,/if\(!isPublicInfoRequest\(message\)\)return init/,'Public-information grounding must use the shared classifier');
 assert.match(chat,/new AbortController\(\)/,'A stalled request must be cancellable');
 assert.match(chat,/signal: controller\.signal/,'The request must use the timeout controller');
 assert.match(chat,/clearTimeout\(requestTimer\)/,'The timeout must be cleaned up after each request');
