@@ -113,6 +113,7 @@ export default function StandaloneMagnanimous(){
   setMessages(v=>[...v,{id:userId,role:'user',content:text}]);
   if(!retry)setInput('');
   setLastFailed(null);setBusy(true);
+  let requestTimer:number|undefined;
   try{
    const token=authToken();
    const headers:Record<string,string>={'content-type':'application/json'};
@@ -122,7 +123,7 @@ export default function StandaloneMagnanimous(){
   const extendedResearch=researchMode||isPublicInfoRequest(requestText);
   const timeoutMs=extendedResearch?70000:35000;
   const controller=new AbortController();
-  const requestTimer=window.setTimeout(()=>controller.abort(),timeoutMs);
+  requestTimer=window.setTimeout(()=>controller.abort(),timeoutMs);
    const payload={
     message:requestText,
     provider:'auto',
@@ -175,7 +176,7 @@ export default function StandaloneMagnanimous(){
    if(timedOut)setInput(text);
    const detail=timedOut?'Magnanimous took too long to respond. Your request is restored in the composer. Use Retry to run it again without retyping it.':`Connection interrupted: ${String(err?.message||err)}. Your request is preserved. Use Retry to run it again without retyping it.`;
    setMessages(v=>[...v,{id:userId+1,role:'assistant',assistantName:'Magnanimous AI',silentVoice:true,content:detail}]);
-  }finally{window.clearTimeout(requestTimer);setBusy(false)}
+  }finally{if(requestTimer!==undefined)window.clearTimeout(requestTimer);setBusy(false)}
  }
 
  function speakMessage(content:string,id:number,persona:string){
