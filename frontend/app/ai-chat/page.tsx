@@ -5,8 +5,9 @@ import { type CSSProperties, useEffect, useState } from "react";
 import ModeHero from "../../components/ModeHero";
 import AIProcessingIndicator from "../../components/AIProcessingIndicator";
 import AIInteractionDisclosure from "../../components/AIInteractionDisclosure";
-import { postMagnanimousChat } from "../../lib/magnanimous-chat-transport";
-import { primeNaturalSpeech } from "../../lib/natural-speech";
+import { isPublicInfoRequest, postMagnanimousChat } from "../../lib/magnanimous-chat-transport";
+import { primeNaturalSpeech, speakTextNaturally, stopNaturalSpeech } from "../../lib/natural-speech";
+import { configurePersonaVoice } from "../../lib/persona-voice";
 import {
   MODE_OPTIONS,
   MODE_VISUALS,
@@ -54,6 +55,7 @@ export default function AIChat() {
   const [webSearchReady, setWebSearchReady] = useState(false);
   const [notice, setNotice] = useState("");
   const [activeQuestion, setActiveQuestion] = useState("");
+  const [speakingAnswer, setSpeakingAnswer] = useState<number | null>(null);
 
   useEffect(() => {
     const query = new URLSearchParams(location.search);
@@ -91,7 +93,7 @@ export default function AIChat() {
     const question = message.trim();
     if (!question || busy || !ready) return;
     // Prime speech inside the send gesture so iOS Safari can speak the later async reply.
-    primeNaturalSpeech();
+    primeNaturalSpeech(true);
     setBusy(true);
     setActiveQuestion(question);
     setNotice("");
@@ -107,10 +109,15 @@ export default function AIChat() {
       : "";
     const requestMessage = `${modeInstruction}${continuity}New request: ${question}`;
     const research = mode === "Research" && webSearchReady;
+    const extendedResearch = research || isPublicInfoRequest(requestMessage);
+    const timeoutMs = extendedResearch ? 70000 : 35000;
+    const controller = new AbortController();
+    const requestTimer = window.setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       const response = await postMagnanimousChat(`${api}/api/chat`, {
         method: "POST",
+        signal: controller.signal,
         headers: { "Content-Type": "application/json", ...auth() },
         body: JSON.stringify({
           message: requestMessage,
@@ -132,6 +139,8 @@ export default function AIChat() {
       const answer = String(data.output || "").trim();
       if (!answer)
         throw new Error("Magnanimous AI returned an empty response.");
+      stopNaturalSpeech();
+      setSpeakingAnswer(null);
       setHistory((items) => [
         ...items,
         {
@@ -150,14 +159,69 @@ export default function AIChat() {
         );
     } catch (error: any) {
       setMessage(question);
-      setNotice(error?.message || "Unable to reach Magnanimous AI.");
+      setNotice(error?.name === "AbortError"
+        ? "Magnanimous AI took too long to respond. Your question has been restored. Please try again."
+        : error?.message || "Unable to reach Magnanimous AI.");
     } finally {
+      window.clearTimeout(requestTimer);
       setBusy(false);
       setActiveQuestion("");
     }
   }
 
+  function speakAnswer(answer: string, index: number) {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      setNotice("Spoken playback is not supported by this browser. Your written answer is still available.");
+      return;
+    }
+    if (speakingAnswer === index) {
+      stopNaturalSpeech();
+      setSpeakingAnswer(null);
+      return;
+    }
+    stopNaturalSpeech();
+    setNotice("");
+    setSpeakingAnswer(index);
+    let started = false;
+    let watchdog: number | undefined = window.setTimeout(() => {
+      if (!started) {
+        setSpeakingAnswer(null);
+        setNotice("Your answer is ready. Tap HEAR ANSWER again to start spoken playback.");
+      }
+    }, 1800);
+    const queued = speakTextNaturally(answer, {
+      configure: (utterance) => configurePersonaVoice(utterance, "Magnanimous AI"),
+      maxChunkChars: 220,
+      interChunkDelayMs: 60,
+      onStart: () => {
+        started = true;
+        if (watchdog !== undefined) window.clearTimeout(watchdog);
+        watchdog = undefined;
+        setNotice("");
+        setSpeakingAnswer(index);
+      },
+      onEnd: () => {
+        if (watchdog !== undefined) window.clearTimeout(watchdog);
+        watchdog = undefined;
+        setSpeakingAnswer(null);
+      },
+      onError: () => {
+        if (watchdog !== undefined) window.clearTimeout(watchdog);
+        watchdog = undefined;
+        setSpeakingAnswer(null);
+        setNotice("The answer is ready, but this device could not play the voice. Check silent mode and volume, then tap HEAR ANSWER.");
+      },
+    });
+    if (!queued) {
+      if (watchdog !== undefined) window.clearTimeout(watchdog);
+      setSpeakingAnswer(null);
+      setNotice("The browser could not start spoken playback. Try HEAR ANSWER once more.");
+    }
+  }
+
   function newConversation() {
+    stopNaturalSpeech();
+    setSpeakingAnswer(null);
     setHistory([]);
     setMessage("");
     setNotice("");
@@ -252,6 +316,15 @@ export default function AIChat() {
                   <div className="answer">
                     <b>MAGNANIMOUS</b>
                     <p>{item.answer}</p>
+                    <button
+                      type="button"
+                      className="listen-answer"
+                      onClick={() => speakAnswer(item.answer, index)}
+                      aria-label={speakingAnswer === index ? "Stop spoken answer" : "Hear Magnanimous AI answer"}
+                      aria-pressed={speakingAnswer === index}
+                    >
+                      {speakingAnswer === index ? "STOP SPEAKING" : "🔊 HEAR ANSWER"}
+                    </button>
                   </div>
                   {item.sources.length > 0 && (
                     <div className="sources">
@@ -977,6 +1050,38 @@ export default function AIChat() {
           }
           .actions button {
             width: 100%;
+          }
+        }
+
+        .listen-answer {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: fit-content;
+          min-height: 38px;
+          margin-top: 10px;
+          padding: 9px 13px;
+          border: 1px solid color-mix(in srgb, var(--mode-accent) 58%, transparent);
+          border-radius: 10px;
+          background: color-mix(in srgb, var(--mode-bg-2) 48%, #05070d);
+          color: #f5f8ff;
+          font-size: 11px;
+          font-weight: 900;
+          letter-spacing: .06em;
+          cursor: pointer;
+        }
+        .listen-answer:hover {
+          border-color: var(--mode-accent);
+          background: color-mix(in srgb, var(--mode-bg-2) 70%, #05070d);
+        }
+        .listen-answer:focus-visible {
+          outline: 2px solid var(--mode-accent);
+          outline-offset: 3px;
+        }
+        @media (max-width: 680px) {
+          .listen-answer {
+            min-height: 42px;
+            padding: 10px 14px;
           }
         }
       `}</style>
