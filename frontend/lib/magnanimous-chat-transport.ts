@@ -6,12 +6,16 @@ type ChatTransportOptions={
 
 const PUBLIC_INFO_INTENT=/\b(link|url|website|web\s*site|official\s+(?:site|page|link|website)|source|citation|where\s+(?:can|do)\s+i\s+apply|how\s+(?:can|do)\s+i\s+apply|apply|application|form|eligib\w*|benefit\w*|ssdi|ssi|social\s+security|medicare|medicaid|disability|embassy|consulate|government|agency|office|contact|phone\s+number|address|email\s+address|deadline|requirement\w*|law|regulation|rule\w*|fee|price|cost|status|schedule|appointment|current|latest|today|recent|verify|research|news|availability)\b/i;
 
+export function isPublicInfoRequest(message:string){
+  return PUBLIC_INFO_INTENT.test(String(message||""));
+}
+
 function enhancePublicInfoGrounding(init:RequestInit){
   if(typeof init.body!=="string")return init;
   try{
     const payload=JSON.parse(init.body);
     const message=String(payload?.message||payload?.prompt||payload?.input||"");
-    if(!PUBLIC_INFO_INTENT.test(message))return init;
+    if(!isPublicInfoRequest(message))return init;
     return{
       ...init,
       body:JSON.stringify({
