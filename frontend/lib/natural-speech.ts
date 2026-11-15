@@ -4,8 +4,8 @@ let speechGeneration=0;
 let speechPrimed=false;
 
 /** Unlock browser speech synchronously from a real user gesture (notably iOS Safari). */
-export function primeNaturalSpeech(){
-  if(typeof window==='undefined'||!('speechSynthesis'in window)||speechPrimed)return;
+export function primeNaturalSpeech(force = false){
+  if(typeof window==='undefined'||!('speechSynthesis'in window)||(speechPrimed && !force))return;
   try{
     const appleMobile=appleMobileSpeechRuntime();
     const utterance=new SpeechSynthesisUtterance(appleMobile?'\u00a0':' ');
