@@ -12,7 +12,7 @@ assert.match(chat,/const timeoutMs = research \? 70000 : 35000/,'The browser mus
 assert.match(chat,/new AbortController\(\)/,'A stalled request must be cancellable');
 assert.match(chat,/signal: controller\.signal/,'The request must use the timeout controller');
 assert.match(chat,/clearTimeout\(requestTimer\)/,'The timeout must be cleaned up after each request');
-assert.match(chat,/error\?\.name === "AbortError"/,'Timeouts must restore the user's question with a clear message');
+assert.match(chat,/error\?\.name === "AbortError"/,"Timeouts must restore the user's question with a clear message");
 assert.match(chat,/primeNaturalSpeech\(true\)/,'Each send gesture must re-prime iOS speech playback');
 assert.match(chat,/iam:voice-reply-ready/,'Completed answers must reach shared voice orchestration');
 assert.match(chat,/speakTextNaturally\(answer/,'A user must be able to play an answer directly');
