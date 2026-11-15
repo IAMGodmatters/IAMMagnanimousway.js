@@ -162,6 +162,7 @@ export default function StandaloneMagnanimous(){
     throw new Error('The AI response engines are temporarily unavailable. Your request can be retried without retyping.');
    }
    const answer=String(d?.output||d?.answer||'Magnanimous completed the request but returned no text.');
+   setInput(current=>current.trim()===text?'':current);
    const learned=Number(d?.link_learning?.absorbed||0);
    const grounded=Number(d?.sources?.length||0);
    const specialist=d?.specialist_handoff&&d?.specialist?d.specialist:null;
