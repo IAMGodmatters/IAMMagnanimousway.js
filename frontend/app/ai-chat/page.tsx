@@ -37,14 +37,6 @@ async function read(response: Response) {
   }
 }
 
-function isExplicitActionRequest(message: string): boolean {
-  const normalized = message.trim().replace(/^magnanimous(?: ai)?[, :]+/i, "");
-  const actionRequest = /^(?:(?:please|kindly)\s+)?(?:(?:can|could|would|will)\s+you\s+(?:please\s+)?|i need you to\s+|i want you to\s+|go ahead and\s+|help me\s+|try to\s+|please\s+)?(?:fix|repair|implement|build|deploy|merge|commit|create|update|change|delete|remove|install|configure|run|execute|connect|sync|submit|send|publish|book|schedule|call|email|message|upload|download|apply|purchase|order|monitor|track|open|click|fill|check|audit|test|verify|inspect|review|finish|complete|find|search|look\s+up)\b/i;
-  return actionRequest.test(normalized)
-    || /^use my (?:computer|browser|opera)\b/i.test(normalized)
-    || /\b(?:take action|carry this out|perform the work|make the changes|finish what we started|complete the task)\b/i.test(normalized);
-}
-
 function auth(): Record<string, string> {
   const token =
     localStorage.getItem("odin_admin_token") ||
@@ -117,8 +109,7 @@ export default function AIChat() {
       : "";
     const requestMessage = `${modeInstruction}${continuity}New request: ${question}`;
     const research = mode === "Research" && webSearchReady;
-    const useTools = isExplicitActionRequest(question);
-    const timeoutMs = research || useTools ? 70000 : 35000;
+    const timeoutMs = research ? 70000 : 35000;
     const controller = new AbortController();
     const requestTimer = window.setTimeout(() => controller.abort(), timeoutMs);
 
@@ -132,8 +123,8 @@ export default function AIChat() {
           provider: "auto",
           use_knowledge: true,
           // Ordinary conversation skips optional tool-planning work; Research mode retains it.
-          use_tools: useTools,
-          learn_links: useTools,
+          use_tools: false,
+          learn_links: false,
           live_search: research,
           news: research,
           freshness: research ? "pw" : "",
