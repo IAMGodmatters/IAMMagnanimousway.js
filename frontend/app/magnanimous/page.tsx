@@ -119,7 +119,7 @@ export default function StandaloneMagnanimous(){
    const headers:Record<string,string>={'content-type':'application/json'};
    if(token)headers.authorization=`Bearer ${token}`;
    const requestText=requestMode.id==='general'?text:`[${requestMode.label.toUpperCase()} MODE]\n${text}`;
-   const researchMode=activeMode.id==='research';
+   const researchMode=requestMode.id==='research';
   const extendedResearch=researchMode||isPublicInfoRequest(requestText);
   const timeoutMs=extendedResearch?70000:35000;
   const controller=new AbortController();
@@ -155,7 +155,7 @@ export default function StandaloneMagnanimous(){
     const partialText=String(d?.output||'').trim();
     if(partialSources.length&&partialText){
      setLastFailed({text,mode:requestMode.id});
-     setInput(text);
+     setInput(current=>current.trim()?current:text);
      setMessages(v=>[...v,{id:userId+1,role:'assistant',assistantName:'Magnanimous AI',silentVoice:true,content:partialText,meta:'Partial research • AI response unavailable • Retry is available',sources:partialSources}]);
      return;
     }
@@ -174,7 +174,7 @@ export default function StandaloneMagnanimous(){
   }catch(err:any){
    const timedOut=err?.name==='AbortError';
    setLastFailed({text,mode:requestMode.id});
-   if(timedOut)setInput(text);
+   if(timedOut)setInput(current=>current.trim()?current:text);
    const detail=timedOut?'Magnanimous took too long to respond. Your request is restored in the composer. Use Retry to run it again without retyping it.':`Connection interrupted: ${String(err?.message||err)}. Your request is preserved. Use Retry to run it again without retyping it.`;
    setMessages(v=>[...v,{id:userId+1,role:'assistant',assistantName:'Magnanimous AI',silentVoice:true,content:detail}]);
   }finally{if(requestTimer!==undefined)window.clearTimeout(requestTimer);setBusy(false)}
