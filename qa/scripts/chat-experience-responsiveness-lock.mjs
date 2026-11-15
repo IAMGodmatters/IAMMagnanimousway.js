@@ -28,4 +28,4 @@ assert.match(provider,/withinProviderBudget\(getMagnanimousMemoryContext\(reques
 assert.match(provider,/withinProviderBudget\(getKnowledgeContext\(request,env,userMessage/,'Knowledge retrieval must be bounded');
 assert.match(provider,/Promise\.all\(\[resolvedBrainContext,resolvedGrounding\]\)/,'Memory and knowledge retrieval must be joined in parallel');
 
-console.log('PASS: explicit action routing, bounded chat requests, per-gesture speech priming, manual answer playback and bounded Magnanimous brain retrieval.');
+console.log('PASS: read-only chat contract, bounded requests, per-gesture speech priming, manual answer playback and bounded Magnanimous brain retrieval.');
