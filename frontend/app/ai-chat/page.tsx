@@ -109,7 +109,7 @@ export default function AIChat() {
       : "";
     const requestMessage = `${modeInstruction}${continuity}New request: ${question}`;
     const research = mode === "Research" && webSearchReady;
-    const extendedResearch = research || isPublicInfoRequest(question);
+    const extendedResearch = research || isPublicInfoRequest(requestMessage);
     const timeoutMs = extendedResearch ? 70000 : 35000;
     const controller = new AbortController();
     const requestTimer = window.setTimeout(() => controller.abort(), timeoutMs);
