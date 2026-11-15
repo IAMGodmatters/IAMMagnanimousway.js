@@ -50,7 +50,7 @@ const contracts = [
   ['provider readiness is checked on the chat page', /providers/, aiChat],
   ['research health has its own background check', /web_search_configured/, aiChat],
   ['main AI chat does not disable the composer during readiness checks', /disabled=\{busy\}/, aiChat],
-  ['main AI chat primes speech from the send gesture for iOS playback', /primeNaturalSpeech\(\)/, aiChat],
+  ['main AI chat re-primes speech on every send gesture for iOS playback', /primeNaturalSpeech\(true\)/, aiChat],
   ['main AI chat dispatches completed replies directly to the voice orchestrator', /iam:voice-reply-ready/, aiChat],
   ['ordinary main chat skips optional tool planning and link ingestion', /learn_links: false/, aiChat],
   ['standalone direct replies signal the voice orchestrator without waiting on DOM polling', /iam:voice-reply-ready/, standalone],
