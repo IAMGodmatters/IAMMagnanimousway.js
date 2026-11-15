@@ -9,7 +9,7 @@ const provider=fs.readFileSync('worker/src/provider-entrypoint.js','utf8');
 
 assert.match(chat,/use_tools: false/,'Main AI chat must remain read-only and skip side-effect tool planning');
 assert.match(chat,/learn_links: false/,'Main AI chat must keep link ingestion out of ordinary conversations');
-assert.match(chat,/const extendedResearch = research \|\| isPublicInfoRequest\(question\)/,'Public-information grounding must extend the browser deadline');
+assert.match(chat,/const extendedResearch = research \|\| isPublicInfoRequest\(requestMessage\)/,'Public-information grounding must extend the browser deadline');
 assert.match(chat,/const timeoutMs = extendedResearch \? 70000 : 35000/,'The browser must enforce a bounded request deadline');
 assert.match(transport,/export function isPublicInfoRequest/,'The transport and browser must share one public-information intent classifier');
 assert.match(transport,/if\(!isPublicInfoRequest\(message\)\)return init/,'Public-information grounding must use the shared classifier');
