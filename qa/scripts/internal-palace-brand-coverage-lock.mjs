@@ -16,7 +16,7 @@ const routeContracts = [
   ['Video Studio', 'frontend/app/video-studio/page.tsx', ['module-hero videoRoyalHero','/magnanimous-video-palace-v1.svg','/magnanimous-video-palace-mobile-v1.svg','prefers-reduced-motion']],
   ['Virtual Assistant', 'frontend/app/virtual-assistant/page.tsx', ['hero virtualRoyalHero','/magnanimous-virtual-palace-v1.svg','/magnanimous-virtual-palace-mobile-v1.svg','prefers-reduced-motion']],
   ['Opportunity Vault', 'frontend/app/opportunity-vault/page.tsx', ['page opportunityVault cinematicSurface','/magnanimous-opportunity-palace-v2.webp','/magnanimous-opportunity-palace-mobile-v2.webp']],
-  ['Travel Agency', 'frontend/app/travel-agency/page.tsx', ['page travelAgency cinematicSurface']]
+  ['Travel Agency', 'frontend/app/travel-agency/page.tsx', ['page travelAgency cinematicSurface']],
   ['Creator Growth', 'frontend/app/creator-growth/page.tsx', ['page creatorGrowth cinematicSurface','I AM MAGNANIMOUS WAY™','prefers-reduced-motion']]
 ];
 
