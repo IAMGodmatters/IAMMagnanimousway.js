@@ -5,7 +5,7 @@ import { type CSSProperties, useEffect, useState } from "react";
 import ModeHero from "../../components/ModeHero";
 import AIProcessingIndicator from "../../components/AIProcessingIndicator";
 import AIInteractionDisclosure from "../../components/AIInteractionDisclosure";
-import { postMagnanimousChat } from "../../lib/magnanimous-chat-transport";
+import { isPublicInfoRequest, postMagnanimousChat } from "../../lib/magnanimous-chat-transport";
 import { primeNaturalSpeech, speakTextNaturally, stopNaturalSpeech } from "../../lib/natural-speech";
 import { configurePersonaVoice } from "../../lib/persona-voice";
 import {
@@ -109,7 +109,8 @@ export default function AIChat() {
       : "";
     const requestMessage = `${modeInstruction}${continuity}New request: ${question}`;
     const research = mode === "Research" && webSearchReady;
-    const timeoutMs = research ? 70000 : 35000;
+    const extendedResearch = research || isPublicInfoRequest(question);
+    const timeoutMs = extendedResearch ? 70000 : 35000;
     const controller = new AbortController();
     const requestTimer = window.setTimeout(() => controller.abort(), timeoutMs);
 
