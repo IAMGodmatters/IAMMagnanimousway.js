@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const chat=fs.readFileSync('frontend/app/ai-chat/page.tsx','utf8');
+const standalone=fs.readFileSync('frontend/app/magnanimous/page.tsx','utf8');
+const voiceSpec=fs.readFileSync('qa/postdeploy/voice-conversation.spec.ts','utf8');
 const natural=fs.readFileSync('frontend/lib/natural-speech.ts','utf8');
 const transport=fs.readFileSync('frontend/lib/magnanimous-chat-transport.ts','utf8');
 const orchestrator=fs.readFileSync('frontend/app/voice-orchestrator.tsx','utf8');
@@ -32,4 +34,17 @@ assert.match(provider,/withinProviderBudget\(getMagnanimousMemoryContext\(reques
 assert.match(provider,/withinProviderBudget\(getKnowledgeContext\(request,env,userMessage/,'Knowledge retrieval must be bounded');
 assert.match(provider,/Promise\.all\(\[brainContextTask,groundingTask\]\)/,'Memory and knowledge retrieval must be joined in parallel');
 
-console.log('PASS: read-only chat contract, bounded requests, per-gesture speech priming, manual answer playback and bounded Magnanimous brain retrieval.');
+
+assert.match(standalone,/primeNaturalSpeech\(true\)/,'The primary standalone chat must prime speech from each send gesture');
+assert.match(standalone,/const extendedResearch=researchMode\|\|isPublicInfoRequest\(requestText\)/,'The primary standalone chat must share public-information deadline classification');
+assert.match(standalone,/const timeoutMs=extendedResearch\?70000:35000/,'The primary standalone chat must enforce bounded response deadlines');
+assert.match(standalone,/signal:controller\.signal/,'The primary standalone chat request must be abortable');
+assert.match(standalone,/window\.clearTimeout\(requestTimer\)/,'The primary standalone timeout must be cleaned up');
+assert.match(standalone,/use_tools:!researchMode/,'The primary standalone chat must preserve specialist tool routing outside Research mode');
+assert.match(standalone,/learn_links:!researchMode/,'The primary standalone chat must preserve link learning outside Research mode');
+assert.match(standalone,/className="mag-hear-answer"/,'Each successful standalone answer must expose direct spoken playback');
+assert.match(standalone,/speakTextNaturally\(content/,'The per-answer control must use the shared natural speech engine');
+assert.match(voiceSpec,/Hear answer from Magnanimous AI/,'Production voice smoke must exercise the per-answer HEAR control');
+assert.match(voiceSpec,/standalone Magnanimous restores a timed-out request/,'Production voice smoke must verify timeout recovery');
+
+console.log('PASS: read-only secondary chat, primary standalone timeout recovery, per-gesture speech priming, direct answer playback and bounded Magnanimous brain retrieval.');
