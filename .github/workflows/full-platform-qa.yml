@@ -163,6 +163,9 @@ jobs:
       - name: Lock responsive Virtual Assistant palace
         run: node qa/scripts/virtual-assistant-palace-lock.mjs
 
+      - name: Lock branded internal palace route coverage
+        run: node qa/scripts/internal-palace-brand-coverage-lock.mjs
+
       - name: Lock verified Philippines Opportunity Vault roles
         run: node qa/scripts/opportunity-vault-ph-roles-lock.mjs
 
