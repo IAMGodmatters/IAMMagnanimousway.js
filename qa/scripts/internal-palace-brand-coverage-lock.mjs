@@ -17,6 +17,7 @@ const routeContracts = [
   ['Virtual Assistant', 'frontend/app/virtual-assistant/page.tsx', ['hero virtualRoyalHero','/magnanimous-virtual-palace-v1.svg','/magnanimous-virtual-palace-mobile-v1.svg','prefers-reduced-motion']],
   ['Opportunity Vault', 'frontend/app/opportunity-vault/page.tsx', ['page opportunityVault cinematicSurface','/magnanimous-opportunity-palace-v2.webp','/magnanimous-opportunity-palace-mobile-v2.webp']],
   ['Travel Agency', 'frontend/app/travel-agency/page.tsx', ['page travelAgency cinematicSurface']]
+  ['Creator Growth', 'frontend/app/creator-growth/page.tsx', ['page creatorGrowth cinematicSurface','I AM MAGNANIMOUS WAY™','prefers-reduced-motion']]
 ];
 
 for (const [label, path, markers] of routeContracts) requireMarkers(read(path), markers, label);
@@ -25,7 +26,7 @@ const modeHero = read('frontend/components/ModeHero.tsx');
 requireMarkers(modeHero, ['I AM MAGNANIMOUS WAY™','/magnanimous-ai-command-palace-v2.webp','/magnanimous-ai-command-palace-mobile-v2.webp','prefers-reduced-motion'], 'AI Chat / AI Command hero');
 
 const cinematic = read('frontend/app/cinematic-design-system.tsx');
-requireMarkers(cinematic, ['magnanimous-travel-palace-v2.webp','magnanimous-travel-palace-mobile-v2.webp','prefers-reduced-motion'], 'Shared cinematic route design');
+requireMarkers(cinematic, ['magnanimous-travel-palace-v2.webp','magnanimous-travel-palace-mobile-v2.webp','creatorGrowth :where(.controls,aside,.result,.cards article)','prefers-reduced-motion'], 'Shared cinematic route design');
 
 const crmLayout = read('frontend/app/crm/layout.tsx');
 const crmPage = read('frontend/app/crm/page.tsx');
