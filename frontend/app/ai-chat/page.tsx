@@ -1051,7 +1051,8 @@ export default function AIChat() {
             width: 100%;
           }
         }
-      `}        .listen-answer {
+
+        .listen-answer {
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -1082,7 +1083,7 @@ export default function AIChat() {
             padding: 10px 14px;
           }
         }
-</style>
+      `}</style>
     </main>
   );
 }
