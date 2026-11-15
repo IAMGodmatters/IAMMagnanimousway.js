@@ -113,13 +113,19 @@ test('standalone Magnanimous restores a timed-out request and exposes retry', as
 
   await page.route('**/api/magnanimous/health', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) }));
   await page.route('**/api/magnanimous/mail/accounts', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ accounts: [] }) }));
+  let attempts = 0;
   await page.route('**/api/chat', async route => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    try {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ answer: 'This response arrived too late.' }) });
-    } catch {
-      // The browser should already have aborted this request under the test's accelerated deadline.
+    attempts += 1;
+    if (attempts === 1) {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      try {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ answer: 'This response arrived too late.' }) });
+      } catch {
+        // The browser should already have aborted this request under the test's accelerated deadline.
+      }
+      return;
     }
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ answer: 'Recovered answer after retry.' }) });
   });
 
   await page.goto('/magnanimous', { waitUntil: 'domcontentloaded' });
@@ -129,4 +135,8 @@ test('standalone Magnanimous restores a timed-out request and exposes retry', as
   await expect(page.locator('.mag-message.assistant .mag-bubble').last()).toContainText(/too long to respond/i);
   await expect(page.locator('.mag-compose textarea')).toHaveValue(question);
   await expect(page.getByRole('button', { name: /Retry/i })).toBeVisible();
+  await page.getByRole('button', { name: /Retry/i }).click();
+  await expect(page.locator('.mag-message.assistant .mag-bubble').last()).toContainText('Recovered answer after retry.');
+  await expect(page.locator('.mag-compose textarea')).toHaveValue('');
+  await expect(page.getByRole('button', { name: /Hear answer from Magnanimous AI/i }).last()).toBeVisible();
 });
