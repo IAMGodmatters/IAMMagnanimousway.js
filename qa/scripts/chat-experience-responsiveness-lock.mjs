@@ -6,10 +6,9 @@ const natural=fs.readFileSync('frontend/lib/natural-speech.ts','utf8');
 const orchestrator=fs.readFileSync('frontend/app/voice-orchestrator.tsx','utf8');
 const provider=fs.readFileSync('worker/src/provider-entrypoint.js','utf8');
 
-assert.match(chat,/function isExplicitActionRequest\(message: string\)/,'Chat must classify explicit execution requests');
-assert.match(chat,/const useTools = isExplicitActionRequest\(question\)/,'Only explicit action intent should enable specialist tools');
-assert.match(chat,/use_tools: useTools/,'The classified action intent must reach Magnanimous');
-assert.match(chat,/const timeoutMs = research \|\| useTools \? 70000 : 35000/,'The browser must enforce a bounded request deadline');
+assert.match(chat,/use_tools: false/,'Main AI chat must remain read-only and skip side-effect tool planning');
+assert.match(chat,/learn_links: false/,'Main AI chat must keep link ingestion out of ordinary conversations');
+assert.match(chat,/const timeoutMs = research \? 70000 : 35000/,'The browser must enforce a bounded request deadline');
 assert.match(chat,/new AbortController\(\)/,'A stalled request must be cancellable');
 assert.match(chat,/signal: controller\.signal/,'The request must use the timeout controller');
 assert.match(chat,/clearTimeout\(requestTimer\)/,'The timeout must be cleaned up after each request');
