@@ -30,6 +30,6 @@ assert.match(orchestrator,/addEventListener\('iam:voice-reply-ready'/,'The share
 assert.match(orchestrator,/Tap HEAR to play it aloud/,'Autoplay failure must expose a manual recovery path');
 assert.match(provider,/withinProviderBudget\(getMagnanimousMemoryContext\(request,env\),1800/,'Slow memory retrieval must not block chat indefinitely');
 assert.match(provider,/withinProviderBudget\(getKnowledgeContext\(request,env,userMessage/,'Knowledge retrieval must be bounded');
-assert.match(provider,/Promise\.all\(\[resolvedBrainContext,resolvedGrounding\]\)/,'Memory and knowledge retrieval must be joined in parallel');
+assert.match(provider,/Promise\.all\(\[brainContextTask,groundingTask\]\)/,'Memory and knowledge retrieval must be joined in parallel');
 
 console.log('PASS: read-only chat contract, bounded requests, per-gesture speech priming, manual answer playback and bounded Magnanimous brain retrieval.');
