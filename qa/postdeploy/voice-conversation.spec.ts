@@ -94,4 +94,39 @@ test('deployed voice transcript auto-sends, ignores late recognition errors, and
   await expect.poll(async () => page.evaluate(() => ((window as any).__iamSpoken as string[]).filter(text => text.trim()))).toContain(
     'I am doing well. I am Magnanimous AI, here to help you think, create, research, and get things done.'
   );
+
+  await page.evaluate(() => { ((window as any).__iamSpoken as string[]).length = 0; });
+  await page.getByRole('button', { name: /Hear answer from Magnanimous AI/i }).last().click();
+  await expect.poll(async () => page.evaluate(() => ((window as any).__iamSpoken as string[]).filter(text => text.trim()))).toContain(
+    'I am doing well. I am Magnanimous AI, here to help you think, create, research, and get things done.'
+  );
+});
+
+test('standalone Magnanimous restores a timed-out request and exposes retry', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('iam_account_token', 'voice-timeout-postdeploy-qa');
+    sessionStorage.setItem('iam_session_active', 'user');
+    const originalSetTimeout = window.setTimeout.bind(window);
+    (window as any).setTimeout = (handler: any, delay?: number, ...args: any[]) =>
+      originalSetTimeout(handler, delay && delay >= 35000 ? 100 : delay, ...args);
+  });
+
+  await page.route('**/api/magnanimous/health', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) }));
+  await page.route('**/api/magnanimous/mail/accounts', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ accounts: [] }) }));
+  await page.route('**/api/chat', async route => {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    try {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ answer: 'This response arrived too late.' }) });
+    } catch {
+      // The browser should already have aborted this request under the test's accelerated deadline.
+    }
+  });
+
+  await page.goto('/magnanimous', { waitUntil: 'domcontentloaded' });
+  const question = 'Tell me whether the standalone response timeout works.';
+  await page.locator('.mag-compose textarea').fill(question);
+  await page.getByRole('button', { name: /Send/i }).click();
+  await expect(page.locator('.mag-message.assistant .mag-bubble').last()).toContainText(/too long to respond/i);
+  await expect(page.locator('.mag-compose textarea')).toHaveValue(question);
+  await expect(page.getByRole('button', { name: /Retry/i })).toBeVisible();
 });
