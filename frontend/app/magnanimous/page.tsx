@@ -119,7 +119,7 @@ export default function StandaloneMagnanimous(){
    const headers:Record<string,string>={'content-type':'application/json'};
    if(token)headers.authorization=`Bearer ${token}`;
    const requestText=requestMode.id==='general'?text:`[${requestMode.label.toUpperCase()} MODE]\n${text}`;
-   const researchMode=requestMode.id==='research';
+   const researchMode=activeMode.id==='research';
   const extendedResearch=researchMode||isPublicInfoRequest(requestText);
   const timeoutMs=extendedResearch?70000:35000;
   const controller=new AbortController();
@@ -132,8 +132,8 @@ export default function StandaloneMagnanimous(){
     learn_links:!researchMode,
     remember_search:true,
     specialist_routing:true,
-    live_search:Boolean(requestMode.live),
-    news:Boolean(requestMode.news)
+    live_search:Boolean(activeMode.live),
+    news:Boolean(activeMode.news)
    };
    const transportOptions={retryTransientEdgeOnce:researchMode};
    if(retry&&requestMode.id!==activeMode.id){
