@@ -25,7 +25,7 @@ for (const workflow of workflows) {
   if (workflow.schedule) {
     assert.match(source, /^  schedule:\s*$/m,
       workflow.path + ' must retain its scheduled QA run');
-    assert.match(source, /cron:\s*'17 2 \\* \\* 0'/,
+    assert.match(source, /cron:\s*'17 2 \* \* 0'/,
       workflow.path + ' must retain the existing weekly QA cadence');
   }
 }
