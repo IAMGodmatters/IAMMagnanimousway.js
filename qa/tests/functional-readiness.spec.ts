@@ -21,7 +21,7 @@ for (const route of criticalTools) {
     }
     expect(status, `${route} is missing from the deployed site`).not.toBe(404);
 
-    const visibleText = (await page.locator('body').innerText()).trim();
+    const visibleText = ((await page.locator('body').textContent()) || '').trim();
     expect(visibleText.length, `${route} rendered no meaningful UI`).toBeGreaterThan(30);
 
     const interactive = page.locator('a[href]:visible, button:visible, input:visible, textarea:visible, select:visible');
