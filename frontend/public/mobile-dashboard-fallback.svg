@@ -99,7 +99,7 @@
     <circle cx="525" cy="690" r="29" fill="#1b2856" stroke="#8e82ff"/><text x="525" y="697" text-anchor="middle" class="mono" font-size="14">GR</text><text x="572" y="684" class="label" font-size="21">Growth</text><text x="572" y="714" class="muted" font-size="14">Audience • reach • insights</text>
 
     <rect class="card" x="44" y="766" width="414" height="127" rx="26"/><rect class="cardAccent" x="44" y="766" width="414" height="127" rx="26"/>
-    <circle cx="96" cy="829" r="29" fill="#0a3150" stroke="#3ad8f4"/><text x="96" y="836" text-anchor="middle" class="mono" font-size="14">OV</text><text x="143" y="823" class="label" font-size="21">Opportunity Vault</text><text x="143" y="853" class="muted" font-size="14">Find real opportunities</text>
+    <circle cx="96" cy="829" r="29" fill="#0a3150" stroke="#3ad8f4"/><text x="96" y="836" text-anchor="middle" class="mono" font-size="14">CRM</text><text x="143" y="823" class="label" font-size="21">CRM</text><text x="143" y="853" class="muted" font-size="14">Contacts • customers • follow-up</text>
 
     <rect class="card" x="473" y="766" width="415" height="127" rx="26"/><rect class="cardAccent" x="473" y="766" width="415" height="127" rx="26"/>
     <circle cx="525" cy="829" r="29" fill="#1b2856" stroke="#8e82ff"/><text x="525" y="836" text-anchor="middle" class="mono" font-size="14">KC</text><text x="572" y="823" class="label" font-size="21">Knowledge Center</text><text x="572" y="853" class="muted" font-size="14">Search • learn • remember</text>

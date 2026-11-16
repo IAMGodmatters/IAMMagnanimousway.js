@@ -6,18 +6,17 @@ type NavItem={glyph:string;label:string;href:string};
 // Reuse original Magnanimous illustrations: no third-party artwork or new downloads.
 const sidebarArt=(href:string)=>{
  if(href==='/ai-chat')return '/magnanimous-ai-command-palace-mobile-v2.webp';
- if(href==='/opportunity-vault')return '/magnanimous-opportunity-palace-mobile-v2.webp';
  if(href==='/knowledge')return '/magnanimous-knowledge-palace-mobile-v2.webp';
  if(href==='/travel-agency')return '/magnanimous-travel-palace-mobile-v2.webp';
  if(href.includes('shipstatic.com'))return '/magnanimous-family-full.webp';
  if(/social|video|movie|studio|creator/.test(href))return '/mode-images/social-media.webp';
  if(/crm|business|b2b|shop|owner|professional/.test(href))return '/mode-images/business.webp';
- if(/opportunity|intelligence|activity|report/.test(href))return '/mode-images/research.webp';
+ if(/intelligence|activity|report/.test(href))return '/mode-images/research.webp';
  if(/assistant|receptionist|routine|connections/.test(href))return '/mode-images/virtual-assistant.webp';
  return '/mode-images/general.webp';
 };
 const nav:NavItem[]=[
- {glyph:'H',label:'Home',href:'/'},{glyph:'AI',label:'AI Command',href:'/ai-chat'},{glyph:'OV',label:'Opportunity Vault',href:'/opportunity-vault'},{glyph:'CRM',label:'CRM',href:'/crm'},{glyph:'B2B',label:'B2B',href:'/b2b'},{glyph:'CC',label:'Contact Center',href:'/contact-center'},{glyph:'TEL',label:'Telecom',href:'/telecom'},{glyph:'ID',label:'Intelligence Desk',href:'/intelligence-desk'},{glyph:'TR',label:'Travel Agency',href:'/travel-agency'},{glyph:'TV',label:'Magnanimous TV',href:'/tv'},{glyph:'ST',label:'TV Studio',href:'/tv/studio'},{glyph:'TR',label:'TV Browser Remote',href:'/tv-remote'},{glyph:'K',label:'Magnanimous Kids',href:'https://harmonic-data-52yyzau.shipstatic.com/'},{glyph:'AB',label:'AI Business',href:'/business-ai'},{glyph:'UP',label:'Launch Magnanimous',href:'/business-plan'},{glyph:'VS',label:'Video Studio',href:'/video-studio'},{glyph:'SS',label:'Social Studio',href:'/social-media'},{glyph:'AR',label:'AI Receptionist',href:'/ai-receptionist'},{glyph:'VA',label:'Virtual Assistant',href:'/virtual-assistant'},{glyph:'KN',label:'Knowledge Center',href:'/knowledge'},{glyph:'PB',label:'Professional Business',href:'/professional'},{glyph:'RT',label:'Routines',href:'/routine-studio'},{glyph:'CN',label:'Connected',href:'/connections'},{glyph:'RP',label:'Reports',href:'/activity'},{glyph:'SH',label:'Shop',href:'/shop'},{glyph:'SET',label:'Settings',href:'/account'}
+ {glyph:'H',label:'Home',href:'/'},{glyph:'AI',label:'AI Command',href:'/ai-chat'},{glyph:'CRM',label:'CRM',href:'/crm'},{glyph:'B2B',label:'B2B',href:'/b2b'},{glyph:'CC',label:'Contact Center',href:'/contact-center'},{glyph:'TEL',label:'Telecom',href:'/telecom'},{glyph:'ID',label:'Intelligence Desk',href:'/intelligence-desk'},{glyph:'TR',label:'Travel Agency',href:'/travel-agency'},{glyph:'TV',label:'Magnanimous TV',href:'/tv'},{glyph:'ST',label:'TV Studio',href:'/tv/studio'},{glyph:'TR',label:'TV Browser Remote',href:'/tv-remote'},{glyph:'K',label:'Magnanimous Kids',href:'https://harmonic-data-52yyzau.shipstatic.com/'},{glyph:'AB',label:'AI Business',href:'/business-ai'},{glyph:'UP',label:'Launch Magnanimous',href:'/business-plan'},{glyph:'VS',label:'Video Studio',href:'/video-studio'},{glyph:'SS',label:'Social Studio',href:'/social-media'},{glyph:'AR',label:'AI Receptionist',href:'/ai-receptionist'},{glyph:'VA',label:'Virtual Assistant',href:'/virtual-assistant'},{glyph:'KN',label:'Knowledge Center',href:'/knowledge'},{glyph:'PB',label:'Professional Business',href:'/professional'},{glyph:'RT',label:'Routines',href:'/routine-studio'},{glyph:'CN',label:'Connected',href:'/connections'},{glyph:'RP',label:'Reports',href:'/activity'},{glyph:'SH',label:'Shop',href:'/shop'},{glyph:'SET',label:'Settings',href:'/account'}
 ];
 const ownerNav:NavItem[]=[{glyph:'OWN',label:'Owner Center',href:'/owner-center'},{glyph:'OPS',label:'Owner Operations',href:'/owner-operations'}];
 
@@ -25,7 +24,7 @@ type Theme={title:string;subtitle:string;image:string;accent:string;gold?:boolea
 function themeFor(path:string):Theme{
  if(path.includes('business')||path.includes('crm')||path.includes('professional')||path.includes('operations'))return{title:'Business Command',subtitle:'Build | Manage | Grow',image:'/mode-images/business.webp',accent:'#60e7c1',gold:true};
  if(path.includes('social')||path.includes('video')||path.includes('movie')||path.includes('creator'))return{title:'Creative Command',subtitle:'Create | Publish | Grow',image:'/mode-images/social-media.webp',accent:'#ff67e7'};
- if(path.includes('knowledge')||path.includes('research')||path.includes('opportunity')||path.includes('intelligence'))return{title:'Knowledge & Opportunity',subtitle:'Research | Verify | Act',image:'/mode-images/research.webp',accent:'#6fcfff'};
+ if(path.includes('knowledge')||path.includes('research')||path.includes('intelligence'))return{title:'Knowledge & Research',subtitle:'Research | Verify | Act',image:'/mode-images/research.webp',accent:'#6fcfff'};
  if(path.includes('assistant')||path.includes('routine')||path.includes('receptionist')||path.includes('connection'))return{title:'Assistant Operations',subtitle:'Automate | Connect | Follow Through',image:'/mode-images/virtual-assistant.webp',accent:'#58edcb'};
  if(path.includes('travel'))return{title:'Magnanimous Travel',subtitle:'Search | Compare | Grow',image:'/mode-images/general.webp',accent:'#68e9ff',gold:true};
  if(path.includes('kids'))return{title:'Magnanimous Kids',subtitle:'Learn | Create | Grow',image:'/magnanimous-family-full.webp',accent:'#ffd36e',gold:true};

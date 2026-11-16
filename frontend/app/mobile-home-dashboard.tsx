@@ -14,7 +14,7 @@ const cards:Card[]=[
  {label:'White Label',description:'Rebrand & Resell Your Own AI Platform',href:'/white-label',glyph:'🏷️',accent:'purple'},
  {label:'Creator Studio',description:'Content Creation Made Simple',href:'/studio',glyph:'📸',accent:'purple'},
  {label:'Growth',description:'Grow Your Audience & Increase Income',href:'/creator-growth',glyph:'📈',accent:'gold'},
- {label:'Opportunity Vault',description:'Find & Apply for Real Opportunities',href:'/opportunity-vault',glyph:'💎',accent:'teal'},
+ {label:'CRM',description:'Contacts, customers & follow-up',href:'/crm',glyph:'♟',accent:'blue'},
  {label:'Knowledge Center',description:'Learn, Train & Build Your Skills',href:'/knowledge',glyph:'📖',accent:'blue'},
  {label:'Routines',description:'Automate Your Day for Maximum Productivity',href:'/routine-studio',glyph:'📅',accent:'purple'},
  {label:'AI Receptionist',description:'24/7 AI Reception for Your Business',href:'/ai-receptionist',glyph:'🎧',accent:'gold'},
@@ -29,7 +29,7 @@ const cards:Card[]=[
 ];
 
 const drawerLinks=[
- ['Home','/'],['AI Command','/ai-chat'],['Opportunity Vault','/opportunity-vault'],['CRM','/crm'],['Travel Agency','/travel-agency'],['Magnanimous Kids',kids],['AI Business','/business-ai'],['Launch Magnanimous','/business-plan'],['Video Studio','/video-studio'],['White Label','/white-label'],['Creator Studio','/studio'],['Growth','/creator-growth'],['Social Studio','/social-media'],['AI Receptionist','/ai-receptionist'],['Virtual Assistant','/virtual-assistant'],['Knowledge Center','/knowledge'],['Professional Business','/professional'],['Routines','/routine-studio'],['Connected','/connections'],['Reports','/activity'],['Movie Maker','/movie-maker'],['AI Tools & More','/ai-apps'],['Settings','/account']
+ ['Home','/'],['AI Command','/ai-chat'],['CRM','/crm'],['Travel Agency','/travel-agency'],['Magnanimous Kids',kids],['AI Business','/business-ai'],['Launch Magnanimous','/business-plan'],['Video Studio','/video-studio'],['White Label','/white-label'],['Creator Studio','/studio'],['Growth','/creator-growth'],['Social Studio','/social-media'],['AI Receptionist','/ai-receptionist'],['Virtual Assistant','/virtual-assistant'],['Knowledge Center','/knowledge'],['Professional Business','/professional'],['Routines','/routine-studio'],['Connected','/connections'],['Reports','/activity'],['Movie Maker','/movie-maker'],['AI Tools & More','/ai-apps'],['Settings','/account']
 ] as const;
 
 async function safeJson(url:string){
@@ -148,7 +148,7 @@ export default function MobileHomeDashboard(){
    {(ads.length>0||adConfig.adsense_configured)&&<section className="iamMobileRevenue" aria-label="Sponsored advertising"><div><small>SPONSORED / ADVERTISING</small><span>Advertising stays separate from AI answers</span></div>{ads.length>0&&<nav>{ads.map(ad=><a key={ad.id} href={ad.url} target="_blank" rel="sponsored noopener noreferrer"><small>{ad.label||'Sponsored'}</small><b>{ad.title}</b></a>)}</nav>}{adConfig.adsense_configured&&<div className="iamMobileAdsense">{adConfig.adsense_home_slot&&adConfig.adsense_client_id?<ins className="adsbygoogle" style={{display:'block'}} data-ad-client={adConfig.adsense_client_id} data-ad-slot={adConfig.adsense_home_slot} data-ad-format="auto" data-full-width-responsive="true"/>:<p>Approved AdSense Auto Ads are enabled.</p>}</div>}</section>}
   </main>
 
-  <nav className="iamMobileBottom" aria-label="Primary mobile navigation"><a className="active" href="/"><span>⌂</span><b>Home</b></a><a href="/ai-chat"><span>▣</span><b>AI Command</b></a><a href="/opportunity-vault"><span>◇</span><b>Opportunity</b></a><a href="/crm"><span>♟</span><b>CRM</b></a><button type="button" onClick={()=>setMenuOpen(true)} aria-label="Open more navigation"><span>⊞</span><b>More</b></button></nav>
+  <nav className="iamMobileBottom" aria-label="Primary mobile navigation"><a className="active" href="/"><span>⌂</span><b>Home</b></a><a href="/ai-chat"><span>▣</span><b>AI Command</b></a><a href="/business"><span>▤</span><b>Business</b></a><a href="/crm"><span>♟</span><b>CRM</b></a><button type="button" onClick={()=>setMenuOpen(true)} aria-label="Open more navigation"><span>⊞</span><b>More</b></button></nav>
 
   {menuOpen&&<button className="iamMobileBackdrop" type="button" aria-label="Close navigation menu" onClick={()=>setMenuOpen(false)}/>}
   <aside id="iam-mobile-drawer" className={menuOpen?'iamMobileDrawer open':'iamMobileDrawer'} aria-hidden={!menuOpen}><div className="iamMobileDrawerTop"><a href="/" onClick={()=>setMenuOpen(false)}>I AM MAGNANIMOUS WAY™</a><button ref={closeButtonRef} type="button" onClick={()=>setMenuOpen(false)} tabIndex={menuOpen?0:-1}>Close</button></div><nav>{drawerLinks.map(([label,href])=><a key={label} href={href} tabIndex={menuOpen?0:-1} onClick={()=>setMenuOpen(false)}>{label}<span aria-hidden="true">›</span></a>)}</nav></aside>

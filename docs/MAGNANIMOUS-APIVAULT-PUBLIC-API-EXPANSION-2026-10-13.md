@@ -15,7 +15,7 @@ API Vault remains a discovery directory only. Magnanimous does not copy its cata
 ## Product routing
 
 - Magnanimous Attention/Security Watch → MDN Observatory + NVD.
-- Opportunity Vault → USAJOBS.
+- Magnanimous Professional Intelligence → USAJOBS (credential-gated, read-only federal job search).
 - Media Library / Kids / Ministry / social creative workflows → Openverse.
 - Magnanimous Kids / writing / learning → Free Dictionary + Datamuse.
 - Vehicle / transportation research → NHTSA vPIC.

@@ -169,11 +169,8 @@ jobs:
       - name: Lock branded internal palace route coverage
         run: node qa/scripts/internal-palace-brand-coverage-lock.mjs
 
-      - name: Lock verified Philippines Opportunity Vault roles
-        run: node qa/scripts/opportunity-vault-ph-roles-lock.mjs
-
-      - name: Lock current Philippines Opportunity Vault refresh
-        run: node qa/scripts/opportunity-vault-ph-refresh-lock.mjs
+      - name: Lock standalone Opportunity Vault separation
+        run: node qa/scripts/opportunity-vault-separation-lock.mjs
 
       - name: Lock recent platform invariants
         run: node qa/scripts/platform-recent-conversation-invariants-lock.mjs

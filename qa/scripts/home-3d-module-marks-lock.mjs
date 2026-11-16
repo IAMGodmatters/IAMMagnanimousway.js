@@ -38,7 +38,6 @@ assertCompleteWebp(mobileSharpAsset,'High-resolution mobile enhancement');
 const requiredRoutes=[
  "{label:'Home',href:'/'}",
  "{label:'AI Command',href:'/ai-chat'}",
- "{label:'Opportunity Vault',href:'/opportunity-vault'}",
  "{label:'CRM',href:'/crm'}",
  "{label:'Travel Agency',href:'/travel-agency'}",
  "{label:'AI Business',href:'/business-ai'}",
@@ -67,7 +66,7 @@ const referenceOrder=[
  "{label:'White Label',href:'/white-label'",
  "{label:'Creator Studio',href:'/studio'",
  "{label:'Growth',href:'/creator-growth'",
- "{label:'Opportunity Vault',href:'/opportunity-vault'",
+ "{label:'Business Growth',href:'/business'",
  "{label:'Knowledge Center',href:'/knowledge'",
  "{label:'Routines',href:'/routine-studio'",
  "{label:'AI Receptionist',href:'/ai-receptionist'",
@@ -93,7 +92,7 @@ assert.ok(clarity.includes("background-image: url('/mobile-dashboard-approved-sh
 assert.ok(clarity.includes('body.iam-design-v2 .mobileReferenceFrame::after')&&clarity.includes('pointer-events: none'),'High-resolution enhancement must remain visual-only and must not replace mobile interactions.');
 assert.ok(!clarity.includes("mobile-dashboard-fallback.svg"),'Simplified fallback artwork must never replace the approved mobile design.');
 assert.ok(page.includes('className="mobileReferenceHot mobileCardHot"'),'Approved mobile cards must remain fully clickable through aligned hotspots.');
-assert.ok(page.includes('mobileBottomCommand')&&page.includes('mobileBottomOpportunity')&&page.includes('mobileBottomCrm')&&page.includes('mobileBottomMore'),'Approved five-item mobile bottom navigation is incomplete.');
+assert.ok(page.includes('mobileBottomCommand')&&page.includes('mobileBottomBusiness')&&page.includes('mobileBottomCrm')&&page.includes('mobileBottomMore'),'Approved five-item mobile bottom navigation is incomplete.');
 assert.ok(page.includes('id="mobile-side-menu"')&&page.includes('className="mobileDrawerLinks"'),'Phone layout must provide the collapsible sidebar menu.');
 assert.ok(page.includes('id="mobile-reference-search"')&&page.includes('mobileSearchHot')&&page.includes('mobileSearchRef.current?.focus()'),'Mobile artwork search control must open a functional keyboard-accessible search panel.');
 assert.ok(page.includes('mobileNotifyHot')&&page.includes('mobileOwnerHot')&&page.includes('mobileTutorialHot'),'Notifications, owner/profile, and tutorial artwork controls must remain clickable.');

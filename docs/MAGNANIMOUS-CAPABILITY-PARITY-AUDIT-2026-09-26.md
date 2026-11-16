@@ -112,7 +112,7 @@ This is a verification document, not a marketing claim. A capability is not mark
 | 82 | Usage/rebilling ledger | Agency usage + billing controls | VERIFIED LIVE | Real provider costs still need verified origin pricing. |
 | 83 | Subscription/payment links | Stripe billing runtime | LIVE WITH AUTH / payment rail | Stripe confirmation controls activation; no payment is claimed without webhook/evidence. |
 | 84 | Protect variable-cost margins | Usage guard / origin-price reserve / caps | VERIFIED LIVE architecture | Unknown provider pricing fails closed rather than spending unbounded funds. |
-| 85 | Opportunity/job discovery | Opportunity Vault + Creator Growth / Research | VERIFIED LIVE | Acceptance/pay availability remain external facts. |
+| 85 | Federal job discovery | USAJOBS via Magnanimous Professional Intelligence | IMPLEMENTED / OWNER-CREDENTIAL-GATED | Search returns setup-required until the owner configures the USAJOBS API key and matching registered email. |
 | 86 | Travel planning | Travel Helper | VERIFIED LIVE | Booking/purchase is a separate provider action. |
 | 87 | Scripture/Bible study | Bible Study helper | VERIFIED LIVE | The user’s preferred KJV mode can be handled at the prompt/content layer. |
 | 88 | Create professional documents/PDFs | Business Plan exporter and document-generation capability contracts | PARTIAL / HYBRID | Business-plan DOCX/PDF export exists; a universal first-party office-file engine matching every ChatGPT artifact flow is not yet proven. |

@@ -22,7 +22,7 @@ The following links and opening captions were read through the authorized browse
 | Reel URL | Opening topic actually visible | Magnanimous relevance / independent check | Priority and limitation |
 | --- | --- | --- | --- |
 | https://www.facebook.com/reel/28753552417604749 | Fine-tuning a model on company documents | Data classification, permissions, retention, provider training terms; verify actual provider contracts. | P1 privacy; rest of video not reviewed. |
-| https://www.facebook.com/reel/2177096433688755 | Professionals reportedly paid to teach AI | Opportunity Vault could check original job listings and payment legitimacy. | P3; compensation claim **unverified**, no endorsement. |
+| https://www.facebook.com/reel/2177096433688755 | Professionals reportedly paid to teach AI | The separate curated-link service could review original job listings and payment legitimacy; it is not a Magnanimous platform capability. | P3; compensation claim **unverified**, no endorsement. |
 | https://www.facebook.com/reel/1851094802741650 | Local GPU runs out of memory | Model sizing, capacity probes, smaller quantized-model fallback and budget caps. | P1 compute; hardware claim not independently tested. |
 | https://www.facebook.com/reel/1584937932941162 | GPU scarcity and affordability | Free-first inference routing and capacity-aware fallback; compare actual provider pricing. | P2; broad market claims unverified. |
 | https://www.facebook.com/reel/1665598515092077 | Public discussion about an “agent outbreak” | Per-agent identity, least privilege, audit trails and kill switches. | P1 security; no inference about unseen remainder. |
