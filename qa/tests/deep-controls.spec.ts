@@ -10,7 +10,7 @@ async function safelyClickableControls(page: any) {
     const seen = new Map<string, number>();
     return els.map((el, index) => {
       const node = el as HTMLElement;
-      const text = (node.getAttribute('aria-label') || node.getAttribute('title') || node.innerText || node.textContent || '').replace(/\\s+/g, ' ').trim();
+      const text = (node.getAttribute('aria-label') || node.getAttribute('title') || node.innerText || node.textContent || '').replace(/\s+/g, ' ').trim();
       const disabled = (el as HTMLButtonElement).disabled || el.getAttribute('aria-disabled') === 'true';
       const form = el.closest('form');
       const type = (el.getAttribute('type') || '').toLowerCase();
