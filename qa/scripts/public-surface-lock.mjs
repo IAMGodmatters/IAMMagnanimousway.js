@@ -30,9 +30,8 @@ must(Boolean(runtimeMatch),'runtime public allowlist must remain machine-verifia
 must(Boolean(templateMatch),'template public allowlist must remain machine-verifiable');
 const runtimeAllowlist=runtimeMatch?.[1]||'';
 const templateAllowlist=templateMatch?.[1]||'';
-const chromeMatch=chrome.match(/const publicPaths=\\[([^\\]]+)\\];/);
-must(Boolean(chromeMatch),'platform chrome public route allowlist must remain machine-verifiable');
-must(Boolean(chromeMatch?.[1].includes("'/reels'")),'Reels must bypass the authenticated command shell so its public player controls remain accessible');
+const chromePublicPaths=chrome.split('const publicPaths=[')[1]?.split('];')[0]||'';
+must(chromePublicPaths.includes("'/reels'"),'Reels must bypass the authenticated command shell so its public player controls remain accessible');
 must(cinematic.includes("'/reels'"),'Reels must not render the narrated platform tour overlay');
 must(clarity.includes('path !== "/reels"'),'Reels must not render the floating platform-guide overlay');
 must(globalTools.includes("'/reels'"),'Reels must not mount authenticated global tools or voice surfaces');
