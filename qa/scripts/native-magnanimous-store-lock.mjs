@@ -80,7 +80,7 @@ must(ownerStoreControl.includes('/store-api/owner/control')&&ownerStoreControl.i
 must(runtime.includes("SELECT * FROM store_products WHERE active=1 AND id IN"),'Checkout must price carts from server-side catalog records.');
 must(runtime.includes("metadata[product_type]','magnanimous_store_order'"),'Stripe checkout must identify native store orders.');
 must(runtime.includes("paidAmount!==Number(order.amount_cents)"),'Paid amount must be verified against the stored order total.');
-must(runtime.includes('function catalogMapped(row)')&&runtime.includes("products=allProducts.filter(p=>p.available&&p.product_kind!=='external')"),'Unmapped, disconnected, external, or otherwise non-checkout-ready products must be hidden from the public native catalog.');
+must(runtime.includes('function catalogMapped(row)')&&runtime.includes("products=allProducts.filter(p=>p.product_kind!=='external'&&p.price_cents>0)")&&runtime.includes('purchasable=products.filter(p=>p.available)'),'Unmapped, disconnected, external, or otherwise non-checkout-ready products may be displayed but must remain unavailable for purchase.');
 must(runtime.includes("String(row.supplier_variant_id||'').trim()")&&runtime.includes('scheduledNativeStoreVariantVerification'),'Dropship availability must require an exact verified supplier variant and scheduled verification.');
 must(runtime.includes("if(loaded.some(x=>!catalogMapped(x.row)))")&&runtime.includes("Number(x.row.price_cents||0)<=0"),'Checkout must reject incomplete supplier mappings and zero-price placeholders before Stripe is opened.');
 must(runtime.includes('SHIPPING_COUNTRY_REQUIRED')&&!runtime.includes("cleanCountry(body.country)||'US'"),'Checkout must not silently substitute the United States for a missing shipping destination.');
