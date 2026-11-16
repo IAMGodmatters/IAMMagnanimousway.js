@@ -68,6 +68,7 @@ jobs:
       - name: Audit I AM Magnanimous Way sender domain without changing DNS
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_EMAIL_AUDIT_TOKEN: ${{ secrets.CLOUDFLARE_EMAIL_AUDIT_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
@@ -96,12 +97,17 @@ jobs:
             echo '::warning::The iammagnanimousway.com zone was not found in this Cloudflare account; no changes were made.'
             exit 0
           fi
+          email_audit_token="${CLOUDFLARE_EMAIL_AUDIT_TOKEN:-$CLOUDFLARE_API_TOKEN}"
           list_code=$(curl -sS -o /tmp/cf-sending-domains-audit.json -w '%{http_code}' \
             "https://api.cloudflare.com/client/v4/zones/${zone_id}/email/sending/subdomains" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" || true)
+            -H "Authorization: Bearer ${email_audit_token}" || true)
           echo "sender_domain_list_http=$list_code"
+          if [ "$list_code" = "401" ] || [ "$list_code" = "403" ]; then
+            echo '::warning::The current token cannot read Cloudflare Email Sending state. An optional CLOUDFLARE_EMAIL_AUDIT_TOKEN with read-only access to this zone and Email Sending is required for automated verification; no changes were made.'
+            exit 0
+          fi
           if [ "$list_code" != "200" ]; then
-            echo '::warning::Cloudflare Email Sending domain state is not readable with the current token; no changes were made.'
+            echo '::warning::Cloudflare Email Sending domain state is not readable right now; no changes were made.'
             exit 0
           fi
           DOMAIN="$domain" python - <<'PY'
