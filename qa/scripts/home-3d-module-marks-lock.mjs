@@ -66,7 +66,7 @@ const referenceOrder=[
  "{label:'White Label',href:'/white-label'",
  "{label:'Creator Studio',href:'/studio'",
  "{label:'Growth',href:'/creator-growth'",
- "{label:'Opportunity Vault',href:'/opportunity-vault'",
+ "{label:'Business Growth',href:'/business'",
  "{label:'Knowledge Center',href:'/knowledge'",
  "{label:'Routines',href:'/routine-studio'",
  "{label:'AI Receptionist',href:'/ai-receptionist'",

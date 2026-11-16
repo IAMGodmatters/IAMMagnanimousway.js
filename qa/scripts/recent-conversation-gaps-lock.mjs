@@ -14,3 +14,5 @@ assert.ok(!kids.includes("await ensureTables(env);\n if(request.method==='OPTION
 assert.ok(credentials.includes('runtimeVaultRows'),'credential overlay reads must have a DDL-free runtime path');
 assert.ok(runtimeControl.includes("getIntegrationRuntimeEnv(env,['GOOGLE_CLIENT_ID','GOOGLE_CLIENT_SECRET'])"),'Kids runtime must load only the Google OAuth credential pair on its hot path');
 for(const table of ['platform_credentials','kids_drive_states','kids_drive_auth'])assert.ok(kidsMigration.includes(table),'0096 migration missing '+table);
+
+console.log('Recent-conversation mode visual and platform capability gaps passed.');
