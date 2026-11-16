@@ -152,7 +152,7 @@ jobs:
             grep -q 'White Label' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing White Label."; exit 1; }
             grep -q 'Creator Studio' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing Creator Studio."; exit 1; }
             grep -q 'Growth' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing Growth."; exit 1; }
-            grep -q 'Opportunity Vault' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing Opportunity Vault."; exit 1; }
+            grep -q 'Business growth' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing the Business growth shortcut."; exit 1; }
             grep -q 'Professional Business' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing Professional Business."; exit 1; }
             grep -q 'mobileBottomMore' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing the approved bottom navigation."; exit 1; }
             grep -q 'id="mobile-side-menu"' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing the collapsible menu."; exit 1; }

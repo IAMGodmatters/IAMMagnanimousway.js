@@ -70,12 +70,12 @@ assert.ok(clarity.includes('body.iam-design-v2 .mobileReferenceHot')&&clarity.in
 assert.ok(!clarity.includes("mobile-dashboard-fallback.svg"),'Simplified fallback artwork must never replace the approved mobile design.');
 assert.ok(layout.includes('.mobileReferenceArtwork{opacity:1!important;visibility:visible!important'),'Approved portrait artwork must remain visible and primary.');
 assert.ok(layout.includes('body:has(.mobileReferenceFrame) .iam-help-link')&&layout.includes('body:has(.mobileReferenceFrame) .iam-tour-launch')&&layout.includes('body:has(.mobileReferenceFrame) .iam-progress-save'),'Homepage helper overlays must not cover the approved mobile artwork.');
-for(const route of ['/video-studio','/white-label','/studio','/creator-growth','/opportunity-vault','/knowledge','/routine-studio','/ai-receptionist','/connections','/professional','/business-plan','/business-ai','/ai-chat','/social-media','/virtual-assistant','/activity'])assert.ok(page.includes(route),`Approved mobile navigation missing ${route}`);
+for(const route of ['/video-studio','/white-label','/studio','/creator-growth','/knowledge','/routine-studio','/ai-receptionist','/connections','/professional','/business-plan','/business-ai','/ai-chat','/social-media','/virtual-assistant','/activity'])assert.ok(page.includes(route),`Approved mobile navigation missing ${route}`);
 for(const token of ['/api/ads?placement=home','/api/monetization/config','adsbygoogle'])assert.ok(page.includes(token),`Mobile home revenue behavior missing ${token}`);
 assert.ok(page.includes('mobileTutorialHot')&&page.includes('href="/guide"'),'Tutorial artwork must remain clickable.');
 assert.ok(page.includes('mobileSearchHot')&&page.includes('id="mobile-reference-search"'),'Reference search control must open the functional search panel.');
 assert.ok(page.includes('mobileNotifyHot')&&page.includes('mobileOwnerHot'),'Notification and owner/profile controls are missing.');
-assert.ok(page.includes('mobileBottomHome')&&page.includes('mobileBottomCommand')&&page.includes('mobileBottomOpportunity')&&page.includes('mobileBottomCrm')&&page.includes('mobileBottomMore'),'Approved five-item bottom navigation is incomplete.');
+assert.ok(page.includes('mobileBottomHome')&&page.includes('mobileBottomCommand')&&page.includes('mobileBottomBusiness')&&page.includes('mobileBottomCrm')&&page.includes('mobileBottomMore'),'Approved five-item bottom navigation is incomplete.');
 assert.ok(page.includes('id="mobile-side-menu"')&&page.includes('setMenuOpen(value=>!value)'),'Collapsible mobile menu is missing.');
 assert.ok(page.includes('@media(max-width:1024px)')&&page.includes('.desktopStage{display:none!important}')&&page.includes('.mobileExactStage{display:block'),'Mobile breakpoint must isolate the approved portrait composition from desktop.');
 assert.ok(page.includes('overflow-x:clip'),'Mobile surface must prevent sideways drift while retaining normal vertical document scrolling.');

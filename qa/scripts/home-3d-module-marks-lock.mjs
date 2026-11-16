@@ -38,7 +38,6 @@ assertCompleteWebp(mobileSharpAsset,'High-resolution mobile enhancement');
 const requiredRoutes=[
  "{label:'Home',href:'/'}",
  "{label:'AI Command',href:'/ai-chat'}",
- "{label:'Opportunity Vault',href:'/opportunity-vault'}",
  "{label:'CRM',href:'/crm'}",
  "{label:'Travel Agency',href:'/travel-agency'}",
  "{label:'AI Business',href:'/business-ai'}",
