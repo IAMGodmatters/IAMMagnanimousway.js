@@ -65,13 +65,73 @@ jobs:
               print('::warning::The latest owner email-code delivery failed. Inspect the redacted error; password fallback remains available.')
           PY
 
+      - name: Audit I AM Magnanimous Way sender domain without changing DNS
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          domain='iammagnanimousway.com'
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
+            echo '::warning::Cloudflare API token is unavailable; sender-domain state was not checked.'
+            exit 0
+          fi
+          zone_code=$(curl -sS -G -o /tmp/cf-zone-audit.json -w '%{http_code}' \
+            'https://api.cloudflare.com/client/v4/zones' \
+            --data-urlencode "name=$domain" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" || true)
+          echo "sender_zone_lookup_http=$zone_code"
+          if [ "$zone_code" != "200" ]; then
+            echo '::warning::Could not read the Cloudflare zone for sender-domain verification; no changes were made.'
+            exit 0
+          fi
+          zone_id=$(python - <<'PY'
+          import json
+          d=json.load(open('/tmp/cf-zone-audit.json'))
+          rows=d.get('result') or []
+          print(rows[0].get('id','') if rows else '',end='')
+          PY
+          )
+          if [ -z "$zone_id" ]; then
+            echo '::warning::The iammagnanimousway.com zone was not found in this Cloudflare account; no changes were made.'
+            exit 0
+          fi
+          list_code=$(curl -sS -o /tmp/cf-sending-domains-audit.json -w '%{http_code}' \
+            "https://api.cloudflare.com/client/v4/zones/${zone_id}/email/sending/subdomains" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" || true)
+          echo "sender_domain_list_http=$list_code"
+          if [ "$list_code" != "200" ]; then
+            echo '::warning::Cloudflare Email Sending domain state is not readable with the current token; no changes were made.'
+            exit 0
+          fi
+          DOMAIN="$domain" python - <<'PY'
+          import json,os
+          domain=os.environ['DOMAIN'].lower()
+          d=json.load(open('/tmp/cf-sending-domains-audit.json'))
+          rows=d.get('result') or []
+          match=next((x for x in rows if str(x.get('name') or '').lower()==domain),None)
+          enabled=bool(match and match.get('enabled'))
+          print('sender_domain_api_success='+('1' if d.get('success') else '0'))
+          print('sender_domain_present='+('1' if match else '0'))
+          print('sender_domain_enabled='+('1' if enabled else '0'))
+          if not d.get('success'):
+              for e in d.get('errors') or []:
+                  print('sender_domain_audit_error='+str(e.get('code'))+':'+str(e.get('message'))[:240])
+              print('::warning::Cloudflare did not confirm sender-domain state; no changes were made.')
+          elif enabled:
+              print('I AM Magnanimous Way sender domain is onboarded and enabled.')
+          else:
+              print('::warning::I AM Magnanimous Way sender domain is not onboarded/enabled. Owner approval of the DNS records is still required; no changes were made.')
+          PY
+
       - name: Free-first email sending posture
         if: ${{ vars.ENABLE_CLOUDFLARE_EMAIL_SENDING != 'true' }}
         shell: bash
         run: |
-          echo 'Cloudflare Email Sending domain onboarding is intentionally skipped.'
-          echo 'This deployment stays free-first and uses connected Gmail/Outlook delivery plus the owner password fallback.'
-          echo 'Set repository variable ENABLE_CLOUDFLARE_EMAIL_SENDING=true only after a paid Cloudflare Email Sending entitlement is intentionally enabled.'
+          echo 'Sender-domain onboarding is intentionally skipped until the owner approves the required DNS records.'
+          echo 'Cloudflare Email Service sends to verified destination addresses are free on Workers Free and Paid plans; arbitrary recipients require Workers Paid.'
+          echo 'This workflow does not enable a paid plan or change DNS unless the owner explicitly enables the onboarding variable.'
+          echo 'Set ENABLE_CLOUDFLARE_EMAIL_SENDING=true only after reviewing and approving the sender-domain DNS changes in Cloudflare.'
 
       - name: Onboard I AM Magnanimous Way sending domain
         if: ${{ vars.ENABLE_CLOUDFLARE_EMAIL_SENDING == 'true' }}
