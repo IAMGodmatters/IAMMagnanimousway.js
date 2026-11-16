@@ -9,7 +9,7 @@ const hiddenPaths=['/login','/signup','/owner-login','/privacy','/terms','/solut
 
 export default function GlobalTools(){
  const[path,setPath]=useState(''),[owner,setOwner]=useState(false),[open,setOpen]=useState(false);
- useEffect(()=>{setPath(location.pathname);setOwner(!!getMagnanimousAdminToken())},[]);
+ useEffect(()=>{setPath((location.pathname||'/').replace(/\/+$/,'')||'/');setOwner(!!getMagnanimousAdminToken())},[]);
  if(!path||hiddenPaths.includes(path))return null;
  return <>
   <ProgressAutosave/>
