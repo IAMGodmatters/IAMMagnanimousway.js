@@ -383,7 +383,7 @@ export default function GuideClient() {
             const active = t.key === selected.key;
             return (
               <article key={t.key} className={active ? "active" : ""}>
-                <button onClick={() => choose(t.key)} aria-expanded={active}>
+                <button onClick={() => choose(t.key)} aria-expanded={active} aria-label={`${active ? "Instructions open for" : "Show instructions for"} ${t.title}`}>
                   <small>{String(i + 1).padStart(2, "0")}</small>
                   <h3>{t.title}</h3>
                   <p>{t.summary}</p>
