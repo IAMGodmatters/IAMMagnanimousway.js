@@ -35,6 +35,8 @@ must(chromePublicPaths.includes("'/reels'"),'Reels must bypass the authenticated
 must(cinematic.includes("'/reels'"),'Reels must not render the narrated platform tour overlay');
 must(clarity.includes('path !== "/reels"'),'Reels must not render the floating platform-guide overlay');
 must(globalTools.includes("'/reels'"),'Reels must not mount authenticated global tools or voice surfaces');
+const trailingSlashNormalization="replace(/\\/+$/";
+must([chrome,cinematic,clarity,globalTools].every(source=>source.includes(trailingSlashNormalization)),'Global shell and overlay route checks must normalize trailing slashes before comparing public paths');
 const publicRoutes=['/','/teach','/shop','/login','/signup','/owner-login','/solutions','/guide','/launchplan','/business-plan','/funding','/security','/free-tools','/samsung-tools','/ai-apps','/pricing','/reviews','/privacy','/terms','/advertise','/white-label','/movie','/reels','/plugin-support','/plugin-demo'];
 const protectedRoutes=['/magnanimous','/bible-study','/ai-chat','/crm','/connections','/assistant-actions','/owner-center','/owner-billing','/phone','/telecom','/space','/mux','/knowledge','/virtual-assistant','/video-studio','/movie-maker','/agents'];
 

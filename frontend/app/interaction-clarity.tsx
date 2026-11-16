@@ -26,7 +26,7 @@ export default function InteractionClarity() {
   const [path, setPath] = useState("/");
 
   useEffect(() => {
-    const current = location.pathname || "/";
+    const current = (location.pathname || "/").replace(/\/+$/, "") || "/";
     setPath(current);
 
     const scan = () => {

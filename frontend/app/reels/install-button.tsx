@@ -65,6 +65,7 @@ export default function InstallButton() {
       onClick={handleInstall}
       disabled={disabled}
       title="Install Magnanimous Reels on this device"
+      aria-label={label}
       style={{
         color: '#fff',
         border: '1px solid #48556e',

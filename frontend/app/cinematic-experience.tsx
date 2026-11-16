@@ -24,7 +24,7 @@ function selectVoice(){
 
 export default function CinematicExperience(){
  const[path,setPath]=useState(''),[open,setOpen]=useState(false),[step,setStep]=useState(0),[speaking,setSpeaking]=useState(false);
- useEffect(()=>{setPath(location.pathname);return()=>{try{window.speechSynthesis?.cancel()}catch{}}},[]);
+ useEffect(()=>{const current=(location.pathname||'/').replace(/\/+$/,'')||'/';setPath(current);return()=>{try{window.speechSynthesis?.cancel()}catch{}}},[]);
  const hidden=useMemo(()=>publicPaths.some(p=>path===p||path.startsWith(p+'/')),[path]);
  const current=steps[step];
  function speak(copy=current.copy){

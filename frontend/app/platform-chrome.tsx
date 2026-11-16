@@ -36,7 +36,7 @@ function themeFor(path:string):Theme{
 export default function PlatformChrome(){
  const[path,setPath]=useState(''),[collapsed,setCollapsed]=useState(false),[mobileOpen,setMobileOpen]=useState(false),[query,setQuery]=useState(''),[owner,setOwner]=useState(false),[displayName,setDisplayName]=useState('Magnanimous User');
  useEffect(()=>{
-  const p=location.pathname;setPath(p);const isOwner=!!(localStorage.getItem('magnanimous_admin_token')||localStorage.getItem('odin_admin_token'));setOwner(isOwner);
+  const p=(location.pathname||'/').replace(/\/+$/,'')||'/';setPath(p);const isOwner=!!(localStorage.getItem('magnanimous_admin_token')||localStorage.getItem('odin_admin_token'));setOwner(isOwner);
   const saved=localStorage.getItem('iam_sidebar_collapsed')==='1';setCollapsed(saved);
   if(publicPaths.includes(p)||p.startsWith('/movie/')||p.startsWith('/tv/'))return;
   document.documentElement.dataset.iamShell='true';document.documentElement.dataset.iamSidebar=saved?'collapsed':'open';
