@@ -10,7 +10,7 @@ async function safelyClickableControls(page: any) {
     const seen = new Map<string, number>();
     return els.map((el, index) => {
       const node = el as HTMLElement;
-      const text = (node.innerText || node.getAttribute('aria-label') || node.getAttribute('title') || '').trim();
+      const text = (node.getAttribute('aria-label') || node.getAttribute('title') || node.innerText || node.textContent || '').replace(/\\s+/g, ' ').trim();
       const disabled = (el as HTMLButtonElement).disabled || el.getAttribute('aria-disabled') === 'true';
       const form = el.closest('form');
       const type = (el.getAttribute('type') || '').toLowerCase();
@@ -31,6 +31,13 @@ async function loadRoute(page: any, route: string) {
 
 function namedControl(page: any, candidate: any) {
   return page.getByRole('button', { name: candidate.text, exact: true }).nth(candidate.occurrence);
+}
+
+async function clickVisibleControl(target: any) {
+  const box = await target.boundingBox().catch(() => null);
+  const options: any = { timeout: 5_000, noWaitAfter: true };
+  if (box) options.position = { x: Math.min(12, Math.max(1, box.width / 2)), y: Math.min(12, Math.max(1, box.height / 2)) };
+  await target.click(options);
 }
 
 async function ensureCandidateReady(page: any, route: string, candidate: any) {
@@ -74,7 +81,7 @@ test.describe('deep non-destructive control sweep', () => {
 
         let clicked = true;
         try {
-          await target.click({ timeout: 2_500 });
+          await clickVisibleControl(target);
         } catch {
           // A previous click may have left a transient overlay intercepting the next control.
           // Restore once and retry; a second failure is a real sweep failure rather than a silent skip.
@@ -82,7 +89,7 @@ test.describe('deep non-destructive control sweep', () => {
           target = await ensureCandidateReady(page, route, candidate);
           if (!target || await target.isDisabled().catch(() => true)) continue;
           try {
-            await target.click({ timeout: 2_500 });
+            await clickVisibleControl(target);
           } catch {
             clicked = false;
           }
@@ -90,12 +97,17 @@ test.describe('deep non-destructive control sweep', () => {
         expect(clicked, `${route} control "${candidate.text}" could not be clicked`).toBe(true);
 
         await page.waitForTimeout(75);
-        const body = (await page.locator('body').innerText()).trim();
+        const body = ((await page.locator('body').textContent()) || '').trim();
         expect(body.length, `${route} went blank after clicking ${candidate.text}`).toBeGreaterThan(20);
 
+        // Informational White Label cards open a preview dialog. Close that expected dialog
+        // before testing the next card instead of clicking through its modal backdrop.
+        const keepLooking = page.getByRole('button', { name: 'Keep looking', exact: true });
+        if (await keepLooking.isVisible().catch(() => false)) await clickVisibleControl(keepLooking);
+
         const currentUrl = new URL(page.url());
-        if (currentUrl.origin !== baselineUrl.origin || currentUrl.pathname !== baselineUrl.pathname) {
-          await loadRoute(page, route);
+        if (currentUrl.href !== baselineUrl.href) {
+          await loadRoute(page, `${baselineUrl.pathname}${baselineUrl.search}${baselineUrl.hash}`);
         }
       }
 
