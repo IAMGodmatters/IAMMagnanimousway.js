@@ -2,7 +2,7 @@ name: Full Platform QA
 
 on:
   push:
-    branches: ['**']
+    branches: [main]
   pull_request:
   workflow_dispatch:
   schedule:
@@ -40,6 +40,9 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
+
+      - name: Verify CI workflow trigger deduplication
+        run: node qa/scripts/workflow-trigger-dedup-lock.mjs
 
       - name: Run deterministic native unit and integration tests
         run: node qa/scripts/run-native-regression-tests.mjs

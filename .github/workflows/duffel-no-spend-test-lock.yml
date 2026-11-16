@@ -2,7 +2,7 @@ name: Duffel No-Spend Test Lock
 
 on:
   push:
-    branches: ['**']
+    branches: [main]
   pull_request:
   workflow_dispatch:
 

@@ -3,7 +3,7 @@ name: Public Teaching and QA Observation Lock
 on:
   pull_request:
   push:
-    branches: ['**']
+    branches: [main]
 
 permissions:
   contents: read
