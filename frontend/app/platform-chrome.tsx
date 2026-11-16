@@ -1,7 +1,7 @@
 'use client';
 import {FormEvent,useEffect,useMemo,useState} from 'react';
 
-const publicPaths=['/login','/signup','/owner-login','/privacy','/terms','/movie','/magnanimous','/telecom-standalone','/tv-remote','/tv','/tv/studio'];
+const publicPaths=['/login','/signup','/owner-login','/privacy','/terms','/movie','/reels','/magnanimous','/telecom-standalone','/tv-remote','/tv','/tv/studio'];
 type NavItem={glyph:string;label:string;href:string};
 // Reuse original Magnanimous illustrations: no third-party artwork or new downloads.
 const sidebarArt=(href:string)=>{

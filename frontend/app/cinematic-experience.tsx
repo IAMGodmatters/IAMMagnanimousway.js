@@ -12,7 +12,7 @@ const steps:TourStep[]=[
  {eyebrow:'06 • YOUR NEXT MOVE',title:'Use the guide whenever you need it',copy:'The platform tour stays available from any signed-in workspace. Choose a destination, let the guide narrate the step, then continue working with Magnanimous AI as the coordinating brain.',href:'/ai-chat',cta:'Open Magnanimous AI'}
 ];
 
-const publicPaths=['/login','/signup','/owner-login','/forgot-password','/privacy','/terms'];
+const publicPaths=['/login','/signup','/owner-login','/forgot-password','/privacy','/terms','/reels'];
 
 function selectVoice(){
  if(typeof window==='undefined'||!('speechSynthesis' in window))return null;

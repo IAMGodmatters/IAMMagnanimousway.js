@@ -5,7 +5,7 @@ import VoiceOrchestrator from './voice-orchestrator';
 import VoiceSurfaceHardener from './voice-surface-hardener';
 import ProgressAutosave from './progress-autosave';
 
-const hiddenPaths=['/login','/signup','/owner-login','/privacy','/terms','/solutions','/pricing','/white-label','/security','/reviews','/advertise'];
+const hiddenPaths=['/login','/signup','/owner-login','/privacy','/terms','/solutions','/pricing','/white-label','/security','/reviews','/advertise','/reels'];
 
 export default function GlobalTools(){
  const[path,setPath]=useState(''),[owner,setOwner]=useState(false),[open,setOpen]=useState(false);

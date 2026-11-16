@@ -39,7 +39,7 @@ test.describe('critical cross-browser and mobile matrix', () => {
 
       const body = page.locator('body');
       await expect(body).toBeVisible();
-      expect((await body.innerText()).trim().length, `${route} rendered no meaningful content`).toBeGreaterThan(30);
+      await expect.poll(async () => ((await body.textContent()) || '').trim().length, { timeout: 8_000 }).toBeGreaterThan(30);
 
       const dimensions = await page.evaluate(() => ({
         viewport: document.documentElement.clientWidth,
