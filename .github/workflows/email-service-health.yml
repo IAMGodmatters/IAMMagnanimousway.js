@@ -9,6 +9,8 @@ permissions:
 
 jobs:
   inspect:
+    # Dependabot pushes cannot access repository secrets; this job reads remote Cloudflare D1.
+    if: ${{ github.actor != 'dependabot[bot]' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -49,12 +51,18 @@ jobs:
                   for v in x: walk(v)
           walk(p)
           row=rows[-1] if rows else {}
+          status=str(row.get('status') or 'none').lower()
+          provider=str(row.get('provider') or 'none')
           err=re.sub(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+','[redacted-email]',str(row.get('last_error') or ''))
-          print('mail_status='+str(row.get('status') or 'none'))
-          print('mail_provider='+str(row.get('provider') or 'none'))
+          print('mail_status='+status)
+          print('mail_provider='+provider)
           print('mail_error='+err[:500])
-          if 'NO_SENDER' in err:
+          if status == 'failed' and 'E_SENDER_DOMAIN_NOT_CONFIGURED' in err:
+              print('::warning::Owner email-code delivery is not configured for the current sender. Keep paid Cloudflare Email Sending disabled unless the owner explicitly authorizes it; password fallback remains available.')
+          elif status == 'failed' and 'NO_SENDER' in err:
               print('::warning::No connected Gmail/Outlook sender is available yet. Owner email-code login will use the password fallback until a sender is connected.')
+          elif status == 'failed':
+              print('::warning::The latest owner email-code delivery failed. Inspect the redacted error; password fallback remains available.')
           PY
 
       - name: Free-first email sending posture
