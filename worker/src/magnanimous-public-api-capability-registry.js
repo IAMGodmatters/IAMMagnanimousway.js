@@ -90,7 +90,7 @@ export const MAGNANIMOUS_PUBLIC_API_PROVIDERS=Object.freeze([
     official_docs:'https://developer.usajobs.gov/',
     base_url:'https://data.usajobs.gov',
     auth:'api-key-plus-registered-email-for-search',
-    use_case:'Official U.S. federal job discovery for Opportunity Vault plus unauthenticated reference codelists.',
+    use_case:'Official U.S. federal job discovery for Magnanimous Professional Intelligence plus unauthenticated reference codelists.',
     terms_note:'Job search requires an owner-obtained USAJOBS API key and the matching registered email; codelist endpoints do not require authentication.',
     guardrail:'Do not claim job-search connectivity until the owner credentials are configured; preserve the official USAJOBS application link.'
   }),

@@ -43,22 +43,21 @@ Current authoritative state:
 **Action**
 - Keep current source-of-truth fields in every summary: main SHA, production revision/deployment ID, failed/pending gates, and external approvals.
 
-## 3. Opportunity Vault / platform promotion
+## 3. Opportunity Vault — historical promotion request, superseded by separation
 
-**Requested**
-- Keep Opportunity Vault updated and actionable.
+**Earlier request**
+- Keep the independent curated-link service current and useful.
 - Add verified opportunities without clutter.
-- Preserve Magnanimous AI as the brain.
+- Preserve Magnanimous AI as the brain of the main platform.
 - Produce promotional content for the platform.
 
-**State**
-- Opportunity Vault is an established platform surface and remains part of the verified navigation/capability set.
-- Opportunity acceptance, pay and availability remain outside Magnanimous control.
+**Current binding decision (September 29, 2026)**
+- Opportunity Vault is a standalone, paid, non-affiliate curated-link service for Filipinos.
+- It is not part of Magnanimous and must not be connected to the main platform, repository, Worker, D1, AI, login, domain, branding, or navigation.
+- This later separation decision supersedes the earlier platform-promotion language in this historical audit.
 
 **Action**
-- Continue evidence-based opportunity updates; do not fabricate payouts or eligibility.
-- Treat promotion/content creation as separate from opportunity verification.
-
+- Keep the independent service outside Magnanimous platform implementation and release checks.
 ## 4. Daily KJV devotional video
 
 **Requested**

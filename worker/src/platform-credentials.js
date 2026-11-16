@@ -106,7 +106,7 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'MAGNANIMOUS_MEDIA_WORKER_TOKEN',label:'Magnanimous Media Worker Bearer Token',secret:true,required:false}
  ]},
  {id:'web-research',name:'Web Research & News',providers:['brave-search'],fields:[{key:'BRAVE_SEARCH_API_KEY',label:'Brave Search API Key (optional live web/news research)',secret:true,required:false}]},
- {id:'public-data-research',name:'Magnanimous Public Data & Opportunity Sources',providers:[],fields:[
+ {id:'public-data-research',name:'Magnanimous Public Data & Research Sources',providers:[],fields:[
   {key:'NVD_API_KEY',label:'NIST NVD API Key (optional, increases vulnerability-query allowance)',secret:true,required:false},
   {key:'USAJOBS_API_KEY',label:'USAJOBS API Key (required only for federal job search)',secret:true,required:false},
   {key:'USAJOBS_API_EMAIL',label:'USAJOBS Registered Email (must match the API key registration)',secret:false,required:false}

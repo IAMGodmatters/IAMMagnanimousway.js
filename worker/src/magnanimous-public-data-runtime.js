@@ -430,7 +430,7 @@ export async function handleMagnanimousPublicData(request,env){
       if(!USAJOBS_CODELISTS.has(codelist))return json({detail:'Unsupported USAJOBS codelist.'},400);
       try{
         const data=await providerJson(`https://data.usajobs.gov/api/codelist/${encodeURIComponent(codelist)}`);
-        return json({identity:'Magnanimous Opportunity Vault',codelist,data,source:{name:'USAJOBS',url:'https://developer.usajobs.gov/api-reference/code-lists'}});
+        return json({identity:'Magnanimous Professional Intelligence',codelist,data,source:{name:'USAJOBS',url:'https://developer.usajobs.gov/api-reference/code-lists'}});
       }catch(error){return sourceError('USAJOBS',error)}
     }
     const runtimeEnv=await getProviderRuntimeEnv(env),apiKey=clip(runtimeEnv?.USAJOBS_API_KEY,1000),apiEmail=clip(runtimeEnv?.USAJOBS_API_EMAIL,500);
@@ -441,7 +441,7 @@ export async function handleMagnanimousPublicData(request,env){
     try{
       const data=await providerJson(`https://data.usajobs.gov/api/Search?${query.toString()}`,{headers:{'Authorization-Key':apiKey,'User-Agent':apiEmail}});
       const items=(Array.isArray(data?.SearchResult?.SearchResultItems)?data.SearchResult.SearchResultItems:[]).slice(0,limit).map(normalizeUsaJob);
-      return json({identity:'Magnanimous Opportunity Vault',keyword:keyword||null,location:location||null,date_posted_days:datePosted,count:items.length,total:Number.isFinite(Number(data?.SearchResult?.SearchResultCountAll))?Number(data.SearchResult.SearchResultCountAll):items.length,items,source:{name:'USAJOBS',url:'https://developer.usajobs.gov/api-reference/get-api-search'}});
+      return json({identity:'Magnanimous Professional Intelligence',keyword:keyword||null,location:location||null,date_posted_days:datePosted,count:items.length,total:Number.isFinite(Number(data?.SearchResult?.SearchResultCountAll))?Number(data.SearchResult.SearchResultCountAll):items.length,items,source:{name:'USAJOBS',url:'https://developer.usajobs.gov/api-reference/get-api-search'}});
     }catch(error){return sourceError('USAJOBS',error)}
   }
 
