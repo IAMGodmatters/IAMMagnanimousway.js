@@ -152,5 +152,12 @@ export default function CinematicDesignSystem(){
    body.iam-design-v2 .travelAgency>header{animation:none!important}
    body.iam-design-v2 :where(.cinematicHome .card,.cinematicHome .sys,.opportunityVault .grid article,.travelAgency .panel,.travelAgency .stats article,.crmExperience .crm .panel,.crmExperience .crm .metric,.crmExperience .crm .accountCard){transition:none!important;transform:none!important}
   }
- `}</style>
+
+  body.iam-design-v2 .creatorGrowth :where(.hero,.controls,aside,.result,.cards article){transform-style:preserve-3d;backface-visibility:hidden}
+  body.iam-design-v2 .creatorGrowth :where(.controls,aside,.result,.cards article){position:relative;overflow:hidden;border-color:var(--cinema-line)!important;box-shadow:var(--cinema-shadow)!important;transition:transform .24s cubic-bezier(.2,.8,.2,1),box-shadow .24s ease,border-color .24s ease,filter .24s ease!important}
+  body.iam-design-v2 .creatorGrowth :where(.controls,aside,.result,.cards article):after{content:'';position:absolute;inset:-45% -70%;pointer-events:none;opacity:0;background:linear-gradient(112deg,transparent 38%,rgba(255,255,255,.11) 48%,rgba(90,226,255,.10) 52%,transparent 62%);transform:translateX(-36%) rotate(4deg);transition:opacity .22s ease,transform .65s cubic-bezier(.2,.8,.2,1)}
+  body.iam-design-v2 .creatorGrowth :where(.controls,aside,.result,.cards article):hover{transform:perspective(1100px) translateY(-4px) rotateX(1deg) rotateY(-.5deg)!important;border-color:rgba(98,230,255,.5)!important;box-shadow:var(--cinema-shadow-hover)!important}
+  body.iam-design-v2 .creatorGrowth :where(.controls,aside,.result,.cards article):hover:after{opacity:1;transform:translateX(36%) rotate(4deg)}
+  @media(prefers-reduced-motion:reduce){body.iam-design-v2 .creatorGrowth .hero:before{animation:none!important}body.iam-design-v2 .creatorGrowth :where(.controls,aside,.result,.cards article){transition:none!important;transform:none!important}}
+`}</style>
 }
