@@ -35,6 +35,7 @@ const ownerIntegrations=read('frontend/app/owner-integrations/page.tsx');
 const ownerStoreControl=read('frontend/app/owner-store-control/page.tsx');
 const productArt=read('frontend/app/store/products/[name]/route.ts');
 const runtime=read('worker/src/native-store-runtime.js');
+const catalogListing=runtime.slice(runtime.indexOf('async function listProducts'),runtime.indexOf('function normalizedCart'));
 const podRuntime=read('worker/src/pod-network-runtime.js');
 const migration=read('worker/migrations/0097_native_magnanimous_store.sql');
 const expansion=read('worker/migrations/0098_native_store_catalog_expansion.sql');
@@ -149,6 +150,7 @@ must(pod.includes("status IN ('ready','published')")&&pod.includes('max-age=300,
 must(runtime.includes('scheduledPodCreative(env)')&&runtime.includes('handlePodNetwork(request,env)'),'Native store must mount POD public/owner APIs and daily creative scheduler.');
 must((runtime.includes('allowed_countries:allowedCountries(env)')||runtime.includes('allowed_countries:publicCountries'))&&page.includes('shippingCountries.map(code=>'),'Storefront delivery choices must come from the backend enabled-country set.');
 must(!runtime.includes('myshopify.com')&&!runtime.includes('STORE_BRIDGE_SHOP_DOMAIN')&&!runtime.includes('hostedBridgeRow')&&!runtime.includes("checkout_mode:'hosted'"),'Native Magnanimous checkout must never redirect customers to Shopify or any hosted Shopify cart.');
+must(catalogListing.includes('cjSupplierConfigured(env)')&&!catalogListing.includes('checkCjSupplierConnection(env)'),'Public catalog reads must not block on live supplier authentication or balance calls; checkout still verifies live supplier readiness before payment.');
 must(runtime.includes("providers.length!==1||providers[0]!=='cj'")&&runtime.includes('checkout_mode:\'native\''),'Only supplier products supported by the native CJ fulfillment and Stripe payment flow may be exposed as checkout-ready.');
 must(runtime.includes("refund_reason='stock_unavailable'")&&runtime.includes("status='refund_pending' AND refund_reason='stock_unavailable'")&&runtime.includes("fulfillment_status='refund_retry'"),'Stock-reservation refund failures must remain retryable until customer funds are protected.');
 must(cj.includes('resumeCjOrderPayment')&&runtime.includes('j.external_order_id')&&runtime.includes('resumeCjOrderPayment(env,{externalOrderId:existing'),'Persisted supplier orders must be reconciled/resumed before a replacement supplier order can be created.');
