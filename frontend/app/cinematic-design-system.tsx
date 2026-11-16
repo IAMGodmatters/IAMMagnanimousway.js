@@ -31,26 +31,26 @@ export default function CinematicDesignSystem(){
    background-size:72px 72px;
    mask-image:linear-gradient(180deg,#000 0,rgba(0,0,0,.48) 62%,transparent 100%);
   }
-  body.iam-design-v2 :where(.cinematicHome,.opportunityVault,.travelAgency,.crmExperience) :where(.card,.sys,.panel,.rules,.watch,.grid article,.stats article,.crmVisualFrame,.crm .metric,.crm .forecast,.crm .accountCard){
+  body.iam-design-v2 :where(.cinematicHome,.travelAgency,.crmExperience) :where(.card,.sys,.panel,.rules,.watch,.grid article,.stats article,.crmVisualFrame,.crm .metric,.crm .forecast,.crm .accountCard){
    transform-style:preserve-3d;
    backface-visibility:hidden;
   }
-  body.iam-design-v2 :where(.cinematicHome .card,.cinematicHome .sys,.opportunityVault .grid article,.travelAgency .panel,.travelAgency .stats article,.crmExperience .crm .panel,.crmExperience .crm .metric,.crmExperience .crm .accountCard){
+  body.iam-design-v2 :where(.cinematicHome .card,.cinematicHome .sys,.travelAgency .panel,.travelAgency .stats article,.crmExperience .crm .panel,.crmExperience .crm .metric,.crmExperience .crm .accountCard){
    position:relative;overflow:hidden;
    border-color:var(--cinema-line)!important;
    box-shadow:var(--cinema-shadow)!important;
    transition:transform .24s cubic-bezier(.2,.8,.2,1),box-shadow .24s ease,border-color .24s ease,filter .24s ease!important;
   }
-  body.iam-design-v2 :where(.cinematicHome .card,.cinematicHome .sys,.opportunityVault .grid article,.travelAgency .panel,.travelAgency .stats article,.crmExperience .crm .panel,.crmExperience .crm .metric,.crmExperience .crm .accountCard):after{
+  body.iam-design-v2 :where(.cinematicHome .card,.cinematicHome .sys,.travelAgency .panel,.travelAgency .stats article,.crmExperience .crm .panel,.crmExperience .crm .metric,.crmExperience .crm .accountCard):after{
    content:'';position:absolute;inset:-45% -70%;pointer-events:none;opacity:0;
    background:linear-gradient(112deg,transparent 38%,rgba(255,255,255,.11) 48%,rgba(90,226,255,.10) 52%,transparent 62%);
    transform:translateX(-36%) rotate(4deg);transition:opacity .22s ease,transform .65s cubic-bezier(.2,.8,.2,1);
   }
-  body.iam-design-v2 :where(.cinematicHome .card,.cinematicHome .sys,.opportunityVault .grid article,.travelAgency .panel,.travelAgency .stats article,.crmExperience .crm .panel,.crmExperience .crm .metric,.crmExperience .crm .accountCard):hover{
+  body.iam-design-v2 :where(.cinematicHome .card,.cinematicHome .sys,.travelAgency .panel,.travelAgency .stats article,.crmExperience .crm .panel,.crmExperience .crm .metric,.crmExperience .crm .accountCard):hover{
    transform:perspective(1100px) translateY(-6px) rotateX(1.1deg) rotateY(-.65deg)!important;
    border-color:rgba(98,230,255,.5)!important;box-shadow:var(--cinema-shadow-hover)!important;filter:saturate(1.05)
   }
-  body.iam-design-v2 :where(.cinematicHome .card,.cinematicHome .sys,.opportunityVault .grid article,.travelAgency .panel,.travelAgency .stats article,.crmExperience .crm .panel,.crmExperience .crm .metric,.crmExperience .crm .accountCard):hover:after{opacity:1;transform:translateX(34%) rotate(4deg)}
+  body.iam-design-v2 :where(.cinematicHome .card,.cinematicHome .sys,.travelAgency .panel,.travelAgency .stats article,.crmExperience .crm .panel,.crmExperience .crm .metric,.crmExperience .crm .accountCard):hover:after{opacity:1;transform:translateX(34%) rotate(4deg)}
 
   body.iam-design-v2 .cinematicHome{background:transparent!important}
   body.iam-design-v2 .cinematicHome .topbar{
@@ -73,13 +73,6 @@ export default function CinematicDesignSystem(){
   body.iam-design-v2 .cinematicHome :where(.card,.sys){background:linear-gradient(145deg,rgba(8,29,55,.94),rgba(4,14,28,.95) 66%,rgba(18,35,61,.9))!important;border-radius:17px!important}
   body.iam-design-v2 .cinematicHome .icon:not(.moduleMark){background:radial-gradient(circle at 35% 25%,rgba(100,233,255,.17),rgba(4,14,28,.9) 66%)!important;border:1px solid rgba(89,225,255,.21);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 12px 25px rgba(0,0,0,.32),0 0 30px rgba(85,229,255,.055)}
 
-  body.iam-design-v2 .opportunityVault{background:transparent!important}
-  body.iam-design-v2 .opportunityVault .hero h1{max-width:710px;background:none!important;-webkit-background-clip:initial;background-clip:initial;color:#ffe7a2!important;-webkit-text-fill-color:#ffe7a2;text-shadow:0 2px 0 #785120,0 4px 0 #39210d,0 8px 25px #020615,0 0 30px rgba(255,201,98,.47)!important}
-  body.iam-design-v2 .opportunityVault .rules{background:linear-gradient(125deg,#071b35,#050e22)!important;border-color:#c39240!important;box-shadow:0 0 24px rgba(255,208,106,.07),inset 0 1px rgba(255,255,255,.07)!important}
-  body.iam-design-v2 .opportunityVault .watch{background:linear-gradient(145deg,rgba(8,27,39,.9),rgba(5,13,24,.94))!important;border-color:rgba(244,187,79,.4)!important;box-shadow:var(--cinema-shadow)}
-  body.iam-design-v2 .opportunityVault .grid article{background:radial-gradient(circle at 85% 5%,rgba(240,188,73,.08),transparent 27%),linear-gradient(135deg,#0c2441,#030d20 70%)!important;border-radius:21px!important;border-color:#3a98b9!important;box-shadow:0 15px 40px rgba(0,0,0,.53),inset 0 1px rgba(255,255,255,.06)!important}
-  body.iam-design-v2 .opportunityVault .grid article:hover{border-color:#f1c261!important;box-shadow:0 20px 50px rgba(0,0,0,.6),0 0 25px rgba(230,170,55,.14)!important}
-  body.iam-design-v2 .opportunityVault nav button.on{background:linear-gradient(90deg,#4de7b4,#66e6ff)!important;box-shadow:0 10px 30px rgba(70,226,190,.18)}
 
   body.iam-design-v2 .travelAgency{background:transparent!important;perspective:1600px}
   body.iam-design-v2 .travelAgency>header{position:relative;padding:42px 0 34px!important}
@@ -123,7 +116,7 @@ export default function CinematicDesignSystem(){
   body.iam-design-v2 .crmExperience .crmVisualFrame{transform:perspective(1400px) rotateX(.65deg);box-shadow:0 45px 110px rgba(0,0,0,.58),0 0 60px rgba(54,181,255,.10),inset 0 1px 0 rgba(255,255,255,.11)!important}
 
   @supports(backdrop-filter:blur(12px)){
-   body.iam-design-v2 :where(.cinematicHome .card,.cinematicHome .sys,.opportunityVault .grid article,.travelAgency .panel,.travelAgency .stats article,.crmExperience .crm .panel,.crmExperience .crm .metric,.crmExperience .crm .accountCard){backdrop-filter:blur(16px) saturate(1.16)}
+   body.iam-design-v2 :where(.cinematicHome .card,.cinematicHome .sys,.travelAgency .panel,.travelAgency .stats article,.crmExperience .crm .panel,.crmExperience .crm .metric,.crmExperience .crm .accountCard){backdrop-filter:blur(16px) saturate(1.16)}
   }
   @keyframes cinemaFloat{50%{transform:translate3d(0,-9px,0) scale(1.008)}}
   @keyframes cinemaOrbit{to{transform:rotate(360deg)}}
@@ -134,7 +127,7 @@ export default function CinematicDesignSystem(){
    body.iam-design-v2 .cinematicHome .artFrame{right:0!important;top:auto!important;bottom:74px!important;width:52%!important;height:44%!important;opacity:.78}
   }
   @media(max-width:760px){
-   body.iam-design-v2 :where(.cinematicHome .card,.cinematicHome .sys,.opportunityVault .grid article,.travelAgency .panel,.travelAgency .stats article,.crmExperience .crm .panel,.crmExperience .crm .metric,.crmExperience .crm .accountCard):hover{transform:translateY(-2px)!important}
+   body.iam-design-v2 :where(.cinematicHome .card,.cinematicHome .sys,.travelAgency .panel,.travelAgency .stats article,.crmExperience .crm .panel,.crmExperience .crm .metric,.crmExperience .crm .accountCard):hover{transform:translateY(-2px)!important}
    body.iam-design-v2 .cinematicHome .artFrame{right:0!important;width:100%!important;height:40%!important;bottom:80px!important;opacity:.66}
    body.iam-design-v2 .cinematicHome .heroBottom{left:14px!important;right:14px!important;bottom:12px!important}
   }
@@ -150,7 +143,7 @@ export default function CinematicDesignSystem(){
   @media(prefers-reduced-motion:reduce){
    body.iam-design-v2 .cinematicHome .hero:after,body.iam-design-v2 .cinematicHome .artFrame img{animation:none!important}
    body.iam-design-v2 .travelAgency>header{animation:none!important}
-   body.iam-design-v2 :where(.cinematicHome .card,.cinematicHome .sys,.opportunityVault .grid article,.travelAgency .panel,.travelAgency .stats article,.crmExperience .crm .panel,.crmExperience .crm .metric,.crmExperience .crm .accountCard){transition:none!important;transform:none!important}
+   body.iam-design-v2 :where(.cinematicHome .card,.cinematicHome .sys,.travelAgency .panel,.travelAgency .stats article,.crmExperience .crm .panel,.crmExperience .crm .metric,.crmExperience .crm .accountCard){transition:none!important;transform:none!important}
   }
 
   body.iam-design-v2 .creatorGrowth :where(.hero,.controls,aside,.result,.cards article){transform-style:preserve-3d;backface-visibility:hidden}
