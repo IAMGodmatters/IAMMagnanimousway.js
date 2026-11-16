@@ -13,6 +13,10 @@ const billing=fs.readFileSync(path.join(root,'worker/src/billing-tiers-runtime.j
 const businessPlan=fs.readFileSync(path.join(root,'worker/src/business-plan-subscription-runtime.js'),'utf8');
 const failures=[];
 const read = rel => fs.readFileSync(path.join(root,rel),'utf8');
+const chrome=read('frontend/app/platform-chrome.tsx');
+const cinematic=read('frontend/app/cinematic-experience.tsx');
+const clarity=read('frontend/app/interaction-clarity.tsx');
+const globalTools=read('frontend/app/global-tools.tsx');
 
 function must(condition,message){if(!condition)failures.push(message);}
 function escaped(route){return route.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
@@ -26,6 +30,12 @@ must(Boolean(runtimeMatch),'runtime public allowlist must remain machine-verifia
 must(Boolean(templateMatch),'template public allowlist must remain machine-verifiable');
 const runtimeAllowlist=runtimeMatch?.[1]||'';
 const templateAllowlist=templateMatch?.[1]||'';
+const chromeMatch=chrome.match(/const publicPaths=\\[([^\\]]+)\\];/);
+must(Boolean(chromeMatch),'platform chrome public route allowlist must remain machine-verifiable');
+must(Boolean(chromeMatch?.[1].includes("'/reels'")),'Reels must bypass the authenticated command shell so its public player controls remain accessible');
+must(cinematic.includes("'/reels'"),'Reels must not render the narrated platform tour overlay');
+must(clarity.includes('path !== "/reels"'),'Reels must not render the floating platform-guide overlay');
+must(globalTools.includes("'/reels'"),'Reels must not mount authenticated global tools or voice surfaces');
 const publicRoutes=['/','/teach','/shop','/login','/signup','/owner-login','/solutions','/guide','/launchplan','/business-plan','/funding','/security','/free-tools','/samsung-tools','/ai-apps','/pricing','/reviews','/privacy','/terms','/advertise','/white-label','/movie','/reels','/plugin-support','/plugin-demo'];
 const protectedRoutes=['/magnanimous','/bible-study','/ai-chat','/crm','/connections','/assistant-actions','/owner-center','/owner-billing','/phone','/telecom','/space','/mux','/knowledge','/virtual-assistant','/video-studio','/movie-maker','/agents'];
 
