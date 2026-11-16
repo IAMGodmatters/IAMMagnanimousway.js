@@ -57,9 +57,11 @@ export default function InteractionClarity() {
   const pageTopic = topicFor(path);
   return (
     <>
-      <aside className="iam-help-link">
-        <a href={guideHref(pageTopic.key, path)}>ⓘ Platform guide</a>
-      </aside>
+      {path && path !== "/reels" && (
+        <aside className="iam-help-link">
+          <a href={guideHref(pageTopic.key, path)}>ⓘ Platform guide</a>
+        </aside>
+      )}
       <style jsx global>{`
         html,
         body {
