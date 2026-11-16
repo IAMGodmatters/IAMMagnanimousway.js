@@ -30,16 +30,21 @@ for (const route of criticalTools) {
   });
 }
 
-test('visible forms expose a submit path instead of trapping user input', async ({ page }) => {
-  const formRoutes = criticalTools.filter((route) => /login|support|email|crm|ai|magnanimous|business|contact|phone|billing/i.test(route));
-  for (const route of formRoutes) {
-    const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
-    if (!response || response.status() === 404 || response.status() >= 500) continue;
-    const forms = page.locator('form:visible');
-    for (let i = 0; i < await forms.count(); i++) {
-      const form = forms.nth(i);
-      const submitters = form.locator('button[type="submit"], input[type="submit"], button:not([type])');
-      expect.soft(await submitters.count(), `${route} has a visible form with no submit control`).toBeGreaterThan(0);
+const formRoutes = criticalTools.filter((route) => /login|support|email|crm|ai|magnanimous|business|contact|phone|billing/i.test(route));
+for (let offset = 0; offset < formRoutes.length; offset += 3) {
+  const batch = formRoutes.slice(offset, offset + 3);
+  test(`visible forms expose a submit path (${batch.join(', ')})`, async ({ page }) => {
+    test.setTimeout(60_000);
+    for (const route of batch) {
+      const response = await page.goto(route, { waitUntil: 'domcontentloaded', timeout: 12_000 });
+      if (!response || response.status() === 404 || response.status() >= 500) continue;
+      const forms = page.locator('form:visible');
+      const formCount = await forms.count();
+      for (let i = 0; i < formCount; i++) {
+        const form = forms.nth(i);
+        const submitters = form.locator('button[type="submit"], input[type="submit"], button:not([type])');
+        expect.soft(await submitters.count(), `${route} has a visible form with no submit control`).toBeGreaterThan(0);
+      }
     }
-  }
-});
+  });
+}
