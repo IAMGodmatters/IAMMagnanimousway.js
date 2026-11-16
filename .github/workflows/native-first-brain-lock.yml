@@ -2,7 +2,7 @@ name: Magnanimous Native-First Brain Lock
 
 on:
   push:
-    branches: ['**']
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
