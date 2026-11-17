@@ -163,6 +163,11 @@ must(pod.includes("if(!connected)return{processed:0")&&pod.includes("'provider_s
 must(consent.includes('secureStorePostflight')&&consent.includes("/^public(?:,|\\s|$)/i.test(explicitCache)"),'Safe public store assets must retain explicit bounded cache headers after security hardening.');
 const commerce=runtime.slice(runtime.indexOf('export async function scheduledNativeStoreCommerce'),runtime.indexOf('async function orderStatus'));
 must(commerce.indexOf('scheduledNativeStoreRefunds')<commerce.indexOf('processPodJobs'),'Customer refunds must run before bounded POD provider publishing in the commerce scheduler.');
-must(!page.includes('Coming soon')&&!page.includes('not available')&&!page.includes('purchasing available'),'Customer storefront must not display unavailable-product or coming-soon states.');
+const featuredShelf=page.slice(page.indexOf('featuredProducts.map'),page.indexOf('newProducts.map'));
+const newShelf=page.slice(page.indexOf('newProducts.map'),page.indexOf('{loading?'));
+const safeShelfPrice="product.available?price(product.price_cents,product.currency):'Availability being verified'";
+must(featuredShelf.includes(safeShelfPrice)&&newShelf.includes(safeShelfPrice),'Featured and new shelves must not present an unverified catalog price as confirmed.');
+must(page.includes('Availability being verified')&&page.includes('Coming Soon')&&page.includes('aria-label="Not available for purchase"')&&page.includes('products.filter(product=>product.available)'),'Unverified catalog products must show an honest availability state and stay out of cart totals.');
+must(page.includes('.availabilityBadge{')&&page.includes('white-space:nowrap'),'Coming Soon status must have a visible, responsive status badge.');
 
 console.log('Native Magnanimous Store lock PASS — checkout, inventory, Stripe confirmation/refunds, supplier reconciliation, sourcing, POD processing, and customer-safe storefront contracts are locked.');
