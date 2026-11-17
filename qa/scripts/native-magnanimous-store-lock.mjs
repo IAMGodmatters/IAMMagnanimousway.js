@@ -59,6 +59,7 @@ const stripeWebhook=read('worker/src/stripe-webhook-hardened.js');
 must(!page.includes('myshopify.com'),'Native shop must not link to a Shopify storefront.');
 must(!page.includes('cdn.shopify.com'),'Native shop must not depend on Shopify-hosted product media.');
 must(page.includes("fetch('/store-api/products'")&&page.includes("fetch('/store-api/checkout'"),'Native shop must use the Magnanimous store API.');
+must(page.includes('window.location.assign(d.url)')&&runtime.includes("stripeRequest(runtimeEnv,'checkout/sessions'")&&runtime.includes('return json({url:data.url'),'Customer checkout must redirect only to the native Stripe Checkout Session returned by Magnanimous, never to a Shopify cart.');
 must(page.includes('shippingCountry')&&page.includes('country:shippingCountry'),'Storefront must send an explicit customer-selected delivery country.');
 must(page.includes("fetch('/store-api/quote'")&&page.includes('Your total refreshes automatically')&&page.includes('postal_code:postalCode.trim()'),'Customer checkout must refresh the destination-aware final total automatically before payment.');
 must(page.includes('Order total')&&page.includes('className=\"checkout\"'),'Storefront must present the customer final order total and a direct checkout action.');
@@ -80,7 +81,7 @@ must(ownerStoreControl.includes('/store-api/owner/control')&&ownerStoreControl.i
 must(runtime.includes("SELECT * FROM store_products WHERE active=1 AND id IN"),'Checkout must price carts from server-side catalog records.');
 must(runtime.includes("metadata[product_type]','magnanimous_store_order'"),'Stripe checkout must identify native store orders.');
 must(runtime.includes("paidAmount!==Number(order.amount_cents)"),'Paid amount must be verified against the stored order total.');
-must(runtime.includes('function catalogMapped(row)')&&runtime.includes("products=allProducts.filter(p=>p.available&&p.product_kind!=='external')"),'Unmapped, disconnected, external, or otherwise non-checkout-ready products must be hidden from the public native catalog.');
+must(runtime.includes('function catalogMapped(row)')&&runtime.includes("products=allProducts.filter(p=>p.product_kind!=='external'&&p.price_cents>0)")&&runtime.includes('purchasable=products.filter(p=>p.available)'),'Unmapped, disconnected, external, or otherwise non-checkout-ready products may be displayed but must remain unavailable for purchase.');
 must(runtime.includes("String(row.supplier_variant_id||'').trim()")&&runtime.includes('scheduledNativeStoreVariantVerification'),'Dropship availability must require an exact verified supplier variant and scheduled verification.');
 must(runtime.includes("if(loaded.some(x=>!catalogMapped(x.row)))")&&runtime.includes("Number(x.row.price_cents||0)<=0"),'Checkout must reject incomplete supplier mappings and zero-price placeholders before Stripe is opened.');
 must(runtime.includes('SHIPPING_COUNTRY_REQUIRED')&&!runtime.includes("cleanCountry(body.country)||'US'"),'Checkout must not silently substitute the United States for a missing shipping destination.');
@@ -152,6 +153,8 @@ must((runtime.includes('allowed_countries:allowedCountries(env)')||runtime.inclu
 must(!runtime.includes('myshopify.com')&&!runtime.includes('STORE_BRIDGE_SHOP_DOMAIN')&&!runtime.includes('hostedBridgeRow')&&!runtime.includes("checkout_mode:'hosted'"),'Native Magnanimous checkout must never redirect customers to Shopify or any hosted Shopify cart.');
 must(catalogListing.includes('cjSupplierConfigured(env)')&&!catalogListing.includes('checkCjSupplierConnection(env)'),'Public catalog reads must not block on live supplier authentication or balance calls; checkout still verifies live supplier readiness before payment.');
 must(runtime.includes("providers.length!==1||providers[0]!=='cj'")&&runtime.includes('checkout_mode:\'native\''),'Only supplier products supported by the native CJ fulfillment and Stripe payment flow may be exposed as checkout-ready.');
+must(runtime.includes("products=allProducts.filter(p=>p.product_kind!=='external'&&p.price_cents>0)")&&runtime.includes('purchasable=products.filter(p=>p.available)'),'The customer catalog must keep priced non-external products visible even when supplier readiness is not yet confirmed.');
+must(page.includes('available:boolean')&&page.includes('Availability being verified')&&page.includes('Coming Soon')&&page.includes('products.filter(product=>product.available)'),'Unverified catalog items must be visible but cannot enter the cart or checkout.');
 must(runtime.includes("refund_reason='stock_unavailable'")&&runtime.includes("status='refund_pending' AND refund_reason='stock_unavailable'")&&runtime.includes("fulfillment_status='refund_retry'"),'Stock-reservation refund failures must remain retryable until customer funds are protected.');
 must(cj.includes('resumeCjOrderPayment')&&runtime.includes('j.external_order_id')&&runtime.includes('resumeCjOrderPayment(env,{externalOrderId:existing'),'Persisted supplier orders must be reconciled/resumed before a replacement supplier order can be created.');
 const publicDesigns=pod.slice(pod.indexOf('async function publicDesigns'),pod.indexOf('async function ownerStatus'));
@@ -161,6 +164,11 @@ must(pod.includes("if(!connected)return{processed:0")&&pod.includes("'provider_s
 must(consent.includes('secureStorePostflight')&&consent.includes("/^public(?:,|\\s|$)/i.test(explicitCache)"),'Safe public store assets must retain explicit bounded cache headers after security hardening.');
 const commerce=runtime.slice(runtime.indexOf('export async function scheduledNativeStoreCommerce'),runtime.indexOf('async function orderStatus'));
 must(commerce.indexOf('scheduledNativeStoreRefunds')<commerce.indexOf('processPodJobs'),'Customer refunds must run before bounded POD provider publishing in the commerce scheduler.');
-must(!page.includes('Coming soon')&&!page.includes('not available')&&!page.includes('purchasing available'),'Customer storefront must not display unavailable-product or coming-soon states.');
+const featuredShelf=page.slice(page.indexOf('featuredProducts.map'),page.indexOf('newProducts.map'));
+const newShelf=page.slice(page.indexOf('newProducts.map'),page.indexOf('{loading?'));
+const safeShelfPrice="product.available?price(product.price_cents,product.currency):'Availability being verified'";
+must(featuredShelf.includes(safeShelfPrice)&&newShelf.includes(safeShelfPrice),'Featured and new shelves must not present an unverified catalog price as confirmed.');
+must(page.includes('Availability being verified')&&page.includes('Coming Soon')&&page.includes('aria-label="Not available for purchase"')&&page.includes('products.filter(product=>product.available)'),'Unverified catalog products must show an honest availability state and stay out of cart totals.');
+must(page.includes('.availabilityBadge{')&&page.includes('white-space:nowrap'),'Coming Soon status must have a visible, responsive status badge.');
 
 console.log('Native Magnanimous Store lock PASS — checkout, inventory, Stripe confirmation/refunds, supplier reconciliation, sourcing, POD processing, and customer-safe storefront contracts are locked.');

@@ -2281,9 +2281,22 @@ jobs:
           assert isinstance(data.get('products'), list), data
           assert isinstance(data.get('categories'), list), data
           assert isinstance(data.get('allowed_countries'), list), data
+          products=data['products']
+          assert len(products)>0, 'Expected active priced first-party products to remain visible even when supplier readiness is pending.'
+          available_count=0
+          for product in products:
+              assert isinstance(product, dict), product
+              assert isinstance(product.get('available'), bool), product
+              assert product.get('purchase_state') in ('available','coming_soon'), product
+              assert (product['purchase_state']=='available') == product['available'], product
+              assert product.get('product_kind') != 'external', product
+              assert int(product.get('price_cents') or 0) > 0, product
+              for private_field in ('supplier_provider','supplier_product_id','supplier_variant_id','supplier_sku','supplier_cost_cents'):
+                  assert private_field not in product, f'Public product payload leaks {private_field}.'
+              available_count += int(product['available'])
           serialized=json.dumps(data).lower()
           assert 'myshopify.com' not in serialized and 'store_bridge_shop_domain' not in serialized, 'Public store payload contains a Shopify checkout destination.'
-          print(f"Native store API passed: {len(data['products'])} checkout-eligible products, {len(data['categories'])} categories, countries={data['allowed_countries']}.")
+          print(f"Native store API passed: {len(products)} visible products ({available_count} checkout-ready, {len(products)-available_count} availability pending), {len(data['categories'])} categories, countries={data['allowed_countries']}.")
           PY
 
       - name: Verify Magnanimous Reels route and outage fallback after deployment
