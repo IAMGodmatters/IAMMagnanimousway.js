@@ -59,6 +59,7 @@ const stripeWebhook=read('worker/src/stripe-webhook-hardened.js');
 must(!page.includes('myshopify.com'),'Native shop must not link to a Shopify storefront.');
 must(!page.includes('cdn.shopify.com'),'Native shop must not depend on Shopify-hosted product media.');
 must(page.includes("fetch('/store-api/products'")&&page.includes("fetch('/store-api/checkout'"),'Native shop must use the Magnanimous store API.');
+must(page.includes('window.location.assign(d.url)')&&runtime.includes("stripeRequest(runtimeEnv,'checkout/sessions'")&&runtime.includes('return json({url:data.url'),'Customer checkout must redirect only to the native Stripe Checkout Session returned by Magnanimous, never to a Shopify cart.');
 must(page.includes('shippingCountry')&&page.includes('country:shippingCountry'),'Storefront must send an explicit customer-selected delivery country.');
 must(page.includes("fetch('/store-api/quote'")&&page.includes('Your total refreshes automatically')&&page.includes('postal_code:postalCode.trim()'),'Customer checkout must refresh the destination-aware final total automatically before payment.');
 must(page.includes('Order total')&&page.includes('className=\"checkout\"'),'Storefront must present the customer final order total and a direct checkout action.');
