@@ -43,7 +43,7 @@ must(entry.includes("ownerAuthApp from './admin-compat-entrypoint.js'")&&entry.i
 must(entry.indexOf('ownerAuthApp.fetch(routedRequest,env,ctx)')<entry.indexOf('enforcePlatformOwnerBoundary(routedRequest,env)'),'public owner auth must execute before authenticated owner-only middleware');
 must(entry.includes('ownerAuthBlocked=await securityPreflight(routedRequest,env)'),'direct owner auth must retain security preflight and rate limits');
 must(wrangler.includes('\"send_email\"')&&wrangler.includes('MAGNANIMOUS_EMAIL'),'Wrangler must configure the native Cloudflare email binding');
-must(wrangler.includes('MAGNANIMOUS_EMAIL_SENDER_DOMAIN_READY')&&wrangler.includes('"false"'),'Cloudflare sender-domain readiness must default to disabled until owner verification');
+must(wrangler.includes('"MAGNANIMOUS_EMAIL_SENDER_DOMAIN_READY": "false"'),'Cloudflare sender-domain readiness must default to disabled until owner verification');
 must(workerEntry.includes('owner_email_login_transport_ready')&&workerEntry.includes("MAGNANIMOUS_OWNER_EMAIL_LOGIN_READY==='true'"),'Worker health must expose only the specific owner-email readiness signal');
 must(readinessWorkflow.includes('workflows: ["Build and Deploy I AM"]')&&readinessWorkflow.includes('/api/admin/email-code/request')&&readinessWorkflow.includes('OWNER_EMAIL_REQUIRED')&&readinessWorkflow.includes('no email was sent'),'successful production deploys must probe the real owner-email route without sending mail');
 must(admin.includes("delivery_status!=='sent'"),'owner login verification must require successful mail delivery');
