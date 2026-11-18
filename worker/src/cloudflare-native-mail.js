@@ -1,6 +1,6 @@
 // Production verification retry: canonical ERP smoke route fix 2026-10-08.
 // Runtime verification marker: intentionally no behavior change; forces a real production deploy after quota-aware CI repair.
-import {hasConnectedMailboxSender,hasGrowthEmailSender,sendGrowthEmail} from './growth-email-transport.js';
+import {getMailSenderReadiness,sendGrowthEmail} from './growth-email-transport.js';
 
 const clean=value=>String(value??'').trim();
 const validEmail=value=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean(value));
@@ -131,8 +131,7 @@ export async function withCloudflareNativeMail(env){
     enabled(env.MAGNANIMOUS_EMAIL_SENDER_DOMAIN_READY)&&
     Boolean(env?.MAGNANIMOUS_EMAIL&&typeof env.MAGNANIMOUS_EMAIL.send==='function')&&
     allowlist.size>0;
-  const connectedReady=await hasConnectedMailboxSender(env,'__platform__').catch(()=>false);
-  const communicationsReady=await hasGrowthEmailSender(env,'__platform__').catch(()=>false);
+  const {connectedReady,communicationsReady}=await getMailSenderReadiness(env,'__platform__').catch(()=>({connectedReady:false,communicationsReady:false}));
   const mailer=mailerFor(env,{cloudflareReady,connectedReady,communicationsReady});
   const ownerEmailLoginReady=cloudflareReady||connectedReady;
   const anyMailReady=cloudflareReady||connectedReady||communicationsReady;
