@@ -8,7 +8,7 @@ Owner email-code sign-in must be advertised only when a sender approved for sens
 - Cloudflare Email Service is not considered ready merely because the Worker binding exists.
 - Before Cloudflare Email Service can send, the owner must complete sender-domain onboarding in Cloudflare Email Service and explicitly set `MAGNANIMOUS_EMAIL_SENDER_DOMAIN_READY=true`.
 - Cloudflare Email Service delivery is restricted to the exact recipient addresses in the Worker secret `MAGNANIMOUS_EMAIL_VERIFIED_RECIPIENTS` (comma-, semicolon-, or whitespace-separated). Only add destination addresses that Cloudflare shows as verified and that are intentionally approved for this platform.
-- Connected Gmail/Outlook can be used as a free owner-authentication fallback only when the platform has a valid connected mailbox token and the corresponding OAuth credentials needed for token refresh.
+- Connected Gmail/Outlook can be used as a free owner-authentication fallback only when the platform has a valid connected mailbox token, token-refresh credentials, and persisted send scopes (`https://www.googleapis.com/auth/gmail.send` for Gmail or `Mail.Send` for Outlook). Older connections without recorded send scopes must be reconnected before they can advertise owner email-code sign-in.
 - Security-sensitive codes and recovery messages never fall through to the optional Magnanimous communications API. That route may be metered and remains available only for non-sensitive messages through the existing configured provider path.
 - `MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE` controls the general mail subsystem. `MAGNANIMOUS_OWNER_EMAIL_LOGIN_READY` is computed separately and is the only signal used by the owner login page and owner email-code request route.
 
