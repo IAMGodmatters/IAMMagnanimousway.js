@@ -1,11 +1,12 @@
 // Production verification retry: canonical ERP smoke route fix 2026-10-08.
 // Runtime verification marker: intentionally no behavior change; forces a real production deploy after quota-aware CI repair.
-import {hasGrowthEmailSender,sendGrowthEmail} from './growth-email-transport.js';
+import {hasConnectedMailboxSender,hasGrowthEmailSender,sendGrowthEmail} from './growth-email-transport.js';
 
 const clean=value=>String(value??'').trim();
 const validEmail=value=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean(value));
 const now=()=>Math.floor(Date.now()/1000);
 const enabled=value=>['1','true','yes','on'].includes(clean(value).toLowerCase());
+const verifiedRecipients=env=>new Set(String(env?.MAGNANIMOUS_EMAIL_VERIFIED_RECIPIENTS||'').split(/[;,\\s]+/).map(value=>clean(value).toLowerCase()).filter(validEmail));
 
 async function sha256Hex(value){
   const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(String(value||'')));
@@ -39,16 +40,17 @@ async function audit(env,id,message,status,provider='',error=''){
   }
 }
 
-function mailerFor(env,{cloudflareReady=false,connectedReady=false}={}){
+function mailerFor(env,{cloudflareReady=false,connectedReady=false,communicationsReady=false}={}){
   const binding=cloudflareReady&&env?.MAGNANIMOUS_EMAIL&&typeof env.MAGNANIMOUS_EMAIL.send==='function'?env.MAGNANIMOUS_EMAIL:null;
-  if(!binding&&!connectedReady)return null;
+  if(!binding&&!connectedReady&&!communicationsReady)return null;
+  const allowlist=verifiedRecipients(env);
   const fromAddress=clean(env.MAGNANIMOUS_MAIL_FROM||'Godmattersinc@iammagnanimousway.com');
   const fromName=clean(env.MAGNANIMOUS_MAIL_FROM_NAME||'I AM MAGNANIMOUS WAY');
   return{
-    provider:binding?'cloudflare-email-service':'connected-email-https',
+    provider:binding?'cloudflare-email-service':connectedReady?'connected-email-https':'magnanimous-communications',
     configured:validEmail(fromAddress),
     async send(message={}){
-      const to=clean(message.to),subject=clean(message.subject).replace(/[\r\n]+/g,' ');
+      const to=clean(message.to),subject=clean(message.subject).replace(/[\\r\\n]+/g,' ');
       if(!validEmail(to))return{ok:false,code:'MAGNANIMOUS_MAIL_INVALID_RECIPIENT'};
       if(!subject)return{ok:false,code:'MAGNANIMOUS_MAIL_INVALID_SUBJECT'};
       if(!validEmail(fromAddress))return{ok:false,code:'MAGNANIMOUS_MAIL_INVALID_SENDER'};
@@ -61,7 +63,7 @@ function mailerFor(env,{cloudflareReady=false,connectedReady=false}={}){
       }
 
       let cloudflareFailure=null;
-      if(binding){
+      if(binding&&allowlist.has(to.toLowerCase())){
         try{
           const payload={
             to,
@@ -81,19 +83,24 @@ function mailerFor(env,{cloudflareReady=false,connectedReady=false}={}){
         }
       }
 
-      if(connectedReady){
+      // Security-sensitive codes and recovery links never fall through to a
+      // metered communications API. They may use only the verified Cloudflare
+      // recipient route above or an owner-connected Gmail/Outlook mailbox.
+      const mayUseConnectedMailbox=connectedReady||(!message.sensitive&&communicationsReady);
+      if(mayUseConnectedMailbox){
         try{
           const fallback=await sendGrowthEmail(env,{
             scopeTenantId:'__platform__',to,subject,text:String(message.text||''),
-            replyTo:validEmail(message.replyTo)?clean(message.replyTo):'',senderName:fromName
+            replyTo:validEmail(message.replyTo)?clean(message.replyTo):'',senderName:fromName,
+            allowCommunications:!message.sensitive
           });
           if(fallback?.ok){
-            await audit(env,id,{...message,to,subject},'sent','connected-email-https','');
-            return{ok:true,provider:'connected-email-https',receipt:clean(fallback.receipt||id),fallback_from:binding?'cloudflare-email-service':''};
+            await audit(env,id,{...message,to,subject},'sent',fallback.provider||'connected-email-https','');
+            return{ok:true,provider:fallback.provider||'connected-email-https',receipt:clean(fallback.receipt||id),fallback_from:binding?'cloudflare-email-service':''};
           }
           const code=clean(fallback?.code||'CONNECTED_EMAIL_DELIVERY_FAILED');
           const error=clean(fallback?.error||'Connected email delivery failed.');
-          await audit(env,id,{...message,to,subject},'failed','connected-email-https',`${code}: ${error}`);
+          await audit(env,id,{...message,to,subject},'failed',fallback.provider||'connected-email-https',`${code}: ${error}`);
           return{ok:false,code,error};
         }catch(error){
           const detail=clean(error?.message||error||'Connected email delivery failed.');
@@ -102,20 +109,44 @@ function mailerFor(env,{cloudflareReady=false,connectedReady=false}={}){
         }
       }
 
-      return cloudflareFailure?{ok:false,...cloudflareFailure}:{ok:false,code:'MAGNANIMOUS_MAIL_NOT_CONFIGURED',error:'No free connected email sender is available.'};
+      if(message.sensitive){
+        return cloudflareFailure?{ok:false,...cloudflareFailure}:{ok:false,code:'NO_APPROVED_SENSITIVE_EMAIL_SENDER',error:'No approved free email sender is available for this sensitive message.'};
+      }
+      return cloudflareFailure?{ok:false,...cloudflareFailure}:{ok:false,code:'MAGNANIMOUS_MAIL_NOT_CONFIGURED',error:'No approved email sender is available.'};
     }
   };
 }
 
 export async function withCloudflareNativeMail(env){
-  if(!env||env.MAGNANIMOUS_MAIL)return env;
-  const cloudflareReady=enabled(env.MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE)&&Boolean(env?.MAGNANIMOUS_EMAIL&&typeof env.MAGNANIMOUS_EMAIL.send==='function');
-  const connectedReady=await hasGrowthEmailSender(env,'__platform__').catch(()=>false);
-  const mailer=mailerFor(env,{cloudflareReady,connectedReady});
-  if(!mailer)return{...env,MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE:'false'};
+  if(!env)return env;
+  if(env.MAGNANIMOUS_MAIL){
+    return{
+      ...env,
+      MAGNANIMOUS_OWNER_EMAIL_LOGIN_READY:enabled(env.MAGNANIMOUS_OWNER_EMAIL_LOGIN_READY)?'true':'false'
+    };
+  }
+  const allowlist=verifiedRecipients(env);
+  const cloudflareReady=
+    enabled(env.MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE)&&
+    enabled(env.MAGNANIMOUS_EMAIL_SENDER_DOMAIN_READY)&&
+    Boolean(env?.MAGNANIMOUS_EMAIL&&typeof env.MAGNANIMOUS_EMAIL.send==='function')&&
+    allowlist.size>0;
+  const connectedReady=await hasConnectedMailboxSender(env,'__platform__').catch(()=>false);
+  const communicationsReady=await hasGrowthEmailSender(env,'__platform__').catch(()=>false);
+  const mailer=mailerFor(env,{cloudflareReady,connectedReady,communicationsReady});
+  const ownerEmailLoginReady=cloudflareReady||connectedReady;
+  const anyMailReady=cloudflareReady||connectedReady||communicationsReady;
+  if(!mailer){
+    return{
+      ...env,
+      MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE:'false',
+      MAGNANIMOUS_OWNER_EMAIL_LOGIN_READY:'false'
+    };
+  }
   return{
     ...env,
     MAGNANIMOUS_MAIL:mailer,
-    MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE:'true'
+    MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE:anyMailReady?'true':'false',
+    MAGNANIMOUS_OWNER_EMAIL_LOGIN_READY:ownerEmailLoginReady?'true':'false'
   };
 }
