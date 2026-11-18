@@ -21,6 +21,7 @@ const forgotUi=read('frontend/app/forgot-password/page.tsx');
 const migration=read('worker/migrations/0088_recovery_contacts_owner_email_login.sql');
 const edgeMail=read('worker/src/cloudflare-native-mail.js');
 const growthMail=read('worker/src/growth-email-transport.js');
+const integrations=read('worker/src/integrations.js');
 const wrangler=read('worker/wrangler.jsonc');
 const readinessWorkflow=read('.github/workflows/owner-email-production-readiness.yml');
 
@@ -34,6 +35,7 @@ must(admin.includes("kind:'owner-login-code'")&&admin.includes('MAGNANIMOUS_MAIL
 must(edgeMail.includes('cloudflare-email-service')&&edgeMail.includes('MAGNANIMOUS_EMAIL'),'Worker owner login must have a native Cloudflare email transport');
 must(edgeMail.includes('MAGNANIMOUS_EMAIL_SENDER_DOMAIN_READY')&&edgeMail.includes('MAGNANIMOUS_EMAIL_VERIFIED_RECIPIENTS'),'Cloudflare email must require owner-confirmed sender-domain onboarding and an explicit verified-recipient allowlist');
 must(edgeMail.includes('hasConnectedMailboxSender')&&edgeMail.includes('MAGNANIMOUS_OWNER_EMAIL_LOGIN_READY'),'owner email readiness must be based only on an approved Cloudflare route or connected Gmail/Outlook mailbox');
+must(growthMail.includes('hasSendScope')&&growthMail.includes('mail.send')&&integrations.includes('savedMetadata.requested_scopes'),'connected mailbox readiness must require and persist explicit Gmail/Outlook send scopes');
 must(edgeMail.includes('allowCommunications:!message.sensitive')&&growthMail.includes('allowCommunications=true'),'security-sensitive email must not fall through to a potentially metered communications sender');
 must(edgeMail.includes('NO_APPROVED_SENSITIVE_EMAIL_SENDER'),'sensitive email must fail safely when no approved free sender is available');
 must(!admin.includes('OWNER_AUTH_SEPARATE'),'canonical owner must be allowed to enroll and use standard TOTP recovery');
