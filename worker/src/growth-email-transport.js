@@ -35,9 +35,20 @@ async function refreshOutlook(env,row,refreshToken){
  const body=new URLSearchParams({client_id:String(env.MICROSOFT_CLIENT_ID),client_secret:String(env.MICROSOFT_CLIENT_SECRET),refresh_token:refreshToken,grant_type:'refresh_token',scope:'openid email offline_access Mail.Read Mail.Send'});
  const r=await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body});const d=await r.json().catch(()=>({}));return r.ok?String(d.access_token||''):'';
 }
+function hasSendScope(conn,provider){
+ let metadata={};
+ try{metadata=JSON.parse(String(conn?.metadata_json||'{}'))||{}}catch{}
+ const raw=metadata.requested_scopes||metadata.scopes||metadata.scope||[];
+ const scopes=(Array.isArray(raw)?raw:String(raw).split(/[\\s,]+/)).map(value=>String(value||'').trim().toLowerCase()).filter(Boolean);
+ const required=provider==='google'
+  ?['https://www.googleapis.com/auth/gmail.send','gmail.send']
+  :['mail.send'];
+ return required.some(scope=>scopes.includes(scope));
+}
 async function connectedSenderReady(env,conn){
  if(!conn)return false;
  const provider=String(conn.provider||'');if(provider!=='google'&&provider!=='outlook')return false;
+ if(!hasSendScope(conn,provider))return false;
  const access=await decrypt(String(conn.access_token||''),env).catch(()=> '');if(!access)return false;
  const expires=Number(conn.token_expires_at||0);if(!expires||expires>now()+90)return true;
  const refresh=await decrypt(String(conn.refresh_token||''),env).catch(()=> '');if(!refresh)return false;
