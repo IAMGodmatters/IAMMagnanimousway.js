@@ -47,7 +47,7 @@ must(entry.includes('ownerAuthBlocked=await securityPreflight(routedRequest,env)
 must(wrangler.includes('\"send_email\"')&&wrangler.includes('MAGNANIMOUS_EMAIL'),'Wrangler must configure the native Cloudflare email binding');
 must(wrangler.includes('"MAGNANIMOUS_EMAIL_SENDER_DOMAIN_READY": "false"'),'Cloudflare sender-domain readiness must default to disabled until owner verification');
 must(workerEntry.includes('owner_email_login_transport_ready')&&workerEntry.includes("MAGNANIMOUS_OWNER_EMAIL_LOGIN_READY==='true'"),'Worker health must expose only the specific owner-email readiness signal');
-must(readinessWorkflow.includes('workflows: ["Build and Deploy I AM"]')&&readinessWorkflow.includes('/api/admin/email-code/request')&&readinessWorkflow.includes('OWNER_EMAIL_REQUIRED')&&readinessWorkflow.includes('no email was sent'),'successful production deploys must probe the real owner-email route without sending mail');
+must(readinessWorkflow.includes('workflows: ["Build and Deploy I AM"]')&&readinessWorkflow.includes('/health')&&readinessWorkflow.includes('owner_email_login_transport_ready')&&readinessWorkflow.includes('/api/admin/email-code/request')&&readinessWorkflow.includes('OWNER_EMAIL_REQUIRED')&&readinessWorkflow.includes('no email was sent'),'successful production deploys must compare real owner-email health and request readiness without sending mail');
 must(admin.includes("delivery_status!=='sent'"),'owner login verification must require successful mail delivery');
 must(ownerUi.includes('SEND MY LOGIN CODE')&&ownerUi.includes('8-digit login code'),'owner portal must default to email-code login');
 must(ownerUi.includes('Use password fallback')&&ownerUi.includes('/api/admin/login'),'owner password must remain as emergency fallback');
