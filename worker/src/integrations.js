@@ -181,7 +181,12 @@ async function saveResolvedConnections(env,{provider,tenantId,token,metadata,cal
   }
   const external=String(token.user_id||token.team?.id||token.bot_user_id||metadata.shop_domain||access.slice(-12)||crypto.randomUUID());
   const display=String(token.team?.name||metadata.shop_domain||({whatsapp:'WhatsApp Business'}[provider])||'Connected');
-  await storeConnection(env,{tenantId,provider,external,displayName:display,accessToken:access,refreshToken:refresh,expiresAt,metadata:{...safeMetadata(token),...metadata}});return 1;
+  const savedMetadata={...safeMetadata(token),...metadata};
+  if(provider==='google'||provider==='outlook'){
+    const definition=INTEGRATIONS.find(item=>item.id===provider);
+    savedMetadata.requested_scopes=Array.isArray(definition?.scopes)?definition.scopes:[];
+  }
+  await storeConnection(env,{tenantId,provider,external,displayName:display,accessToken:access,refreshToken:refresh,expiresAt,metadata:savedMetadata});return 1;
 }
 
 export async function handleIntegrations(request,env){
