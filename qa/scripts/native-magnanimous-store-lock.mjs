@@ -54,6 +54,7 @@ const cj=read('worker/src/cj-dropship-runtime.js');
 const operations=read('worker/src/operations-entrypoint.js');
 const consent=read('worker/src/consent-entrypoint.js');
 const wrangler=read('worker/wrangler.jsonc');
+const deployWorkflow=read('.github/workflows/deploy.yml');
 const stripeWebhook=read('worker/src/stripe-webhook-hardened.js');
 
 must(!page.includes('myshopify.com'),'Native shop must not link to a Shopify storefront.');
@@ -113,6 +114,7 @@ must(integrity.includes('stock_reserved')&&integrity.includes('stock_reservation
 must(integrity.includes('attempt_count')&&integrity.includes('next_attempt_at'),'POD processing must have durable bounded retry state.');
 must(consent.includes("url.pathname.startsWith('/store-api/')")&&consent.includes('securityPreflight(routedRequest,env)')&&consent.includes('handleNativeStore(routedRequest,env)')&&consent.includes('secureStorePostflight(routedRequest'),'Native store alias must stay on Worker/D1 and pass the same API security preflight/postflight.');
 must(wrangler.includes('"/store-api/*"'),'Cloudflare assets config must execute the Worker for store API requests.');
+must(deployWorkflow.includes('"$BASE_URL/store-api/products"')&&!deployWorkflow.includes('"$BASE_URL/api/store/products"'),'Production storefront smoke must call the Worker-routed store alias, not the Next.js page route.');
 must(wrangler.includes('"STORE_AUTO_FULFILL": "false"')&&wrangler.includes('"STORE_AUTO_FULFILL_MAX_USD": "0"'),'Production supplier auto-purchasing must remain disabled with a zero cap until the owner explicitly authorizes funded fulfillment.');
 must(wrangler.includes('"STORE_POD_AUTO_FULFILL": "false"')&&wrangler.includes('"STORE_POD_AUTO_FULFILL_MAX_USD": "0"'),'Production print-on-demand auto-purchasing must remain disabled with a zero cap until the owner explicitly authorizes funded fulfillment.');
 must(podRuntime.includes("rt.STORE_POD_AUTO_FULFILL??'false'")&&podRuntime.includes('rt.STORE_POD_AUTO_FULFILL_MAX_USD??0'),'Print-on-demand automatic purchasing must fail closed when runtime settings are missing.');
