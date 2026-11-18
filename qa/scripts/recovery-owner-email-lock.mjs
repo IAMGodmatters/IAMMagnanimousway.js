@@ -20,6 +20,7 @@ const accountUi=read('frontend/app/account/recovery-contacts.tsx');
 const forgotUi=read('frontend/app/forgot-password/page.tsx');
 const migration=read('worker/migrations/0088_recovery_contacts_owner_email_login.sql');
 const edgeMail=read('worker/src/cloudflare-native-mail.js');
+const growthMail=read('worker/src/growth-email-transport.js');
 const wrangler=read('worker/wrangler.jsonc');
 const readinessWorkflow=read('.github/workflows/owner-email-production-readiness.yml');
 
@@ -31,8 +32,10 @@ must(admin.includes('Number(row.attempts||0)>=5'),'owner login must cap failed c
 must(admin.includes("t.slug='owner'")&&admin.includes("t.owner_user_id=u.id"),'owner email login must bind to the reserved global owner tenant');
 must(admin.includes("kind:'owner-login-code'")&&admin.includes('MAGNANIMOUS_MAIL'),'owner login must use Magnanimous native mail');
 must(edgeMail.includes('cloudflare-email-service')&&edgeMail.includes('MAGNANIMOUS_EMAIL'),'Worker owner login must have a native Cloudflare email transport');
-must(edgeMail.includes("sendGrowthEmail")&&edgeMail.includes("connected-email-https"),'Worker owner login must retain free connected Gmail/Outlook HTTPS failover when Cloudflare delivery fails');
-must(edgeMail.includes('hasGrowthEmailSender')&&edgeMail.includes("MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE:'true'"),'free connected Gmail/Outlook must be allowed to provide verified recovery and owner login delivery without a paid Cloudflare sender');
+must(edgeMail.includes('MAGNANIMOUS_EMAIL_SENDER_DOMAIN_READY')&&edgeMail.includes('MAGNANIMOUS_EMAIL_VERIFIED_RECIPIENTS'),'Cloudflare email must require owner-confirmed sender-domain onboarding and an explicit verified-recipient allowlist');
+must(edgeMail.includes('hasConnectedMailboxSender')&&edgeMail.includes('MAGNANIMOUS_OWNER_EMAIL_LOGIN_READY'),'owner email readiness must be based only on an approved Cloudflare route or connected Gmail/Outlook mailbox');
+must(edgeMail.includes('allowCommunications:!message.sensitive')&&growthMail.includes('allowCommunications=true'),'security-sensitive email must not fall through to a potentially metered communications sender');
+must(edgeMail.includes('NO_APPROVED_SENSITIVE_EMAIL_SENDER'),'sensitive email must fail safely when no approved free sender is available');
 must(!admin.includes('OWNER_AUTH_SEPARATE'),'canonical owner must be allowed to enroll and use standard TOTP recovery');
 must(entry.includes('await withCloudflareNativeMail(env)'),'Worker entrypoint must resolve live mail readiness before auth routing');
 must(entry.includes("url.pathname==='/api/admin/login'")&&entry.includes("url.pathname.startsWith('/api/admin/email-code/')"),'owner auth must stay on the Worker and not depend on Railway availability');
@@ -40,7 +43,8 @@ must(entry.includes("ownerAuthApp from './admin-compat-entrypoint.js'")&&entry.i
 must(entry.indexOf('ownerAuthApp.fetch(routedRequest,env,ctx)')<entry.indexOf('enforcePlatformOwnerBoundary(routedRequest,env)'),'public owner auth must execute before authenticated owner-only middleware');
 must(entry.includes('ownerAuthBlocked=await securityPreflight(routedRequest,env)'),'direct owner auth must retain security preflight and rate limits');
 must(wrangler.includes('\"send_email\"')&&wrangler.includes('MAGNANIMOUS_EMAIL'),'Wrangler must configure the native Cloudflare email binding');
-must(workerEntry.includes('owner_email_login_transport_ready')&&workerEntry.includes("MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE==='true'"),'Worker health must expose only a boolean owner-email transport readiness signal');
+must(wrangler.includes('MAGNANIMOUS_EMAIL_SENDER_DOMAIN_READY')&&wrangler.includes('"false"'),'Cloudflare sender-domain readiness must default to disabled until owner verification');
+must(workerEntry.includes('owner_email_login_transport_ready')&&workerEntry.includes("MAGNANIMOUS_OWNER_EMAIL_LOGIN_READY==='true'"),'Worker health must expose only the specific owner-email readiness signal');
 must(readinessWorkflow.includes('workflows: ["Build and Deploy I AM"]')&&readinessWorkflow.includes('/api/admin/email-code/request')&&readinessWorkflow.includes('OWNER_EMAIL_REQUIRED')&&readinessWorkflow.includes('no email was sent'),'successful production deploys must probe the real owner-email route without sending mail');
 must(admin.includes("delivery_status!=='sent'"),'owner login verification must require successful mail delivery');
 must(ownerUi.includes('SEND MY LOGIN CODE')&&ownerUi.includes('8-digit login code'),'owner portal must default to email-code login');
@@ -62,7 +66,7 @@ must(accountUi.includes('No SMS verification message will be sent'),'account UI 
 must(contacts.includes("email_verification_available:deliveryFlag(env,'MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE')"),'backend must expose real recovery-email transport availability');
 must(contacts.includes("sms_recovery_available:deliveryFlag(env,'MAGNANIMOUS_SMS_DELIVERY_AVAILABLE')"),'backend must expose real SMS transport availability');
 must(contacts.includes('RECOVERY_EMAIL_TRANSPORT_UNAVAILABLE'),'recovery-email requests must fail safely when delivery transport is disabled');
-must(admin.includes('OWNER_EMAIL_TRANSPORT_UNAVAILABLE'),'owner email login must fail safely when email delivery transport is disabled');
+must(admin.includes('OWNER_EMAIL_TRANSPORT_UNAVAILABLE')&&admin.includes("deliveryFlag(env,'MAGNANIMOUS_OWNER_EMAIL_LOGIN_READY')"),'owner email login must fail safely unless an approved free sender is ready');
 must(contacts.includes('/^\\+[1-9]\\d{7,14}$/'),'optional phone must use E.164-like international validation');
 must(migration.includes('user_recovery_contacts')&&migration.includes('owner_email_login_challenges'),'migration must create recovery-contact and owner-login stores');
 must(migration.includes('code_hash TEXT NOT NULL')&&migration.includes('token_hash TEXT PRIMARY KEY'),'sensitive verification material must be stored by hash');
