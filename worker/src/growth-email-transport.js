@@ -49,6 +49,10 @@ async function communicationsSenderReady(env){
  const runtime=await communicationsRuntime(env);
  return Boolean(String(runtime?.INKBOX_API_KEY||'').trim()&&String(runtime?.INKBOX_EMAIL_ADDRESS||'iam@inkboxmail.com').trim());
 }
+export async function hasConnectedMailboxSender(env,scopeTenantId='__platform__'){
+ const conn=await connectionFor(env,scopeTenantId);
+ return connectedSenderReady(env,conn);
+}
 export async function hasGrowthEmailSender(env,scopeTenantId='__platform__'){
  const conn=await connectionFor(env,scopeTenantId);
  if(await connectedSenderReady(env,conn))return true;
@@ -84,14 +88,20 @@ async function communicationsSend(env,{to,subject,text,replyTo='',idempotencyKey
  }catch(error){return{ok:false,code:'COMMUNICATION_TRANSPORT_ERROR',error:String(error?.message||error||'Communication transport failed.')}}
 }
 
-export async function sendGrowthEmail(env,{scopeTenantId,to,subject,text,replyTo='',senderName='',idempotencyKey=''}){
+export async function sendGrowthEmail(env,{scopeTenantId,to,subject,text,replyTo='',senderName='',idempotencyKey='',allowCommunications=true}){
  const conn=await connectionFor(env,scopeTenantId);
  if(conn){
   const token=await accessToken(env,conn).catch(()=> '');
   if(token){
    const result=conn.provider==='google'?await gmailSend(token,{to,subject,text,replyTo,senderName}):conn.provider==='outlook'?await outlookSend(token,{to,subject,text,replyTo}):null;
    if(result?.ok)return result;
+   if(!allowCommunications)return result||{ok:false,code:'CONNECTED_EMAIL_SEND_FAILED',error:'The connected mailbox could not send this message.'};
+  }else if(!allowCommunications){
+   return{ok:false,code:'CONNECTED_EMAIL_AUTH_UNAVAILABLE',error:'The connected mailbox needs to be reauthorized before it can send this message.'};
   }
+ }
+ if(!allowCommunications){
+  return{ok:false,code:'NO_FREE_CONNECTED_SENDER',error:'Connect Gmail or Outlook with active send permission to use this free sensitive-email route.'};
  }
  const communications=await communicationsSend(env,{to,subject,text,replyTo,idempotencyKey});
  if(communications?.ok)return communications;
