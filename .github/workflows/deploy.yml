@@ -2271,7 +2271,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          status="$(curl -sS --connect-timeout 10 --max-time 45 -o /tmp/native-store-products.json -w '%{http_code}' "$BASE_URL/api/store/products")"
+          status="$(curl -sS --connect-timeout 10 --max-time 45 -o /tmp/native-store-products.json -w '%{http_code}' "$BASE_URL/store-api/products")"
           [ "$status" = "200" ] || { echo "::error::Native store product API expected HTTP 200, got $status"; cat /tmp/native-store-products.json || true; exit 1; }
           python - <<'PY'
           import json
