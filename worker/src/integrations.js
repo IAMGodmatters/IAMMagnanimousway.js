@@ -185,6 +185,11 @@ async function saveResolvedConnections(env,{provider,tenantId,token,metadata,cal
   if(provider==='google'||provider==='outlook'){
     const definition=INTEGRATIONS.find(item=>item.id===provider);
     savedMetadata.requested_scopes=Array.isArray(definition?.scopes)?definition.scopes:[];
+    // The provider's token response records granted scopes. Requested scopes
+    // are useful audit context, but must never authorize sensitive email sends.
+    savedMetadata.granted_scopes=Array.isArray(token.scope)
+      ?token.scope.map(value=>String(value||'').trim()).filter(Boolean)
+      :String(token.scope||'').split(/[\s,]+/).map(value=>value.trim()).filter(Boolean);
   }
   await storeConnection(env,{tenantId,provider,external,displayName:display,accessToken:access,refreshToken:refresh,expiresAt,metadata:savedMetadata});return 1;
 }
