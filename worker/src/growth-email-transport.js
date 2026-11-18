@@ -63,15 +63,21 @@ async function communicationsSenderReady(env){
  const runtime=await communicationsRuntime(env);
  return Boolean(String(runtime?.INKBOX_API_KEY||'').trim()&&String(runtime?.INKBOX_EMAIL_ADDRESS||'iam@inkboxmail.com').trim());
 }
-export async function hasConnectedMailboxSender(env,scopeTenantId='__platform__'){
+export async function getMailSenderReadiness(env,scopeTenantId='__platform__'){
  const connections=await connectionsFor(env,scopeTenantId);
- for(const conn of connections)if(await connectedSenderReady(env,conn))return true;
- return false;
+ let connectedReady=false;
+ for(const conn of connections){
+  if(await connectedSenderReady(env,conn)){connectedReady=true;break}
+ }
+ const communicationsReady=connectedReady?false:await communicationsSenderReady(env);
+ return{connectedReady,communicationsReady};
+}
+export async function hasConnectedMailboxSender(env,scopeTenantId='__platform__'){
+ return(await getMailSenderReadiness(env,scopeTenantId)).connectedReady;
 }
 export async function hasGrowthEmailSender(env,scopeTenantId='__platform__'){
- const conn=await connectionFor(env,scopeTenantId);
- if(await connectedSenderReady(env,conn))return true;
- return communicationsSenderReady(env);
+ const readiness=await getMailSenderReadiness(env,scopeTenantId);
+ return readiness.connectedReady||readiness.communicationsReady;
 }
 async function accessToken(env,row){
  let token=await decrypt(String(row?.access_token||''),env);if(!token)return '';
