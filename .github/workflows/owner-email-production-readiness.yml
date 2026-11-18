@@ -21,20 +21,24 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          health_status="$(curl -sS --connect-timeout 10 --max-time 30 -o /tmp/owner-email-health.json -w '%{http_code}' https://iammagnanimousway.com/health)"
+          [ "$health_status" = "200" ] || { echo "::error::Production health expected HTTP 200, got $health_status"; cat /tmp/owner-email-health.json || true; exit 1; }
           status="$(curl -sS --connect-timeout 10 --max-time 60 -o /tmp/owner-email-readiness.json -w '%{http_code}' \
             -X POST https://iammagnanimousway.com/api/admin/email-code/request \
             -H 'Content-Type: application/json' \
             --data '{}')"
-          python - "$status" <<'PY'
+          python - "$health_status" "$status" <<'PY'
           import json,sys
-          status=sys.argv[1]
+          health_status, status=sys.argv[1:3]
+          health=json.load(open('/tmp/owner-email-health.json'))
           data=json.load(open('/tmp/owner-email-readiness.json'))
+          ready=health.get('owner_email_login_transport_ready') is True
           code=data.get('code')
-          if status == '400' and code == 'OWNER_EMAIL_REQUIRED':
-              print('Production owner email login transport is ready; no email was sent and no credential was exposed.')
+          if ready and status == '400' and code == 'OWNER_EMAIL_REQUIRED':
+              print('Production owner email readiness is true and the request route agrees; no email was sent and no credential was exposed.')
               raise SystemExit(0)
-          if status == '503' and code == 'OWNER_EMAIL_TRANSPORT_UNAVAILABLE' and data.get('password_fallback') is True:
-              print('Production owner email transport is intentionally unavailable; verified password fallback remains available and no email was sent.')
+          if not ready and status == '503' and code == 'OWNER_EMAIL_TRANSPORT_UNAVAILABLE' and data.get('password_fallback') is True:
+              print('Production owner email readiness is false and the request route agrees; password fallback remains available and no email was sent.')
               raise SystemExit(0)
-          raise SystemExit('Owner authentication readiness failed without sending an email. HTTP '+status+' code='+str(code or 'none'))
+          raise SystemExit('Owner email readiness and request route disagree or failed. Health HTTP '+health_status+', request HTTP '+status+', ready='+str(ready)+', code='+str(code or 'none'))
           PY
