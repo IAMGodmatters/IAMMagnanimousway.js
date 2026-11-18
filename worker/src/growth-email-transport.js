@@ -39,7 +39,7 @@ function hasSendScope(conn,provider){
  let metadata={};
  try{metadata=JSON.parse(String(conn?.metadata_json||'{}'))||{}}catch{}
  const raw=metadata.requested_scopes||metadata.scopes||metadata.scope||[];
- const scopes=(Array.isArray(raw)?raw:String(raw).split(/[\\s,]+/)).map(value=>String(value||'').trim().toLowerCase()).filter(Boolean);
+ const scopes=(Array.isArray(raw)?raw:String(raw).split(/[\s,]+/)).map(value=>String(value||'').trim().toLowerCase()).filter(Boolean);
  const required=provider==='google'
   ?['https://www.googleapis.com/auth/gmail.send','gmail.send']
   :['mail.send'];
