@@ -6,7 +6,7 @@ const clean=value=>String(value??'').trim();
 const validEmail=value=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean(value));
 const now=()=>Math.floor(Date.now()/1000);
 const enabled=value=>['1','true','yes','on'].includes(clean(value).toLowerCase());
-const verifiedRecipients=env=>new Set(String(env?.MAGNANIMOUS_EMAIL_VERIFIED_RECIPIENTS||'').split(/[;,\\s]+/).map(value=>clean(value).toLowerCase()).filter(validEmail));
+const verifiedRecipients=env=>new Set(String(env?.MAGNANIMOUS_EMAIL_VERIFIED_RECIPIENTS||'').split(/[;,\s]+/).map(value=>clean(value).toLowerCase()).filter(validEmail));
 
 async function sha256Hex(value){
   const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(String(value||'')));
@@ -50,7 +50,7 @@ function mailerFor(env,{cloudflareReady=false,connectedReady=false,communication
     provider:binding?'cloudflare-email-service':connectedReady?'connected-email-https':'magnanimous-communications',
     configured:validEmail(fromAddress),
     async send(message={}){
-      const to=clean(message.to),subject=clean(message.subject).replace(/[\\r\\n]+/g,' ');
+      const to=clean(message.to),subject=clean(message.subject).replace(/[\r\n]+/g,' ');
       if(!validEmail(to))return{ok:false,code:'MAGNANIMOUS_MAIL_INVALID_RECIPIENT'};
       if(!subject)return{ok:false,code:'MAGNANIMOUS_MAIL_INVALID_SUBJECT'};
       if(!validEmail(fromAddress))return{ok:false,code:'MAGNANIMOUS_MAIL_INVALID_SENDER'};
