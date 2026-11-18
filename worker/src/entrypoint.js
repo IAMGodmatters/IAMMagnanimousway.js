@@ -99,7 +99,7 @@ export default {
   async fetch(request,env,ctx){
     const url=new URL(request.url);
     if(request.method==='GET'&&url.pathname==='/health'){
-      const ownerEmailLoginTransportReady=Boolean(env?.MAGNANIMOUS_MAIL&&env?.MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE==='true');
+      const ownerEmailLoginTransportReady=env?.MAGNANIMOUS_OWNER_EMAIL_LOGIN_READY==='true';
       return Response.json({status:'ok',service:'iamagnanimous-ai',version:'4.0.0-multitenant',database_bootstrap:'deferred',owner_email_login_transport_ready:ownerEmailLoginTransportReady},{headers:{'cache-control':'no-store'}});
     }
     // Public-data adapters are already authenticated/read-only and own their

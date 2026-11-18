@@ -18,12 +18,15 @@ async function ownerTenant(env){
   return String(row?.tenant_id||'');
  }catch{return ''}
 }
-export async function connectionFor(env,scopeTenantId){
+export async function connectionsFor(env,scopeTenantId){
  const tenants=[];if(scopeTenantId&&scopeTenantId!=='__platform__')tenants.push(scopeTenantId);const owner=await ownerTenant(env);if(owner&&!tenants.includes(owner))tenants.push(owner);
  for(const tenant of tenants){
-  try{const row=await env.DB.prepare("SELECT * FROM integrations WHERE tenant_id=? AND provider IN ('google','outlook') ORDER BY CASE provider WHEN 'google' THEN 0 ELSE 1 END,updated_at DESC LIMIT 1").bind(tenant).first();if(row)return row}catch{}
+  try{const {results}=await env.DB.prepare("SELECT * FROM integrations WHERE tenant_id=? AND provider IN ('google','outlook') ORDER BY CASE provider WHEN 'google' THEN 0 ELSE 1 END,updated_at DESC").bind(tenant).all();if(results?.length)return results}catch{}
  }
- return null;
+ return [];
+}
+export async function connectionFor(env,scopeTenantId){
+ return (await connectionsFor(env,scopeTenantId))[0]||null;
 }
 async function refreshGoogle(env,row,refreshToken){
  if(!refreshToken||!env.GOOGLE_CLIENT_ID||!env.GOOGLE_CLIENT_SECRET)return '';
@@ -35,11 +38,22 @@ async function refreshOutlook(env,row,refreshToken){
  const body=new URLSearchParams({client_id:String(env.MICROSOFT_CLIENT_ID),client_secret:String(env.MICROSOFT_CLIENT_SECRET),refresh_token:refreshToken,grant_type:'refresh_token',scope:'openid email offline_access Mail.Read Mail.Send'});
  const r=await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body});const d=await r.json().catch(()=>({}));return r.ok?String(d.access_token||''):'';
 }
+function hasSendScope(conn,provider){
+ let metadata={};
+ try{metadata=JSON.parse(String(conn?.metadata_json||'{}'))||{}}catch{}
+ const raw=metadata.granted_scopes??metadata.scope??[];
+ const scopes=(Array.isArray(raw)?raw:String(raw).split(/[\s,]+/)).map(value=>String(value||'').trim().toLowerCase()).filter(Boolean);
+ const required=provider==='google'
+  ?['https://www.googleapis.com/auth/gmail.send','gmail.send']
+  :['mail.send'];
+ return required.some(scope=>scopes.includes(scope));
+}
 async function connectedSenderReady(env,conn){
  if(!conn)return false;
  const provider=String(conn.provider||'');if(provider!=='google'&&provider!=='outlook')return false;
+ if(!hasSendScope(conn,provider))return false;
  const access=await decrypt(String(conn.access_token||''),env).catch(()=> '');if(!access)return false;
- const expires=Number(conn.token_expires_at||0);if(!expires||expires>now()+90)return true;
+ const expires=Number(conn.token_expires_at||0);if(expires>now()+90)return true;
  const refresh=await decrypt(String(conn.refresh_token||''),env).catch(()=> '');if(!refresh)return false;
  if(provider==='google')return Boolean(env.GOOGLE_CLIENT_ID&&env.GOOGLE_CLIENT_SECRET);
  if(provider==='outlook')return Boolean(env.MICROSOFT_CLIENT_ID&&env.MICROSOFT_CLIENT_SECRET);
@@ -49,15 +63,29 @@ async function communicationsSenderReady(env){
  const runtime=await communicationsRuntime(env);
  return Boolean(String(runtime?.INKBOX_API_KEY||'').trim()&&String(runtime?.INKBOX_EMAIL_ADDRESS||'iam@inkboxmail.com').trim());
 }
+export async function getMailSenderReadiness(env,scopeTenantId='__platform__'){
+ const connections=await connectionsFor(env,scopeTenantId);
+ let connectedReady=false;
+ for(const conn of connections){
+  if(await connectedSenderReady(env,conn)){connectedReady=true;break}
+ }
+ const communicationsReady=connectedReady?false:await communicationsSenderReady(env);
+ return{connectedReady,communicationsReady};
+}
+export async function hasConnectedMailboxSender(env,scopeTenantId='__platform__'){
+ return(await getMailSenderReadiness(env,scopeTenantId)).connectedReady;
+}
 export async function hasGrowthEmailSender(env,scopeTenantId='__platform__'){
- const conn=await connectionFor(env,scopeTenantId);
- if(await connectedSenderReady(env,conn))return true;
- return communicationsSenderReady(env);
+ const readiness=await getMailSenderReadiness(env,scopeTenantId);
+ return readiness.connectedReady||readiness.communicationsReady;
 }
 async function accessToken(env,row){
  let token=await decrypt(String(row?.access_token||''),env);if(!token)return '';
- const expires=Number(row?.token_expires_at||0);if(!expires||expires>now()+90)return token;
- const refresh=await decrypt(String(row?.refresh_token||''),env);if(row.provider==='google')return await refreshGoogle(env,row,refresh)||token;if(row.provider==='outlook')return await refreshOutlook(env,row,refresh)||token;return token;
+ const expires=Number(row?.token_expires_at||0);if(expires>now()+90)return token;
+ const refresh=await decrypt(String(row?.refresh_token||''),env).catch(()=> '');
+ if(row.provider==='google')return await refreshGoogle(env,row,refresh)||'';
+ if(row.provider==='outlook')return await refreshOutlook(env,row,refresh)||'';
+ return '';
 }
 async function gmailSend(token,{to,subject,text,replyTo,senderName}){
  const lines=[`To: ${to}`,`Subject: ${subject}`,'MIME-Version: 1.0','Content-Type: text/plain; charset=UTF-8'];if(replyTo)lines.splice(1,0,`Reply-To: ${replyTo}`);if(senderName)lines.push(`X-Sender-Name: ${senderName}`);lines.push('',text);
@@ -84,7 +112,18 @@ async function communicationsSend(env,{to,subject,text,replyTo='',idempotencyKey
  }catch(error){return{ok:false,code:'COMMUNICATION_TRANSPORT_ERROR',error:String(error?.message||error||'Communication transport failed.')}}
 }
 
-export async function sendGrowthEmail(env,{scopeTenantId,to,subject,text,replyTo='',senderName='',idempotencyKey=''}){
+export async function sendGrowthEmail(env,{scopeTenantId,to,subject,text,replyTo='',senderName='',idempotencyKey='',allowCommunications=true}){
+ if(!allowCommunications){
+  const connections=await connectionsFor(env,scopeTenantId);
+  for(const conn of connections){
+   if(!hasSendScope(conn,String(conn.provider||''))||!await connectedSenderReady(env,conn))continue;
+   const token=await accessToken(env,conn).catch(()=> '');
+   if(!token)continue;
+   const result=conn.provider==='google'?await gmailSend(token,{to,subject,text,replyTo,senderName}):conn.provider==='outlook'?await outlookSend(token,{to,subject,text,replyTo}):null;
+   return result||{ok:false,code:'CONNECTED_EMAIL_SEND_FAILED',error:'The connected mailbox could not send this message.'};
+  }
+  return{ok:false,code:'NO_FREE_CONNECTED_SENDER',error:'Connect Gmail or Outlook with provider-granted send permission and usable credentials to use this free sensitive-email route.'};
+ }
  const conn=await connectionFor(env,scopeTenantId);
  if(conn){
   const token=await accessToken(env,conn).catch(()=> '');

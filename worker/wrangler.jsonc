@@ -57,8 +57,10 @@
     "DEV_AGENT_MERGE_ENABLED": "false",
     "MAGNANIMOUS_MAIL_FROM": "Godmattersinc@iammagnanimousway.com",
     "MAGNANIMOUS_MAIL_FROM_NAME": "I AM MAGNANIMOUS WAY",
-    // Cloudflare Email Service binding is the free recovery path for verified destination addresses.
-    "MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE": "true"
+    // Cloudflare Email Service remains disabled for owner login until the sender domain
+    // is onboarded and the verified-recipient allowlist secret is configured.
+    "MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE": "true",
+    "MAGNANIMOUS_EMAIL_SENDER_DOMAIN_READY": "false"
   },
   "send_email": [
     { "name": "MAGNANIMOUS_EMAIL" }

@@ -276,7 +276,8 @@ export default {
         service:'iamagnanimous-ai',
         version:'4.0.0-multitenant',
         database_bootstrap:'bypassed-for-health',
-        database_independent:true
+        database_independent:true,
+        owner_email_login_transport_ready:env?.MAGNANIMOUS_OWNER_EMAIL_LOGIN_READY==='true'
       },{headers:{'cache-control':'no-store'}}));
     }
     // This is a public, static catalogue. Do not enter the legacy schema,

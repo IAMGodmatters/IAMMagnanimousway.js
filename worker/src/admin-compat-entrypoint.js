@@ -337,8 +337,8 @@ async function sendOwnerLoginCode(env,owner,code,idempotencyKey){
 }
 async function requestOwnerEmailCode(request,env){
   if(!env?.DB)return json({detail:'Owner email login is temporarily unavailable.',code:'OWNER_EMAIL_LOGIN_UNAVAILABLE'},503);
-  if(!deliveryFlag(env,'MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE')){
-    return json({detail:'Owner email-code delivery is temporarily unavailable on the current host. Use the owner password fallback for now.',code:'OWNER_EMAIL_TRANSPORT_UNAVAILABLE',password_fallback:true},503);
+  if(!deliveryFlag(env,'MAGNANIMOUS_OWNER_EMAIL_LOGIN_READY')){
+    return json({detail:'Owner email-code delivery is not configured with an approved free sender. Use the owner password fallback for now.',code:'OWNER_EMAIL_TRANSPORT_UNAVAILABLE',password_fallback:true},503);
   }
   const body=await request.json().catch(()=>({})),email=normEmail(body.email);
   if(!email)return json({detail:'Enter your owner email.',code:'OWNER_EMAIL_REQUIRED'},400);
