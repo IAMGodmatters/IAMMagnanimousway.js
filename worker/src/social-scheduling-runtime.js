@@ -156,8 +156,9 @@ async function handleCreate(request,env,user){
  const disclosure=disclosureIssue(provider,payload);if(disclosure)return json({detail:disclosure,code:'AI_DISCLOSURE_REQUIRED'},409);
  const serialized=JSON.stringify(payload);
  if(new TextEncoder().encode(serialized).byteLength>MAX_PAYLOAD_BYTES)return json({detail:'Scheduled post content is too large.'},413);
- const id=crypto.randomUUID(),key=String(body.idempotency_key||crypto.randomUUID()).trim();
- if(!key||key.length>100)return json({detail:'Use a non-empty idempotency key of at most 100 characters.'},400);
+ const key=String(body.idempotency_key||'').trim();
+ if(!key||key.length>100)return json({detail:'Provide a stable idempotency key of at most 100 characters before creating a scheduled post.'},400);
+ const id=crypto.randomUUID();
  const ts=now();
  try{
   await env.DB.prepare(`INSERT INTO social_scheduled_posts(id,tenant_id,created_by,provider,external_id,payload_json,scheduled_at,timezone,status,idempotency_key,created_at,updated_at)
