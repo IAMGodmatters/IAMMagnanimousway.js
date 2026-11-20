@@ -68,7 +68,7 @@ export default function SecureCheckoutPreview({planName = 'Your selected plan', 
             </div>
           </div>
         </div>
-        <button className="flipButton" type="button" onClick={() => setShowBack((current) => !current)} aria-pressed={showBack}>
+        <button className="flipButton" type="button" onClick={() => setShowBack((current) => !current)} aria-label={showBack ? 'Show card front' : 'Flip card preview'} aria-pressed={showBack}>
           <span aria-hidden="true">↻</span> {showBack ? 'Show card front' : 'Flip card preview'}
         </button>
         <div className="secureProvider"><span className="lockIcon" aria-hidden="true">⌑</span><span><strong>Secure hosted payment</strong><small>Actual payment details are entered after you continue to checkout.</small></span></div>
