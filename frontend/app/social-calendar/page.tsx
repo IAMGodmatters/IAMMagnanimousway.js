@@ -10,6 +10,12 @@ type Item={
  payload:Record<string,unknown>;last_error?:string;created_at:number;approved_at?:number;
  provider_receipt_json?:string;
 };
+function localDateTimeWithOffset(value:string){
+ const date=new Date(value);
+ if(!Number.isFinite(date.getTime()))return "";
+ const offset=-date.getTimezoneOffset(),sign=offset>=0?"+":"-",absolute=Math.abs(offset);
+ return value+":00"+sign+String(Math.floor(absolute/60)).padStart(2,"0")+":"+String(absolute%60).padStart(2,"0");
+}
 function localInputValue(date:Date){
  const pad=(n:number)=>String(n).padStart(2,"0");
  return date.getFullYear()+"-"+pad(date.getMonth()+1)+"-"+pad(date.getDate())+"T"+pad(date.getHours())+":"+pad(date.getMinutes());
@@ -88,7 +94,7 @@ export default function SocialCalendar(){
    if(!Number.isFinite(chosen.getTime()))throw new Error("Choose a valid publishing date and time.");
    if(chosen.getTime()<Date.now()+15*60*1000)throw new Error("Choose a time at least 15 minutes ahead.");
    const payload:Record<string,unknown>={
-    provider,scheduled_at:chosen.toISOString(),timezone,
+    provider,scheduled_at:localDateTimeWithOffset(scheduledLocal),timezone,
     idempotency_key:idempotencyKey||crypto.randomUUID(),
     ai_generated:aiGenerated,deepfake:false,public_interest:false,
     human_reviewed:humanReviewed,editorial_responsibility:humanReviewed,
