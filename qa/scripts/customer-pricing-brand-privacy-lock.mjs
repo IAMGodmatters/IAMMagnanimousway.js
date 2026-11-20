@@ -7,6 +7,7 @@ const agencyBilling=read('worker/src/agency-billing-extension.js');
 const agency=read('worker/src/agency-growth-runtime.js');
 const enterprise=read('worker/src/enterprise-commercialization-runtime.js');
 const pricing=read('frontend/app/pricing/page.tsx');
+const checkoutPreview=read('frontend/components/SecureCheckoutPreview.tsx');
 const account=read('frontend/app/account/page.tsx');
 const login=read('frontend/app/login/page.tsx');
 const recovery=read('frontend/app/account/recovery-contacts.tsx');
@@ -53,6 +54,7 @@ const checks=[
  ['Magnanimous CRM page has no customer-facing internal bundle economics', !magnanimousCrm.includes('20%')&&!magnanimousCrm.includes('1.20')&&!magnanimousCrm.includes('213.588')&&!magnanimousCrm.includes('bundle upsell')],
  ['Magnanimous CRM Business fallback matches public catalog', magnanimousCrm.includes("price_usd:309,cadence:'month'")&&!magnanimousCrm.includes("price_usd:214,cadence:'month'")],
  ['pricing page uses generic secure checkout wording', !pricing.includes('Opening Stripe')&&!pricing.includes('received by Stripe')&&!pricing.includes('Stripe did not return')],
+ ['3D checkout preview keeps payment providers replaceable and customer-facing copy provider-neutral', !/(^|[^A-Za-z0-9_])(?:Stripe|PayPal|Adyen|Braintree)(?=$|[^A-Za-z0-9_])/i.test(checkoutPreview)],
  ['pricing page renders owner-only internal diagnostics conditionally', pricing.includes('ownerPricing&&<section className="ownerAudit"')&&pricing.includes('PRIVATE PRICING DIAGNOSTICS')],
  ['login/account recovery do not advertise a specific authenticator or mail product', !login.includes('Google Authenticator')&&!login.includes('GOOGLE AUTHENTICATOR')&&!account.includes('Google Authenticator')&&!account.includes('GOOGLE AUTHENTICATOR')&&!account.includes('Inkbox')&&!account.includes('Gmail')&&!recovery.includes('Google Authenticator')],
  ['advertising and billing support do not display payment processor branding', !advertise.includes('Stripe handles')&&!advertise.includes('Stripe confirmation')&&!billingSupport.includes('Stripe Customer Portal')&&!billingSupport.includes('Stripe subscription')],
