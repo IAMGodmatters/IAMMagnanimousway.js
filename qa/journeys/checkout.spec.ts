@@ -242,3 +242,34 @@ test('mobile pricing page exposes purchase terms and controls without horizontal
   }));
   expect(width.content - width.viewport, JSON.stringify(width)).toBeLessThanOrEqual(8);
 });
+
+test('3D checkout preview flips both faces and updates only the local demo name', async ({ page }) => {
+  await mockPricingReads(page, false);
+  const postRequests: string[] = [];
+  page.on('request', (request) => {
+    if (request.method() !== 'GET' && request.method() !== 'HEAD') postRequests.push(request.url());
+  });
+
+  await page.goto('/pricing/', { waitUntil: 'load' });
+  const preview = page.locator('[data-payment-preview-only="true"]');
+  const card = preview.locator('.paymentCard');
+  const nameInput = preview.getByLabel('Name shown on the card preview');
+
+  await expect(preview).toBeVisible();
+  await expect(nameInput).toHaveValue('MAGNANIMOUS MEMBER');
+  await expect(preview.locator('.cardBottom strong')).toHaveText('MAGNANIMOUS MEMBER');
+  await expect(preview.locator('input')).toHaveCount(1);
+  await expect(preview.getByRole('button', { name: 'Flip card preview' })).toBeVisible();
+  await expect(card).not.toHaveClass(/isBack/);
+
+  await preview.getByRole('button', { name: 'Flip card preview' }).click();
+  await expect(card).toHaveClass(/isBack/);
+  await expect(preview.getByRole('button', { name: 'Show card front' })).toBeVisible();
+
+  await preview.getByRole('button', { name: 'Show card front' }).click();
+  await expect(card).not.toHaveClass(/isBack/);
+  await nameInput.fill('QA PREVIEW ONLY');
+  await expect(preview.locator('.cardBottom strong')).toHaveText('QA PREVIEW ONLY');
+
+  expect(postRequests, 'The preview must not submit its demo name or any payment details').toEqual([]);
+});
