@@ -114,6 +114,9 @@ has(publishing,'h.endsWith(\'.invalid\')','Shared media URL validation must reje
 has(page,'outcome_unknown','Calendar must explain uncertain provider outcomes and duplicate protection');
 has(page,'SELF_ONLY','TikTok defaults to private posting');
 has(page,'type="datetime-local"','Calendar must collect a local publishing time');
+has(page,'function localDateTimeWithOffset(value:string)','Calendar must derive the selected local time offset instead of forcing UTC');
+has(page,'scheduled_at:localDateTimeWithOffset(scheduledLocal)','Calendar must send an explicit offset matching its IANA timezone');
+assert.ok(!page.includes('scheduled_at:chosen.toISOString()'),'Calendar must not send a UTC Z timestamp alongside a non-UTC IANA timezone');
 has(page,'Intl.DateTimeFormat().resolvedOptions().timeZone','Calendar must use the browser IANA timezone');
 has(socialStudio,'href="/social-calendar"','Social Studio must link to the publishing calendar');
 has(skills,"name:'social-publishing-calendar-operator'",'Magnanimous Agent Skills must expose the first-party social calendar operator');
