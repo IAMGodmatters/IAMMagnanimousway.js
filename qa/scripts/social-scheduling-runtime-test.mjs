@@ -107,6 +107,13 @@ try{
  });
  assert.equal(mismatch.status,400);
 
+ // The server must require a caller-stable key; silently generating one would make retries create duplicate drafts.
+ const missingKey=await requestAs(ownerToken,'/api/social-schedule','POST',{
+  provider:'linkedin',scheduled_at:new Date(clock.value+30*60*1000).toISOString(),timezone:'UTC',text:'Missing idempotency key'
+ });
+ assert.equal(missingKey.status,400);
+ assert.match((await json(missingKey)).detail,/idempotency key/i);
+
  // Idempotency is exact: same content returns the same row; changed content conflicts.
  const first=await createDraft('idempotency-exact','Exact post');
  assert.equal(first.response.status,201);
