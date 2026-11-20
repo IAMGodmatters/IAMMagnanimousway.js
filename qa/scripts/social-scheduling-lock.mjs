@@ -86,8 +86,8 @@ has(scheduling,'if(!account?.connected||String(account.external_id)!==String(row
 has(page,'c.connected&&c.configured','Calendar must not offer scheduling for an unconfigured provider');
 has(page,'credentials are not configured','Calendar must explain owner Provider Setup when a connection lacks app credentials');
 const calendarLayout=read('frontend/app/social-calendar/layout.tsx');
-has(calendarLayout,'index:false','Private publishing calendar must be excluded from search indexing');
-has(calendarLayout,'follow:false','Private publishing calendar must not invite crawler link following');
+has(calendarLayout,'index: false','Private publishing calendar must be excluded from search indexing');
+has(calendarLayout,'follow: false','Private publishing calendar must not invite crawler link following');
 has(migration,'CREATE TABLE IF NOT EXISTS social_scheduled_posts','D1 migration must create the durable social calendar');
 has(migration,'tenant_id TEXT NOT NULL','Scheduled posts must carry a tenant identifier');
 has(migration,'UNIQUE(tenant_id,idempotency_key)','D1 migration must enforce tenant idempotency');
