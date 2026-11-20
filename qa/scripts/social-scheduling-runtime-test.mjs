@@ -197,6 +197,42 @@ try{
  assert.equal((await status(expiredDraft.data.item.id)).status,'failed');
  assert.equal(fetchCount,beforeExpired);
 
+ // YouTube source download and TikTok creator-readiness failures happen before provider writes and must be definite failures.
+ env.GOOGLE_CLIENT_ID='youtube-test-client';
+ env.GOOGLE_CLIENT_SECRET='youtube-test-secret';
+ const currentTs=Math.floor(clock.value/1000);
+ await env.DB.prepare(`INSERT INTO social_connections(tenant_id,provider,external_id,display_name,access_token,refresh_token,expires_at,scope,metadata_json,created_at,updated_at)
+ VALUES(?,?,?,?,?,?,?,?,?,?,?)`).bind('tenant-a','youtube','channel-a','YouTube A','youtube-access','',currentTs+86400,'https://www.googleapis.com/auth/youtube.upload','{}',currentTs,currentTs).run();
+ const youtubeBody={provider:'youtube',scheduled_at:new Date(clock.value+20*60*1000).toISOString(),timezone:'UTC',title:'YouTube source preflight',description:'Test source fetch failure',video_url:'https://cdn.example.com/video.mp4',privacy_status:'private',idempotency_key:'youtube-source-preflight'};
+ const youtubeCreate=await requestAs(ownerToken,'/api/social-schedule','POST',youtubeBody);
+ assert.equal(youtubeCreate.status,201);
+ const youtubeItem=(await json(youtubeCreate)).item;
+ await approve(youtubeItem.id);
+ clock.value=youtubeItem.scheduled_at*1000+60_000;
+ let youtubeFetches=0;
+ globalThis.fetch=async()=>{youtubeFetches++;throw new Error('simulated media source unavailable')};
+ await scheduledSocialPublishing(env);
+ assert.equal((await status(youtubeItem.id)).status,'failed');
+ assert.equal(youtubeFetches,1,'YouTube media source failure must stop before provider upload');
+
+ const tiktokTs=Math.floor(clock.value/1000);
+ for(const [key,value] of [['TIKTOK_CLIENT_KEY','tiktok-test-client'],['TIKTOK_CLIENT_SECRET','tiktok-test-secret']]){
+  await env.DB.prepare('INSERT INTO social_platform_credentials(credential_key,encrypted_value,updated_at,updated_by) VALUES(?,?,?,?)').bind(key,value,tiktokTs,'owner-a').run();
+ }
+ await env.DB.prepare(`INSERT INTO social_connections(tenant_id,provider,external_id,display_name,access_token,refresh_token,expires_at,scope,metadata_json,created_at,updated_at)
+ VALUES(?,?,?,?,?,?,?,?,?,?,?)`).bind('tenant-a','tiktok','open-id-a','TikTok A','tiktok-access','',tiktokTs+86400,'video.publish','{}',tiktokTs,tiktokTs).run();
+ const tiktokBody={provider:'tiktok',scheduled_at:new Date(clock.value+20*60*1000).toISOString(),timezone:'UTC',title:'TikTok creator preflight',video_url:'https://cdn.example.com/video.mp4',privacy_level:'SELF_ONLY',idempotency_key:'tiktok-creator-preflight'};
+ const tiktokCreate=await requestAs(ownerToken,'/api/social-schedule','POST',tiktokBody);
+ assert.equal(tiktokCreate.status,201);
+ const tiktokItem=(await json(tiktokCreate)).item;
+ await approve(tiktokItem.id);
+ clock.value=tiktokItem.scheduled_at*1000+60_000;
+ let tiktokFetches=0;
+ globalThis.fetch=async()=>{tiktokFetches++;return new Response(JSON.stringify({message:'provider app not approved'}),{status:403,headers:{'Content-Type':'application/json'}})};
+ await scheduledSocialPublishing(env);
+ assert.equal((await status(tiktokItem.id)).status,'failed');
+ assert.equal(tiktokFetches,1,'TikTok creator-readiness failure must stop before video initialization');
+
  // Public media validation rejects insecure, private, credential-bearing and local destinations.
  assert.equal(isPublicSocialMediaUrl('https://cdn.example.com/video.mp4'),true);
  for(const url of [
