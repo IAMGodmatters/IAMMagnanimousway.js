@@ -19,5 +19,7 @@ jobs:
           node-version: 22
       - name: Verify native social scheduling, approval and tenant isolation
         run: node qa/scripts/social-scheduling-lock.mjs
+      - name: Exercise native social schedule lifecycle against SQLite-backed D1
+        run: node qa/scripts/social-scheduling-runtime-test.mjs
       - name: Verify universal social login and consent contracts
         run: node qa/scripts/universal-social-hub-lock.mjs
