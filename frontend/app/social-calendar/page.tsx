@@ -4,7 +4,7 @@ import { getPlatformAuthToken } from "../lib/magnanimous-session";
 
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||"";
 type Provider="youtube"|"tiktok"|"linkedin";
-type Connection={id:string;name:string;connected:boolean;configured:boolean;display_name:string;external_id:string};
+type Connection={id:string;name:string;connected:boolean;configured:boolean;write_scope:boolean;display_name:string;external_id:string};
 type Item={
  id:string;provider:Provider;external_id:string;scheduled_at:number;timezone:string;status:string;
  payload:Record<string,unknown>;last_error?:string;created_at:number;approved_at?:number;
@@ -55,7 +55,7 @@ export default function SocialCalendar(){
  const [notice,setNotice]=useState("");
  const [error,setError]=useState("");
  const [approvals,setApprovals]=useState<Record<string,boolean>>({});
- const supported=useMemo(()=>connections.filter(c=>["youtube","tiktok","linkedin"].includes(c.id)&&c.connected&&c.configured),[connections]);
+ const supported=useMemo(()=>connections.filter(c=>["youtube","tiktok","linkedin"].includes(c.id)&&c.connected&&c.configured&&c.write_scope),[connections]);
  const activeConnection=supported.find(c=>c.id===provider);
  useEffect(()=>{
   const t=getPlatformAuthToken();
@@ -165,7 +165,7 @@ export default function SocialCalendar(){
   {error&&<div className="error" role="alert">{error}</div>}
   <section className="composer">
    <div className="sectionHeading"><div><small>NEW SCHEDULED DRAFT</small><h2>Prepare your post</h2></div><span>{timezone}</span></div>
-   {supported.length===0?<div className="empty">{connections.some(c=>c.connected&&!c.configured)?"A social account is connected, but its official developer app credentials are not configured. The workspace owner must finish Provider Setup before scheduling.":"No supported publishing account is connected yet. Connect YouTube, TikTok or LinkedIn first."} <a href="/social-connect">Open social connections →</a></div>:<form onSubmit={createDraft}>
+   {supported.length===0?<div className="empty">{connections.some(c=>c.connected&&!c.configured)?"A social account is connected, but its official developer app credentials are not configured. The workspace owner must finish Provider Setup before scheduling.":connections.some(c=>c.connected&&c.configured&&!c.write_scope)?"A social account is connected, but it does not have the official publishing permission. Reconnect it and approve the requested publishing scope before scheduling.":"No supported publishing account is connected yet. Connect YouTube, TikTok or LinkedIn first."} <a href="/social-connect">Open social connections →</a></div>:<form onSubmit={createDraft}>
     <label>Social account
      <select value={provider} onChange={e=>setProvider(e.target.value as Provider)}>
       {supported.map(c=><option key={c.id} value={c.id}>{c.name} — {c.display_name||"Connected"}</option>)}
