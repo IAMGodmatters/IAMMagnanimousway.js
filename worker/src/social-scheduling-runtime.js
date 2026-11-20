@@ -148,6 +148,7 @@ async function handleCreate(request,env,user){
  const account=await connectedAccount(env,user.tenant_id,provider);
  if(!account?.connected)return json({detail:'Connect this social account before creating a schedule.'},409);
  if(!account?.configured)return json({detail:`The official ${provider} developer app is not configured. The workspace owner must finish Provider Setup before scheduling.`,code:'SOCIAL_PROVIDER_NOT_CONFIGURED'},409);
+ if(!account?.write_scope)return json({detail:`The connected ${provider} account is missing its official publishing permission. Reconnect it and approve the required publishing scope before scheduling.`,code:'SOCIAL_PUBLISH_SCOPE_REQUIRED'},409);
  const payload=normalizedPayload(provider,body);
  if((provider==='youtube'||provider==='tiktok')&&!publicHttpsUrl(payload.video_url))return json({detail:'Video publishing requires a public HTTPS video URL. Private, local and insecure URLs are not accepted.'},400);
  if(provider==='linkedin'&&!payload.text)return json({detail:'LinkedIn post text is required.'},400);
@@ -184,6 +185,7 @@ async function handleApprove(request,env,user,id){
  if(Number(row.scheduled_at)<now()+900)return json({detail:'The selected time is too close or has passed. Create a new draft at least 15 minutes ahead.'},409);
  const account=await connectedAccount(env,user.tenant_id,row.provider);
  if(!account?.configured)return json({detail:`The official ${row.provider} developer app is no longer configured. Recheck Provider Setup before approving.`,code:'SOCIAL_PROVIDER_NOT_CONFIGURED'},409);
+ if(!account?.write_scope)return json({detail:`The connected ${row.provider} account no longer has its official publishing permission. Reconnect it before approving.`,code:'SOCIAL_PUBLISH_SCOPE_REQUIRED'},409);
  if(!account?.connected||String(account.external_id)!==String(row.external_id))return json({detail:'The connected account changed or was disconnected. Reconnect and create a new draft.'},409);
  const payload={...parsePayload(row),explicit_consent:true};
  const hash=await approvalHash(row,payload),ts=now();
