@@ -181,6 +181,9 @@ jobs:
       - name: Lock Magnanimous native scheduled social publishing
         run: node qa/scripts/social-scheduling-lock.mjs
 
+      - name: Exercise native social schedule lifecycle against SQLite-backed D1
+        run: node qa/scripts/social-scheduling-runtime-test.mjs
+
       - name: Frontend typecheck and production build
         working-directory: frontend
         run: |
