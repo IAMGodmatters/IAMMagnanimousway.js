@@ -71,6 +71,14 @@ try{
  const ready=await socialProviderReadiness(env,'tenant-a','linkedin');
  assert.equal(ready.connected,true);
  assert.equal(ready.configured,true);
+ assert.equal(ready.write_scope,true);
+ db.sqlite.prepare('UPDATE social_connections SET scope=? WHERE tenant_id=? AND provider=?').run('openid profile','tenant-a','linkedin');
+ const missingScope=await handleSocialScheduling(new Request('https://platform.example/api/social-schedule',{method:'POST',headers:{Authorization:`Bearer ${ownerToken}`,'Content-Type':'application/json'},body:JSON.stringify({
+  provider:'linkedin',scheduled_at:new Date(clock.value+30*60*1000).toISOString(),timezone:'UTC',text:'Missing scope',idempotency_key:'missing-scope'
+ })}),env);
+ assert.equal(missingScope.status,409);
+ assert.equal((await json(missingScope)).code,'SOCIAL_PUBLISH_SCOPE_REQUIRED');
+ db.sqlite.prepare('UPDATE social_connections SET scope=? WHERE tenant_id=? AND provider=?').run('w_member_social','tenant-a','linkedin');
  assert.equal('client_secret' in ready,false,'Readiness must never expose credentials');
 
  async function requestAs(token,path,method='GET',body=undefined){
