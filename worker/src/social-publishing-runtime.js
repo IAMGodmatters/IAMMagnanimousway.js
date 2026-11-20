@@ -40,6 +40,13 @@ async function providerCredentials(env,provider){
  if(provider==='linkedin')return{client_id:await credential(env,'LINKEDIN_CLIENT_ID'),client_secret:await credential(env,'LINKEDIN_CLIENT_SECRET')};
  return{client_id:'',client_secret:''};
 }
+function hasSocialWriteScope(provider,scope){
+ const scopes=new Set(String(scope||'').split(/[ ,]+/).filter(Boolean));
+ if(provider==='youtube')return scopes.has('https://www.googleapis.com/auth/youtube.upload')||scopes.has('https://www.googleapis.com/auth/youtube');
+ if(provider==='tiktok')return scopes.has('video.publish');
+ if(provider==='linkedin')return scopes.has('w_member_social');
+ return false;
+}
 function callback(request,provider){return `${new URL(request.url).origin}/api/social-connect/${provider}/callback`}
 function publicHttpUrl(value){try{const u=new URL(String(value||''));if(u.protocol!=='https:'||u.username||u.password)return null;const h=u.hostname.toLowerCase();if(!h||h==='localhost'||h.endsWith('.localhost')||h.endsWith('.local')||h.endsWith('.internal')||h.endsWith('.test')||h.endsWith('.invalid')||h.includes(':')||/^\d{1,3}(?:\.\d{1,3}){3}$/.test(h))return null;return u}catch{return null}}
 async function connection(env,tenantId,provider){const row=await env.DB.prepare('SELECT * FROM social_connections WHERE tenant_id=? AND provider=?').bind(String(tenantId),provider).first();if(!row)return null;return{...row,metadata:(()=>{try{return JSON.parse(row.metadata_json||'{}')}catch{return{}}})()}}
@@ -90,7 +97,9 @@ export async function socialProviderReadiness(env,tenantId,provider){
   configured:Boolean(credentials.client_id&&credentials.client_secret),
   connected:Boolean(row),
   display_name:String(row?.display_name||''),
-  external_id:String(row?.external_id||'')
+  external_id:String(row?.external_id||''),
+  expires_at:row?.expires_at||null,
+  write_scope:Boolean(row&&hasSocialWriteScope(provider,row.scope))
  };
 }
 
@@ -99,6 +108,7 @@ export async function publishSocialPostForTenant(env,tenantId,provider,body,expe
  if(!Object.prototype.hasOwnProperty.call(PROVIDERS,provider))throw Object.assign(new Error('Unsupported social publishing provider.'),{preflight:true});
  const row=await connection(env,String(tenantId),provider);
  if(!row)throw Object.assign(new Error('The connected social account is no longer available. Reconnect it before publishing.'),{preflight:true});
+ if(!hasSocialWriteScope(provider,row.scope))throw Object.assign(new Error('The connected account does not have the official publishing permission. Reconnect and approve the required publishing scope.'),{preflight:true});
  if(expectedExternalId&&String(row.external_id||'')!==String(expectedExternalId))throw Object.assign(new Error('The connected social account changed after approval. Create and approve a new scheduled post.'),{preflight:true});
  const credentials=await providerCredentials(env,provider);
  if(!credentials.client_id||!credentials.client_secret)throw Object.assign(new Error('The official provider developer app is not configured.'),{preflight:true});
@@ -153,7 +163,7 @@ export async function handleSocialPublishing(request,env){
  try{
   await ensureSchema(env);
   if(request.method==='GET'&&url.pathname==='/api/social-connect/providers'){
-   const user=await currentUser(request,env);const out=[];for(const[id,p]of Object.entries(PROVIDERS)){const c=await providerCredentials(env,id),row=user?await connection(env,user.tenant_id,id):null;out.push({id,name:p.name,configured:Boolean(c.client_id&&c.client_secret),connected:Boolean(row),display_name:row?.display_name||'',approval:p.approval,scopes:p.scopes})}return json({providers:out,free_api_access:'Provider APIs generally do not charge this platform per OAuth connection, but quotas, approvals, account eligibility and each provider’s terms still apply.'});
+   const user=await currentUser(request,env);const out=[];for(const[id,p]of Object.entries(PROVIDERS)){const c=await providerCredentials(env,id),row=user?await connection(env,user.tenant_id,id):null;out.push({id,name:p.name,configured:Boolean(c.client_id&&c.client_secret),connected:Boolean(row),write_scope:Boolean(row&&hasSocialWriteScope(id,row.scope)),display_name:row?.display_name||'',approval:p.approval,scopes:p.scopes})}return json({providers:out,free_api_access:'Provider APIs generally do not charge this platform per OAuth connection, but quotas, approvals, account eligibility and each provider’s terms still apply.'});
   }
   const callbackMatch=url.pathname.match(/^\/api\/social-connect\/(youtube|tiktok|linkedin)\/callback$/);
   if(callbackMatch&&request.method==='GET'){
@@ -161,7 +171,7 @@ export async function handleSocialPublishing(request,env){
   }
   const user=await currentUser(request,env);if(!user)return json({detail:'Sign in to manage social publishing.'},401);
   if(request.method==='GET'&&url.pathname==='/api/social-connect/connections'){
-   const list=[];for(const[id,p]of Object.entries(PROVIDERS)){const c=await providerCredentials(env,id),row=await connection(env,user.tenant_id,id);list.push({id,name:p.name,configured:Boolean(c.client_id&&c.client_secret),connected:Boolean(row),display_name:row?.display_name||'',external_id:row?.external_id||'',expires_at:row?.expires_at||null,approval:p.approval})}return json({connections:list});
+   const list=[];for(const[id,p]of Object.entries(PROVIDERS)){const c=await providerCredentials(env,id),row=await connection(env,user.tenant_id,id);list.push({id,name:p.name,configured:Boolean(c.client_id&&c.client_secret),connected:Boolean(row),write_scope:Boolean(row&&hasSocialWriteScope(id,row.scope)),display_name:row?.display_name||'',external_id:row?.external_id||'',expires_at:row?.expires_at||null,approval:p.approval})}return json({connections:list});
   }
   if(request.method==='POST'&&url.pathname==='/api/social-connect/credentials'){
    if(user.role!=='owner')return json({detail:'Owner access is required to configure platform social credentials.'},403);const b=await request.json().catch(()=>({})),values=b?.values&&typeof b.values==='object'?b.values:{};let saved=0;for(const[key,value]of Object.entries(values)){if(!SAVABLE_KEYS.has(key)||typeof value!=='string'||!value.trim())continue;await env.DB.prepare(`INSERT INTO social_platform_credentials(credential_key,encrypted_value,updated_at,updated_by) VALUES(?,?,?,?) ON CONFLICT(credential_key) DO UPDATE SET encrypted_value=excluded.encrypted_value,updated_at=excluded.updated_at,updated_by=excluded.updated_by`).bind(key,await encrypt(value.trim(),env),now(),String(user.id)).run();saved++}if(!saved)return json({detail:'Enter at least one supported TikTok or LinkedIn credential.'},400);return json({ok:true,saved});
@@ -175,7 +185,7 @@ export async function handleSocialPublishing(request,env){
   const creatorMatch=url.pathname==='/api/social-connect/tiktok/creator-info';if(creatorMatch&&request.method==='POST'){const row=await connection(env,user.tenant_id,'tiktok');if(!row)return json({detail:'Connect TikTok first.'},409);return json(await tiktokCreator(await tokenFor(env,row,'tiktok')))}
   const publishMatch=url.pathname.match(/^\/api\/social-connect\/(youtube|tiktok|linkedin)\/publish$/);
   if(publishMatch&&request.method==='POST'){
-   const provider=publishMatch[1],row=await connection(env,user.tenant_id,provider);if(!row)return json({detail:`Connect ${PROVIDERS[provider].name} first.`},409);const body=await request.json().catch(()=>({}));
+   const provider=publishMatch[1],row=await connection(env,user.tenant_id,provider);if(!row)return json({detail:`Connect ${PROVIDERS[provider].name} first.`},409);if(!hasSocialWriteScope(provider,row.scope))return json({detail:`Reconnect ${PROVIDERS[provider].name} and grant its official publishing permission before posting.`,code:'SOCIAL_PUBLISH_SCOPE_REQUIRED'},409);const body=await request.json().catch(()=>({}));
    const transparency=assessAiTransparency({
      kind:provider==='linkedin'?'text':'video',
      ai_generated:body.ai_generated===true||body.deepfake===true||body.public_interest===true,
