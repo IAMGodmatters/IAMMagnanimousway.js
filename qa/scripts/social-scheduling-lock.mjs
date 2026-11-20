@@ -80,6 +80,10 @@ has(publishing,'assessAiTransparency','Scheduled posts must retain AI-transparen
 has(publishing,'expectedExternalId','Scheduled post must reject a changed connected account');
 has(publishing,'body.explicit_consent!==true','Publishing adapters must preserve explicit provider consent');
 
+has(publishing,'export function isPublicSocialMediaUrl','Social publishing must expose the same strict media URL policy for direct and scheduled validation');
+has(publishing,'try{await tokenFor(env,row,provider)}catch(error){throw Object.assign(error,{preflight:true})}','Expired or invalid provider tokens must fail before a post write and be classified as preflight');
+has(publishing,'error.preflight=true','Definitive provider 4xx responses must not be mislabeled as ambiguous accepted writes');
+has(scheduling,"SOCIAL_PROVIDER_NOT_CONFIGURED",'Scheduling must be blocked until the official provider developer app is configured');
 has(publishing,'export async function socialProviderReadiness','Schedule creation must check official provider app configuration without exposing credentials');
 has(scheduling,'if(!account?.configured)','Schedule creation must fail closed when the provider app is not configured');
 has(scheduling,'if(!account?.connected||String(account.external_id)!==String(row.external_id))','Approval must recheck the exact connected account');
