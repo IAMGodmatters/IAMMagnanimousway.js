@@ -257,7 +257,7 @@ test('3D checkout preview flips both faces and updates only the local demo name'
 
   await expect(preview).toBeVisible();
   await expect(nameInput).toHaveValue('MAGNANIMOUS MEMBER');
-  await expect(preview.locator('.cardBottom strong')).toHaveText('MAGNANIMOUS MEMBER');
+  await expect(preview.locator('.cardBottom div:first-child strong')).toHaveText('MAGNANIMOUS MEMBER');
   await expect(preview.locator('input')).toHaveCount(1);
   await expect(preview.getByRole('button', { name: 'Flip card preview' })).toBeVisible();
   await expect(card).not.toHaveClass(/isBack/);
@@ -269,7 +269,7 @@ test('3D checkout preview flips both faces and updates only the local demo name'
   await preview.getByRole('button', { name: 'Show card front' }).click();
   await expect(card).not.toHaveClass(/isBack/);
   await nameInput.fill('QA PREVIEW ONLY');
-  await expect(preview.locator('.cardBottom strong')).toHaveText('QA PREVIEW ONLY');
+  await expect(preview.locator('.cardBottom div:first-child strong')).toHaveText('QA PREVIEW ONLY');
 
   expect(postRequests, 'The preview must not submit its demo name or any payment details').toEqual([]);
 });
