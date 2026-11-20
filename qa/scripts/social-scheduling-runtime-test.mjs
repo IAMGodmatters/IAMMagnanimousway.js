@@ -245,7 +245,7 @@ try{
   'https://metadata.google.internal/video.mp4'
  ])assert.equal(isPublicSocialMediaUrl(url),false,`Unsafe media URL was accepted: ${url}`);
 
- console.log('Magnanimous native social scheduling runtime tests passed: provider readiness, tenant isolation, role gate, exact idempotency, cancellation, approval binding, DST-compatible timestamp validation, duplicate cron protection, ambiguous outcomes, provider throttling, expired token preflight and media URL safety.');
+ console.log('Magnanimous native social scheduling runtime tests passed: provider readiness, tenant isolation, role gate, exact idempotency, cancellation, approval binding, DST-compatible timestamp validation, duplicate cron protection, ambiguous outcomes, provider throttling, expired-token and provider-media preflight, YouTube/TikTok preflight failures and media URL safety.');
 }finally{
  Date.now=originalNow;
  globalThis.fetch=originalFetch;
