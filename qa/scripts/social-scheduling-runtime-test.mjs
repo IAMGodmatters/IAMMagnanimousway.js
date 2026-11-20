@@ -183,8 +183,13 @@ try{
  await approve(limitedDraft.data.item.id);
  clock.value=limitedDraft.data.item.scheduled_at*1000+60_000;
  globalThis.fetch=async()=>{fetchCount++;return new Response(JSON.stringify({message:'rate limited'}),{status:429,headers:{'Content-Type':'application/json'}})};
+ const beforeLimited=fetchCount;
  await scheduledSocialPublishing(env);
  assert.equal((await status(limitedDraft.data.item.id)).status,'failed');
+ const afterLimited=fetchCount;
+ await scheduledSocialPublishing(env);
+ assert.equal(fetchCount,afterLimited);
+ assert.equal(afterLimited,beforeLimited+1);
 
  // An expired LinkedIn token fails before the provider write and is never reported as published.
  db.sqlite.prepare('UPDATE social_connections SET expires_at=?,refresh_token=? WHERE tenant_id=? AND provider=?').run(Math.floor(clock.value/1000)-10,'','tenant-a','linkedin');
@@ -214,6 +219,8 @@ try{
  await scheduledSocialPublishing(env);
  assert.equal((await status(youtubeItem.id)).status,'failed');
  assert.equal(youtubeFetches,1,'YouTube media source failure must stop before provider upload');
+ await scheduledSocialPublishing(env);
+ assert.equal(youtubeFetches,1,'Failed YouTube preflight must not be retried automatically');
 
  const tiktokTs=Math.floor(clock.value/1000);
  for(const [key,value] of [['TIKTOK_CLIENT_KEY','tiktok-test-client'],['TIKTOK_CLIENT_SECRET','tiktok-test-secret']]){
@@ -232,6 +239,8 @@ try{
  await scheduledSocialPublishing(env);
  assert.equal((await status(tiktokItem.id)).status,'failed');
  assert.equal(tiktokFetches,1,'TikTok creator-readiness failure must stop before video initialization');
+ await scheduledSocialPublishing(env);
+ assert.equal(tiktokFetches,1,'Failed TikTok preflight must not be retried automatically');
 
  // Public media validation rejects insecure, private, credential-bearing and local destinations.
  assert.equal(isPublicSocialMediaUrl('https://cdn.example.com/video.mp4'),true);
