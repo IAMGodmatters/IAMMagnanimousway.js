@@ -78,8 +78,8 @@ async function tokenFor(env,row,provider){let token=await decrypt(row.access_tok
 async function youtubePublish(env,row,body){
  const videoUrl=publicHttpUrl(body.video_url);
  if(!videoUrl)throw Object.assign(new Error('YouTube upload requires a public HTTPS video URL.'),{preflight:true});
- const media=await inspectPublicVideoSource(videoUrl.toString());
  const token=await tokenFor(env,row,'youtube');
+ const media=await inspectPublicVideoSource(videoUrl.toString());
  let source;
  try{source=await fetch(videoUrl.toString(),{redirect:'error'})}
  catch(error){throw Object.assign(error,{preflight:true})}
@@ -111,10 +111,10 @@ async function tiktokPublish(env,row,body){
  if(body.explicit_consent!==true)throw new Error('TikTok publishing requires the user to explicitly consent before the video is sent.');
  const videoUrl=publicHttpUrl(body.video_url);
  if(!videoUrl)throw Object.assign(new Error('TikTok PULL_FROM_URL requires a public HTTPS video URL under a domain/prefix approved in the TikTok developer app.'),{preflight:true});
- const media=await inspectPublicVideoSource(videoUrl.toString());
  const token=await tokenFor(env,row,'tiktok');
  let creator;
  try{creator=await tiktokCreator(token)}catch(error){throw Object.assign(error,{preflight:true})}
+ const media=await inspectPublicVideoSource(videoUrl.toString());
  const options=creator?.data?.privacy_level_options||[];
  const privacy=String(body.privacy_level||'SELF_ONLY');
  if(!options.includes(privacy))throw Object.assign(new Error(`Choose a privacy level allowed by this TikTok account: ${options.join(', ')||'none returned'}.`),{preflight:true});
