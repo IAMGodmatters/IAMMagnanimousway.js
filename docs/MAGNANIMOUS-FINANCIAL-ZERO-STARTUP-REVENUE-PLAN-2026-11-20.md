@@ -35,7 +35,7 @@ PayMongo is the leading Philippines-first candidate to evaluate, not yet an appr
 
 PayMongo's Philippine onboarding documentation says an Individual account can start with KYC and no business documents, but an Individual account must upgrade to a registered business type within 30 days or PayMongo disables it. Its rules section says the 30-day window applies to Philippine merchant accounts activated on or after 27 November 2026; those accounts must complete basic Business Information and have a compliant business website before activation. A directly registered Individual account is closed-loop: it can receive payments but cannot send money out. A sole-proprietor upgrade requires a DTI Business Name Registration certificate, the registered owner's ID, and BIR Form 2303. This is not a permanent registration or payout workaround.
 
-Stripe is already wired into the current repository, but Stripe's current global availability page does not list the Philippines as a directly supported country. Do not assume existing Stripe payment links are an approved payment route for a Philippines-based merchant. Confirm the legal account holder, country, live-mode status, and settlement eligibility before relying on them.
+Stripe is already wired into the current repository, but its current global availability page does not list the Philippines and says payment processing is not yet supported outside the listed countries. A historical Stripe Services Agreement for the Philippines still exists, but it was last updated in 2017 and is not sufficient evidence of current new-account onboarding. Treat direct Philippines eligibility as unresolved until Stripe confirms it in writing; do not create or activate an account based on the old agreement alone. For an account opened in another country, Stripe's current help guidance requires a legal entity, tax ID, physical location, phone, government-issued ID, working website, and physical bank account in that country. Stripe also says an activated account's country cannot be changed. Confirm the actual legal account holder, account country, live-mode eligibility, settlement currency, payout bank requirements, and tax obligations before relying on or changing the payment path.
 
 ## Phase 3 — payment architecture inside Magnanimous
 
@@ -103,7 +103,10 @@ If the business later has recurring revenue and compliance funding, investigate 
 - PayMongo Hosted Checkout (API v2, local methods, fee pass-through): https://docs.paymongo.com/docs/payment-channels-hosted-checkout
 - PayMongo webhook security and best practices: https://docs.paymongo.com/docs/payment-acceptance-best-practices and https://docs.paymongo.com/docs/developer-tools-best-practices
 - PayMongo Philippine business onboarding and 27 November 2026 rules: https://docs.paymongo.com/docs/account-settings-doing-business-in-the-philippines
-- Stripe country availability: https://stripe.com/global
+- Stripe current global availability: https://stripe.com/global
+- Historical Philippines Services Agreement (last updated 2017): https://stripe.com/legal/ssa/ph
+- Requirements to open a Stripe account in another country: https://support.stripe.com/questions/requirements-to-open-a-stripe-account-in-another-country
+- Stripe account country cannot be changed after activation: https://support.stripe.com/questions/stripe-account-registered-in-the-wrong-country
 
 ## Release gate
 
