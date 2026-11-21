@@ -121,7 +121,7 @@ Magnanimous AI owns identity, planning, memory, routing, judgment and verificati
   {
     name: 'marketing-content-repurposer',
     description: 'Turn an approved source such as a video, transcript, article, sermon, podcast, presentation or existing post into distinct channel-specific content while preserving the original meaning, attribution and rights.',
-    triggers: ['repurpose content', 'turn this into posts', 'reuse this video', 'content repurposing', 'make a week of content', 'transcript into posts', 'turn article into social content'],
+    triggers: ['repurpose content', 'repurpose this video', 'repurpose this YouTube video', 'repurpose a transcript', 'turn this into posts', 'reuse this video', 'content repurposing', 'make a week of content', 'transcript into posts', 'turn article into social content'],
     metadata: { owner, department: 'marketing', risk: 'rights-and-attribution-sensitive', capability_family: 'social-content-operations' },
     resources: ['marketing-playbook', 'marketing-channel-capability-matrix'],
     instructions: `# Content Repurposing
