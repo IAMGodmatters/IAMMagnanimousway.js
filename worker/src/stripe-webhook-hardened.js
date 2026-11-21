@@ -161,16 +161,3 @@ export async function handleHardenedStripeWebhook(request,env){
   return retryJson({detail:'Stripe event processing could not be completed. A provider retry is required.'});
  }
 }
-
- const url=new URL(request.url);if(url.pathname!=='/api/billing/webhook'||request.method!=='POST')return null;
- const runtimeEnv=String(env?.STRIPE_WEBHOOK_SECRET||'').trim()?env:await getProviderRuntimeEnv(env),secret=String(runtimeEnv.STRIPE_WEBHOOK_SECRET||'').trim();if(!secret)return json({detail:'Stripe webhook verification is not configured.'},503);
- await ensureSchema(runtimeEnv);const raw=await request.text(),signature=request.headers.get('stripe-signature')||'';
- if(!await verify(raw,signature,secret))return json({detail:'Invalid Stripe webhook signature.'},401);
- let event;try{event=JSON.parse(raw)}catch{return json({detail:'Invalid Stripe webhook payload.'},400)}
- const id=String(event?.id||'');if(!id)return json({detail:'Stripe event id is required.'},400);
- const isStoreOrder=String(event?.data?.object?.metadata?.product_type||'')==='magnanimous_store_order';
- if(await runtimeEnv.DB.prepare('SELECT event_id FROM billing_webhook_events WHERE event_id=?').bind(id).first())return json({received:true,duplicate:true});
- await processEvent(runtimeEnv,event);
- await runtimeEnv.DB.prepare('INSERT INTO billing_webhook_events(event_id,event_type,processed_at) VALUES(?,?,?)').bind(id,String(event?.type||''),now()).run();
- return json({received:true,hardened:true,automatic_fulfillment:!isStoreOrder,fulfillment_mode:isStoreOrder?'approval-gated dropshipping':'provider-funded provisioning',provider_billing_owner:'I AM Magnanimous Way'});
-}
