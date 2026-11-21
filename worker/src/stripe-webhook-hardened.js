@@ -107,6 +107,18 @@ async function processPaidCheckout(env,event,object){
  await queueProvisioning(env,tenantId,reference,plan);
  if(amount>0)await recordRevenue(env,tenantId,'checkout-paid',amount,'stripe',reference);
 }
+async function markCurrentSubscriptionFailed(env,tenantId,subscriptionId,status,currentPeriodEnd){
+ const ts=now();
+ const changed=await env.DB.prepare(`UPDATE billing_subscriptions SET plan='free',status=?,current_period_end=?,updated_at=?
+  WHERE tenant_id=? AND stripe_subscription_id=?`)
+  .bind(String(status),Number(currentPeriodEnd||0)||null,ts,String(tenantId),String(subscriptionId)).run();
+ if(Number(changed?.meta?.changes||0)!==1)return false;
+ // Do not let a delayed failure event overwrite a newer subscription's tenant plan.
+ await env.DB.prepare(`UPDATE tenants SET plan='free' WHERE id=?
+  AND EXISTS(SELECT 1 FROM billing_subscriptions WHERE tenant_id=? AND stripe_subscription_id=? AND plan='free' AND status=?)`)
+  .bind(String(tenantId),String(tenantId),String(subscriptionId),String(status)).run();
+ return true;
+}
 async function applyFailedSubscriptionPayment(env,event,object){
  const type=String(event?.type||'');
  let candidate=null;
@@ -133,13 +145,8 @@ async function applyFailedSubscriptionPayment(env,event,object){
  if(!subscriptionFailureMatchesBillingRow({candidate,billingRow,providerSubscription:subscription,tenantId}))return false;
 
  const nextStatus=type==='invoice.payment_failed'?'past_due':'payment_failed';
- await save(env,tenantId,{
-  plan:'free',
-  status:nextStatus,
-  customer_id:candidate.customerId||stripeId(subscription.customer)||billingRow.stripe_customer_id||null,
-  subscription_id:candidate.subscriptionId,
-  current_period_end:Number(subscription.current_period_end||0)||null
- });
+ const changed=await markCurrentSubscriptionFailed(env,tenantId,candidate.subscriptionId,nextStatus,subscription.current_period_end);
+ if(!changed)return false;
  if(type==='invoice.payment_failed'&&billingRow.plan){
   await recordRevenue(env,tenantId,'invoice-payment-failed',0,'stripe',String(object.id||event.id));
  }
