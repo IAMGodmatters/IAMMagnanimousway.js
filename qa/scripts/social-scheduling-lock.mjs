@@ -52,8 +52,8 @@ has(scheduling,'validIanaTimezone(body.timezone)','Schedule must validate an IAN
 has(scheduling,'explicit UTC offset','Schedule datetime must carry an explicit UTC offset');
 has(scheduling,'new TextEncoder().encode(raw).byteLength>20000','Schedule request body must be bounded');
 has(scheduling,'UNIQUE(tenant_id,idempotency_key)','Idempotency must be unique within a tenant');
-has(scheduling,'if(existing){','Duplicate schedule submissions must inspect an existing idempotency key');
-has(scheduling,'String(existing.provider)===provider&&String(existing.external_id)===String(account.external_id)','Idempotency reuse must match provider and connected account');
+has(scheduling,'if(existing)return idempotencyResult(existing,provider,account.external_id,serialized,scheduledAt,tz);','Duplicate schedule submissions must inspect an existing idempotency key before applying limits');
+has(scheduling,'String(existing.provider)===provider&&String(existing.external_id)===String(externalId)','Idempotency reuse must match provider and connected account');
 has(scheduling,'String(existing.payload_json)===serialized&&Number(existing.scheduled_at)===scheduledAt&&String(existing.timezone)===tz','Idempotency reuse must match exact content and scheduled time');
 has(scheduling,'IDEMPOTENCY_KEY_CONFLICT','Reusing a key for another post must return a conflict, never silently reuse the old post');
 has(scheduling,'return json({item:publicRow(existing),idempotent:true})','Exact duplicate schedule requests must return the existing tenant item');
