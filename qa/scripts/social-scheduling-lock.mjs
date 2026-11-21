@@ -101,7 +101,9 @@ has(publishing,'body.explicit_consent!==true','Publishing adapters must preserve
 
 has(publishing,'export function isPublicSocialMediaUrl','Social publishing must expose the same strict media URL policy for direct and scheduled validation');
 has(publishing,'try{await tokenFor(env,row,provider)}catch(error){throw Object.assign(error,{preflight:true})}','Expired or invalid provider tokens must fail before a post write and be classified as preflight');
-has(publishing,"try{source=await fetch(videoUrl.toString(),{redirect:'error'})}catch(error){throw Object.assign(error,{preflight:true})}",'YouTube source download must fail before any provider upload');
+has(publishing,"const media=await inspectPublicVideoSource(videoUrl.toString())",'Video source metadata must be inspected before any provider write.');
+has(publishing,"try{source=await fetch(videoUrl.toString(),{redirect:'error'})}",'YouTube source download must use redirect rejection before any provider upload.');
+has(publishing,"catch(error){throw Object.assign(error,{preflight:true})}",'A source download failure before provider initialization must be classified as preflight.');
 has(publishing,'try{creator=await tiktokCreator(token)}catch(error){throw Object.assign(error,{preflight:true})}','TikTok creator readiness must fail before video initialization');
 has(publishing,'error.preflight=true','Definitive provider 4xx responses must not be mislabeled as ambiguous accepted writes');
 has(scheduling,'if(!account?.write_scope)','Schedule creation and approval must require the provider write scope');
