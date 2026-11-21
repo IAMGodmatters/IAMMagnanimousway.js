@@ -4,7 +4,7 @@ import { claimStripeWebhookEvent, completeStripeWebhookEvent, ensureStripeWebhoo
 
 class FakeD1 {
   constructor(){this.rows=new Map();}
-  prepare(sql){const db=this;return{bind(...args){return{first:async()=>db.first(sql,args),run:async()=>db.run(sql,args)}}}}
+  prepare(sql){const db=this;const statement={args:[],bind(...args){this.args=args;return this},first(){return db.first(sql,this.args)},run(){return db.run(sql,this.args)}};return statement}
   async first(sql,args){
     if(sql.startsWith('INSERT INTO stripe_webhook_event_claims')){
       const [eventId,eventType,processor,claimedAt,claimToken,createdAt,updatedAt,cutoff]=args;

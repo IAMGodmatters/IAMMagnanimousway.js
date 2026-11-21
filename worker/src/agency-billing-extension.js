@@ -115,3 +115,17 @@ export async function applyAgencyWebhook(env,event,response=null){
  }
  return false;
 }
+
+ if(!response?.ok)return;const type=String(event?.type||''),object=event?.data?.object||{};
+ if(type==='checkout.session.completed'||type==='checkout.session.async_payment_succeeded'){
+  const identity=await agencyCheckoutIdentity(env,object);if(!identity)return;const paid=String(object?.payment_status||'').toLowerCase()==='paid';if(!paid)return;
+  await savePlan(env,identity.tenant,{plan:identity.plan,customer_id:String(object.customer||''),subscription_id:String(object.subscription||''),status:'active'});return;
+ }
+ if(type==='checkout.session.async_payment_failed'){
+  const identity=await agencyCheckoutIdentity(env,object);if(identity)await savePlan(env,identity.tenant,{plan:'free',customer_id:String(object.customer||''),subscription_id:String(object.subscription||''),status:'payment_failed'});return;
+ }
+ if(['customer.subscription.created','customer.subscription.updated','customer.subscription.deleted'].includes(type)){
+  let plan=String(object?.metadata?.plan||'').toLowerCase(),tenant=String(object?.metadata?.tenant_id||'').trim(),row=null;if(!tenant||!isAgency(plan)){row=await env.DB.prepare('SELECT tenant_id,plan FROM billing_subscriptions WHERE stripe_subscription_id=? LIMIT 1').bind(String(object.id||'')).first();tenant=tenant||String(row?.tenant_id||'');plan=isAgency(plan)?plan:String(row?.plan||'').toLowerCase()}
+  if(!tenant||!isAgency(plan))return;const status=String(object.status||(type.endsWith('.deleted')?'canceled':'inactive')),active=status==='active'&&!type.endsWith('.deleted');await savePlan(env,tenant,{plan:active?plan:'free',customer_id:String(object.customer||''),subscription_id:String(object.id||''),status,current_period_end:Number(object.current_period_end||0)||null});return;
+ }
+}
