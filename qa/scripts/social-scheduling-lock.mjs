@@ -5,6 +5,7 @@ import { validIanaTimezone, timezoneOffsetMatches } from '../../worker/src/socia
 const read=path=>fs.readFileSync(path,'utf8');
 const scheduling=read('worker/src/social-scheduling-runtime.js');
 const publishing=read('worker/src/social-publishing-runtime.js');
+const mediaGuard=read('worker/src/social-media-source-guard.js');
 const operations=read('worker/src/operations-entrypoint.js');
 const migration=read('worker/migrations/0111_social_scheduled_posts.sql');
 const page=read('frontend/app/social-calendar/page.tsx');
@@ -76,6 +77,24 @@ has(page,'Magnanimous is checking TikTok for the final result','The UI must dist
 has(page,'This is not marked published until TikTok confirms it','The UI must not claim final publication before provider confirmation');
 has(scheduling,'socialSchedulingSchemaReady.get(db)','Concurrent scheduling requests must share schema setup');
 has(publishing,'export async function publishSocialPostForTenant','Scheduler must reuse first-party social provider adapters');
+has(publishing,'inspectPublicVideoSource','Video providers must inspect media metadata before provider writes.');
+has(publishing,'validatePublicVideoResponse','YouTube downloads must match inspected content type and exact size.');
+has(publishing,'boundedMediaStream','YouTube uploads must enforce the inspected size while streaming.');
+has(mediaGuard,'MAX_SOCIAL_VIDEO_BYTES = 256 * 1024 * 1024','Free-first video publishing must enforce the 256 MiB edge transfer safety limit.');
+has(mediaGuard,"'video/mp4'",'Media validation must accept MP4.');
+has(mediaGuard,"'video/quicktime'",'Media validation must accept MOV/QuickTime.');
+has(mediaGuard,"'video/webm'",'Media validation must accept WebM.');
+has(mediaGuard,"method: 'HEAD'",'Media metadata must be checked before provider publishing.');
+has(mediaGuard,"range: 'bytes=0-0'",'Media metadata inspection must support a bounded byte-range fallback.');
+has(mediaGuard,'total !== Number(expectedBytes)','Streaming must reject short media bodies rather than silently upload truncated files.');
+has(publishing,"'x-upload-content-length':String(media.contentLength)",'YouTube resumable upload must declare the inspected source size.');
+has(scheduling,'max_new_posts_per_run:1','The one-post-per-cron-run throughput cap must be explicit in the API.');
+has(scheduling,'theoretical_max_new_posts_per_day:96','The global 96-post/day theoretical scheduler cap must be explicit.');
+has(scheduling,'tenant_queue_lag_seconds','Calendar API must report tenant queue lag.');
+has(page,'1 post per 15-minute run · 96/day platform-wide','The UI must disclose the global scheduler throughput limit.');
+has(page,'scheduler.tenant_queue_lag_seconds','The UI must display live overdue-queue lag.');
+has(page,'maximum 256 MiB','The UI must disclose the media source safety limit.');
+
 has(publishing,'assessAiTransparency','Scheduled posts must retain AI-transparency checks');
 has(publishing,'expectedExternalId','Scheduled post must reject a changed connected account');
 has(publishing,'body.explicit_consent!==true','Publishing adapters must preserve explicit provider consent');
