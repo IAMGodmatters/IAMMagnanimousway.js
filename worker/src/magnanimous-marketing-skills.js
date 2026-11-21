@@ -21,7 +21,7 @@ Magnanimous AI owns identity, planning, memory, routing, judgment and verificati
 
 1. Identify the business, audience, offer, desired outcome, channel, deadline, available evidence, brand voice and any legal or policy constraints. Reuse tenant-approved Knowledge Center material first.
 2. Resolve only the supporting skills needed: content coach, brand brief, writer, grader, repurposer, hook lab, creative producer and/or performance analyst. Do not run every skill when a smaller workflow is sufficient.
-3. Load the relevant resources using `skills.resource`: marketing-playbook, marketing-quality-rubric, marketing-channel-capability-matrix and, for media work, marketing-creative-asset-checklist.
+3. Load the relevant resources using 'skills.resource': marketing-playbook, marketing-quality-rubric, marketing-channel-capability-matrix and, for media work, marketing-creative-asset-checklist.
 4. Draft a campaign brief before large batches. Separate confirmed facts, customer-provided claims, hypotheses and missing proof. Never invent testimonials, customer results, certifications, endorsements, scarcity, prices or guarantees.
 5. Generate platform-specific drafts. Keep the original meaning when repurposing, but change structure, pacing, length, calls to action and media to fit each destination.
 6. Grade content with the native editorial rubric. A score is a quality checklist, not a prediction of reach, sales or virality. Revise the most important weaknesses and retain the reason for each revision.
@@ -273,7 +273,7 @@ The existing Publishing Calendar currently declares one-time scheduling support 
 Facebook, Instagram, X, Snapchat, Discord, Telegram and WhatsApp may be selectable in content planning or may have separate read/connection capabilities. That does not establish native publish support. Do not claim a live publisher, scheduling, inbox, comments automation or unified analytics without a verified adapter and live readiness evidence. Instagram profile/Reels read access is not Instagram publishing access.
 
 ## Before any publish/schedule
-1. Read tenant-scoped `/api/social-connect/providers` and `/api/social-connect/connections`.
+1. Read tenant-scoped '/api/social-connect/providers' and '/api/social-connect/connections'.
 2. Confirm provider is configured, connected, account identity matches, required write scope is present and any app review/audit requirement is met.
 3. Validate provider-specific payload, media type, dimensions, size, URL/domain, privacy and disclosure rules.
 4. Save a draft and present the exact text/media/account/visibility/time in the user's timezone.
