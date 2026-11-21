@@ -250,7 +250,8 @@ try{
  assert.equal(tiktokFetches,1,'Failed TikTok preflight must not be retried automatically');
 
  // Public media validation rejects insecure, private, credential-bearing and local destinations.
- assert.equal(isPublicSocialMediaUrl('https://cdn.example.com/video.mp4'),true);\n assert.equal(isPublicSocialMediaUrl('https://cdn.example.com./video.mp4'),true,'A public FQDN with a DNS root dot remains valid after hostname normalization.');
+ assert.equal(isPublicSocialMediaUrl('https://cdn.example.com/video.mp4'),true);
+ assert.equal(isPublicSocialMediaUrl('https://cdn.example.com./video.mp4'),true,'A public FQDN with a DNS root dot remains valid after hostname normalization.');
  for(const url of [
   'http://cdn.example.com/video.mp4',
   'https://127.0.0.1/video.mp4',
