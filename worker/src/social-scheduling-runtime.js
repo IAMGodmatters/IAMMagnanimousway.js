@@ -218,8 +218,25 @@ export async function handleSocialScheduling(request,env){
   await ensureSocialPublishingSchema(env);
   if(path==='/api/social-schedule'&&request.method==='GET'){
    const requestedLimit=Number(url.searchParams.get('limit')||60),limit=Number.isFinite(requestedLimit)?Math.min(100,Math.max(1,requestedLimit)):60;
-   const {results=[]}=await env.DB.prepare('SELECT * FROM social_scheduled_posts WHERE tenant_id=? ORDER BY scheduled_at DESC LIMIT ?').bind(String(user.tenant_id),limit).all();
-   return json({items:results.map(publicRow),scheduler:{enabled:true,interval_minutes:15,automatic_retry:false}});
+   const tenantId=String(user.tenant_id),timestamp=now();
+   const [items,queue]=await Promise.all([
+    env.DB.prepare('SELECT * FROM social_scheduled_posts WHERE tenant_id=? ORDER BY scheduled_at DESC LIMIT ?').bind(tenantId,limit).all(),
+    env.DB.prepare(`SELECT COUNT(*) AS due_count,MIN(scheduled_at) AS oldest_due_at FROM social_scheduled_posts WHERE tenant_id=? AND status='scheduled' AND scheduled_at<=?`).bind(tenantId,timestamp).first()
+   ]);
+   const oldestDueAt=Number(queue?.oldest_due_at||0)||null;
+   return json({
+    items:(items?.results||[]).map(publicRow),
+    scheduler:{
+     enabled:true,
+     interval_minutes:15,
+     max_new_posts_per_run:1,
+     theoretical_max_new_posts_per_day:96,
+     automatic_retry:false,
+     tenant_due_count:Number(queue?.due_count||0),
+     tenant_oldest_due_at:oldestDueAt,
+     tenant_queue_lag_seconds:oldestDueAt?Math.max(0,timestamp-oldestDueAt):0
+    }
+   });
   }
   if(path==='/api/social-schedule'&&request.method==='POST')return await handleCreate(request,env,user);
   const match=path.match(/^\/api\/social-schedule\/([a-f0-9-]{36})\/(approve|cancel)$/i);
