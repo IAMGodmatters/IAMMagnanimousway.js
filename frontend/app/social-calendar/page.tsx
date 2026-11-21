@@ -85,9 +85,9 @@ export default function SocialCalendar(){
    if(!results[0].ok)throw new Error(c.detail||"Could not read connected social accounts.");
    if(!results[1].ok)throw new Error(s.detail||"Could not load the publishing calendar.");
    if(!results[2].ok)throw new Error(me.detail||"Could not verify workspace permissions.");
-   const connected=(c.connections||[]).filter((item:Connection)=>["youtube","tiktok","linkedin"].includes(item.id)&&item.connected);
+   const ready=(c.connections||[]).filter((item:Connection)=>["youtube","tiktok","linkedin"].includes(item.id)&&item.connected&&item.configured&&item.write_scope);
    setConnections(c.connections||[]);setItems(s.items||[]);setScheduler(s.scheduler||null);setRole(String(me?.user?.role||"").toLowerCase());
-   setProvider(current=>connected.some((item:Connection)=>item.id===current)?current:(connected[0]?.id||"youtube") as Provider);
+   setProvider(current=>ready.some((item:Connection)=>item.id===current)?current:(ready[0]?.id||"youtube") as Provider);
   }catch(e:any){setError(e?.message||"The publishing calendar could not be loaded.");}
   finally{setLoading(false);}
  }
