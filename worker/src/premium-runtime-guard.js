@@ -9,10 +9,27 @@ const METERED_AI=new Set(['openai','anthropic','google','groq','mistral']);
 
 async function bodyJson(request){try{return await request.clone().json()}catch{return{}}}
 function rewriteJsonRequest(request,body){return new Request(request.url,{method:request.method,headers:request.headers,body:JSON.stringify(body)})}
-async function inboundTenant(env){
- let tenantId=String(env.TWILIO_DEFAULT_TENANT_ID||'').trim();
- if(!tenantId){try{const owner=await env.DB.prepare("SELECT id FROM tenants WHERE slug='owner' LIMIT 1").first();tenantId=String(owner?.id||'')}catch(_){}}
- return tenantId;
+async function inboundTenant(env,request){
+ const form=await request.clone().formData().catch(()=>null);
+ const to=String(form?.get('To')||'').trim().replace(/[\\s().-]/g,'');
+ if(to){
+  try{
+   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_carrier_numbers(
+    e164 TEXT PRIMARY KEY,owner_tenant_id TEXT NOT NULL,source TEXT NOT NULL DEFAULT 'upstream',interconnect_id INTEGER,
+    status TEXT NOT NULL DEFAULT 'inventory',assigned_tenant_id TEXT NOT NULL DEFAULT '',label TEXT NOT NULL DEFAULT '',
+    voice_enabled INTEGER NOT NULL DEFAULT 1,sms_enabled INTEGER NOT NULL DEFAULT 0,emergency_registered INTEGER NOT NULL DEFAULT 0,
+    porting_status TEXT NOT NULL DEFAULT '',metadata_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL
+   )`).run();
+   const number=await env.DB.prepare('SELECT assigned_tenant_id,status,voice_enabled FROM magnanimous_carrier_numbers WHERE e164=?').bind(to).first();
+   if(number)return String(number.status)==='assigned'&&Number(number.voice_enabled)===1?String(number.assigned_tenant_id||''):'';
+  }catch{return ''}
+ }
+ const configured=String(env.TWILIO_DEFAULT_TENANT_ID||'').trim();
+ if(configured)return configured;
+ if(to&&to===String(env.TWILIO_PHONE_NUMBER||'').trim().replace(/[\\s().-]/g,'')){
+  try{const owner=await env.DB.prepare("SELECT id FROM tenants WHERE slug='owner' LIMIT 1").first();return String(owner?.id||'')}catch{return ''}
+ }
+ return '';
 }
 
 export async function premiumPreflight(request,env){
@@ -60,15 +77,15 @@ export async function premiumPreflight(request,env){
  if((path==='/api/phone/calls/outbound'||path==='/api/voice-agent/call')&&request.method==='POST'){
   if(!user)return{response:json({detail:'Sign in required.',code:'SIGN_IN_REQUIRED'},401)};
   const body=await bodyJson(request),seconds=Math.min(Math.max(Number(body.time_limit_seconds||900),60),3600),reserve=estimatePstnReserveUsd(seconds);
-  const gate=await canUsePremium(env,user.tenant_id,{category:'carrier calling',estimated_cost_usd:reserve,required_plan:'business',entitlement:'pstn_minutes'});
+  const gate=await canUsePremium(env,user.tenant_id,{category:'carrier calling',estimated_cost_usd:reserve,required_plan:'crm',entitlement:'pstn_minutes'});
   if(!gate.ok)return{response:json({detail:gate.detail,code:gate.code,plan:gate.plan,remaining_cost_usd:gate.remaining_cost_usd,free_browser_calling:true,provider_checkout_required:false,billing_owner:'I AM Magnanimous Way'},402)};
   return{request,context:{kind:'pstn',user,reserve,seconds}};
  }
  if((path==='/api/voice-agent/twilio/incoming'||path==='/api/contact-center/twilio/incoming')&&request.method==='POST'){
-  const tenantId=await inboundTenant(env);
+  const tenantId=await inboundTenant(env,request);
   if(!tenantId)return{response:xml('The AI receptionist is not assigned yet.',503)};
   const reserve=0.5;
-  const gate=await canUsePremium(env,tenantId,{category:'inbound carrier calling',estimated_cost_usd:reserve,required_plan:'business',entitlement:'pstn_minutes'});
+  const gate=await canUsePremium(env,tenantId,{category:'inbound carrier calling',estimated_cost_usd:reserve,required_plan:'crm',entitlement:'pstn_minutes'});
   if(!gate.ok)return{response:xml('This carrier contact center is not enabled for this workspace. Please use the free browser calling option or contact the business another way.')};
   return{request,context:{kind:'pstn-inbound',user:{tenant_id:tenantId},reserve,seconds:60}};
  }

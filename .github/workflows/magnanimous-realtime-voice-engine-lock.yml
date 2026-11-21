@@ -2,6 +2,7 @@ name: Magnanimous Realtime Voice Engine Architecture Lock
 
 on:
   push:
+    branches: [main]
     paths:
       - 'worker/src/magnanimous-voice-engine-knowledge.js'
       - 'worker/src/magnanimous-telecom-knowledge.js'
