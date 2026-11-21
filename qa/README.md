@@ -62,6 +62,7 @@ The suite serves `frontend/out` locally and blocks every external browser reques
 - A checkout redirect does not activate a subscription or call payment confirmation.
 - Cancelled checkout leaves the current plan unchanged.
 - Pricing-page TTFB, DOM-ready, load, resource-count, transferred-byte, and mobile-overflow budgets.
+- Social Publishing Calendar browser journeys: signed-out redirect, publish-ready account selection, draft-only submission, and owner/admin approval gating. Social API responses are mocked; no provider account is contacted and no post is published.
 
 The hosted-checkout fixture is deliberately synthetic. The test cannot charge a card, create a live Stripe session, mutate D1, send communications, or access production data. These are static-bundle regression budgets, not a substitute for real-user field Web Vitals.
 
