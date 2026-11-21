@@ -10,6 +10,7 @@ import { findReadyLocalBridgeDevice, hasAnyReadyLocalBridgeCapability, queueLoca
 import { MAGNANIMOUS_NATIVE_MEDIA_FAMILIES, MAGNANIMOUS_NATIVE_MEDIA_CAPABILITIES, MAGNANIMOUS_HEYGEN_PARITY_MAP, HEYGEN_VISIBLE_BENCHMARK_TOOLS, getMagnanimousNativeMediaSummary, handleMagnanimousNativeMedia } from './magnanimous-native-media-studio.js';
 import { MAGNANIMOUS_NATIVE_TERMINAL_CAPABILITIES, getMagnanimousNativeTerminalSummary, handleMagnanimousNativeTerminal } from './magnanimous-native-terminal.js';
 import { MAGNANIMOUS_AGENT_SKILLS_POLICY, getMagnanimousAgentSkillsSummary, listMagnanimousAgentSkills, resolveMagnanimousAgentSkills, parseAgentSkillMarkdown } from './magnanimous-agent-skills.js';
+import { getMagnanimousMarketingResource } from './magnanimous-marketing-skills.js';
 import { inspectMagnanimousCodingArtifact, MAGNANIMOUS_CODING_INTEROPERABILITY_POLICY } from './magnanimous-coding-interoperability.js';
 import { getMagnanimousUniversalAppFabricSummary, getUniversalCapabilityCatalog, getUniversalCapabilityIndexSummary, resolveUniversalCapabilities } from './magnanimous-universal-app-fabric.js';
 import { handleSocialPublishing } from './social-publishing-runtime.js';
@@ -124,6 +125,7 @@ export const MAGNANIMOUS_CAPABILITY_MESH_ROUTES=Object.freeze({
  'skills.catalog':{surface:'magnanimous-agent-skills',mode:'read',native:true},
  'skills.resolve':{surface:'magnanimous-agent-skills',mode:'read',native:true},
  'skills.validate':{surface:'magnanimous-agent-skills',mode:'read-validate',native:true},
+ 'skills.resource':{surface:'magnanimous-agent-skills',mode:'read',native:true},
  'coding.compatibility.inspect':{surface:'magnanimous-coding-interoperability',mode:'read-validate',native:true},
  'mesh.self_check':{surface:'capability-mesh',mode:'read',native:true}
 });
@@ -531,6 +533,13 @@ async function routeCapability(request,env,providerEnv,body){
   const goal=clip(input.goal||input.query,12000);
   if(!goal)return json({detail:'goal or query is required.'},400);
   return json({mesh:{capability,surface:def.surface,operator:'Magnanimous AI'},goal,matches:resolveMagnanimousAgentSkills(goal,{limit:input.limit||5,includeInstructions:input.include_instructions!==false})});
+ }
+ if(capability==='skills.resource'){
+  const resourceId=clip(input.resource_id||input.id||input.name,100).toLowerCase();
+  if(!resourceId)return json({detail:'resource_id is required.'},400);
+  const resource=getMagnanimousMarketingResource(resourceId);
+  if(!resource)return json({detail:'Magnanimous skill resource not found.',resource_id:resourceId},404);
+  return json({mesh:{capability,surface:def.surface,operator:'Magnanimous AI'},resource});
  }
  if(capability==='skills.validate'){
   const skillMd=clip(input.skill_md||input.source,160000);

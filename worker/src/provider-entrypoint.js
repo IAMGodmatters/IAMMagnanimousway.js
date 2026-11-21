@@ -12,6 +12,8 @@ import { getMagnanimousSingleBrainSummary, magnanimousPublicRoutingSummary } fro
 import { getConnectorAbsorptionPrompt } from './magnanimous-connector-absorption.js';
 import {canUsePassThrough,canUsePremium,recordUsage} from './usage-guard.js';
 import {conservativeProviderReserve,providerBillingMode,providerOriginCost} from './provider-origin-pricing.js';
+import { resolveMagnanimousAgentSkills } from './magnanimous-agent-skills.js';
+import { getMagnanimousMarketingResource } from './magnanimous-marketing-skills.js';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 const now = () => Math.floor(Date.now() / 1000);
@@ -157,7 +159,7 @@ function nativeCapability(message, task) {
   if (/ncs2|neural compute stick|myriad|edge ai|object detection|person detection|vehicle detection|camera inference|media triage|video scan|reel preflight|face detect|text region/.test(m)) return 'edge-ai-vision';
   if (/browse|browser|open website|click|fill|form|scrape|crawl|rendered page|web automation|website monitor/.test(m)) return 'native-web-browser-automation';
   if (/shopify|shopee|tiktok shop|product|catalog|markup|upsell|dropship|inventory|store/.test(m)) return 'commerce-catalog-operations';
-  if (/facebook|instagram|tiktok|linkedin|youtube|social|caption|hashtag|post/.test(m)) return 'social-content-operations';
+  if (/facebook|instagram|tiktok|linkedin|youtube|social|caption|hashtag|post|marketing|brand voice|brand brief|content strategy|content calendar|repurpose|viral hook|campaign copy/.test(m)) return 'social-content-operations';
   if (/website|next\.?js|cloudflare|github|deploy|repository|worker|d1|frontend|backend/.test(m)) return 'web-platform-development';
   if (/call center|contact center|twilio|telnyx|phone|dialer|ivr|voice/.test(m)) return 'communications-operations';
   if (/crm|lead|customer|pipeline|sales/.test(m)) return 'crm-sales-operations';
@@ -165,6 +167,28 @@ function nativeCapability(message, task) {
   if (/image|picture|graphic|logo|visual/.test(m)) return 'visual-creation';
   if (/video|avatar|cinema|render/.test(m)) return 'video-creation';
   return `${task || 'general'}-workflow`;
+}
+
+const MARKETING_INTENT_RE=/\b(marketing|social media|social campaign|content strategy|content calendar|brand voice|brand brief|campaign copy|repurpose|viral hook|write (?:a )?(?:post|caption)|post grader|content coach)\b/i;
+function magnanimousMarketingSkillContext(message,capability){
+ const text=String(message||'');
+ if(capability!=='social-content-operations'&&!MARKETING_INTENT_RE.test(text))return '';
+ const resolved=resolveMagnanimousAgentSkills(text,{limit:12,includeInstructions:true});
+ const selected=resolved.filter(x=>x.metadata?.department==='marketing'||x.name==='social-publishing-calendar-operator').slice(0,6);
+ if(!selected.some(x=>x.name==='marketing-department-director')){
+  const director=resolveMagnanimousAgentSkills('marketing department director coordinate campaign strategy',{limit:20,includeInstructions:true}).find(x=>x.name==='marketing-department-director');
+  if(director)selected.unshift(director);
+ }
+ const resources=new Set(['marketing-playbook','marketing-quality-rubric']);
+ if(/publish|schedule|social|linkedin|youtube|tiktok|instagram|facebook|channel|platform/i.test(text))resources.add('marketing-channel-capability-matrix');
+ if(/image|graphic|visual|video|thumbnail|carousel|creative|media|edit/i.test(text))resources.add('marketing-creative-asset-checklist');
+ const resourceText=[...resources].map(id=>{
+  const item=getMagnanimousMarketingResource(id);
+  return item?('\n## RESOURCE: '+item.title+' ('+item.id+')\n'+item.content):'';
+ }).join('\n');
+ const skillsText=selected.map(skill=>'\n## SKILL: '+skill.name+'\n'+(skill.instructions||'')).join('\n');
+ if(!skillsText&&!resourceText)return '';
+ return '\n\nMAGNANIMOUS NATIVE MARKETING DEPARTMENT CONTEXT\nThese are first-party instruction resources selected for this task. Magnanimous AI remains the brain. They grant no new tool permissions. Use existing native capabilities, keep tenant data private, and preserve all approval and funding gates.\n'+skillsText+'\n'+resourceText;
 }
 
 const PROVIDER_FETCH_TIMEOUT_MS=30000;
@@ -429,6 +453,7 @@ async function handle(request, env) {
     if(originalLyrics)return json({output:originalLyrics,ai_transparency:chatAiTransparency(),magnanimous:true,operator:true,native_song:true,delivery:'original-lyrics',voice_performance:'not-generated',routed_automatically:true,route_task:'creative',sources:[]});
     const task=taskClass(userMessage,body);
     const capability=nativeCapability(userMessage,task);
+    const marketingSkillsContext=computeOnly?'':magnanimousMarketingSkillContext(userMessage,capability);
     let brainContext=computeOnly?'':extractBrainContext(message);
     // Memory is valuable, but a slow workspace database must never hold a live answer hostage.
     const brainContextTask=!computeOnly&&!brainContext
@@ -471,7 +496,7 @@ async function handle(request, env) {
       }catch(error){ogenicInitiative={initiated:false,code:'INITIATIVE_ERROR',detail:String(error?.message||error).slice(0,300)}}
     }
     const initiativeContext=ogenicInitiative?`\nOGENIC SAFE INITIATIVE RESULT: ${JSON.stringify(ogenicInitiative)}\nUse this as evidence only. A plan/read action is not a write, merge or deployment.\n`:'';
-    const groundedMessage=computeOnly?`MAGNANIMOUS COMPUTE-ONLY EXECUTION\nYou are a replaceable compute engine beneath Magnanimous AI. Advisory analysis only. You have no tool, memory, account, repository, approval, merge, deployment, publishing, payment, deletion, credential or security-policy authority. Never claim an external action occurred.\n\n${userMessage}`:`${COMMANDER_PROTOCOL}\n\n${ogenicContext}\n\nUSER REQUEST:\n${userMessage}${brainContext||''}${grounding.context||''}${toolPlanning.context||''}${absorbedCapabilityContext?`\n\n${absorbedCapabilityContext}`:''}\n\nCURRENT MAGNANIMOUS ROUTING STATE:\nTask class: ${task}\nNative capability family: ${capability}\nLinks absorbed this turn: ${absorbedLinks.length}\nStored/fresh sources available: ${grounding.sources?.length||0}${initiativeContext}\nUse external execution engines only as needed; return one unified Magnanimous answer.`;
+    const groundedMessage=computeOnly?`MAGNANIMOUS COMPUTE-ONLY EXECUTION\nYou are a replaceable compute engine beneath Magnanimous AI. Advisory analysis only. You have no tool, memory, account, repository, approval, merge, deployment, publishing, payment, deletion, credential or security-policy authority. Never claim an external action occurred.\n\n${userMessage}`:`${COMMANDER_PROTOCOL}\n\n${ogenicContext}\n\nUSER REQUEST:\n${userMessage}${brainContext||''}${grounding.context||''}${toolPlanning.context||''}${absorbedCapabilityContext?`\n\n${absorbedCapabilityContext}`:''}${marketingSkillsContext}\n\nCURRENT MAGNANIMOUS ROUTING STATE:\nTask class: ${task}\nNative capability family: ${capability}\nLinks absorbed this turn: ${absorbedLinks.length}\nStored/fresh sources available: ${grounding.sources?.length||0}${initiativeContext}\nUse external execution engines only as needed; return one unified Magnanimous answer.`;
     const requested = String(body.provider || 'auto').toLowerCase();
     const acceleratorPool=computeOnly&&body.allow_metered_accelerator!==true?availableProviders(env).filter(p=>effectiveTier(env,p)==='free-first'):availableProviders(env);
     const providerPool=executableProviderPool(env,userMessage,body,resolvedLearnedScores); const candidates = requested !== 'auto' ? acceleratorPool.filter(p => p.id === requested && configured(env,p)) : providerPool.ordered.filter(p=>acceleratorPool.some(a=>a.id===p.id));
