@@ -129,7 +129,11 @@ includes(wrangler,'"STRIPE_PAYMENT_LINK_AGENCY_PRO"','billing: production Worker
 includes(agencyBilling,'planPaymentLink','billing: Agency runtime recognizes dedicated hosted fallback links');
 includes(agencyBilling,"mode:'payment_link'",'billing: Agency runtime can return a hosted Payment Link fallback');
 includes(agencyBilling,'makeAgencyReference','billing: hosted fallback binds checkout to a server-signed tenant reference');
-includes(agencyBilling,"toLowerCase()==='paid'",'billing: Agency entitlement activation requires Stripe-confirmed payment');
+includes(agencyBilling,"['paid','no_payment_required'].includes(String(object?.payment_status||'').toLowerCase())",'billing: Agency entitlement activation requires Stripe-confirmed payment');
+includes(agencyBilling,"String(object.mode||'')!=='subscription'",'billing: Agency activation rejects one-time checkout sessions');
+includes(agencyBilling,"String(object.status||'')!=='complete'",'billing: Agency activation requires a completed Checkout session');
+includes(agencyBilling,"await stripe(env,`/v1/subscriptions/${encodeURIComponent(subscriptionId)}`)",'billing: Agency activation retrieves the authoritative subscription from Stripe');
+includes(agencyBilling,"String(sub.status||'')!=='active'",'billing: Agency activation requires an active Stripe subscription');
 
 // Non-regression boundaries.
 notMatches(agencyRuntime,/CREATE TABLE IF NOT EXISTS\s+(?:crm_|bpo_clients)/i,'non-regression: Agency Command must not create a duplicate CRM/BPO client table');
