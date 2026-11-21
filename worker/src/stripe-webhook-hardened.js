@@ -5,6 +5,7 @@ import { handleNativeStoreStripeEvent } from './native-store-runtime.js';
 import { processMagnanimousTelecomProviderStripeEvent } from './magnanimous-telecom-provider-payment.js';
 import { applyAgencyWebhook } from './agency-billing-extension.js';
 import { ensureStripeWebhookEventClaims, claimStripeWebhookEvent, completeStripeWebhookEvent, failStripeWebhookEvent } from './stripe-webhook-idempotency.js';
+import { failedCheckoutSubscriptionReference, failedInvoiceSubscriptionReference, subscriptionFailureMatchesBillingRow } from './stripe-subscription-failure-guard.js';
 
 const now=()=>Math.floor(Date.now()/1000);
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
@@ -106,6 +107,44 @@ async function processPaidCheckout(env,event,object){
  await queueProvisioning(env,tenantId,reference,plan);
  if(amount>0)await recordRevenue(env,tenantId,'checkout-paid',amount,'stripe',reference);
 }
+async function applyFailedSubscriptionPayment(env,event,object){
+ const type=String(event?.type||'');
+ let candidate=null;
+ if(type==='checkout.session.async_payment_failed'){
+  const reference=await trustedPaymentReference(env,object);
+  candidate=failedCheckoutSubscriptionReference(object,reference.kind==='plan'?reference.plan:'');
+ }else if(type==='invoice.payment_failed'){
+  candidate=failedInvoiceSubscriptionReference(object);
+ }
+ if(!candidate)return false;
+
+ // A failed invoice or Checkout attempt may belong to a one-time purchase or an
+ // older subscription. Only the exact subscription currently stored for this
+ // tenant can affect the tenant's paid-plan entitlement.
+ const billingRow=await env.DB.prepare('SELECT tenant_id,plan,stripe_customer_id,stripe_subscription_id FROM billing_subscriptions WHERE stripe_subscription_id=?')
+  .bind(candidate.subscriptionId).first();
+ if(!billingRow?.tenant_id)return false;
+ const tenantId=String(billingRow.tenant_id);
+ const hintedTenant=await resolveTenant(env,object);
+ if(hintedTenant&&String(hintedTenant)!==tenantId)return false;
+
+ const subscription=await fetchStripeSubscription(env,candidate.subscriptionId);
+ if(!subscription||String(subscription.id||'')!==candidate.subscriptionId)return false;
+ if(!subscriptionFailureMatchesBillingRow({candidate,billingRow,providerSubscription:subscription,tenantId}))return false;
+
+ const nextStatus=type==='invoice.payment_failed'?'past_due':'payment_failed';
+ await save(env,tenantId,{
+  plan:'free',
+  status:nextStatus,
+  customer_id:candidate.customerId||stripeId(subscription.customer)||billingRow.stripe_customer_id||null,
+  subscription_id:candidate.subscriptionId,
+  current_period_end:Number(subscription.current_period_end||0)||null
+ });
+ if(type==='invoice.payment_failed'&&billingRow.plan){
+  await recordRevenue(env,tenantId,'invoice-payment-failed',0,'stripe',String(object.id||event.id));
+ }
+ return true;
+}
 async function processEvent(env,event){
  if(await applyAgencyWebhook(env,event))return;
  if(await handleNativeStoreStripeEvent(env,event))return;
@@ -114,8 +153,8 @@ async function processEvent(env,event){
  if(type==='checkout.session.completed'||type==='checkout.session.async_payment_succeeded'){
   await processPaidCheckout(env,event,object);return;
  }
- if(type==='checkout.session.async_payment_failed'){
-  const tenantId=await resolveTenant(env,object);if(tenantId)await save(env,tenantId,{plan:'free',status:'payment_failed'});return;
+ if(type==='checkout.session.async_payment_failed'||type==='invoice.payment_failed'){
+  await applyFailedSubscriptionPayment(env,event,object);return;
  }
  if(['customer.subscription.created','customer.subscription.updated','customer.subscription.deleted'].includes(type)){
   const metadataPlan=String(object?.metadata?.plan||'').toLowerCase();if(AGENCY_PLANS.has(metadataPlan))return;
@@ -136,9 +175,7 @@ async function processEvent(env,event){
    await authorizeProviderSpend(env,tenantId,reference,'recurring-invoice',amount);
   }
  }
- if(type==='invoice.payment_failed'){
-  const tenantId=await resolveTenant(env,object);if(tenantId){const old=await env.DB.prepare('SELECT plan FROM billing_subscriptions WHERE tenant_id=?').bind(tenantId).first();await save(env,tenantId,{plan:'free',status:'past_due'});if(old?.plan)await recordRevenue(env,tenantId,'invoice-payment-failed',0,'stripe',String(object.id||event.id));}
- }
+
 }
 export async function handleHardenedStripeWebhook(request,env){
  const url=new URL(request.url);if(url.pathname!=='/api/billing/webhook'||request.method!=='POST')return null;
