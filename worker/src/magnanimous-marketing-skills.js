@@ -12,7 +12,7 @@ export const MAGNANIMOUS_MARKETING_SKILLS = Object.freeze([
   {
     name: 'magnanimous-marketing-department',
     description: 'Run the complete Magnanimous-native marketing department, coordinating its brand, strategy, writing, grading, repurposing, creative, publishing-readiness and performance skills. Use for comprehensive social campaigns, marketing audits, content calendars and multi-channel marketing operations.',
-    triggers: ['magnanimous marketing department', 'marketing department', 'brand brief and content strategy', 'viral hooks and post grading', 'social content calendar', 'multi-channel marketing workflow'],
+    triggers: ['magnanimous marketing department', 'marketing department', 'brand brief', 'content strategy', 'viral hooks', 'grade social posts', 'repurpose', 'content calendar', 'multi-channel marketing workflow'],
     metadata: { owner, department: 'marketing', risk: 'policy-aware', orchestration: 'Magnanimous AI', capability_family: 'social-content-operations' },
     resources: ['marketing-playbook', 'marketing-quality-rubric', 'marketing-channel-capability-matrix', 'marketing-creative-asset-checklist'],
     instructions: `# Magnanimous Marketing Department
@@ -26,7 +26,7 @@ Magnanimous AI is the single brain, public identity, memory owner and orchestrat
 5. Use existing Magnanimous Creator Growth, Social Studio, Native Media Studio and Publishing Calendar. Do not build a duplicate publishing or memory system.
 6. Verify each destination's live provider readiness. A connected account or selectable draft channel is not proof of publishing permission.
 7. Save drafts first. Any external post requires existing explicit approval of the exact content, asset, account, visibility and time. Do not publish, message or spend before the applicable approval and funding gates pass.
-8. Prefer free/native/already-funded capability. Never silently incur variable costs or expose credentials.
+8. Free-first: prefer native or already-funded capability. Never silently incur variable costs or expose credentials.
 9. Measure verified performance, distinguish metrics from estimates and correlation from causation, and save only tenant-authorized lessons with provenance.
 10. Label draft, rendered, reviewed, awaiting approval, scheduled, processing, published, failed and unknown states accurately.`
   },
