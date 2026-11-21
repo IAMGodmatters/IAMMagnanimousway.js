@@ -1,6 +1,9 @@
 import { handleBusinessPlan as handleLegacyBusinessPlan } from './business-plan-runtime.js';
+import { ensureStripeWebhookEventClaims, claimStripeWebhookEvent, completeStripeWebhookEvent, failStripeWebhookEvent } from './stripe-webhook-idempotency.js';
 
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
+const retryJson=(data)=>new Response(JSON.stringify(data),{status:503,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','retry-after':'30'}});
+const stripeId=value=>typeof value==='string'?value:String(value?.id||'');
 const now=()=>Math.floor(Date.now()/1000);
 const PLAN_MONTHLY_PRICE_ID='price_1UBPMoDuxV2kib03YdE09xf0';
 const PLAN_MONTHLY_PRICE_USD=79;
@@ -37,6 +40,7 @@ async function ensureSchema(env){
     updated_at INTEGER NOT NULL
   )`).run();
   await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_business_plan_sub_tenant ON business_plan_subscriptions(tenant_id,updated_at)').run();
+  await ensureStripeWebhookEventClaims(env);
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS business_plan_subscription_events(
     event_id TEXT PRIMARY KEY,
     event_type TEXT NOT NULL,
@@ -79,8 +83,9 @@ async function setSubscriptionAccess(env,{projectId,tenantId,userId,subscription
 }
 async function subscriptionFromStripe(env,id){
   if(!id)return null;
-  const {ok,data}=await stripeRequest(env,`/v1/subscriptions/${encodeURIComponent(id)}`);
-  return ok&&data?.id?data:null;
+  const {ok,status,data}=await stripeRequest(env,`/v1/subscriptions/${encodeURIComponent(id)}`);
+  if(!ok){if(status===429||status>=500)throw new Error('Stripe subscription verification is temporarily unavailable.');return null;}
+  return data?.id?data:null;
 }
 async function rewriteLegacyResponse(response,env){
   if(!response)return response;
@@ -100,26 +105,37 @@ async function handleWebhook(request,env){
   if(!env.STRIPE_WEBHOOK_SECRET)return null;
   const clone=request.clone(),raw=await clone.text(),sig=clone.headers.get('stripe-signature')||'';
   if(!await verifyWebhook(raw,sig,String(env.STRIPE_WEBHOOK_SECRET)))return null;
-  let event;try{event=JSON.parse(raw)}catch{return null}
+  let event;try{event=JSON.parse(raw)}catch{return json({detail:'Invalid Stripe webhook payload.'},400)}
   const object=event?.data?.object||{},meta=object?.metadata||{};
   if(String(meta.product_type||'')!=='professional_business_plan')return null;
   const eventId=String(event?.id||'');if(!eventId)return json({detail:'Stripe event id is required.'},400);
-  const seen=await env.DB.prepare('SELECT event_id FROM business_plan_subscription_events WHERE event_id=?').bind(eventId).first();if(seen)return json({received:true,duplicate:true});
-  if(event.type==='checkout.session.completed'||event.type==='checkout.session.async_payment_succeeded'){
-    const paid=['paid','no_payment_required'].includes(String(object.payment_status||''));
-    if(paid){
-      const subscriptionId=typeof object.subscription==='string'?object.subscription:String(object.subscription?.id||'');
-      const sub=await subscriptionFromStripe(env,subscriptionId);
-      if(sub&&ACTIVE_STATUSES.has(String(sub.status||'')))await setSubscriptionAccess(env,{projectId:String(meta.project_id||''),tenantId:String(meta.tenant_id||''),userId:String(meta.user_id||''),subscriptionId:sub.id,sessionId:String(object.id||''),status:sub.status,currentPeriodEnd:sub.current_period_end});
+  const claim=await claimStripeWebhookEvent(env,{eventId,eventType:String(event.type||''),processor:'business-plan'});
+  if(claim.duplicate)return json({received:true,duplicate:true});
+  if(!claim.claimed)return retryJson({detail:'This business-plan payment event is already being processed. The provider should retry shortly.'});
+  try{
+    if(event.type==='checkout.session.completed'||event.type==='checkout.session.async_payment_succeeded'){
+      const paid=['paid','no_payment_required'].includes(String(object.payment_status||''));
+      if(paid&&object.mode==='subscription'&&object.status==='complete'){
+        const subscriptionId=stripeId(object.subscription),sub=await subscriptionFromStripe(env,subscriptionId);
+        const subMeta=sub?.metadata||{},sessionCustomer=stripeId(object.customer),subscriptionCustomer=stripeId(sub?.customer);
+        const metadataMatches=(!subMeta.project_id||String(subMeta.project_id)===String(meta.project_id||''))&&(!subMeta.tenant_id||String(subMeta.tenant_id)===String(meta.tenant_id||''))&&(!subMeta.user_id||String(subMeta.user_id)===String(meta.user_id||''));
+        if(sub&&sub.id===subscriptionId&&ACTIVE_STATUSES.has(String(sub.status||''))&&metadataMatches&&(!sessionCustomer||!subscriptionCustomer||sessionCustomer===subscriptionCustomer)){
+          await setSubscriptionAccess(env,{projectId:String(meta.project_id||''),tenantId:String(meta.tenant_id||''),userId:String(meta.user_id||''),subscriptionId:sub.id,sessionId:String(object.id||''),status:sub.status,currentPeriodEnd:sub.current_period_end});
+        }
+      }
+    }else if(event.type==='customer.subscription.updated'||event.type==='customer.subscription.deleted'||event.type==='customer.subscription.created'){
+      const status=event.type==='customer.subscription.deleted'?'canceled':String(object.status||'incomplete');
+      await setSubscriptionAccess(env,{projectId:String(meta.project_id||''),tenantId:String(meta.tenant_id||''),userId:String(meta.user_id||''),subscriptionId:String(object.id||''),sessionId:null,status,currentPeriodEnd:object.current_period_end});
     }
-  }else if(event.type==='customer.subscription.updated'||event.type==='customer.subscription.deleted'||event.type==='customer.subscription.created'){
-    const status=event.type==='customer.subscription.deleted'?'canceled':String(object.status||'incomplete');
-    await setSubscriptionAccess(env,{projectId:String(meta.project_id||''),tenantId:String(meta.tenant_id||''),userId:String(meta.user_id||''),subscriptionId:String(object.id||''),sessionId:null,status,currentPeriodEnd:object.current_period_end});
+    await env.DB.prepare('INSERT OR IGNORE INTO business_plan_subscription_events(event_id,event_type,processed_at) VALUES(?,?,?)').bind(eventId,String(event.type||''),now()).run();
+    await completeStripeWebhookEvent(env,{eventId,processor:'business-plan',claimToken:claim.claimToken});
+    return json({received:true,business_plan_subscription:true,automatic_fulfillment:true});
+  }catch(error){
+    await failStripeWebhookEvent(env,{eventId,processor:'business-plan',claimToken:claim.claimToken,errorCode:error?.name||'processing_failed'}).catch(()=>false);
+    console.error('Business-plan Stripe webhook processing failed',{event_id:eventId,error_name:String(error?.name||'Error')});
+    return retryJson({detail:'Business-plan payment event could not be verified. A provider retry is required.'});
   }
-  await env.DB.prepare('INSERT INTO business_plan_subscription_events(event_id,event_type,processed_at) VALUES(?,?,?)').bind(eventId,String(event.type||''),now()).run();
-  return json({received:true,business_plan_subscription:true,automatic_fulfillment:true});
 }
-
 export async function handleBusinessPlan(request,env){
   const url=new URL(request.url),path=url.pathname;
   const relevant=path.startsWith('/api/business-plan')||path==='/api/billing/webhook';

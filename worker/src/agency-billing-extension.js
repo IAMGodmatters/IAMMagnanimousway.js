@@ -84,7 +84,38 @@ async function agencyCheckoutIdentity(env,object){
  const metadataTenant=String(object?.metadata?.tenant_id||'').trim(),reference=await parseAgencyReference(env,object?.client_reference_id);const tenant=metadataTenant||reference?.tenant_id||'';if(!tenant||(reference?.plan&&reference.plan!==metadataPlan))return null;
  const exists=await env.DB.prepare('SELECT id FROM tenants WHERE id=? LIMIT 1').bind(tenant).first();if(!exists?.id)return null;return{tenant,plan:metadataPlan};
 }
-export async function applyAgencyWebhook(env,event,response){
+export async function applyAgencyWebhook(env,event,response=null){
+ if(response&&!response.ok)return false;
+ const type=String(event?.type||''),object=event?.data?.object||{};
+ if(type==='checkout.session.completed'||type==='checkout.session.async_payment_succeeded'||type==='checkout.session.async_payment_failed'){
+  const identity=await agencyCheckoutIdentity(env,object);if(!identity)return false;
+  if(type==='checkout.session.async_payment_failed'){
+   await savePlan(env,identity.tenant,{plan:'free',customer_id:String(object.customer||''),subscription_id:String(object.subscription||''),status:'payment_failed'});
+   return true;
+  }
+  const paid=['paid','no_payment_required'].includes(String(object?.payment_status||'').toLowerCase());
+  if(!paid||String(object.mode||'')!=='subscription'||String(object.status||'')!=='complete')return true;
+  const subscriptionId=typeof object.subscription==='string'?object.subscription:String(object.subscription?.id||'');
+  if(!subscriptionId||!String(env.STRIPE_SECRET_KEY||'').trim())return true;
+  const verified=await stripe(env,`/v1/subscriptions/${encodeURIComponent(subscriptionId)}`);
+  if(!verified.ok){if(verified.status===429||verified.status>=500)throw new Error('Agency subscription verification is temporarily unavailable.');return true;}
+  const sub=verified.data||{},subMeta=sub.metadata||{},sessionCustomer=String(object.customer||''),subscriptionCustomer=String(sub.customer||'');
+  if(String(sub.id||'')!==subscriptionId||String(sub.status||'')!=='active')return true;
+  if((sessionCustomer&&subscriptionCustomer&&sessionCustomer!==subscriptionCustomer)||(subMeta.tenant_id&&String(subMeta.tenant_id)!==identity.tenant)||(subMeta.plan&&String(subMeta.plan).toLowerCase()!==identity.plan))return true;
+  await savePlan(env,identity.tenant,{plan:identity.plan,customer_id:sessionCustomer||subscriptionCustomer,subscription_id:subscriptionId,status:'active',current_period_end:Number(sub.current_period_end||0)||null});
+  return true;
+ }
+ if(['customer.subscription.created','customer.subscription.updated','customer.subscription.deleted'].includes(type)){
+  let plan=String(object?.metadata?.plan||'').toLowerCase(),tenant=String(object?.metadata?.tenant_id||'').trim(),row=null;
+  if(!tenant||!isAgency(plan)){row=await env.DB.prepare('SELECT tenant_id,plan FROM billing_subscriptions WHERE stripe_subscription_id=? LIMIT 1').bind(String(object.id||'')).first();tenant=tenant||String(row?.tenant_id||'');plan=isAgency(plan)?plan:String(row?.plan||'').toLowerCase();}
+  if(!tenant||!isAgency(plan))return false;
+  const status=String(object.status||(type.endsWith('.deleted')?'canceled':'inactive')),active=status==='active'&&!type.endsWith('.deleted');
+  await savePlan(env,tenant,{plan:active?plan:'free',customer_id:String(object.customer||''),subscription_id:String(object.id||''),status,current_period_end:Number(object.current_period_end||0)||null});
+  return true;
+ }
+ return false;
+}
+
  if(!response?.ok)return;const type=String(event?.type||''),object=event?.data?.object||{};
  if(type==='checkout.session.completed'||type==='checkout.session.async_payment_succeeded'){
   const identity=await agencyCheckoutIdentity(env,object);if(!identity)return;const paid=String(object?.payment_status||'').toLowerCase()==='paid';if(!paid)return;

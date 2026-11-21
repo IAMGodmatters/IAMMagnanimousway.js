@@ -3,9 +3,12 @@ import { verifySignedPaymentReference } from './payment-reference.js';
 import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 import { handleNativeStoreStripeEvent } from './native-store-runtime.js';
 import { processMagnanimousTelecomProviderStripeEvent } from './magnanimous-telecom-provider-payment.js';
+import { applyAgencyWebhook } from './agency-billing-extension.js';
+import { ensureStripeWebhookEventClaims, claimStripeWebhookEvent, completeStripeWebhookEvent, failStripeWebhookEvent } from './stripe-webhook-idempotency.js';
 
 const now=()=>Math.floor(Date.now()/1000);
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
+const retryJson=(data)=>new Response(JSON.stringify(data),{status:503,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','retry-after':'30'}});
 // Provider-funded premium capabilities are released only for actually active paid subscriptions.
 const ACTIVE=new Set(['active']);
 const PLANS=new Set(['plus','crm','studio','business','scale']);
@@ -29,6 +32,7 @@ async function ensureSchema(env){
  try{await env.DB.prepare("ALTER TABLE tenants ADD COLUMN plan TEXT NOT NULL DEFAULT 'free'").run()}catch(_){ }
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS billing_subscriptions (tenant_id TEXT PRIMARY KEY,plan TEXT NOT NULL DEFAULT 'free',stripe_customer_id TEXT,stripe_subscription_id TEXT,status TEXT NOT NULL DEFAULT 'inactive',current_period_end INTEGER,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`).run();
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS billing_webhook_events (event_id TEXT PRIMARY KEY,event_type TEXT NOT NULL,processed_at INTEGER NOT NULL)`).run();
+ await ensureStripeWebhookEventClaims(env);
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS enterprise_revenue_events (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT NOT NULL,account_id TEXT,contract_id TEXT,event_type TEXT NOT NULL,amount_usd REAL NOT NULL DEFAULT 0,source TEXT NOT NULL DEFAULT '',reference_id TEXT NOT NULL DEFAULT '',occurred_at INTEGER NOT NULL,UNIQUE(tenant_id,event_type,reference_id))`).run();
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS provider_funding_authorizations (tenant_id TEXT NOT NULL,reference_id TEXT NOT NULL,purpose TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'authorized',amount_usd REAL NOT NULL DEFAULT 0,created_at INTEGER NOT NULL,PRIMARY KEY(tenant_id,reference_id,purpose))`).run();
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS service_provisioning_jobs (tenant_id TEXT NOT NULL,reference_id TEXT NOT NULL,plan TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'ready',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(tenant_id,reference_id,plan))`).run();
@@ -45,6 +49,14 @@ async function save(env,tenantId,values){
  await env.DB.prepare('UPDATE tenants SET plan=? WHERE id=?').bind(compatibilityPlan,tenantId).run();
 }
 async function trustedPaymentReference(env,object){const secret=String(env?.SESSION_SECRET||'').trim();if(!secret)return{tenantId:'',kind:'invalid',plan:'',signed:false};return verifySignedPaymentReference(object?.client_reference_id,secret)}
+const stripeId=value=>typeof value==='string'?value:String(value?.id||'');
+async function fetchStripeSubscription(env,subscriptionId){
+ const secret=String(env?.STRIPE_SECRET_KEY||'').trim();if(!secret)throw new Error('Stripe subscription verification is not configured.');
+ const response=await fetch(`https://api.stripe.com/v1/subscriptions/${encodeURIComponent(subscriptionId)}`,{headers:{authorization:`Bearer ${secret}`},redirect:'error'});
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok){if(response.status===429||response.status>=500)throw new Error('Stripe subscription verification is temporarily unavailable.');return null;}
+ return data?.id?data:null;
+}
 async function resolveTenant(env,object){
  const metadataTenant=String(object?.metadata?.tenant_id||'').trim();if(metadataTenant)return metadataTenant;
  const parsedReference=await trustedPaymentReference(env,object);if(parsedReference.tenantId)return parsedReference.tenantId;
@@ -76,15 +88,26 @@ async function processPaidCheckout(env,event,object){
   await recordRevenue(env,tenantId,'usage-topup',amount,'stripe',reference);
   return;
  }
- const metadataRaw=String(object?.metadata?.plan||'').toLowerCase(),metadataPlan=PLAN_ALIAS[metadataRaw]||metadataRaw;
- const referenceRaw=paymentReference.kind==='plan'?paymentReference.plan:'',referencePlan=PLAN_ALIAS[referenceRaw]||referenceRaw;
- const plan=PLANS.has(metadataPlan)?metadataPlan:(PLANS.has(referencePlan)?referencePlan:'plus');
- await save(env,tenantId,{plan,customer_id:String(object.customer||'')||null,subscription_id:String(object.subscription||'')||null,status:'active'});
+ const metadataPlan=PLAN_ALIAS[metadataRawPlan]||metadataRawPlan;
+ const referenceRaw=paymentReference.kind==='plan'?paymentReference.plan:'';
+ const referencePlan=PLAN_ALIAS[referenceRaw]||referenceRaw;
+ const plan=PLANS.has(metadataPlan)?metadataPlan:(PLANS.has(referencePlan)?referencePlan:'');
+ if(!PLANS.has(plan)||String(object?.mode||'')!=='subscription'||String(object?.status||'')!=='complete')return;
+ const subscriptionId=stripeId(object?.subscription);if(!subscriptionId)return;
+ const subscription=await fetchStripeSubscription(env,subscriptionId);if(!subscription||String(subscription.id||'')!==subscriptionId)return;
+ const sessionCustomer=stripeId(object?.customer),subscriptionCustomer=stripeId(subscription.customer);
+ const subscriptionTenant=String(subscription?.metadata?.tenant_id||'').trim();
+ const subscriptionPlanRaw=String(subscription?.metadata?.plan||'').toLowerCase();
+ const subscriptionPlan=PLAN_ALIAS[subscriptionPlanRaw]||subscriptionPlanRaw;
+ if((sessionCustomer&&subscriptionCustomer&&sessionCustomer!==subscriptionCustomer)||(subscriptionTenant&&subscriptionTenant!==tenantId)||(subscriptionPlan&&subscriptionPlan!==plan))return;
+ const subscriptionStatus=String(subscription.status||'').toLowerCase();if(!ACTIVE.has(subscriptionStatus))return;
+ await save(env,tenantId,{plan,customer_id:sessionCustomer||subscriptionCustomer||null,subscription_id:subscriptionId,status:subscriptionStatus,current_period_end:Number(subscription.current_period_end||0)||null});
  await authorizeProviderSpend(env,tenantId,reference,`plan:${plan}`,amount);
  await queueProvisioning(env,tenantId,reference,plan);
  if(amount>0)await recordRevenue(env,tenantId,'checkout-paid',amount,'stripe',reference);
 }
 async function processEvent(env,event){
+ if(await applyAgencyWebhook(env,event))return;
  if(await handleNativeStoreStripeEvent(env,event))return;
  if(await processMagnanimousTelecomProviderStripeEvent(env,event))return;
  const type=String(event?.type||''),object=event?.data?.object||{};
@@ -116,8 +139,29 @@ async function processEvent(env,event){
   const tenantId=await resolveTenant(env,object);if(tenantId){const old=await env.DB.prepare('SELECT plan FROM billing_subscriptions WHERE tenant_id=?').bind(tenantId).first();await save(env,tenantId,{plan:'free',status:'past_due'});if(old?.plan)await recordRevenue(env,tenantId,'invoice-payment-failed',0,'stripe',String(object.id||event.id));}
  }
 }
-
 export async function handleHardenedStripeWebhook(request,env){
+ const url=new URL(request.url);if(url.pathname!=='/api/billing/webhook'||request.method!=='POST')return null;
+ const runtimeEnv=await getProviderRuntimeEnv(env),secret=String(runtimeEnv.STRIPE_WEBHOOK_SECRET||'').trim();if(!secret)return json({detail:'Stripe webhook verification is not configured.'},503);
+ await ensureSchema(runtimeEnv);const raw=await request.text(),signature=request.headers.get('stripe-signature')||'';
+ if(!await verify(raw,signature,secret))return json({detail:'Invalid Stripe webhook signature.'},401);
+ let event;try{event=JSON.parse(raw)}catch{return json({detail:'Invalid Stripe webhook payload.'},400)}
+ const id=String(event?.id||'');if(!id)return json({detail:'Stripe event id is required.'},400);
+ const claim=await claimStripeWebhookEvent(runtimeEnv,{eventId:id,eventType:String(event?.type||''),processor:'billing'});
+ if(claim.duplicate)return json({received:true,duplicate:true});
+ if(!claim.claimed)return retryJson({detail:'This Stripe event is already being processed. The provider should retry shortly.'});
+ const isStoreOrder=String(event?.data?.object?.metadata?.product_type||'')==='magnanimous_store_order';
+ try{
+  await processEvent(runtimeEnv,event);
+  await runtimeEnv.DB.prepare('INSERT OR IGNORE INTO billing_webhook_events(event_id,event_type,processed_at) VALUES(?,?,?)').bind(id,String(event?.type||''),now()).run();
+  await completeStripeWebhookEvent(runtimeEnv,{eventId:id,processor:'billing',claimToken:claim.claimToken});
+  return json({received:true,hardened:true,automatic_fulfillment:!isStoreOrder,fulfillment_mode:isStoreOrder?'approval-gated dropshipping':'provider-funded provisioning',provider_billing_owner:'I AM Magnanimous Way'});
+ }catch(error){
+  await failStripeWebhookEvent(runtimeEnv,{eventId:id,processor:'billing',claimToken:claim.claimToken,errorCode:error?.name||'processing_failed'}).catch(()=>false);
+  console.error('Stripe webhook processing failed',{event_id:id,error_name:String(error?.name||'Error')});
+  return retryJson({detail:'Stripe event processing could not be completed. A provider retry is required.'});
+ }
+}
+
  const url=new URL(request.url);if(url.pathname!=='/api/billing/webhook'||request.method!=='POST')return null;
  const runtimeEnv=String(env?.STRIPE_WEBHOOK_SECRET||'').trim()?env:await getProviderRuntimeEnv(env),secret=String(runtimeEnv.STRIPE_WEBHOOK_SECRET||'').trim();if(!secret)return json({detail:'Stripe webhook verification is not configured.'},503);
  await ensureSchema(runtimeEnv);const raw=await request.text(),signature=request.headers.get('stripe-signature')||'';
