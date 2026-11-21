@@ -78,6 +78,11 @@ has(page,'This is not marked published until TikTok confirms it','The UI must no
 has(scheduling,'socialSchedulingSchemaReady.get(db)','Concurrent scheduling requests must share schema setup');
 has(publishing,'export async function publishSocialPostForTenant','Scheduler must reuse first-party social provider adapters');
 has(publishing,'inspectPublicVideoSource','Video providers must inspect media metadata before provider writes.');
+const tiktokStart=publishing.indexOf('async function tiktokPublish(');
+const tiktokEnd=publishing.indexOf('async function linkedinPublish(',tiktokStart);
+const tiktokPublishSource=publishing.slice(tiktokStart,tiktokEnd);
+if(tiktokStart<0||tiktokEnd<0||tiktokPublishSource.indexOf('await tiktokCreator(token)')<0||tiktokPublishSource.indexOf('inspectPublicVideoSource(videoUrl.toString())')<tiktokPublishSource.indexOf('await tiktokCreator(token)'))throw new Error('TikTok creator readiness must be confirmed before inspecting the user media URL.');
+
 has(publishing,'validatePublicVideoResponse','YouTube downloads must match inspected content type and exact size.');
 has(publishing,'boundedMediaStream','YouTube uploads must enforce the inspected size while streaming.');
 has(mediaGuard,'MAX_SOCIAL_VIDEO_BYTES = 256 * 1024 * 1024','Free-first video publishing must enforce the 256 MiB edge transfer safety limit.');
