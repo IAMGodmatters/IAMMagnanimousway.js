@@ -6,6 +6,7 @@ const has=(text,value,message)=>must(text.includes(value),message);
 
 const stripe=read('worker/src/stripe-webhook-hardened.js');
 const claims=read('worker/src/stripe-webhook-idempotency.js');
+const failureGuard=read('worker/src/stripe-subscription-failure-guard.js');
 const businessPlan=read('worker/src/business-plan-subscription-runtime.js');
 const music=read('worker/src/stripe-webhook.js');
 const agency=read('worker/src/agency-billing-extension.js');
@@ -21,6 +22,15 @@ has(stripe,'billing_webhook_events','Stripe webhook event ledger must remain pre
 has(stripe,'claimStripeWebhookEvent','Central Stripe webhook must atomically claim an event before processing.');
 has(stripe,'completeStripeWebhookEvent','Central Stripe webhook must mark only the owned claim processed.');
 has(stripe,'failStripeWebhookEvent','Failed Stripe processing must release the claim for provider retry.');
+has(stripe,'failedCheckoutSubscriptionReference','Failed Checkout events must be restricted to recognized subscription checkouts.');
+has(stripe,'failedInvoiceSubscriptionReference','Failed invoice events must carry an explicit subscription reference.');
+has(stripe,'subscriptionFailureMatchesBillingRow','Failed-payment downgrades must match the current tenant subscription and Stripe customer.');
+has(stripe,'markCurrentSubscriptionFailed','Failed-payment downgrades must use a conditional current-subscription update.');
+has(stripe,'WHERE tenant_id=? AND stripe_subscription_id=?','A delayed failure must update only the exact subscription still assigned to the tenant.');
+has(stripe,'AND EXISTS(SELECT 1 FROM billing_subscriptions WHERE tenant_id=? AND stripe_subscription_id=?','Tenant plan compatibility updates must re-check the exact subscription.');
+has(failureGuard,"String(object?.mode || '') !== 'subscription'",'One-time Checkout payment failures must not downgrade a recurring plan.');
+has(failureGuard,"['past_due', 'unpaid', 'incomplete', 'incomplete_expired', 'canceled', 'paused'].includes(providerStatus)",'Unknown and active subscription states must fail closed for payment-failure downgrades.');
+
 has(stripe,'fetchStripeSubscription','Paid plan checkout must retrieve the authoritative Stripe subscription.');
 has(stripe,"String(object?.mode||'')!=='subscription'",'One-time checkouts must not grant recurring plan entitlements.');
 has(stripe,'ACTIVE.has(subscriptionStatus)','Paid plan activation must require an active provider subscription.');
