@@ -142,10 +142,11 @@ async function processEvent(env,event){
 export async function handleHardenedStripeWebhook(request,env){
  const url=new URL(request.url);if(url.pathname!=='/api/billing/webhook'||request.method!=='POST')return null;
  const runtimeEnv=await getProviderRuntimeEnv(env),secret=String(runtimeEnv.STRIPE_WEBHOOK_SECRET||'').trim();if(!secret)return json({detail:'Stripe webhook verification is not configured.'},503);
- await ensureSchema(runtimeEnv);const raw=await request.text(),signature=request.headers.get('stripe-signature')||'';
+ const raw=await request.text(),signature=request.headers.get('stripe-signature')||'';
  if(!await verify(raw,signature,secret))return json({detail:'Invalid Stripe webhook signature.'},401);
  let event;try{event=JSON.parse(raw)}catch{return json({detail:'Invalid Stripe webhook payload.'},400)}
  const id=String(event?.id||'');if(!id)return json({detail:'Stripe event id is required.'},400);
+ await ensureSchema(runtimeEnv);
  const claim=await claimStripeWebhookEvent(runtimeEnv,{eventId:id,eventType:String(event?.type||''),processor:'billing'});
  if(claim.duplicate)return json({received:true,duplicate:true});
  if(!claim.claimed)return retryJson({detail:'This Stripe event is already being processed. The provider should retry shortly.'});

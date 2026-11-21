@@ -30,6 +30,9 @@ has(claims,'RETURNING event_id','Stripe event reservation must use an atomic SQL
 has(claims,"status!='processing' OR stripe_webhook_event_claims.claimed_at<=?",'Abandoned processing claims must expire safely.');
 has(claims,'claim_token=?','Claim completion and failure must be bound to the owning token.');
 has(businessPlan,'claimStripeWebhookEvent','Business-plan webhooks must use the shared atomic event ledger.');
+has(businessPlan,'return null;','Non-Business-Plan webhook events must fall through to the central handler.');
+has(stripe,"if(!await verify(raw,signature,secret))return json({detail:'Invalid Stripe webhook signature.'},401);",'Central webhook must verify the signature before opening the claim ledger.');
+has(music,"if(!(await verify(raw,request.headers.get('stripe-signature'),secret)))return json({detail:'Invalid or expired Stripe signature.'},401);",'Music webhook must verify signatures before opening the claim ledger.');
 has(businessPlan,"object.mode==='subscription'",'Business-plan checkout must verify subscription mode before activation.');
 has(music,'Math.abs(now()-stamp)>300','Music Stripe signatures must enforce a five-minute replay window.');
 has(music,'claimStripeWebhookEvent','Music webhooks must use the shared atomic event ledger.');

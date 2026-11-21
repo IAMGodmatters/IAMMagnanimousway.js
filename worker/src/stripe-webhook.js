@@ -19,10 +19,10 @@ export async function handleStripeWebhook(request,env,path){
  if(path!=='/api/webhooks/stripe'||request.method!=='POST')return null;
  const runtimeEnv=await getProviderRuntimeEnv(env),secret=String(runtimeEnv.STRIPE_WEBHOOK_SECRET||'').trim();
  if(!secret)return json({detail:'Stripe webhook verification is not configured.'},503);
- await ensureStripeWebhookEventClaims(runtimeEnv);
  const raw=await request.text();if(!(await verify(raw,request.headers.get('stripe-signature'),secret)))return json({detail:'Invalid or expired Stripe signature.'},401);
  let event;try{event=JSON.parse(raw)}catch{return json({detail:'Invalid Stripe webhook payload.'},400)}
  const eventId=String(event?.id||'');if(!eventId)return json({detail:'Stripe event id is required.'},400);
+ await ensureStripeWebhookEventClaims(runtimeEnv);
  const claim=await claimStripeWebhookEvent(runtimeEnv,{eventId,eventType:String(event?.type||''),processor:'music'});
  if(claim.duplicate)return json({received:true,duplicate:true});
  if(!claim.claimed)return retryJson({detail:'This Stripe music event is already being processed. The provider should retry shortly.'});

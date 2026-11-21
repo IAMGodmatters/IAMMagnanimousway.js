@@ -109,6 +109,7 @@ async function handleWebhook(request,env){
   const object=event?.data?.object||{},meta=object?.metadata||{};
   if(String(meta.product_type||'')!=='professional_business_plan')return null;
   const eventId=String(event?.id||'');if(!eventId)return json({detail:'Stripe event id is required.'},400);
+  await ensureSchema(env);
   const claim=await claimStripeWebhookEvent(env,{eventId,eventType:String(event.type||''),processor:'business-plan'});
   if(claim.duplicate)return json({received:true,duplicate:true});
   if(!claim.claimed)return retryJson({detail:'This business-plan payment event is already being processed. The provider should retry shortly.'});
@@ -140,13 +141,12 @@ export async function handleBusinessPlan(request,env){
   const url=new URL(request.url),path=url.pathname;
   const relevant=path.startsWith('/api/business-plan')||path==='/api/billing/webhook';
   if(!relevant)return null;
-  await ensureSchema(env);
-
   if(path==='/api/billing/webhook'&&request.method==='POST'){
     const handled=await handleWebhook(request,env);
     if(handled)return handled;
-    return handleLegacyBusinessPlan(request,env);
+    return null;
   }
+  await ensureSchema(env);
   if(path==='/api/business-plan/config'&&request.method==='GET')return json({enabled:true,free_preview:true,monthly_price_usd:PLAN_MONTHLY_PRICE_USD,billing_interval:'month',recurring:true,included_with_magnanimous_business:true,included_with_full_business:true,pipeline:['Intake','Clarify','Research','Validate','Financial Review','Draft','Hostile Review','Consistency Check','Audience Adaptation','Final Polish'],provider_checkout_required:false,provider_billing:'managed_by_i_am'});
 
   if(path==='/api/business-plan/checkout'&&request.method==='POST'){
