@@ -25,13 +25,15 @@ Use direct proposals and unpaid organic outreach. Do not buy ads, leads, domains
 
 ## Phase 2 — compliant registration and payment collection
 
-There is no verified zero-cost route to operate an ongoing Philippine online services business while ignoring registration and tax obligations. BIR guidance covers self-employed professionals, freelancers, online sellers, and digital services. Register the actual owner/operator and business form correctly before commencing taxable business activity. DTI business-name registration is required when operating under a name other than the owner's true name; local permits may also apply. Foreign-national eligibility for sole-proprietor registration is conditional and must be checked before choosing that structure.
+There is no verified zero-cost route to operate an ongoing Philippine online services business while ignoring registration and tax obligations. BIR Revenue Regulations No. 15-2024 expressly cover online businesses, digital content, income-generating creators, freelance/professional services supplied over the internet, and digital platforms. The regulation says covered persons must register with the BIR and display their COR/eCOR conspicuously and accessibly on their website, page, platform, or application. Register the actual owner/operator and business form correctly before commencing taxable business activity. DTI business-name registration and local permits may also apply; confirm current BNRS eligibility and requirements for the exact owner and structure. Foreign-national eligibility for sole-proprietor registration is conditional and must be checked before choosing that structure.
 
 Use an already approved merchant account belonging to the actual seller, or apply to a regulated provider after the seller's registration documents are ready. Never borrow another person's payment account, misstate the merchant, or route customer proceeds through a personal account not approved for that activity.
 
 ### Provider candidate
 
-PayMongo is the leading Philippines-first candidate to evaluate because its hosted checkout and payment links advertise no setup fee or monthly subscription, with transaction fees charged only on successful payments. It supports cards and local payment methods. This is not a guarantee of approval or zero cost: transaction fees apply, KYC is required, and live API keys require a registered business type. Its published onboarding rules say Philippine individual accounts are time-limited and must upgrade to a registered business type within 30 days; those rules take effect 27 November 2026.
+PayMongo is the leading Philippines-first candidate to evaluate, not yet an approved or selected provider. Its current Hosted Checkout documentation recommends API v2 for new integrations and shows card, GCash, and QR Ph methods. PayMongo says fees vary by payment method; `pass_on_fees` can add the selected method's fee to the customer's displayed total. The current pricing page and any setup, monthly, settlement, or other fixed charges were not independently verified in this review, so do not claim zero setup or monthly cost; obtain current written pricing before committing.
+
+PayMongo's Philippine onboarding documentation says an Individual account can start with KYC and no business documents, but an Individual account must upgrade to a registered business type within 30 days or PayMongo disables it. Its rules section says the 30-day window applies to Philippine merchant accounts activated on or after 27 November 2026; those accounts must complete basic Business Information and have a compliant business website before activation. A directly registered Individual account is closed-loop: it can receive payments but cannot send money out. A sole-proprietor upgrade requires a DTI Business Name Registration certificate, the registered owner's ID, and BIR Form 2303. This is not a permanent registration or payout workaround.
 
 Stripe is already wired into the current repository, but Stripe's current global availability page does not list the Philippines as a directly supported country. Do not assume existing Stripe payment links are an approved payment route for a Philippines-based merchant. Confirm the legal account holder, country, live-mode status, and settlement eligibility before relying on them.
 
@@ -60,12 +62,13 @@ Use a double-entry accounting ledger only for the merchant's own receivables, fe
 
 ## Current repository audit observations
 
-The current main branch already has Stripe subscriptions, hosted payment links, consent recording, tenant-linked checkout references, a Stripe signature verifier, subscription refresh, and billing QA locks. The checkout preview is deliberately presentation-only and does not collect card credentials.
+The current main branch has Stripe subscriptions, hosted payment links, consent recording, tenant-linked checkout references, a central Stripe signature verifier, subscription refresh, and billing QA locks. The checkout preview is deliberately presentation-only and does not collect card credentials.
 
-Important hardening items to verify/fix before calling the existing billing production-ready:
+The current main-branch billing webhook does check the Checkout Session `payment_status`, but it does not require `mode='subscription'` or retrieve the authoritative Stripe Subscription before granting a recurring plan. It also falls back to the Plus plan when a valid plan cannot be resolved. The separate music webhook did not enforce Stripe's timestamp replay window. Agency entitlement activation was deferred to post-response background work rather than completed before acknowledging the webhook.
 
-- The subscription checkout webhook currently handles `checkout.session.completed` by setting a subscription status to `active` before checking the checkout session's payment status or retrieving the subscription's authoritative status. Confirm the resulting subscription status before entitlement activation; add the relevant asynchronous payment-success/failure handling if those methods are enabled.
-- The webhook deduplication flow reads for an event ID, processes the event, then inserts the event ID. Concurrent duplicate deliveries can race. Use an atomic event claim/state transition and recoverable processing status.
+**PR #987** ([atomic Stripe webhook hardening](https://github.com/IAMGodmatters/IAMMagnanimousway.js/pull/987)) now proposes a shared atomic claim ledger with legacy-event backfill, recoverable failures/leases, authoritative subscription retrieval, synchronous agency processing, and five-minute music signature replay protection. It is still a draft and has not been merged or deployed. Do not treat the new controls as live until CI, independent review, merge, deployment, and production smoke tests all pass.
+
+Additional billing lifecycle work remains before calling billing production-ready:
 - Expand and test handling for invoice payment success/failure, subscription past-due/canceled states, refunds, disputes, and chargebacks before treating the billing lifecycle as complete.
 - Test that the exact provider amount/currency, tenant, plan, terms version, and checkout reference match before granting entitlements.
 - Keep provider-neutral customer-facing UI; provider branding belongs only in the relevant consent/legal disclosures where required.
@@ -97,9 +100,9 @@ If the business later has recurring revenue and compliance funding, investigate 
 - BIR RR 15-2024 — mandatory registration for persons engaged in business, including online and freelance services: https://bir-cdn.bir.gov.ph/BIR/pdf/RR%2015-2024%282%29.pdf
 - BIR NewBizReg: https://web-services.bir.gov.ph/newbizreg/
 - DTI business-name FAQs and eligibility/fees: https://bnrs.dti.gov.ph/faq
-- PayMongo hosted checkout: https://docs.paymongo.com/docs/payment-channels-hosted-checkout
+- PayMongo Hosted Checkout (API v2, local methods, fee pass-through): https://docs.paymongo.com/docs/payment-channels-hosted-checkout
 - PayMongo webhook security and best practices: https://docs.paymongo.com/docs/payment-acceptance-best-practices and https://docs.paymongo.com/docs/developer-tools-best-practices
-- PayMongo Philippine business onboarding: https://docs.paymongo.com/docs/account-settings-doing-business-in-the-philippines
+- PayMongo Philippine business onboarding and 27 November 2026 rules: https://docs.paymongo.com/docs/account-settings-doing-business-in-the-philippines
 - Stripe country availability: https://stripe.com/global
 
 ## Release gate
