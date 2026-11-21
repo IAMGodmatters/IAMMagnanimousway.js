@@ -16,9 +16,10 @@ const read = path => fs.readFileSync(new URL('../../' + path, import.meta.url), 
 
 test('native marketing skill pack is registered without replacing existing skills', () => {
   const names = MAGNANIMOUS_MARKETING_SKILLS.map(skill => skill.name);
-  assert.equal(names.length, 9);
+  assert.equal(names.length, 10);
   assert.equal(new Set(names).size, names.length);
   for (const name of [
+    'magnanimous-marketing-department',
     'marketing-department-director',
     'marketing-content-coach',
     'marketing-brand-brief-builder',
