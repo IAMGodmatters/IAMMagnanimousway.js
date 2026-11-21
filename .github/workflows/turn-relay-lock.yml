@@ -5,6 +5,15 @@ on:
     branches: ['**']
     paths:
       - 'telecom-core/turn-relay/**'
+      - 'telecom-core/asterisk/entrypoint.sh'
+      - 'telecom-core/control-api/app/config.py'
+      - 'telecom-core/control-api/app/main.py'
+      - 'telecom-core/control-api/app/services/health.py'
+      - 'telecom-core/control-api/app/services/webrtc_sessions.py'
+      - 'telecom-core/deploy/bootstrap-tailscale-funnel.sh'
+      - 'telecom-core/deploy/renew-tailscale-funnel-tls.sh'
+      - 'telecom-core/deploy/install-tailscale-funnel-renewal.sh'
+      - 'telecom-core/deploy/test-tailscale-funnel-bootstrap.sh'
       - 'telecom-core/docker-compose.yml'
       - 'telecom-core/.env.owned.example'
       - 'qa/scripts/telecom-deep-architecture-lock.mjs'
@@ -12,6 +21,15 @@ on:
   pull_request:
     paths:
       - 'telecom-core/turn-relay/**'
+      - 'telecom-core/asterisk/entrypoint.sh'
+      - 'telecom-core/control-api/app/config.py'
+      - 'telecom-core/control-api/app/main.py'
+      - 'telecom-core/control-api/app/services/health.py'
+      - 'telecom-core/control-api/app/services/webrtc_sessions.py'
+      - 'telecom-core/deploy/bootstrap-tailscale-funnel.sh'
+      - 'telecom-core/deploy/renew-tailscale-funnel-tls.sh'
+      - 'telecom-core/deploy/install-tailscale-funnel-renewal.sh'
+      - 'telecom-core/deploy/test-tailscale-funnel-bootstrap.sh'
       - 'telecom-core/docker-compose.yml'
       - 'telecom-core/.env.owned.example'
       - 'qa/scripts/telecom-deep-architecture-lock.mjs'
@@ -28,8 +46,17 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Validate relay entrypoint syntax
-        run: sh -n telecom-core/turn-relay/entrypoint.sh
+      - name: Validate relay and free-edge script syntax
+        run: |
+          sh -n telecom-core/turn-relay/entrypoint.sh
+          sh -n telecom-core/asterisk/entrypoint.sh
+          bash -n telecom-core/deploy/bootstrap-tailscale-funnel.sh
+          bash -n telecom-core/deploy/renew-tailscale-funnel-tls.sh
+          bash -n telecom-core/deploy/install-tailscale-funnel-renewal.sh
+          bash -n telecom-core/deploy/test-tailscale-funnel-bootstrap.sh
+
+      - name: Simulate free Tailscale Funnel bootstrap
+        run: bash telecom-core/deploy/test-tailscale-funnel-bootstrap.sh
 
       - name: Validate opt-in Telecom Compose profile
         env:
@@ -69,10 +96,64 @@ jobs:
             -e MAGNANIMOUS_TURN_TLS_PORT=53490 \
             -e MAGNANIMOUS_TURN_MIN_PORT=49260 \
             -e MAGNANIMOUS_TURN_MAX_PORT=49270 \
+            -e MAGNANIMOUS_RELAY_LOCAL_MEDIA=true \
+            -e MAGNANIMOUS_TURN_ALLOWED_PEER_IP=100.64.0.10 \
             magnanimous-turn-relay:ci
           sleep 3
           test "$(docker inspect -f '{{.State.Running}}' magnanimous-turn-relay-ci)" = "true"
           docker logs magnanimous-turn-relay-ci
+
+      - name: Reject contradictory Asterisk relay-local settings
+        shell: bash
+        run: |
+          set -euo pipefail
+          common_env=(
+            ASTERISK_ARI_USER=ci-ari
+            ASTERISK_ARI_PASSWORD=ci-ari-value
+            MAGNANIMOUS_AI_PASSWORD=ci-ai-value
+            MAGNANIMOUS_ADMIN_PASSWORD=ci-admin-value
+            MAGNANIMOUS_SIP_DOMAIN=relay.test
+            MAGNANIMOUS_RELAY_LOCAL_MEDIA=true
+            MAGNANIMOUS_TURN_ALLOWED_PEER_IP=100.64.0.10
+          )
+          if env "${common_env[@]}" TELECOM_PUBLIC_IP=203.0.113.10 \
+            sh telecom-core/asterisk/entrypoint.sh true; then
+            echo "Asterisk relay-local mode incorrectly accepted TELECOM_PUBLIC_IP" >&2
+            exit 1
+          fi
+          if env "${common_env[@]}" ASTERISK_STUN_SERVER=stun.example.test:3478 \
+            sh telecom-core/asterisk/entrypoint.sh true; then
+            echo "Asterisk relay-local mode incorrectly accepted ASTERISK_STUN_SERVER" >&2
+            exit 1
+          fi
+
+      - name: Reject public IP in relay-local media mode
+        shell: bash
+        run: |
+          set -euo pipefail
+          if docker run --rm --network host \
+            -v /tmp/magnanimous-turn-ci/certs:/certs:ro \
+            -e MAGNANIMOUS_TURN_REALM=relay.test \
+            -e MAGNANIMOUS_TURN_AUTH_SECRET=ci-turn-value \
+            -e MAGNANIMOUS_TURN_TLS_CERT_FILE=/certs/fullchain.pem \
+            -e MAGNANIMOUS_TURN_TLS_KEY_FILE=/certs/privkey.pem \
+            -e MAGNANIMOUS_RELAY_LOCAL_MEDIA=true \
+            -e MAGNANIMOUS_TURN_ALLOWED_PEER_IP=100.64.0.10 \
+            -e TELECOM_PUBLIC_IP=203.0.113.10 \
+            magnanimous-turn-relay:ci; then
+            echo "relay-local mode incorrectly accepted TELECOM_PUBLIC_IP" >&2
+            exit 1
+          fi
+
+      - name: Verify relay-local TURN peer isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec magnanimous-turn-relay-ci sh -c \
+            "grep -Fx 'relay-ip=100.64.0.10' /tmp/magnanimous-turnserver.conf &&
+             grep -Fx 'denied-peer-ip=0.0.0.0-255.255.255.255' /tmp/magnanimous-turnserver.conf &&
+             grep -Fx 'denied-peer-ip=::-ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff' /tmp/magnanimous-turnserver.conf &&
+             grep -Fx 'allowed-peer-ip=100.64.0.10' /tmp/magnanimous-turnserver.conf"
 
       - name: Stop relay
         if: always()
