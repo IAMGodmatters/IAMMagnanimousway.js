@@ -89,6 +89,9 @@ has(mediaGuard,'MAX_SOCIAL_VIDEO_BYTES = 256 * 1024 * 1024','Free-first video pu
 has(mediaGuard,"'video/mp4'",'Media validation must accept MP4.');
 has(mediaGuard,"'video/quicktime'",'Media validation must accept MOV/QuickTime.');
 has(mediaGuard,"'video/webm'",'Media validation must accept WebM.');
+has(mediaGuard,'export function publicHttpsMediaUrl(value)','All media URL entry points must share one HTTPS hostname validator.');
+has(mediaGuard,'toLowerCase().replace','DNS root dots must be normalized before local/private hostname checks.');
+has(mediaGuard,"'home.arpa'",'Home-network reserved hostnames must be rejected.');
 has(mediaGuard,"method: 'HEAD'",'Media metadata must be checked before provider publishing.');
 has(mediaGuard,"range: 'bytes=0-0'",'Media metadata inspection must support a bounded byte-range fallback.');
 has(mediaGuard,'total !== Number(expectedBytes)','Streaming must reject short media bodies rather than silently upload truncated files.');
@@ -146,7 +149,9 @@ has(page,'Video description','The complete YouTube description must be visible b
 has(page,'Visibility','YouTube visibility must be visible before approval');
 has(page,'TikTok privacy','TikTok privacy must be visible before approval');
 has(page,'LinkedIn visibility','LinkedIn public feed visibility must be visible before approval');
-has(publishing,'h.endsWith(\'.invalid\')','Shared media URL validation must reject reserved invalid hostnames');
+has(publishing,'return publicHttpsMediaUrl(value)','Direct publishing must use the shared media URL validator.');
+has(scheduling,'isPublicSocialMediaUrl(payload.video_url)','Scheduled drafts must use the same media URL validator as direct publishing.');
+assert.ok(!scheduling.includes('function publicHttpsUrl('),'Scheduled publishing must not maintain a second URL security policy.');
 has(page,'outcome_unknown','Calendar must explain uncertain provider outcomes and duplicate protection');
 has(page,'SELF_ONLY','TikTok defaults to private posting');
 has(page,'type="datetime-local"','Calendar must collect a local publishing time');

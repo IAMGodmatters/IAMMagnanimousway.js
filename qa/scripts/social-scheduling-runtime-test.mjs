@@ -250,7 +250,7 @@ try{
  assert.equal(tiktokFetches,1,'Failed TikTok preflight must not be retried automatically');
 
  // Public media validation rejects insecure, private, credential-bearing and local destinations.
- assert.equal(isPublicSocialMediaUrl('https://cdn.example.com/video.mp4'),true);
+ assert.equal(isPublicSocialMediaUrl('https://cdn.example.com/video.mp4'),true);\n assert.equal(isPublicSocialMediaUrl('https://cdn.example.com./video.mp4'),true,'A public FQDN with a DNS root dot remains valid after hostname normalization.');
  for(const url of [
   'http://cdn.example.com/video.mp4',
   'https://127.0.0.1/video.mp4',
@@ -258,7 +258,18 @@ try{
   'https://localhost/video.mp4',
   'https://user:pass@cdn.example.com/video.mp4',
   'https://[::1]/video.mp4',
-  'https://metadata.google.internal/video.mp4'
+  'https://metadata.google.internal/video.mp4',
+  'https://localhost./video.mp4',
+  'https://foo.localhost./video.mp4',
+  'https://127.0.0.1./video.mp4',
+  'https://10.0.0.8./video.mp4',
+  'https://metadata.google.internal./video.mp4',
+  'https://router.local./video.mp4',
+  'https://router.home.arpa/video.mp4',
+  'https://2130706433/video.mp4',
+  'https://0x7f000001/video.mp4',
+  'https://0x7f.0.0.1/video.mp4',
+  'https://router.example/video.mp4'
  ])assert.equal(isPublicSocialMediaUrl(url),false,`Unsafe media URL was accepted: ${url}`);
 
  console.log('Magnanimous native social scheduling runtime tests passed: provider readiness, tenant isolation, role gate, exact idempotency, cancellation, approval binding, DST-compatible timestamp validation, duplicate cron protection, ambiguous outcomes, provider throttling, expired-token and provider-media preflight, YouTube/TikTok preflight failures and media URL safety.');

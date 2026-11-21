@@ -5,6 +5,48 @@ export const ALLOWED_SOCIAL_VIDEO_TYPES = new Set([
   'video/webm'
 ]);
 
+
+const INTERNAL_HOST_SUFFIXES = new Set([
+  'localhost',
+  'local',
+  'localdomain',
+  'internal',
+  'test',
+  'invalid',
+  'example',
+  'home.arpa',
+  'lan',
+  'home',
+  'corp',
+  'intranet',
+  'onion'
+]);
+
+function hasInternalHostSuffix(host) {
+  return [...INTERNAL_HOST_SUFFIXES].some(suffix => host === suffix || host.endsWith(`.${suffix}`));
+}
+
+// One canonical policy is shared by draft creation, direct publishing and media fetches.
+// A trailing DNS root dot must not bypass local/private hostname checks.
+export function publicHttpsMediaUrl(value) {
+  let url;
+  try {
+    url = new URL(String(value || ''));
+  } catch {
+    return null;
+  }
+  if (url.protocol !== 'https:' || url.username || url.password) return null;
+
+  const host = String(url.hostname || '').toLowerCase().replace(/\.+$/, '');
+  if (!host || !host.includes('.') || host.includes(':') || hasInternalHostSuffix(host)) return null;
+
+  // WHATWG URL parsing canonicalizes legacy IPv4 forms; this also rejects numeric
+  // and hexadecimal host-label forms if a runtime preserves their original spelling.
+  if (host.split('.').every(label => /^(?:\d+|0x[0-9a-f]+)$/i.test(label))) return null;
+
+  return url;
+}
+
 const preflightError = (message, code = 'SOCIAL_MEDIA_SOURCE_INVALID') =>
   Object.assign(new Error(message), { preflight: true, code });
 

@@ -1,5 +1,5 @@
 import { currentUser } from './integrations.js';
-import { ensureSocialPublishingSchema, publishSocialPostForTenant, pollTikTokPublishStatus, socialProviderReadiness } from './social-publishing-runtime.js';
+import { ensureSocialPublishingSchema, isPublicSocialMediaUrl, publishSocialPostForTenant, pollTikTokPublishStatus, socialProviderReadiness } from './social-publishing-runtime.js';
 import { assessAiTransparency } from './ai-transparency.js';
 import { validIanaTimezone, timezoneOffsetMatches } from './social-timezone.js';
 
@@ -49,15 +49,6 @@ function parseSchedule(value){
   if(!/(?:Z|[+-]\d{2}:\d{2})$/i.test(raw))return 0;
  const ms=Date.parse(raw);
  return Number.isFinite(ms)?Math.floor(ms/1000):0;
-}
-function publicHttpsUrl(value){
- try{
-  const u=new URL(String(value||''));
-  if(u.protocol!=='https:'||u.username||u.password)return false;
-  const h=u.hostname.toLowerCase();
-   if(!h||h==='localhost'||h.endsWith('.localhost')||h.endsWith('.local')||h.endsWith('.internal')||h.endsWith('.test')||h.endsWith('.invalid')||h.includes(':')||/^\d{1,3}(?:\.\d{1,3}){3}$/.test(h)||/^10\./.test(h)||/^192\.168\./.test(h)||/^169\.254\./.test(h)||/^172\.(1[6-9]|2\d|3[01])\./.test(h))return false;
-  return true;
- }catch{return false}
 }
 function disclosureIssue(provider,payload){
  const transparency=assessAiTransparency({
@@ -150,7 +141,7 @@ async function handleCreate(request,env,user){
  if(!account?.configured)return json({detail:`The official ${provider} developer app is not configured. The workspace owner must finish Provider Setup before scheduling.`,code:'SOCIAL_PROVIDER_NOT_CONFIGURED'},409);
  if(!account?.write_scope)return json({detail:`The connected ${provider} account is missing its official publishing permission. Reconnect it and approve the required publishing scope before scheduling.`,code:'SOCIAL_PUBLISH_SCOPE_REQUIRED'},409);
  const payload=normalizedPayload(provider,body);
- if((provider==='youtube'||provider==='tiktok')&&!publicHttpsUrl(payload.video_url))return json({detail:'Video publishing requires a public HTTPS video URL. Private, local and insecure URLs are not accepted.'},400);
+ if((provider==='youtube'||provider==='tiktok')&&!isPublicSocialMediaUrl(payload.video_url))return json({detail:'Video publishing requires a public HTTPS video URL. Private, local and insecure URLs are not accepted.'},400);
  if(provider==='linkedin'&&!payload.text)return json({detail:'LinkedIn post text is required.'},400);
  if(payload.deepfake||payload.public_interest)payload.ai_generated=true;
  const disclosure=disclosureIssue(provider,payload);if(disclosure)return json({detail:disclosure,code:'AI_DISCLOSURE_REQUIRED'},409);
