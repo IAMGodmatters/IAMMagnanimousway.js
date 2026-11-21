@@ -37,6 +37,8 @@ has(scheduling,"function canManageSchedules(user){return ['owner','admin'].inclu
 has(scheduling,'Only the workspace owner or administrator can approve','Approval API must fail closed for ordinary workspace members');
 has(scheduling,'Only the workspace owner or administrator can cancel','Cancellation API must enforce the same workspace manager boundary');
 has(page,'/api/auth/me','Calendar must load current workspace role before showing approval controls');
+has(page,'item.connected&&item.configured&&item.write_scope','Calendar must default only to accounts that are actually configured and authorized to publish');
+has(page,'setProvider(current=>ready.some((item:Connection)=>item.id===current)?current:(ready[0]?.id||"youtube") as Provider)','Calendar must never select an unconfigured or unauthorized connected account by default');
 has(page,'The workspace owner or administrator must review','Non-owner members must see an explicit approval-required state');
 has(scheduling,'validIanaTimezone(body.timezone)','Schedule must validate an IANA timezone through the shared tested helper');
 has(scheduling,'explicit UTC offset','Schedule datetime must carry an explicit UTC offset');
