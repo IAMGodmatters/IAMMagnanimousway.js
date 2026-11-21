@@ -1,5 +1,6 @@
 import { currentUser } from './integrations.js';
 import { assessAiTransparency } from './ai-transparency.js';
+import { inspectPublicVideoSource, validatePublicVideoResponse, boundedMediaStream } from './social-media-source-guard.js';
 
 const now=()=>Math.floor(Date.now()/1000);
 const encoder=new TextEncoder();
@@ -74,9 +75,56 @@ async function tokenFor(env,row,provider){let token=await decrypt(row.access_tok
  else throw new Error('LinkedIn authorization expired. Reconnect the account.');
  const d=await responseJson(await fetch(endpoint,{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body}),`${PROVIDERS[provider].name} token refresh`);token=String(d.access_token||'');await saveConnection(env,row.tenant_id,provider,{external_id:row.external_id,display_name:row.display_name,access_token:token,refresh_token:d.refresh_token||refresh,expires_at:now()+Number(d.expires_in||3600),scope:d.scope||row.scope,metadata:row.metadata});return token
 }
-async function youtubePublish(env,row,body){const videoUrl=publicHttpUrl(body.video_url);if(!videoUrl)throw Object.assign(new Error('YouTube upload requires a public HTTPS video URL.'),{preflight:true});const token=await tokenFor(env,row,'youtube');let source;try{source=await fetch(videoUrl.toString(),{redirect:'error'})}catch(error){throw Object.assign(error,{preflight:true})}if(!source.ok||!source.body)throw Object.assign(new Error(`Video source could not be fetched (${source.status}).`),{preflight:true});const privacy=['private','unlisted','public'].includes(String(body.privacy_status))?String(body.privacy_status):'private';const metadata={snippet:{title:String(body.title||'Magnanimous video').slice(0,100),description:String(body.description||'').slice(0,5000)},status:{privacyStatus:privacy,selfDeclaredMadeForKids:Boolean(body.made_for_kids)}};const init=await fetch('https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status',{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json','x-upload-content-type':source.headers.get('content-type')||'video/mp4'},body:JSON.stringify(metadata)});if(!init.ok)await responseJson(init,'YouTube upload initialization');const location=init.headers.get('location');if(!location)throw new Error('YouTube did not return a resumable upload URL.');const upload=await fetch(location,{method:'PUT',headers:{'content-type':source.headers.get('content-type')||'video/mp4'},body:source.body});const data=await responseJson(upload,'YouTube video upload');return{ok:true,provider:'youtube',video_id:data.id||'',privacy_status:privacy,url:data.id?`https://www.youtube.com/watch?v=${data.id}`:''}}
+async function youtubePublish(env,row,body){
+ const videoUrl=publicHttpUrl(body.video_url);
+ if(!videoUrl)throw Object.assign(new Error('YouTube upload requires a public HTTPS video URL.'),{preflight:true});
+ const media=await inspectPublicVideoSource(videoUrl.toString());
+ const token=await tokenFor(env,row,'youtube');
+ let source;
+ try{source=await fetch(videoUrl.toString(),{redirect:'error'})}
+ catch(error){throw Object.assign(error,{preflight:true})}
+ if(!source.ok||!source.body)throw Object.assign(new Error(`Video source could not be fetched (${source.status}).`),{preflight:true});
+ let actualMedia;
+ try{actualMedia=validatePublicVideoResponse(source.headers,media.contentLength)}
+ catch(error){await source.body.cancel().catch(()=>{});throw Object.assign(error,{preflight:true})}
+ if(actualMedia.contentType!==media.contentType){
+  await source.body.cancel().catch(()=>{});
+  throw Object.assign(new Error('Video source media type changed between inspection and download. No provider upload was started.'),{preflight:true});
+ }
+ const uploadBody=boundedMediaStream(source.body,{expectedBytes:media.contentLength});
+ const privacy=['private','unlisted','public'].includes(String(body.privacy_status))?String(body.privacy_status):'private';
+ const metadata={snippet:{title:String(body.title||'Magnanimous video').slice(0,100),description:String(body.description||'').slice(0,5000)},status:{privacyStatus:privacy,selfDeclaredMadeForKids:Boolean(body.made_for_kids)}};
+ const init=await fetch('https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status',{
+  method:'POST',
+  headers:{authorization:`Bearer ${token}`,'content-type':'application/json','x-upload-content-type':media.contentType,'x-upload-content-length':String(media.contentLength)},
+  body:JSON.stringify(metadata)
+ });
+ if(!init.ok)await responseJson(init,'YouTube upload initialization');
+ const location=init.headers.get('location');
+ if(!location)throw new Error('YouTube did not return a resumable upload URL.');
+ const upload=await fetch(location,{method:'PUT',headers:{'content-type':media.contentType},body:uploadBody});
+ const data=await responseJson(upload,'YouTube video upload');
+ return{ok:true,provider:'youtube',video_id:data.id||'',privacy_status:privacy,url:data.id?`https://www.youtube.com/watch?v=${data.id}`:'',media:{content_type:media.contentType,size_bytes:media.contentLength}};
+}
 async function tiktokCreator(token){return responseJson(await fetch('https://open.tiktokapis.com/v2/post/publish/creator_info/query/',{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json; charset=UTF-8'},body:'{}'}),'TikTok creator info')}
-async function tiktokPublish(env,row,body){if(body.explicit_consent!==true)throw new Error('TikTok publishing requires the user to explicitly consent before the video is sent.');const videoUrl=publicHttpUrl(body.video_url);if(!videoUrl)throw new Error('TikTok PULL_FROM_URL requires a public HTTPS video URL under a domain/prefix approved in the TikTok developer app.');const token=await tokenFor(env,row,'tiktok');let creator;try{creator=await tiktokCreator(token)}catch(error){throw Object.assign(error,{preflight:true})}const options=creator?.data?.privacy_level_options||[];const privacy=String(body.privacy_level||'SELF_ONLY');if(!options.includes(privacy))throw Object.assign(new Error(`Choose a privacy level allowed by this TikTok account: ${options.join(', ')||'none returned'}.`),{preflight:true});const payload={post_info:{title:String(body.title||'').slice(0,2200),privacy_level:privacy,disable_duet:body.allow_duet===false,disable_comment:body.allow_comment===false,disable_stitch:body.allow_stitch===false},source_info:{source:'PULL_FROM_URL',video_url:videoUrl.toString()}};const d=await responseJson(await fetch('https://open.tiktokapis.com/v2/post/publish/video/init/',{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json; charset=UTF-8'},body:JSON.stringify(payload)}),'TikTok direct post');if(d?.error?.code&&d.error.code!=='ok')throw new Error(d.error.message||d.error.code);const publishId=String(d?.data?.publish_id||'');if(!publishId)throw new Error('TikTok did not return a publish ID. The result cannot be safely reconciled; do not submit a duplicate.');return{ok:true,provider:'tiktok',publish_id:publishId,creator:creator?.data||{},note:'TikTok accepted the request. Final publication is confirmed separately through its status endpoint.'}}
+async function tiktokPublish(env,row,body){
+ if(body.explicit_consent!==true)throw new Error('TikTok publishing requires the user to explicitly consent before the video is sent.');
+ const videoUrl=publicHttpUrl(body.video_url);
+ if(!videoUrl)throw Object.assign(new Error('TikTok PULL_FROM_URL requires a public HTTPS video URL under a domain/prefix approved in the TikTok developer app.'),{preflight:true});
+ const media=await inspectPublicVideoSource(videoUrl.toString());
+ const token=await tokenFor(env,row,'tiktok');
+ let creator;
+ try{creator=await tiktokCreator(token)}catch(error){throw Object.assign(error,{preflight:true})}
+ const options=creator?.data?.privacy_level_options||[];
+ const privacy=String(body.privacy_level||'SELF_ONLY');
+ if(!options.includes(privacy))throw Object.assign(new Error(`Choose a privacy level allowed by this TikTok account: ${options.join(', ')||'none returned'}.`),{preflight:true});
+ const payload={post_info:{title:String(body.title||'').slice(0,2200),privacy_level:privacy,disable_duet:body.allow_duet===false,disable_comment:body.allow_comment===false,disable_stitch:body.allow_stitch===false},source_info:{source:'PULL_FROM_URL',video_url:videoUrl.toString()}};
+ const d=await responseJson(await fetch('https://open.tiktokapis.com/v2/post/publish/video/init/',{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json; charset=UTF-8'},body:JSON.stringify(payload)}),'TikTok direct post');
+ if(d?.error?.code&&d.error.code!=='ok')throw new Error(d.error.message||d.error.code);
+ const publishId=String(d?.data?.publish_id||'');
+ if(!publishId)throw new Error('TikTok did not return a publish ID. The result cannot be safely reconciled; do not submit a duplicate.');
+ return{ok:true,provider:'tiktok',publish_id:publishId,creator:creator?.data||{},media:{content_type:media.contentType,size_bytes:media.contentLength},note:'TikTok accepted the request. Final publication is confirmed separately through its status endpoint.'};
+}
 async function linkedinPublish(env,row,body){const text=String(body.text||'').trim();if(!text)throw new Error('LinkedIn post text is required.');if(body.explicit_consent!==true)throw new Error('LinkedIn publishing requires explicit user confirmation.');const token=await tokenFor(env,row,'linkedin'),author=`urn:li:person:${row.external_id}`;const payload={author,commentary:text.slice(0,3000),visibility:'PUBLIC',distribution:{feedDistribution:'MAIN_FEED',targetEntities:[],thirdPartyDistributionChannels:[]},lifecycleState:'PUBLISHED',isReshareDisabledByAuthor:false};const r=await fetch('https://api.linkedin.com/rest/posts',{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json','Linkedin-Version':String(env.LINKEDIN_VERSION||'202608'),'X-Restli-Protocol-Version':'2.0.0'},body:JSON.stringify(payload)});if(!r.ok){const d=await r.json().catch(()=>({})),error=new Error(d?.message||`LinkedIn post failed (${r.status}). The app/account may still need LinkedIn product approval.`);error.status=r.status;if(r.status>=400&&r.status<500)error.preflight=true;throw error}return{ok:true,provider:'linkedin',post_id:r.headers.get('x-restli-id')||'',author}}
 
 export function isPublicSocialMediaUrl(value){return Boolean(publicHttpUrl(value));}
