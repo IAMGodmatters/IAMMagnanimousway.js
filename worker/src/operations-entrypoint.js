@@ -8,7 +8,7 @@ import {handleUnifiedInbox} from './unified-inbox-runtime.js';
 import {handleAgencyGrowth} from './agency-growth-runtime.js';
 import {handleAgencyAutomations,dispatchAgencyAutomationEvent} from './agency-automation-runtime.js';
 import {handleGrowthRecovery,recordSignupLead,recordPlatformCheckout,recordStripeGrowthEvent,scheduledGrowth} from './growth-recovery-runtime.js';
-import {handleAgencyBillingBefore,extendPlansPayload,applyAgencyWebhook} from './agency-billing-extension.js';
+import {handleAgencyBillingBefore,extendPlansPayload} from './agency-billing-extension.js';
 import {handleWhiteLabelBrain,recordWhiteLabelAction,shouldObserveWhiteLabelPath} from './white-label-brain-runtime.js';
 import {handleMagnanimousDevAgent} from './magnanimous-dev-agent.js';
 import {handleMagnanimousVibeStudio} from './magnanimous-vibe-studio.js';
@@ -245,7 +245,7 @@ async function operationsFetch(request,env,ctx){
   }
   if(webhookClone&&response.ok){
    const raw=await webhookClone.text().catch(()=>'' );let eventData=null;try{eventData=JSON.parse(raw)}catch{}
-   if(eventData){const tasks=[applyAgencyWebhook(env,eventData,response),recordStripeGrowthEvent(env,eventData)];const storePaid=String(eventData?.data?.object?.metadata?.product_type||'')==='magnanimous_store_order'&&['checkout.session.completed','checkout.session.async_payment_succeeded'].includes(String(eventData?.type||'')),storeOrderId=String(eventData?.data?.object?.metadata?.store_order_id||'').trim();if(storePaid)tasks.push(storeOrderId?scheduledNativeStoreFulfillment(env,storeOrderId):scheduledNativeStoreFulfillment(env));queueAutomation(ctx,Promise.all(tasks));}
+   if(eventData){const tasks=[recordStripeGrowthEvent(env,eventData,response)];const storePaid=String(eventData?.data?.object?.metadata?.product_type||'')==='magnanimous_store_order'&&['checkout.session.completed','checkout.session.async_payment_succeeded'].includes(String(eventData?.type||'')),storeOrderId=String(eventData?.data?.object?.metadata?.store_order_id||'').trim();if(storePaid)tasks.push(storeOrderId?scheduledNativeStoreFulfillment(env,storeOrderId):scheduledNativeStoreFulfillment(env));queueAutomation(ctx,Promise.all(tasks));}
   }
   return response;
 }
