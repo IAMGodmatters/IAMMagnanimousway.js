@@ -10,6 +10,10 @@ type Item={
  payload:Record<string,unknown>;last_error?:string;created_at:number;approved_at?:number;
  provider_receipt_json?:string;
 };
+type Scheduler={
+ enabled:boolean;interval_minutes:number;max_new_posts_per_run:number;theoretical_max_new_posts_per_day:number;
+ tenant_due_count:number;tenant_oldest_due_at:number|null;tenant_queue_lag_seconds:number;
+};
 function localDateTimeWithOffset(value:string){
  const date=new Date(value);
  if(!Number.isFinite(date.getTime()))return "";
@@ -36,6 +40,7 @@ export default function SocialCalendar(){
  const [role,setRole]=useState("");
  const [connections,setConnections]=useState<Connection[]>([]);
  const [items,setItems]=useState<Item[]>([]);
+ const [scheduler,setScheduler]=useState<Scheduler|null>(null);
  const [provider,setProvider]=useState<Provider>("youtube");
  const [scheduledLocal,setScheduledLocal]=useState("");
  const [minimumTime,setMinimumTime]=useState("");
@@ -81,7 +86,7 @@ export default function SocialCalendar(){
    if(!results[1].ok)throw new Error(s.detail||"Could not load the publishing calendar.");
    if(!results[2].ok)throw new Error(me.detail||"Could not verify workspace permissions.");
    const connected=(c.connections||[]).filter((item:Connection)=>["youtube","tiktok","linkedin"].includes(item.id)&&item.connected);
-   setConnections(c.connections||[]);setItems(s.items||[]);setRole(String(me?.user?.role||"").toLowerCase());
+   setConnections(c.connections||[]);setItems(s.items||[]);setScheduler(s.scheduler||null);setRole(String(me?.user?.role||"").toLowerCase());
    setProvider(current=>connected.some((item:Connection)=>item.id===current)?current:(connected[0]?.id||"youtube") as Provider);
   }catch(e:any){setError(e?.message||"The publishing calendar could not be loaded.");}
   finally{setLoading(false);}
@@ -159,7 +164,8 @@ export default function SocialCalendar(){
    <small>MAGNANIMOUS SOCIAL STUDIO</small>
    <h1>Publishing Calendar</h1>
    <p>Prepare a post, review the exact account and publishing time, then approve it. Magnanimous AI manages the schedule; your connected social account remains yours.</p>
-   <div className="facts"><span>15-minute scheduler</span><span>Approval before every post</span><span>No automatic retry after uncertain results</span></div>
+   <div className="facts"><span>1 post per 15-minute run · 96/day platform-wide</span><span>Approval before every post</span><span>No automatic retry after uncertain results</span></div>
+   {scheduler&&<p className="queueStatus" role="status">Your workspace has {scheduler.tenant_due_count} overdue post(s). {scheduler.tenant_queue_lag_seconds>0?`The oldest is ${Math.ceil(scheduler.tenant_queue_lag_seconds/60)} minutes overdue.`:"There are no overdue posts in your queue."}</p>}
   </section>
   {notice&&<div className="notice" role="status">{notice}</div>}
   {error&&<div className="error" role="alert">{error}</div>}
@@ -173,6 +179,7 @@ export default function SocialCalendar(){
     </label>
     {provider==="linkedin"?<label>Post text<textarea required maxLength={3000} rows={6} value={linkedinText} onChange={e=>setLinkedinText(e.target.value)} placeholder="Write your LinkedIn post…" /></label>:<>
      <label>Public video URL<input required type="url" value={videoUrl} onChange={e=>setVideoUrl(e.target.value)} placeholder="https://your-public-video-file.mp4" /></label>
+     <p className="hint">MP4, MOV or WebM · maximum 256 MiB. The source must expose its media type and file size. TikTok also requires the source domain or URL prefix to be verified in its developer app.</p>
      <label>{provider==="youtube"?"Video title":"TikTok caption"}<input required maxLength={provider==="youtube"?100:2200} value={title} onChange={e=>setTitle(e.target.value)} placeholder="Write a clear title or caption…" /></label>
      {provider==="youtube"&&<><label>Description<textarea rows={4} maxLength={5000} value={description} onChange={e=>setDescription(e.target.value)} placeholder="Add the video description…" /></label>
       <label>Visibility<select value={privacy} onChange={e=>setPrivacy(e.target.value)}><option value="private">Private</option><option value="unlisted">Unlisted</option><option value="public">Public</option></select></label></>}
@@ -227,7 +234,7 @@ export default function SocialCalendar(){
    a{color:#a9eaff;text-decoration:none;font-weight:800}.hero,.composer,.calendar{max-width:1180px;margin:22px auto;padding:clamp(20px,3vw,34px);border:1px solid rgba(234,192,117,.48);border-radius:22px;background:linear-gradient(135deg,rgba(10,40,82,.94),rgba(3,13,31,.96));box-shadow:0 18px 44px rgba(0,0,0,.28)}
    .hero{border-width:2px;background:linear-gradient(120deg,rgba(6,34,72,.94),rgba(4,14,34,.92)),url('/magnanimous-social-palace-v1.svg') center/cover}
    small{color:#8ce8ff;font-weight:900;letter-spacing:.14em}h1{font-size:clamp(34px,5vw,60px);line-height:1.02;color:#ffe0a0;margin:12px 0}h2{font-size:clamp(21px,3vw,28px);color:#ffe0a0;margin:6px 0}
-   .hero p{max-width:780px;line-height:1.6;color:#dbeaff}.facts{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}.facts span{border:1px solid rgba(238,195,120,.55);border-radius:999px;padding:8px 12px;color:#f6dbac;font-size:12px;font-weight:800}
+   .hero p{max-width:780px;line-height:1.6;color:#dbeaff}.facts{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}.facts span{border:1px solid rgba(238,195,120,.55);border-radius:999px;padding:8px 12px;color:#f6dbac;font-size:12px;font-weight:800}.queueStatus{max-width:850px;margin:14px 0 0;padding:10px 12px;border:1px solid rgba(140,232,255,.28);border-radius:12px;background:rgba(2,13,31,.58);color:#c9e8fb;font-size:12px;line-height:1.5}
    .sectionHeading{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:20px}.sectionHeading>span{color:#9feaff;font-size:12px;font-weight:800}
    form{display:grid;gap:15px;max-width:850px}form label{display:grid;gap:7px;color:#dcecff;font-weight:750;font-size:13px}
    input:not([type=checkbox]),select,textarea{width:100%;box-sizing:border-box;border-radius:12px;border:1px solid rgba(157,205,255,.35);background:#06172e;color:#f4f8ff;padding:12px 13px;font:inherit;min-height:44px}
