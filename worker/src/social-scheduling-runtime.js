@@ -3,10 +3,12 @@ import { ensureSocialPublishingSchema, isPublicSocialMediaUrl, publishSocialPost
 import { assessAiTransparency } from './ai-transparency.js';
 import { validIanaTimezone, timezoneOffsetMatches } from './social-timezone.js';
 
-const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
+const json=(data,status=200,extraHeaders={})=>Response.json(data,{status,headers:{'cache-control':'no-store',...extraHeaders}});
 const now=()=>Math.floor(Date.now()/1000);
 const PROVIDERS=new Set(['youtube','tiktok','linkedin']);
 const MAX_PAYLOAD_BYTES=12000;
+const MAX_ACTIVE_POSTS_PER_TENANT=100;
+const MAX_NEW_POSTS_PER_HOUR_PER_TENANT=20;
 
 const socialSchedulingSchemaReady=new WeakMap();
 async function ensureSchema(env){
@@ -39,6 +41,8 @@ async function ensureSchema(env){
    )`).run();
    await db.prepare('CREATE INDEX IF NOT EXISTS idx_social_scheduled_due ON social_scheduled_posts(status,scheduled_at)').run();
    await db.prepare('CREATE INDEX IF NOT EXISTS idx_social_scheduled_tenant ON social_scheduled_posts(tenant_id,scheduled_at)').run();
+   await db.prepare('CREATE INDEX IF NOT EXISTS idx_social_scheduled_tenant_created ON social_scheduled_posts(tenant_id,created_at)').run();
+   await db.prepare('CREATE INDEX IF NOT EXISTS idx_social_scheduled_tenant_status ON social_scheduled_posts(tenant_id,status)').run();
   })();
   socialSchedulingSchemaReady.set(db,pending);
  }
@@ -102,6 +106,11 @@ function publicRow(row){
  const {payload_json,tenant_id,created_by,approved_by,approval_hash,idempotency_key,...safe}=row;
  return {...safe,payload:parsePayload(row)};
 }
+function idempotencyResult(existing,provider,externalId,serialized,scheduledAt,tz){
+ const same=String(existing.provider)===provider&&String(existing.external_id)===String(externalId)&&String(existing.payload_json)===serialized&&Number(existing.scheduled_at)===scheduledAt&&String(existing.timezone)===tz;
+ if(!same)return json({detail:'This idempotency key already belongs to a different post. Start a new draft with a new key.',code:'IDEMPOTENCY_KEY_CONFLICT'},409);
+ return json({item:publicRow(existing),idempotent:true});
+}
 async function sha256(value){
  const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value));
  return [...new Uint8Array(bytes)].map(x=>x.toString(16).padStart(2,'0')).join('');
@@ -149,19 +158,37 @@ async function handleCreate(request,env,user){
  if(new TextEncoder().encode(serialized).byteLength>MAX_PAYLOAD_BYTES)return json({detail:'Scheduled post content is too large.'},413);
  const key=String(body.idempotency_key||'').trim();
  if(!key||key.length>100)return json({detail:'Provide a stable idempotency key of at most 100 characters before creating a scheduled post.'},400);
+ const tenantId=String(user.tenant_id);
+ const existing=await env.DB.prepare('SELECT * FROM social_scheduled_posts WHERE tenant_id=? AND idempotency_key=?').bind(tenantId,key).first();
+ if(existing)return idempotencyResult(existing,provider,account.external_id,serialized,scheduledAt,tz);
  const id=crypto.randomUUID();
  const ts=now();
+ let inserted;
  try{
-  await env.DB.prepare(`INSERT INTO social_scheduled_posts(id,tenant_id,created_by,provider,external_id,payload_json,scheduled_at,timezone,status,idempotency_key,created_at,updated_at)
-   VALUES(?,?,?,?,?,?,?,?, 'draft',?,?,?)`).bind(id,String(user.tenant_id),String(user.id),provider,String(account.external_id),serialized,scheduledAt,tz,key,ts,ts).run();
+  inserted=await env.DB.prepare(`INSERT INTO social_scheduled_posts(id,tenant_id,created_by,provider,external_id,payload_json,scheduled_at,timezone,status,idempotency_key,created_at,updated_at)
+   SELECT ?,?,?,?,?,?,?,?,'draft',?,?,?
+   WHERE
+    (SELECT COUNT(*) FROM social_scheduled_posts WHERE tenant_id=? AND status IN ('draft','scheduled','publishing','processing','outcome_unknown')) < ?
+    AND (SELECT COUNT(*) FROM social_scheduled_posts WHERE tenant_id=? AND created_at>=?) < ?`).bind(id,tenantId,String(user.id),provider,String(account.external_id),serialized,scheduledAt,tz,key,ts,ts,tenantId,MAX_ACTIVE_POSTS_PER_TENANT,tenantId,ts-3600,MAX_NEW_POSTS_PER_HOUR_PER_TENANT).run();
  }catch(error){
-  const existing=await env.DB.prepare('SELECT * FROM social_scheduled_posts WHERE tenant_id=? AND idempotency_key=?').bind(String(user.tenant_id),key).first().catch(()=>null);
-  if(existing){
-   const same=String(existing.provider)===provider&&String(existing.external_id)===String(account.external_id)&&String(existing.payload_json)===serialized&&Number(existing.scheduled_at)===scheduledAt&&String(existing.timezone)===tz;
-   if(!same)return json({detail:'This idempotency key already belongs to a different post. Start a new draft with a new key.',code:'IDEMPOTENCY_KEY_CONFLICT'},409);
-   return json({item:publicRow(existing),idempotent:true});
-  }
+  const duplicate=await env.DB.prepare('SELECT * FROM social_scheduled_posts WHERE tenant_id=? AND idempotency_key=?').bind(tenantId,key).first().catch(()=>null);
+  if(duplicate)return idempotencyResult(duplicate,provider,account.external_id,serialized,scheduledAt,tz);
   throw error;
+ }
+ if(Number(inserted?.meta?.changes||0)!==1){
+  const limits=await env.DB.prepare(`SELECT
+   (SELECT COUNT(*) FROM social_scheduled_posts WHERE tenant_id=? AND status IN ('draft','scheduled','publishing','processing','outcome_unknown')) AS active_count,
+   (SELECT COUNT(*) FROM social_scheduled_posts WHERE tenant_id=? AND created_at>=?) AS recent_count,
+   (SELECT MIN(created_at) FROM social_scheduled_posts WHERE tenant_id=? AND created_at>=?) AS oldest_recent_at`).bind(tenantId,tenantId,ts-3600,tenantId,ts-3600).first();
+  const activeCount=Number(limits?.active_count||0);
+  if(activeCount>=MAX_ACTIVE_POSTS_PER_TENANT)return json({detail:'This workspace already has 100 active social posts. Cancel, publish or reconcile existing items before adding more.',code:'SOCIAL_SCHEDULE_CAPACITY_REACHED',limit:MAX_ACTIVE_POSTS_PER_TENANT},429);
+  const recentCount=Number(limits?.recent_count||0);
+  if(recentCount>=MAX_NEW_POSTS_PER_HOUR_PER_TENANT){
+   const oldestRecentAt=Number(limits?.oldest_recent_at||0);
+   const retryAfter=oldestRecentAt?Math.max(1,oldestRecentAt+3600-ts):3600;
+   return json({detail:'This workspace can create up to 20 new social drafts per hour. Try again after the hourly window resets.',code:'SOCIAL_SCHEDULE_RATE_LIMITED',limit:MAX_NEW_POSTS_PER_HOUR_PER_TENANT,retry_after_seconds:retryAfter},429,{'retry-after':String(retryAfter)});
+  }
+  return json({detail:'The schedule could not be created because the queue changed. Reload the calendar and try again.',code:'SOCIAL_SCHEDULE_CONFLICT'},409);
  }
  const row=await getTenantRow(env,user.tenant_id,id);
  return json({item:publicRow(row),approval_required:true},201);
@@ -208,7 +235,7 @@ export async function handleSocialScheduling(request,env){
   await ensureSchema(env);
   await ensureSocialPublishingSchema(env);
   if(path==='/api/social-schedule'&&request.method==='GET'){
-   const requestedLimit=Number(url.searchParams.get('limit')||60),limit=Number.isFinite(requestedLimit)?Math.min(100,Math.max(1,requestedLimit)):60;
+   const requestedLimit=Number(url.searchParams.get('limit')||100),limit=Number.isFinite(requestedLimit)?Math.min(100,Math.max(1,requestedLimit)):100;
    const tenantId=String(user.tenant_id),timestamp=now();
    const [items,queue]=await Promise.all([
     env.DB.prepare('SELECT * FROM social_scheduled_posts WHERE tenant_id=? ORDER BY scheduled_at DESC LIMIT ?').bind(tenantId,limit).all(),
@@ -222,6 +249,8 @@ export async function handleSocialScheduling(request,env){
      interval_minutes:15,
      max_new_posts_per_run:1,
      theoretical_max_new_posts_per_day:96,
+     max_new_posts_per_hour_per_tenant:MAX_NEW_POSTS_PER_HOUR_PER_TENANT,
+     max_active_posts_per_tenant:MAX_ACTIVE_POSTS_PER_TENANT,
      automatic_retry:false,
      tenant_due_count:Number(queue?.due_count||0),
      tenant_oldest_due_at:oldestDueAt,

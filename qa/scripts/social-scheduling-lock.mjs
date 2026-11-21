@@ -39,10 +39,12 @@ has(scheduling,'Only the workspace owner or administrator can cancel','Cancellat
 has(page,'/api/auth/me','Calendar must load current workspace role before showing approval controls');
 has(page,'item.connected&&item.configured&&item.write_scope','Calendar must default only to accounts that are actually configured and authorized to publish');
 const browser=read('qa/journeys/social-calendar.spec.ts');
+const runtimeTest=read('qa/scripts/social-scheduling-runtime-test.mjs');
 has(browser,"test('unauthenticated visitors are sent to sign-in before social API reads'",'Browser QA must prove signed-out calendar visits redirect before tenant API reads');
 has(browser,"test('a connected but unconfigured account cannot displace a publish-ready provider'",'Browser QA must prove unready connected accounts cannot block a ready provider');
 has(browser,"test('saving a social post creates a draft only and never calls a provider publish endpoint'",'Browser QA must prove draft creation never performs direct publishing');
-has(browser,"test('only an owner can approve a draft, and approval does not itself call the provider'",'Browser QA must prove ordinary members cannot approve automatic publishing');
+has(browser,"test('ordinary workspace members cannot approve drafts'",'Browser QA must prove ordinary members cannot approve automatic publishing');
+has(browser,"test('workspace owner approval schedules a post without publishing it immediately'",'Browser QA must prove owner approval only queues the exact post and does not publish immediately');
 
 has(page,'setProvider(current=>ready.some((item:Connection)=>item.id===current)?current:(ready[0]?.id||"youtube") as Provider)','Calendar must never select an unconfigured or unauthorized connected account by default');
 has(page,'The workspace owner or administrator must review','Non-owner members must see an explicit approval-required state');
@@ -106,8 +108,24 @@ has(mediaGuard,'total !== Number(expectedBytes)','Streaming must reject short me
 has(publishing,"'x-upload-content-length':String(media.contentLength)",'YouTube resumable upload must declare the inspected source size.');
 has(scheduling,'max_new_posts_per_run:1','The one-post-per-cron-run throughput cap must be explicit in the API.');
 has(scheduling,'theoretical_max_new_posts_per_day:96','The global 96-post/day theoretical scheduler cap must be explicit.');
+has(scheduling,'const MAX_ACTIVE_POSTS_PER_TENANT=100','Each tenant must have a hard active-queue cap.');
+has(scheduling,'const MAX_NEW_POSTS_PER_HOUR_PER_TENANT=20','Each tenant must have a rolling hourly draft-creation limit.');
+has(scheduling,'SOCIAL_SCHEDULE_CAPACITY_REACHED','An exhausted active queue must fail closed with an explicit capacity error.');
+has(scheduling,'SOCIAL_SCHEDULE_RATE_LIMITED','An exhausted hourly allowance must fail closed with an explicit rate-limit error.');
+has(scheduling,'created_at>=?','Hourly limits must use a rolling creation-time window.');
+has(scheduling,"status IN ('draft','scheduled','publishing','processing','outcome_unknown')",'The active cap must include drafts, queued/in-flight posts and uncertain outcomes.');
+has(scheduling,'max_new_posts_per_hour_per_tenant:MAX_NEW_POSTS_PER_HOUR_PER_TENANT','The API must disclose the per-tenant hourly limit.');
+has(scheduling,'max_active_posts_per_tenant:MAX_ACTIVE_POSTS_PER_TENANT','The API must disclose the per-tenant active queue cap.');
+has(scheduling,"'retry-after':String(retryAfter)",'Rate-limit responses must include a standards-based Retry-After header.');
+has(runtimeTest,'hourly-limit-over','SQLite runtime QA must exercise the hourly rate limit.');
+has(runtimeTest,'active-cap-over','SQLite runtime QA must exercise the active queue cap.');
+has(runtimeTest,'tenant-b-after-tenant-a-rate-limit','Rate limits must be isolated by tenant.');
+
 has(scheduling,'tenant_queue_lag_seconds','Calendar API must report tenant queue lag.');
 has(page,'1 post per 15-minute run · 96/day platform-wide','The UI must disclose the global scheduler throughput limit.');
+has(page,'new drafts/hour per workspace','The UI must disclose the tenant hourly draft limit.');
+has(page,'active posts per workspace','The UI must disclose the tenant active queue cap.');
+has(page,'limit=100','The UI must load the full bounded active queue.');
 has(page,'scheduler.tenant_queue_lag_seconds','The UI must display live overdue-queue lag.');
 has(page,'maximum 256 MiB','The UI must disclose the media source safety limit.');
 
@@ -138,6 +156,8 @@ has(calendarLayout,'follow: false','Private publishing calendar must not invite 
 has(migration,'CREATE TABLE IF NOT EXISTS social_scheduled_posts','D1 migration must create the durable social calendar');
 has(migration,'tenant_id TEXT NOT NULL','Scheduled posts must carry a tenant identifier');
 has(migration,'UNIQUE(tenant_id,idempotency_key)','D1 migration must enforce tenant idempotency');
+has(migration,'idx_social_scheduled_tenant_created','D1 migration must index tenant rolling rate-limit counts');
+has(migration,'idx_social_scheduled_tenant_status','D1 migration must index tenant active-queue counts');
 has(migration,'approval_hash TEXT','D1 must persist approval binding');
 has(migration,'outcome_unknown','D1 must model ambiguous provider outcomes');
 

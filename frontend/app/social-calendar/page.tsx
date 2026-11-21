@@ -12,7 +12,7 @@ type Item={
 };
 type Scheduler={
  enabled:boolean;interval_minutes:number;max_new_posts_per_run:number;theoretical_max_new_posts_per_day:number;
- tenant_due_count:number;tenant_oldest_due_at:number|null;tenant_queue_lag_seconds:number;
+ max_new_posts_per_hour_per_tenant:number;max_active_posts_per_tenant:number;tenant_due_count:number;tenant_oldest_due_at:number|null;tenant_queue_lag_seconds:number;
 };
 function localDateTimeWithOffset(value:string){
  const date=new Date(value);
@@ -78,7 +78,7 @@ export default function SocialCalendar(){
   try{
    const results=await Promise.all([
     fetch(api+"/api/social-connect/connections",{headers:{Authorization:"Bearer "+t},cache:"no-store"}),
-    fetch(api+"/api/social-schedule?limit=80",{headers:{Authorization:"Bearer "+t},cache:"no-store"}),
+    fetch(api+"/api/social-schedule?limit=100",{headers:{Authorization:"Bearer "+t},cache:"no-store"}),
     fetch(api+"/api/auth/me",{headers:{Authorization:"Bearer "+t},cache:"no-store"})
    ]);
    const c=await read(results[0]),s=await read(results[1]),me=await read(results[2]);
@@ -113,7 +113,7 @@ export default function SocialCalendar(){
    }
    const r=await fetch(api+"/api/social-schedule",{method:"POST",headers:authHeaders(token),body:JSON.stringify(payload)});
    const d=await read(r);
-   if(!r.ok)throw new Error(d.detail||"Could not save the draft.");
+   if(!r.ok){const retry=Number(d.retry_after_seconds||0);throw new Error(retry>0?`${d.detail||"Rate limit reached."} Try again in about ${Math.ceil(retry/60)} minute(s).`:d.detail||"Could not save the draft.");}
    setNotice("Draft saved. Review its account, content and time below, then approve it to schedule publishing.");
    setIdempotencyKey(crypto.randomUUID());
    setApprovals({});
@@ -164,7 +164,7 @@ export default function SocialCalendar(){
    <small>MAGNANIMOUS SOCIAL STUDIO</small>
    <h1>Publishing Calendar</h1>
    <p>Prepare a post, review the exact account and publishing time, then approve it. Magnanimous AI manages the schedule; your connected social account remains yours.</p>
-   <div className="facts"><span>1 post per 15-minute run · 96/day platform-wide</span><span>Approval before every post</span><span>No automatic retry after uncertain results</span></div>
+   <div className="facts"><span>1 post per 15-minute run · 96/day platform-wide</span><span>{scheduler?.max_new_posts_per_hour_per_tenant??20} new drafts/hour per workspace · {scheduler?.max_active_posts_per_tenant??100} active posts per workspace</span><span>Approval before every post</span><span>No automatic retry after uncertain results</span></div>
    {scheduler&&<p className="queueStatus" role="status">Your workspace has {scheduler.tenant_due_count} overdue post(s). {scheduler.tenant_queue_lag_seconds>0?`The oldest is ${Math.ceil(scheduler.tenant_queue_lag_seconds/60)} minutes overdue.`:"There are no overdue posts in your queue."}</p>}
   </section>
   {notice&&<div className="notice" role="status">{notice}</div>}

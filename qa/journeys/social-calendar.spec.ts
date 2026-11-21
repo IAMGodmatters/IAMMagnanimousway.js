@@ -7,6 +7,8 @@ const SCHEDULER = {
   interval_minutes: 15,
   max_new_posts_per_run: 1,
   theoretical_max_new_posts_per_day: 96,
+  max_new_posts_per_hour_per_tenant: 20,
+  max_active_posts_per_tenant: 100,
   tenant_due_count: 0,
   tenant_oldest_due_at: null,
   tenant_queue_lag_seconds: 0,
@@ -168,7 +170,36 @@ test('saving a social post creates a draft only and never calls a provider publi
   expect(directPublishRequests, 'Saving a draft must not publish to YouTube').toBe(0);
 });
 
-test('only an owner can approve a draft, and approval does not itself call the provider', async ({ page }) => {
+test('workspace owner approval schedules a post without publishing it immediately', async ({ page }) => {
+  await isolateNetwork(page);
+  await useSyntheticSession(page);
+  await mockConnections(page, [readyYouTube]);
+  await mockRole(page, 'owner');
+  let current = draftItem();
+  let approvalRequests = 0;
+  let directPublishRequests = 0;
+  page.on('request', (request) => {
+    const path = new URL(request.url()).pathname;
+    if (path.endsWith('/api/social-connect/youtube/publish')) directPublishRequests += 1;
+  });
+  await page.route('**/api/social-schedule**', async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (route.request().method() === 'POST' && path.endsWith('/approve')) {
+      approvalRequests += 1;
+      current = { ...current, status: 'scheduled' };
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ item: current, approval: { confirmed: true, content_bound: true, account_bound: true, time_bound: true } }) });
+      return;
+    }
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(emptySchedule([current])) });
+  });
+  await page.goto('/social-calendar/', { waitUntil: 'load' });
+  await page.getByLabel(/I approve this exact content, connected account and publishing time/).check();
+  await page.getByRole('button', { name: 'Approve and schedule' }).click();
+  await expect(page.locator('.item .status')).toHaveText('scheduled');
+  expect(approvalRequests).toBe(1);
+  expect(directPublishRequests, 'Owner approval must queue the post; the Worker cron performs the later provider write').toBe(0);
+});
+test('ordinary workspace members cannot approve drafts', async ({ page }) => {
   await isolateNetwork(page);
   await useSyntheticSession(page);
   await mockConnections(page, [readyYouTube]);

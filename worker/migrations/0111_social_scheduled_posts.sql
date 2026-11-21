@@ -24,3 +24,5 @@ CREATE TABLE IF NOT EXISTS social_scheduled_posts (
 );
 CREATE INDEX IF NOT EXISTS idx_social_scheduled_due ON social_scheduled_posts(status,scheduled_at);
 CREATE INDEX IF NOT EXISTS idx_social_scheduled_tenant ON social_scheduled_posts(tenant_id,scheduled_at);
+CREATE INDEX IF NOT EXISTS idx_social_scheduled_tenant_created ON social_scheduled_posts(tenant_id,created_at);
+CREATE INDEX IF NOT EXISTS idx_social_scheduled_tenant_status ON social_scheduled_posts(tenant_id,status);

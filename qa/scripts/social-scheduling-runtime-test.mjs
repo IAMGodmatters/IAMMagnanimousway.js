@@ -273,7 +273,40 @@ try{
   'https://router.example/video.mp4'
  ])assert.equal(isPublicSocialMediaUrl(url),false,`Unsafe media URL was accepted: ${url}`);
 
- console.log('Magnanimous native social scheduling runtime tests passed: provider readiness, tenant isolation, role gate, exact idempotency, cancellation, approval binding, DST-compatible timestamp validation, duplicate cron protection, ambiguous outcomes, provider throttling, expired-token and provider-media preflight, YouTube/TikTok preflight failures and media URL safety.');
+
+ // Per-tenant limits prevent draft floods and unbounded D1 queues without blocking another tenant.
+ const rateBase=Math.floor(clock.value/1000);
+ await env.DB.prepare(`INSERT INTO social_connections(tenant_id,provider,external_id,display_name,access_token,refresh_token,expires_at,scope,metadata_json,created_at,updated_at)
+  VALUES(?,?,?,?,?,?,?,?,?,?,?)`).bind('tenant-b','linkedin','person-b','Owner B','tenant-b-access','',rateBase+86400,'w_member_social','{}',rateBase,rateBase).run();
+ clock.value+=2*60*60*1000;
+ for(let i=0;i<20;i++){
+  const burst=await createDraft(`hourly-limit-${i}`,`Hourly limit ${i}`);
+  assert.equal(burst.response.status,201,`Draft ${i+1} of the hourly allowance should be accepted`);
+ }
+ const hourlyBlocked=await createDraft('hourly-limit-over','Hourly allowance exceeded');
+ assert.equal(hourlyBlocked.response.status,429);
+ assert.equal(hourlyBlocked.data.code,'SOCIAL_SCHEDULE_RATE_LIMITED');
+ assert.equal(hourlyBlocked.data.limit,20);
+ assert.ok(Number(hourlyBlocked.data.retry_after_seconds)>0&&Number(hourlyBlocked.data.retry_after_seconds)<=3600);
+ assert.equal(hourlyBlocked.response.headers.get('retry-after'),String(hourlyBlocked.data.retry_after_seconds));
+ const tenantBDraft=await createDraft('tenant-b-after-tenant-a-rate-limit','Tenant B keeps its own allowance',20,otherTenantToken);
+ assert.equal(tenantBDraft.response.status,201,'A tenant-A rate limit must not block tenant B');
+ clock.value+=3601*1000;
+ const fillNow=Math.floor(clock.value/1000);
+ const existingActive=await env.DB.prepare(`SELECT COUNT(*) AS count FROM social_scheduled_posts WHERE tenant_id=? AND status IN ('draft','scheduled','publishing','processing','outcome_unknown')`).bind('tenant-a').first();
+ const activeBeforeFill=Number(existingActive?.count||0);
+ assert.ok(activeBeforeFill<100);
+ for(let i=0;i<100-activeBeforeFill;i++){
+  const oldCreated=fillNow-7200;
+  await env.DB.prepare(`INSERT INTO social_scheduled_posts(id,tenant_id,created_by,provider,external_id,payload_json,scheduled_at,timezone,status,idempotency_key,approval_hash,approved_at,approved_by,attempts,locked_at,provider_receipt_json,last_error,created_at,updated_at)
+   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(crypto.randomUUID(),'tenant-a','owner-a','linkedin','person-a','{}',fillNow+7200,'UTC','draft',`active-fill-${i}`,null,null,null,0,null,null,'',oldCreated,oldCreated).run();
+ }
+ const activeCapBlocked=await createDraft('active-cap-over','Active queue capacity exceeded');
+ assert.equal(activeCapBlocked.response.status,429);
+ assert.equal(activeCapBlocked.data.code,'SOCIAL_SCHEDULE_CAPACITY_REACHED');
+ const activeAfterBlock=await env.DB.prepare(`SELECT COUNT(*) AS count FROM social_scheduled_posts WHERE tenant_id=? AND status IN ('draft','scheduled','publishing','processing','outcome_unknown')`).bind('tenant-a').first();
+ assert.equal(Number(activeAfterBlock?.count||0),100,'The active queue must never exceed its per-tenant cap');
+ console.log('Magnanimous native social scheduling runtime tests passed: provider readiness, tenant isolation, role gate, exact idempotency, cancellation, approval binding, DST-compatible timestamp validation, duplicate cron protection, ambiguous outcomes, provider throttling, expired-token and provider-media preflight, YouTube/TikTok preflight failures and media URL safety, per-tenant hourly rate limits, active queue capacity and tenant-isolated quotas.');
 }finally{
  Date.now=originalNow;
  globalThis.fetch=originalFetch;
