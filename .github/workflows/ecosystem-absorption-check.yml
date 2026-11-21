@@ -6,6 +6,9 @@ on:
     paths:
       - 'worker/src/magnanimous-ecosystem-capability-registry.js'
       - 'worker/src/magnanimous-ecosystem-runtime.js'
+      - 'worker/src/magnanimous-ecosystem-blueprint.js'
+      - 'frontend/app/owner-capability-mesh/page.tsx'
+      - 'qa/scripts/magnanimous-ecosystem-blueprint-lock.mjs'
       - 'worker/src/entrypoint.js'
       - 'ecosystem-core/PROVIDER_ECOSYSTEM_ABSORPTION.md'
       - 'qa/scripts/ecosystem-absorption-lock.mjs'
@@ -14,6 +17,9 @@ on:
     paths:
       - 'worker/src/magnanimous-ecosystem-capability-registry.js'
       - 'worker/src/magnanimous-ecosystem-runtime.js'
+      - 'worker/src/magnanimous-ecosystem-blueprint.js'
+      - 'frontend/app/owner-capability-mesh/page.tsx'
+      - 'qa/scripts/magnanimous-ecosystem-blueprint-lock.mjs'
       - 'worker/src/entrypoint.js'
       - 'ecosystem-core/PROVIDER_ECOSYSTEM_ABSORPTION.md'
       - 'qa/scripts/ecosystem-absorption-lock.mjs'
@@ -35,6 +41,9 @@ jobs:
         run: |
           node --check worker/src/magnanimous-ecosystem-capability-registry.js
           node --check worker/src/magnanimous-ecosystem-runtime.js
+          node --check worker/src/magnanimous-ecosystem-blueprint.js
           node --check worker/src/entrypoint.js
       - name: Ecosystem identity and safety lock
         run: node qa/scripts/ecosystem-absorption-lock.mjs
+      - name: Verify source-derived ecosystem blueprint and integrity
+        run: node qa/scripts/magnanimous-ecosystem-blueprint-lock.mjs
