@@ -51,7 +51,9 @@ export function subscriptionFailureMatchesBillingRow({ candidate, billingRow, pr
   if (candidate.plan && providerPlan && candidate.plan !== providerPlan) return false;
   if (providerPlan && rowPlan && providerPlan !== rowPlan) return false;
 
-  // A delayed failure event must never revoke a subscription Stripe currently reports active.
-  if (String(providerSubscription.status || '').toLowerCase() === 'active') return false;
+  // Only known delinquent/terminal states can revoke access. Unknown or trialing
+  // states fail closed, and a delayed event cannot revoke a currently active plan.
+  const providerStatus = String(providerSubscription.status || '').toLowerCase();
+  if (!['past_due', 'unpaid', 'incomplete', 'incomplete_expired', 'canceled', 'paused'].includes(providerStatus)) return false;
   return true;
 }
