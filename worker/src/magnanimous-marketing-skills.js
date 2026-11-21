@@ -10,6 +10,27 @@ const owner = 'Magnanimous AI';
 
 export const MAGNANIMOUS_MARKETING_SKILLS = Object.freeze([
   {
+    name: 'magnanimous-marketing-department',
+    description: 'Run the complete Magnanimous-native marketing department, coordinating its brand, strategy, writing, grading, repurposing, creative, publishing-readiness and performance skills. Use for comprehensive social campaigns, marketing audits, content calendars and multi-channel marketing operations.',
+    triggers: ['magnanimous marketing department', 'marketing department', 'brand brief and content strategy', 'viral hooks and post grading', 'social content calendar', 'multi-channel marketing workflow'],
+    metadata: { owner, department: 'marketing', risk: 'policy-aware', orchestration: 'Magnanimous AI', capability_family: 'social-content-operations' },
+    resources: ['marketing-playbook', 'marketing-quality-rubric', 'marketing-channel-capability-matrix', 'marketing-creative-asset-checklist'],
+    instructions: `# Magnanimous Marketing Department
+
+Magnanimous AI is the single brain, public identity, memory owner and orchestrator. This is its native marketing department, not a separate AI product. Claude is not required. Models and social providers remain replaceable tools.
+
+1. Retrieve the approved tenant brand brief and source facts. Gather only essential missing details and preserve tenant isolation.
+2. Coordinate the focused content coach, brand brief, platform-native writer, quality grader, repurposer, hook lab, creative producer and performance analyst skills.
+3. Use the marketing playbook, quality rubric, channel capability matrix and creative asset checklist resources as needed.
+4. Create specific, truthful, platform-native drafts. Preserve source meaning, attribution, rights and disclosure. Never guarantee virality.
+5. Use existing Magnanimous Creator Growth, Social Studio, Native Media Studio and Publishing Calendar. Do not build a duplicate publishing or memory system.
+6. Verify each destination's live provider readiness. A connected account or selectable draft channel is not proof of publishing permission.
+7. Save drafts first. Any external post requires existing explicit approval of the exact content, asset, account, visibility and time. Do not publish, message or spend before the applicable approval and funding gates pass.
+8. Prefer free/native/already-funded capability. Never silently incur variable costs or expose credentials.
+9. Measure verified performance, distinguish metrics from estimates and correlation from causation, and save only tenant-authorized lessons with provenance.
+10. Label draft, rendered, reviewed, awaiting approval, scheduled, processing, published, failed and unknown states accurately.`
+  },
+  {
     name: 'marketing-department-director',
     description: 'Coordinate Magnanimous marketing work from strategy and brand context through original content, editorial quality review, media production, approved publishing and measured learning. Use for marketing campaigns, social content systems, content calendars, audience growth or managed marketing services.',
     triggers: ['marketing', 'marketing campaign', 'content strategy', 'social media', 'social campaign', 'brand growth', 'promote my business', 'content calendar', 'marketing agent', 'managed marketing'],
@@ -142,7 +163,7 @@ Magnanimous AI owns identity, planning, memory, routing, judgment and verificati
 3. Check likeness, copyright, music, trademark, product claims and customer consent before generation or editing.
 4. Use free/native/owner-controlled options first. Before a paid or metered generation job, verify funding, limits and the user's authorization.
 5. Do not describe a prompt, plan or queued job as a finished render. Verify the returned media asset, dimensions, file format and playback before calling it complete.
-6. Apply the user's approved Magnanimous brand mark only where suitable and permitted. Destination-specific platform rules override decorative branding; never add a prohibited watermark or overlay.
+6. For God Matters material, never put a trademark on the words God Matters. For Magnanimous-branded ministry assets, use the exact approved mark text: 'I Am Magnanimous Way, Trademark.' Apply it only where the destination permits; do not violate platform restrictions on logos, watermarks or overlays.
 7. Keep all key text within the platform's current safe zones and confirm legibility on a phone-sized preview.
 8. Return a preview/asset reference, source assets, edit summary, destination notes and any remaining manual steps.`
   },
