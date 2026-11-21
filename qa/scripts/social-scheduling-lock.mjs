@@ -38,6 +38,12 @@ has(scheduling,'Only the workspace owner or administrator can approve','Approval
 has(scheduling,'Only the workspace owner or administrator can cancel','Cancellation API must enforce the same workspace manager boundary');
 has(page,'/api/auth/me','Calendar must load current workspace role before showing approval controls');
 has(page,'item.connected&&item.configured&&item.write_scope','Calendar must default only to accounts that are actually configured and authorized to publish');
+const browser=read('qa/journeys/social-calendar.spec.ts');
+has(browser,"test('unauthenticated visitors are sent to sign-in before social API reads'",'Browser QA must prove signed-out calendar visits redirect before tenant API reads');
+has(browser,"test('a connected but unconfigured account cannot displace a publish-ready provider'",'Browser QA must prove unready connected accounts cannot block a ready provider');
+has(browser,"test('saving a social post creates a draft only and never calls a provider publish endpoint'",'Browser QA must prove draft creation never performs direct publishing');
+has(browser,"test('only an owner can approve a draft, and approval does not itself call the provider'",'Browser QA must prove ordinary members cannot approve automatic publishing');
+
 has(page,'setProvider(current=>ready.some((item:Connection)=>item.id===current)?current:(ready[0]?.id||"youtube") as Provider)','Calendar must never select an unconfigured or unauthorized connected account by default');
 has(page,'The workspace owner or administrator must review','Non-owner members must see an explicit approval-required state');
 has(scheduling,'validIanaTimezone(body.timezone)','Schedule must validate an IANA timezone through the shared tested helper');
