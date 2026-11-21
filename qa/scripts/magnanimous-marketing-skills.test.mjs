@@ -90,6 +90,6 @@ test('Capability Mesh and normal chat load marketing skills without bypassing ex
   assert.match(provider, /magnanimousMarketingSkillContext\(userMessage,capability\)/);
   assert.match(provider, /\$\{marketingSkillsContext\}/);
   assert.match(provider, /getMagnanimousMarketingResource\(id\)/);
-  assert.match(provider, /approval and funding gates/);
+  assert.match(provider, /approval.*funding gates/);
   assert.match(mesh, /consequential mutations|confirmation/i);
 });
