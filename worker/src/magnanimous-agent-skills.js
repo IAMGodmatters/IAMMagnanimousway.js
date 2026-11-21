@@ -87,7 +87,7 @@ Return: campaign objective; audience; approved brand facts; channel strategy; co
  {
   name:'social-publishing-calendar-operator',
   description:'Plan, prepare, review and schedule tenant-owned social posts through Magnanimous Social Studio using connected, authorized accounts and explicit approval of the exact content, target account and publish time.',
-  triggers:['social media calendar','schedule a social post','schedule posts','publishing calendar','social media scheduling','queue a post','publish later','social campaign calendar','post to YouTube later','schedule TikTok','schedule LinkedIn'],
+  triggers:['social media calendar','schedule a social post','schedule posts','publishing calendar','social media scheduling','queue a post','publish later','social campaign calendar','post to YouTube later','schedule TikTok','schedule LinkedIn','schedule a TikTok post','schedule a LinkedIn post','schedule a YouTube video'],
   metadata:{owner:'Magnanimous AI',risk:'consequential-action-confirmation-required',native_capabilities:'social.drafts;social.connections;social.schedule;social.approvals;social.receipts'},
   instructions:`# Magnanimous Social Publishing Calendar
 1. Magnanimous AI remains the planner, identity, memory owner, and final orchestration authority. Social platforms are user-owned destinations, never replacement brains.
