@@ -40,7 +40,7 @@ The implementation extends existing surfaces rather than creating a replacement 
 - `frontend/app/social-calendar/page.tsx`: current schedule UI supports YouTube, TikTok and LinkedIn when each tenant connection, app configuration and write scope are ready.
 - Existing Native Media Studio remains the media execution path.
 
-The change adds nine original marketing skills: director, coach, brand-brief builder, platform-native writer, quality grader, repurposer, hook research lab, creative producer and performance analyst. The existing social publishing calendar operator remains in place.
+The change adds nine focused marketing specialist skills plus a portable umbrella entrypoint: director, coach, brand-brief builder, platform-native writer, quality grader, repurposer, hook research lab, creative producer, performance analyst and magnanimous-marketing-department. The original SKILL.md package remains available for compatible Agent Skills import workflows. The existing social publishing calendar operator remains in place.
 
 Four read-only skill resources are registered: marketing playbook, editorial quality rubric, social channel capability matrix and creative asset checklist. These are returned via Capability Mesh `skills.resource`; reading instructions does not grant tools, credentials or permissions.
 
