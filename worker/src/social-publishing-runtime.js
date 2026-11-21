@@ -1,5 +1,6 @@
 import { currentUser } from './integrations.js';
 import { assessAiTransparency } from './ai-transparency.js';
+import { publicHttpsMediaUrl, inspectPublicVideoSource, validatePublicVideoResponse, boundedMediaStream } from './social-media-source-guard.js';
 
 const now=()=>Math.floor(Date.now()/1000);
 const encoder=new TextEncoder();
@@ -17,10 +18,20 @@ async function sessionSecret(env){const direct=String(env?.SESSION_SECRET||'').t
 async function vaultKey(env){const secret=await sessionSecret(env);if(!secret)throw new Error('Secure social credential storage is unavailable.');const digest=await crypto.subtle.digest('SHA-256',encoder.encode(`iam-social-connect-v1:${secret}`));return crypto.subtle.importKey('raw',digest,{name:'AES-GCM'},false,['encrypt','decrypt'])}
 async function encrypt(value,env){if(!value)return'';const iv=crypto.getRandomValues(new Uint8Array(12)),key=await vaultKey(env),cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,encoder.encode(String(value)));return`enc1.${b64(iv)}.${b64(new Uint8Array(cipher))}`}
 async function decrypt(value,env){const raw=String(value||'');if(!raw)return'';if(!raw.startsWith('enc1.'))return raw;const[,ivp,cp]=raw.split('.'),key=await vaultKey(env),plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:fromB64(ivp)},key,fromB64(cp));return new TextDecoder().decode(plain)}
+const socialPublishingSchemaReady=new WeakMap();
 async function ensureSchema(env){
- await env.DB.prepare(`CREATE TABLE IF NOT EXISTS social_platform_credentials (credential_key TEXT PRIMARY KEY,encrypted_value TEXT NOT NULL,updated_at INTEGER NOT NULL,updated_by TEXT NOT NULL DEFAULT '')`).run();
- await env.DB.prepare(`CREATE TABLE IF NOT EXISTS social_oauth_states (state TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,provider TEXT NOT NULL,expires_at INTEGER NOT NULL,created_at INTEGER NOT NULL)`).run();
- await env.DB.prepare(`CREATE TABLE IF NOT EXISTS social_connections (tenant_id TEXT NOT NULL,provider TEXT NOT NULL,external_id TEXT NOT NULL DEFAULT '',display_name TEXT NOT NULL DEFAULT '',access_token TEXT NOT NULL,refresh_token TEXT NOT NULL DEFAULT '',expires_at INTEGER,scope TEXT NOT NULL DEFAULT '',metadata_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(tenant_id,provider))`).run();
+ const db=env?.DB;
+ if(!db||typeof db!=='object')throw new Error('Social publishing database binding is unavailable.');
+ let pending=socialPublishingSchemaReady.get(db);
+ if(!pending){
+  pending=(async()=>{
+   await db.prepare(`CREATE TABLE IF NOT EXISTS social_platform_credentials (credential_key TEXT PRIMARY KEY,encrypted_value TEXT NOT NULL,updated_at INTEGER NOT NULL,updated_by TEXT NOT NULL DEFAULT '')`).run();
+   await db.prepare(`CREATE TABLE IF NOT EXISTS social_oauth_states (state TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,provider TEXT NOT NULL,expires_at INTEGER NOT NULL,created_at INTEGER NOT NULL)`).run();
+   await db.prepare(`CREATE TABLE IF NOT EXISTS social_connections (tenant_id TEXT NOT NULL,provider TEXT NOT NULL,external_id TEXT NOT NULL DEFAULT '',display_name TEXT NOT NULL DEFAULT '',access_token TEXT NOT NULL,refresh_token TEXT NOT NULL DEFAULT '',expires_at INTEGER,scope TEXT NOT NULL DEFAULT '',metadata_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(tenant_id,provider))`).run();
+  })();
+  socialPublishingSchemaReady.set(db,pending);
+ }
+ try{await pending}catch(error){socialPublishingSchemaReady.delete(db);throw error}
 }
 async function savedCredential(env,key){const row=await env.DB.prepare('SELECT encrypted_value FROM social_platform_credentials WHERE credential_key=?').bind(key).first();return row?decrypt(row.encrypted_value,env):''}
 async function credential(env,key){const direct=String(env?.[key]||'').trim();return direct||String(await savedCredential(env,key)||'').trim()}
@@ -30,11 +41,18 @@ async function providerCredentials(env,provider){
  if(provider==='linkedin')return{client_id:await credential(env,'LINKEDIN_CLIENT_ID'),client_secret:await credential(env,'LINKEDIN_CLIENT_SECRET')};
  return{client_id:'',client_secret:''};
 }
+function hasSocialWriteScope(provider,scope){
+ const scopes=new Set(String(scope||'').split(/[ ,]+/).filter(Boolean));
+ if(provider==='youtube')return scopes.has('https://www.googleapis.com/auth/youtube.upload')||scopes.has('https://www.googleapis.com/auth/youtube');
+ if(provider==='tiktok')return scopes.has('video.publish');
+ if(provider==='linkedin')return scopes.has('w_member_social');
+ return false;
+}
 function callback(request,provider){return `${new URL(request.url).origin}/api/social-connect/${provider}/callback`}
-function publicHttpUrl(value){try{const u=new URL(String(value||''));if(u.protocol!=='https:')return null;const h=u.hostname.toLowerCase();if(h==='localhost'||h.endsWith('.local')||h==='127.0.0.1'||h==='0.0.0.0'||h==='::1'||/^10\./.test(h)||/^192\.168\./.test(h)||/^169\.254\./.test(h)||/^172\.(1[6-9]|2\d|3[01])\./.test(h))return null;return u}catch{return null}}
+function publicHttpUrl(value){return publicHttpsMediaUrl(value)}
 async function connection(env,tenantId,provider){const row=await env.DB.prepare('SELECT * FROM social_connections WHERE tenant_id=? AND provider=?').bind(String(tenantId),provider).first();if(!row)return null;return{...row,metadata:(()=>{try{return JSON.parse(row.metadata_json||'{}')}catch{return{}}})()}}
 async function saveConnection(env,tenantId,provider,values){const ts=now();await env.DB.prepare(`INSERT INTO social_connections(tenant_id,provider,external_id,display_name,access_token,refresh_token,expires_at,scope,metadata_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(tenant_id,provider) DO UPDATE SET external_id=excluded.external_id,display_name=excluded.display_name,access_token=excluded.access_token,refresh_token=excluded.refresh_token,expires_at=excluded.expires_at,scope=excluded.scope,metadata_json=excluded.metadata_json,updated_at=excluded.updated_at`).bind(String(tenantId),provider,String(values.external_id||''),String(values.display_name||provider),await encrypt(values.access_token,env),await encrypt(values.refresh_token||'',env),values.expires_at||null,String(values.scope||''),JSON.stringify(values.metadata||{}),ts,ts).run()}
-async function responseJson(r,label){const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d?.error_description||d?.error?.message||d?.message||`${label} failed (${r.status})`);return d}
+async function responseJson(r,label){const d=await r.json().catch(()=>({}));if(!r.ok){const error=new Error(d?.error_description||d?.error?.message||d?.message||`${label} failed (${r.status})`);error.status=r.status;if(r.status>=400&&r.status<500)error.preflight=true;throw error}return d}
 async function oauthUrl(request,env,provider,state){const c=await providerCredentials(env,provider),redirect=callback(request,provider),scopes=PROVIDERS[provider].scopes;if(!c.client_id||!c.client_secret)return null;
  if(provider==='youtube'){const u=new URL('https://accounts.google.com/o/oauth2/v2/auth');Object.entries({client_id:c.client_id,redirect_uri:redirect,response_type:'code',access_type:'offline',prompt:'consent',scope:scopes.join(' '),state}).forEach(([k,v])=>u.searchParams.set(k,v));return u.toString()}
  if(provider==='tiktok'){const u=new URL('https://www.tiktok.com/v2/auth/authorize/');Object.entries({client_key:c.client_id,redirect_uri:redirect,response_type:'code',scope:scopes.join(','),state}).forEach(([k,v])=>u.searchParams.set(k,v));return u.toString()}
@@ -57,17 +75,143 @@ async function tokenFor(env,row,provider){let token=await decrypt(row.access_tok
  else throw new Error('LinkedIn authorization expired. Reconnect the account.');
  const d=await responseJson(await fetch(endpoint,{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body}),`${PROVIDERS[provider].name} token refresh`);token=String(d.access_token||'');await saveConnection(env,row.tenant_id,provider,{external_id:row.external_id,display_name:row.display_name,access_token:token,refresh_token:d.refresh_token||refresh,expires_at:now()+Number(d.expires_in||3600),scope:d.scope||row.scope,metadata:row.metadata});return token
 }
-async function youtubePublish(env,row,body){const videoUrl=publicHttpUrl(body.video_url);if(!videoUrl)throw new Error('YouTube upload requires a public HTTPS video URL.');const token=await tokenFor(env,row,'youtube'),source=await fetch(videoUrl.toString(),{redirect:'error'});if(!source.ok||!source.body)throw new Error(`Video source could not be fetched (${source.status}).`);const privacy=['private','unlisted','public'].includes(String(body.privacy_status))?String(body.privacy_status):'private';const metadata={snippet:{title:String(body.title||'Magnanimous video').slice(0,100),description:String(body.description||'').slice(0,5000)},status:{privacyStatus:privacy,selfDeclaredMadeForKids:Boolean(body.made_for_kids)}};const init=await fetch('https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status',{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json','x-upload-content-type':source.headers.get('content-type')||'video/mp4'},body:JSON.stringify(metadata)});if(!init.ok)await responseJson(init,'YouTube upload initialization');const location=init.headers.get('location');if(!location)throw new Error('YouTube did not return a resumable upload URL.');const upload=await fetch(location,{method:'PUT',headers:{'content-type':source.headers.get('content-type')||'video/mp4'},body:source.body});const data=await responseJson(upload,'YouTube video upload');return{ok:true,provider:'youtube',video_id:data.id||'',privacy_status:privacy,url:data.id?`https://www.youtube.com/watch?v=${data.id}`:''}}
+async function youtubePublish(env,row,body){
+ const videoUrl=publicHttpUrl(body.video_url);
+ if(!videoUrl)throw Object.assign(new Error('YouTube upload requires a public HTTPS video URL.'),{preflight:true});
+ const token=await tokenFor(env,row,'youtube');
+ const media=await inspectPublicVideoSource(videoUrl.toString());
+ let source;
+ try{source=await fetch(videoUrl.toString(),{redirect:'error'})}
+ catch(error){throw Object.assign(error,{preflight:true})}
+ if(!source.ok||!source.body)throw Object.assign(new Error(`Video source could not be fetched (${source.status}).`),{preflight:true});
+ let actualMedia;
+ try{actualMedia=validatePublicVideoResponse(source.headers,media.contentLength)}
+ catch(error){await source.body.cancel().catch(()=>{});throw Object.assign(error,{preflight:true})}
+ if(actualMedia.contentType!==media.contentType){
+  await source.body.cancel().catch(()=>{});
+  throw Object.assign(new Error('Video source media type changed between inspection and download. No provider upload was started.'),{preflight:true});
+ }
+ const uploadBody=boundedMediaStream(source.body,{expectedBytes:media.contentLength});
+ const privacy=['private','unlisted','public'].includes(String(body.privacy_status))?String(body.privacy_status):'private';
+ const metadata={snippet:{title:String(body.title||'Magnanimous video').slice(0,100),description:String(body.description||'').slice(0,5000)},status:{privacyStatus:privacy,selfDeclaredMadeForKids:Boolean(body.made_for_kids)}};
+ const init=await fetch('https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status',{
+  method:'POST',
+  headers:{authorization:`Bearer ${token}`,'content-type':'application/json','x-upload-content-type':media.contentType,'x-upload-content-length':String(media.contentLength)},
+  body:JSON.stringify(metadata)
+ });
+ if(!init.ok)await responseJson(init,'YouTube upload initialization');
+ const location=init.headers.get('location');
+ if(!location)throw new Error('YouTube did not return a resumable upload URL.');
+ const upload=await fetch(location,{method:'PUT',headers:{'content-type':media.contentType},body:uploadBody});
+ const data=await responseJson(upload,'YouTube video upload');
+ return{ok:true,provider:'youtube',video_id:data.id||'',privacy_status:privacy,url:data.id?`https://www.youtube.com/watch?v=${data.id}`:'',media:{content_type:media.contentType,size_bytes:media.contentLength}};
+}
 async function tiktokCreator(token){return responseJson(await fetch('https://open.tiktokapis.com/v2/post/publish/creator_info/query/',{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json; charset=UTF-8'},body:'{}'}),'TikTok creator info')}
-async function tiktokPublish(env,row,body){if(body.explicit_consent!==true)throw new Error('TikTok publishing requires the user to explicitly consent before the video is sent.');const videoUrl=publicHttpUrl(body.video_url);if(!videoUrl)throw new Error('TikTok PULL_FROM_URL requires a public HTTPS video URL under a domain/prefix approved in the TikTok developer app.');const token=await tokenFor(env,row,'tiktok'),creator=await tiktokCreator(token),options=creator?.data?.privacy_level_options||[];const privacy=String(body.privacy_level||'SELF_ONLY');if(!options.includes(privacy))throw new Error(`Choose a privacy level allowed by this TikTok account: ${options.join(', ')||'none returned'}.`);const payload={post_info:{title:String(body.title||'').slice(0,2200),privacy_level:privacy,disable_duet:body.allow_duet===false,disable_comment:body.allow_comment===false,disable_stitch:body.allow_stitch===false},source_info:{source:'PULL_FROM_URL',video_url:videoUrl.toString()}};const d=await responseJson(await fetch('https://open.tiktokapis.com/v2/post/publish/video/init/',{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json; charset=UTF-8'},body:JSON.stringify(payload)}),'TikTok direct post');if(d?.error?.code&&d.error.code!=='ok')throw new Error(d.error.message||d.error.code);return{ok:true,provider:'tiktok',publish_id:d?.data?.publish_id||'',creator:creator?.data||{},note:'TikTok may take time to process the post. Unaudited API clients can be restricted to private visibility.'}}
-async function linkedinPublish(env,row,body){const text=String(body.text||'').trim();if(!text)throw new Error('LinkedIn post text is required.');if(body.explicit_consent!==true)throw new Error('LinkedIn publishing requires explicit user confirmation.');const token=await tokenFor(env,row,'linkedin'),author=`urn:li:person:${row.external_id}`;const payload={author,commentary:text.slice(0,3000),visibility:'PUBLIC',distribution:{feedDistribution:'MAIN_FEED',targetEntities:[],thirdPartyDistributionChannels:[]},lifecycleState:'PUBLISHED',isReshareDisabledByAuthor:false};const r=await fetch('https://api.linkedin.com/rest/posts',{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json','Linkedin-Version':String(env.LINKEDIN_VERSION||'202608'),'X-Restli-Protocol-Version':'2.0.0'},body:JSON.stringify(payload)});if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d?.message||`LinkedIn post failed (${r.status}). The app/account may still need LinkedIn product approval.`)}return{ok:true,provider:'linkedin',post_id:r.headers.get('x-restli-id')||'',author}}
+async function tiktokPublish(env,row,body){
+ if(body.explicit_consent!==true)throw new Error('TikTok publishing requires the user to explicitly consent before the video is sent.');
+ const videoUrl=publicHttpUrl(body.video_url);
+ if(!videoUrl)throw Object.assign(new Error('TikTok PULL_FROM_URL requires a public HTTPS video URL under a domain/prefix approved in the TikTok developer app.'),{preflight:true});
+ const token=await tokenFor(env,row,'tiktok');
+ let creator;
+ try{creator=await tiktokCreator(token)}catch(error){throw Object.assign(error,{preflight:true})}
+ const media=await inspectPublicVideoSource(videoUrl.toString());
+ const options=creator?.data?.privacy_level_options||[];
+ const privacy=String(body.privacy_level||'SELF_ONLY');
+ if(!options.includes(privacy))throw Object.assign(new Error(`Choose a privacy level allowed by this TikTok account: ${options.join(', ')||'none returned'}.`),{preflight:true});
+ const payload={post_info:{title:String(body.title||'').slice(0,2200),privacy_level:privacy,disable_duet:body.allow_duet===false,disable_comment:body.allow_comment===false,disable_stitch:body.allow_stitch===false},source_info:{source:'PULL_FROM_URL',video_url:videoUrl.toString()}};
+ const d=await responseJson(await fetch('https://open.tiktokapis.com/v2/post/publish/video/init/',{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json; charset=UTF-8'},body:JSON.stringify(payload)}),'TikTok direct post');
+ if(d?.error?.code&&d.error.code!=='ok')throw new Error(d.error.message||d.error.code);
+ const publishId=String(d?.data?.publish_id||'');
+ if(!publishId)throw new Error('TikTok did not return a publish ID. The result cannot be safely reconciled; do not submit a duplicate.');
+ return{ok:true,provider:'tiktok',publish_id:publishId,creator:creator?.data||{},media:{content_type:media.contentType,size_bytes:media.contentLength},note:'TikTok accepted the request. Final publication is confirmed separately through its status endpoint.'};
+}
+async function linkedinPublish(env,row,body){const text=String(body.text||'').trim();if(!text)throw new Error('LinkedIn post text is required.');if(body.explicit_consent!==true)throw new Error('LinkedIn publishing requires explicit user confirmation.');const token=await tokenFor(env,row,'linkedin'),author=`urn:li:person:${row.external_id}`;const payload={author,commentary:text.slice(0,3000),visibility:'PUBLIC',distribution:{feedDistribution:'MAIN_FEED',targetEntities:[],thirdPartyDistributionChannels:[]},lifecycleState:'PUBLISHED',isReshareDisabledByAuthor:false};const r=await fetch('https://api.linkedin.com/rest/posts',{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json','Linkedin-Version':String(env.LINKEDIN_VERSION||'202608'),'X-Restli-Protocol-Version':'2.0.0'},body:JSON.stringify(payload)});if(!r.ok){const d=await r.json().catch(()=>({})),error=new Error(d?.message||`LinkedIn post failed (${r.status}). The app/account may still need LinkedIn product approval.`);error.status=r.status;if(r.status>=400&&r.status<500)error.preflight=true;throw error}return{ok:true,provider:'linkedin',post_id:r.headers.get('x-restli-id')||'',author}}
+
+export function isPublicSocialMediaUrl(value){return Boolean(publicHttpUrl(value));}
+
+export async function ensureSocialPublishingSchema(env){
+ await ensureSchema(env);
+}
+
+export async function socialProviderReadiness(env,tenantId,provider){
+ await ensureSchema(env);
+ if(!Object.prototype.hasOwnProperty.call(PROVIDERS,provider))return{provider,configured:false,connected:false,display_name:'',external_id:''};
+ const [credentials,row]=await Promise.all([
+  providerCredentials(env,provider),
+  connection(env,String(tenantId),provider)
+ ]);
+ return{
+  provider,
+  configured:Boolean(credentials.client_id&&credentials.client_secret),
+  connected:Boolean(row),
+  display_name:String(row?.display_name||''),
+  external_id:String(row?.external_id||''),
+  expires_at:row?.expires_at||null,
+  write_scope:Boolean(row&&hasSocialWriteScope(provider,row.scope))
+ };
+}
+
+export async function publishSocialPostForTenant(env,tenantId,provider,body,expectedExternalId=''){
+ await ensureSchema(env);
+ if(!Object.prototype.hasOwnProperty.call(PROVIDERS,provider))throw Object.assign(new Error('Unsupported social publishing provider.'),{preflight:true});
+ const row=await connection(env,String(tenantId),provider);
+ if(!row)throw Object.assign(new Error('The connected social account is no longer available. Reconnect it before publishing.'),{preflight:true});
+ if(!hasSocialWriteScope(provider,row.scope))throw Object.assign(new Error('The connected account does not have the official publishing permission. Reconnect and approve the required publishing scope.'),{preflight:true});
+ if(expectedExternalId&&String(row.external_id||'')!==String(expectedExternalId))throw Object.assign(new Error('The connected social account changed after approval. Create and approve a new scheduled post.'),{preflight:true});
+ const credentials=await providerCredentials(env,provider);
+ if(!credentials.client_id||!credentials.client_secret)throw Object.assign(new Error('The official provider developer app is not configured.'),{preflight:true});
+ if(provider==='youtube'||provider==='tiktok'){
+  if(!publicHttpUrl(body.video_url))throw Object.assign(new Error('Video publishing requires a public HTTPS video URL.'),{preflight:true});
+ }else if(!String(body.text||'').trim())throw Object.assign(new Error('LinkedIn post text is required.'),{preflight:true});
+ if((provider==='tiktok'||provider==='linkedin')&&body.explicit_consent!==true)throw Object.assign(new Error('Publishing requires explicit approval of this exact scheduled post.'),{preflight:true});
+ const transparency=assessAiTransparency({
+  kind:provider==='linkedin'?'text':'video',
+  ai_generated:body.ai_generated===true||body.deepfake===true||body.public_interest===true,
+  deepfake:body.deepfake===true,
+  public_interest:body.public_interest===true,
+  human_reviewed:body.human_reviewed===true,
+  editorial_responsibility:body.editorial_responsibility===true
+ });
+ if(transparency.visible_disclosure.required_for_this_context){
+  const caption=String(provider==='linkedin'?body.text:provider==='youtube'?body.description:body.title||'');
+  const labelled=/\b(?:AI[ -]generated|AI[ -]altered|artificially generated|synthetic (?:media|video|audio)|created with AI)\b/i.test(caption);
+  if(body.ai_disclosure_confirmed!==true||!labelled)throw Object.assign(new Error('The approved post needs a clear AI-generated/AI-altered disclosure in its caption.'),{preflight:true});
+  if(provider!=='linkedin'&&body.visible_media_disclosure_confirmed!==true)throw Object.assign(new Error('Confirm that the video itself carries an appropriate visible or audible AI disclosure.'),{preflight:true});
+ }
+ // Refresh/validate the provider token before any publishing write. A failed token check is a definite preflight failure.
+ try{await tokenFor(env,row,provider)}catch(error){throw Object.assign(error,{preflight:true})}
+ // Once a provider write begins, a network or provider error can be ambiguous.
+ // The scheduler deliberately records that result without an automatic retry.
+ const result=provider==='youtube'?await youtubePublish(env,row,body):provider==='tiktok'?await tiktokPublish(env,row,body):await linkedinPublish(env,row,body);
+ return {...result,ai_transparency:transparency};
+}
+
+export async function pollTikTokPublishStatus(env,tenantId,expectedExternalId,publishId){
+ await ensureSchema(env);
+ const row=await connection(env,String(tenantId),'tiktok');
+ if(!row)throw new Error('TikTok is no longer connected. Reconnect before checking this publish receipt.');
+ if(expectedExternalId&&String(row.external_id||'')!==String(expectedExternalId))throw new Error('The connected TikTok account changed. This receipt belongs to the previous account.');
+ if(!String(publishId||'').trim())throw new Error('TikTok publish receipt is missing its publish ID.');
+ const token=await tokenFor(env,row,'tiktok');
+ const response=await fetch('https://open.tiktokapis.com/v2/post/publish/status/fetch/',{
+  method:'POST',
+  headers:{authorization:`Bearer ${token}`,'content-type':'application/json; charset=UTF-8'},
+  body:JSON.stringify({publish_id:String(publishId)})
+ });
+ const data=await responseJson(response,'TikTok publish status');
+ const code=String(data?.error?.code||'ok');
+ if(code!=='ok')throw new Error(data?.error?.message||`TikTok publish status check returned ${code}.`);
+ const status=String(data?.data?.status||'');
+ if(!['PROCESSING_UPLOAD','PROCESSING_DOWNLOAD','SEND_TO_USER_INBOX','PUBLISH_COMPLETE','FAILED'].includes(status))throw new Error('TikTok returned an unrecognized publish status. Manual verification is required.');
+ return{ok:true,provider:'tiktok',publish_id:String(publishId),status,fail_reason:String(data?.data?.fail_reason||''),post_ids:Array.isArray(data?.data?.publicaly_available_post_id)?data.data.publicaly_available_post_id:[],provider_data:data?.data||{}};
+}
 
 export async function handleSocialPublishing(request,env){
  const url=new URL(request.url);if(!url.pathname.startsWith('/api/social-connect'))return null;if(!env?.DB)return json({detail:'Database binding is not configured.'},503);
  try{
   await ensureSchema(env);
   if(request.method==='GET'&&url.pathname==='/api/social-connect/providers'){
-   const user=await currentUser(request,env);const out=[];for(const[id,p]of Object.entries(PROVIDERS)){const c=await providerCredentials(env,id),row=user?await connection(env,user.tenant_id,id):null;out.push({id,name:p.name,configured:Boolean(c.client_id&&c.client_secret),connected:Boolean(row),display_name:row?.display_name||'',approval:p.approval,scopes:p.scopes})}return json({providers:out,free_api_access:'Provider APIs generally do not charge this platform per OAuth connection, but quotas, approvals, account eligibility and each provider’s terms still apply.'});
+   const user=await currentUser(request,env);const out=[];for(const[id,p]of Object.entries(PROVIDERS)){const c=await providerCredentials(env,id),row=user?await connection(env,user.tenant_id,id):null;out.push({id,name:p.name,configured:Boolean(c.client_id&&c.client_secret),connected:Boolean(row),write_scope:Boolean(row&&hasSocialWriteScope(id,row.scope)),display_name:row?.display_name||'',approval:p.approval,scopes:p.scopes})}return json({providers:out,free_api_access:'Provider APIs generally do not charge this platform per OAuth connection, but quotas, approvals, account eligibility and each provider’s terms still apply.'});
   }
   const callbackMatch=url.pathname.match(/^\/api\/social-connect\/(youtube|tiktok|linkedin)\/callback$/);
   if(callbackMatch&&request.method==='GET'){
@@ -75,7 +219,7 @@ export async function handleSocialPublishing(request,env){
   }
   const user=await currentUser(request,env);if(!user)return json({detail:'Sign in to manage social publishing.'},401);
   if(request.method==='GET'&&url.pathname==='/api/social-connect/connections'){
-   const list=[];for(const[id,p]of Object.entries(PROVIDERS)){const c=await providerCredentials(env,id),row=await connection(env,user.tenant_id,id);list.push({id,name:p.name,configured:Boolean(c.client_id&&c.client_secret),connected:Boolean(row),display_name:row?.display_name||'',external_id:row?.external_id||'',expires_at:row?.expires_at||null,approval:p.approval})}return json({connections:list});
+   const list=[];for(const[id,p]of Object.entries(PROVIDERS)){const c=await providerCredentials(env,id),row=await connection(env,user.tenant_id,id);list.push({id,name:p.name,configured:Boolean(c.client_id&&c.client_secret),connected:Boolean(row),write_scope:Boolean(row&&hasSocialWriteScope(id,row.scope)),display_name:row?.display_name||'',external_id:row?.external_id||'',expires_at:row?.expires_at||null,approval:p.approval})}return json({connections:list});
   }
   if(request.method==='POST'&&url.pathname==='/api/social-connect/credentials'){
    if(user.role!=='owner')return json({detail:'Owner access is required to configure platform social credentials.'},403);const b=await request.json().catch(()=>({})),values=b?.values&&typeof b.values==='object'?b.values:{};let saved=0;for(const[key,value]of Object.entries(values)){if(!SAVABLE_KEYS.has(key)||typeof value!=='string'||!value.trim())continue;await env.DB.prepare(`INSERT INTO social_platform_credentials(credential_key,encrypted_value,updated_at,updated_by) VALUES(?,?,?,?) ON CONFLICT(credential_key) DO UPDATE SET encrypted_value=excluded.encrypted_value,updated_at=excluded.updated_at,updated_by=excluded.updated_by`).bind(key,await encrypt(value.trim(),env),now(),String(user.id)).run();saved++}if(!saved)return json({detail:'Enter at least one supported TikTok or LinkedIn credential.'},400);return json({ok:true,saved});
@@ -89,7 +233,7 @@ export async function handleSocialPublishing(request,env){
   const creatorMatch=url.pathname==='/api/social-connect/tiktok/creator-info';if(creatorMatch&&request.method==='POST'){const row=await connection(env,user.tenant_id,'tiktok');if(!row)return json({detail:'Connect TikTok first.'},409);return json(await tiktokCreator(await tokenFor(env,row,'tiktok')))}
   const publishMatch=url.pathname.match(/^\/api\/social-connect\/(youtube|tiktok|linkedin)\/publish$/);
   if(publishMatch&&request.method==='POST'){
-   const provider=publishMatch[1],row=await connection(env,user.tenant_id,provider);if(!row)return json({detail:`Connect ${PROVIDERS[provider].name} first.`},409);const body=await request.json().catch(()=>({}));
+   const provider=publishMatch[1],row=await connection(env,user.tenant_id,provider);if(!row)return json({detail:`Connect ${PROVIDERS[provider].name} first.`},409);if(!hasSocialWriteScope(provider,row.scope))return json({detail:`Reconnect ${PROVIDERS[provider].name} and grant its official publishing permission before posting.`,code:'SOCIAL_PUBLISH_SCOPE_REQUIRED'},409);const body=await request.json().catch(()=>({}));
    const transparency=assessAiTransparency({
      kind:provider==='linkedin'?'text':'video',
      ai_generated:body.ai_generated===true||body.deepfake===true||body.public_interest===true,

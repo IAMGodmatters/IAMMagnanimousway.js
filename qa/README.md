@@ -62,6 +62,8 @@ The suite serves `frontend/out` locally and blocks every external browser reques
 - A checkout redirect does not activate a subscription or call payment confirmation.
 - Cancelled checkout leaves the current plan unchanged.
 - Pricing-page TTFB, DOM-ready, load, resource-count, transferred-byte, and mobile-overflow budgets.
+- Social Publishing Calendar browser journeys: signed-out redirect, publish-ready account selection, draft-only submission, owner approval that only queues, and ordinary-member approval denial. Social API responses are mocked; no provider account is contacted and no post is published.
+- Social scheduling limits: 20 new drafts per tenant per rolling hour and 100 active posts per tenant, enforced atomically in D1 and verified with SQLite runtime tests. The hourly window counts successful draft creations even if later cancelled/failed; the active cap includes drafts, scheduled/in-flight items and outcome-unknown posts until reconciled. Exact idempotent retries return the existing row without consuming another slot.
 
 The hosted-checkout fixture is deliberately synthetic. The test cannot charge a card, create a live Stripe session, mutate D1, send communications, or access production data. These are static-bundle regression budgets, not a substitute for real-user field Web Vitals.
 

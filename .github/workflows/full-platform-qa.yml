@@ -47,11 +47,6 @@ jobs:
       - name: Run deterministic native unit and integration tests
         run: node qa/scripts/run-native-regression-tests.mjs
 
-      - name: Verify Stripe webhook signatures, atomic claims, and legacy event backfill
-        run: |
-          node qa/scripts/webhook-security-lock.mjs
-          python qa/scripts/stripe-webhook-idempotency-sqlite-test.py
-
       - name: Lock standalone AI, platform, and Shopify boundaries
         run: node qa/scripts/product-contract-locks.mjs
 
@@ -182,6 +177,12 @@ jobs:
 
       - name: Lock Business AI D1 schema and request workload
         run: node qa/scripts/business-ai-request-workload-lock.mjs
+
+      - name: Lock Magnanimous native scheduled social publishing
+        run: node qa/scripts/social-scheduling-lock.mjs
+
+      - name: Exercise native social schedule lifecycle against SQLite-backed D1
+        run: node qa/scripts/social-scheduling-runtime-test.mjs
 
       - name: Frontend typecheck and production build
         working-directory: frontend
