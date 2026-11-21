@@ -11,6 +11,7 @@ const testFiles = [
   'qa/scripts/stripe-webhook-idempotency.test.mjs',
   'qa/scripts/stripe-subscription-failure-guard.test.mjs',
   'qa/scripts/magnanimous-brand-encoding-lock.mjs',
+  'qa/scripts/magnanimous-marketing-skills.test.mjs',
   'qa/scripts/tv-companion-lock.mjs',
   'worker/test/magnanimous-model-calibration.test.js',
   'video-gateway/test/security.test.mjs',
