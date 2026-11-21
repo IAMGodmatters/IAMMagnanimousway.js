@@ -2,6 +2,7 @@ import { MAGNANIMOUS_CLOUD_SECURITY_PLAYBOOKS } from './magnanimous-cloud-securi
 import { MAGNANIMOUS_ENGINEERING_SKILLS } from './magnanimous-ecc-engineering.js';
 import { MAGNANIMOUS_MODEL_ARENA_SKILLS } from './magnanimous-model-arena-skills.js';
 import { MAGNANIMOUS_BRAIN_MEMORY_SKILLS } from './magnanimous-brain-memory-skills.js';
+import { MAGNANIMOUS_MARKETING_SKILLS, listMagnanimousMarketingResources } from './magnanimous-marketing-skills.js';
 const clip=(value,max=120000)=>String(value??'').replace(/\r\n/g,'\n').slice(0,max);
 const uniq=(items)=>[...new Set(items.filter(Boolean))];
 const MAX_SKILL_SOURCE_LENGTH=160000;
@@ -188,7 +189,8 @@ const BUILTIN=Object.freeze([
  ...MAGNANIMOUS_CLOUD_SECURITY_PLAYBOOKS,
  ...MAGNANIMOUS_ENGINEERING_SKILLS,
  ...MAGNANIMOUS_MODEL_ARENA_SKILLS,
- ...MAGNANIMOUS_BRAIN_MEMORY_SKILLS
+ ...MAGNANIMOUS_BRAIN_MEMORY_SKILLS,
+ ...MAGNANIMOUS_MARKETING_SKILLS
 ]);
 
 function normalizeName(value){return clip(value,80).trim();}
@@ -198,6 +200,7 @@ function words(value){
 }
 function publicSkill(skill,{includeInstructions=false}={}){
  const out={name:skill.name,description:skill.description,license:'Magnanimous native',metadata:skill.metadata,triggers:skill.triggers};
+ if(Array.isArray(skill.resources)&&skill.resources.length)out.resources=[...skill.resources];
  if(includeInstructions)out.instructions=skill.instructions;
  return out;
 }
@@ -288,6 +291,8 @@ export function getMagnanimousAgentSkillsSummary(){
   parser:'safe-common-frontmatter-subset',
   validator_rules:['required name','required description','name syntax and directory match','description/compatibility limits','malformed quoted scalar rejection','oversized source rejection','progressive disclosure warning','allowed-tools scope warning','policy-conflict warning'],
   runtime_behavior:'Skill resolution selects instructions only; execution remains delegated through existing Magnanimous capability routes and their authorization gates.',
+  domain_packs:{marketing:{identity:'Magnanimous-native',skill_count:MAGNANIMOUS_MARKETING_SKILLS.length,resources:listMagnanimousMarketingResources()}},
+  resource_retrieval:'Use skills.resource through Magnanimous Capability Mesh; resources are read-only instructions/data and do not grant execution permission.',
   startup_metadata:listMagnanimousAgentSkills({includeInstructions:false})
  };
 }
