@@ -121,8 +121,9 @@ async function processEvent(env,event){
   const metadataPlan=String(object?.metadata?.plan||'').toLowerCase();if(AGENCY_PLANS.has(metadataPlan))return;
   const tenantId=await resolveTenant(env,object);if(!tenantId)return;
   const old=await env.DB.prepare('SELECT plan FROM billing_subscriptions WHERE tenant_id=?').bind(tenantId).first();if(AGENCY_PLANS.has(String(old?.plan||'').toLowerCase()))return;
-  const detected=pricePlan(env,object)||String(object?.metadata?.plan||old?.plan||'business').toLowerCase();
-  const canonical=PLAN_ALIAS[detected]||detected,desired=PLANS.has(canonical)?canonical:'plus',status=String(object.status||(type.endsWith('.deleted')?'canceled':'inactive'));
+  const detected=pricePlan(env,object)||String(object?.metadata?.plan||old?.plan||'').toLowerCase();
+  const canonical=PLAN_ALIAS[detected]||detected;if(!PLANS.has(canonical))return;
+  const desired=canonical,status=String(object.status||(type.endsWith('.deleted')?'canceled':'inactive'));
   const active=ACTIVE.has(status)&&!type.endsWith('.deleted');
   await save(env,tenantId,{plan:active?desired:'free',customer_id:String(object.customer||'')||null,subscription_id:String(object.id||'')||null,status,current_period_end:Number(object.current_period_end||0)||null});
   if(active){await authorizeProviderSpend(env,tenantId,String(object.id||event.id),`subscription:${desired}`,0);await queueProvisioning(env,tenantId,String(object.id||event.id),desired)}

@@ -24,6 +24,8 @@ has(stripe,'failStripeWebhookEvent','Failed Stripe processing must release the c
 has(stripe,'fetchStripeSubscription','Paid plan checkout must retrieve the authoritative Stripe subscription.');
 has(stripe,"String(object?.mode||'')!=='subscription'",'One-time checkouts must not grant recurring plan entitlements.');
 has(stripe,'ACTIVE.has(subscriptionStatus)','Paid plan activation must require an active provider subscription.');
+has(stripe,"if(!PLANS.has(canonical))return;",'Subscription update events must not invent a default plan when metadata and price mapping are absent.');
+if(stripe.includes("||old?.plan||'business'"))throw new Error('Subscription update still defaults an unresolved plan to Business.');
 has(stripe,"return json({received:true,duplicate:true})",'Processed Stripe duplicates must be acknowledged without reprocessing.');
 if(stripe.includes("SELECT event_id FROM billing_webhook_events WHERE event_id=?"))throw new Error('Stripe webhook still uses a check-then-act duplicate guard.');
 has(claims,'RETURNING event_id','Stripe event reservation must use an atomic SQLite RETURNING claim.');
