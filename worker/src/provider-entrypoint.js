@@ -169,7 +169,7 @@ function nativeCapability(message, task) {
   return `${task || 'general'}-workflow`;
 }
 
-const MARKETING_INTENT_RE=/\\b(marketing|social media|social campaign|content strategy|content calendar|brand voice|brand brief|campaign copy|repurpose|viral hook|write (?:a )?(?:post|caption)|post grader|content coach)\\b/i;
+const MARKETING_INTENT_RE=/\b(marketing|social media|social campaign|content strategy|content calendar|brand voice|brand brief|campaign copy|repurpose|viral hook|write (?:a )?(?:post|caption)|post grader|content coach)\b/i;
 function magnanimousMarketingSkillContext(message,capability){
  const text=String(message||'');
  if(capability!=='social-content-operations'&&!MARKETING_INTENT_RE.test(text))return '';
