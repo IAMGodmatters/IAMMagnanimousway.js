@@ -139,7 +139,7 @@ includes(agencyBilling,"String(sub.status||'')!=='active'",'billing: Agency acti
 // Non-regression boundaries.
 notMatches(agencyRuntime,/CREATE TABLE IF NOT EXISTS\s+(?:crm_|bpo_clients)/i,'non-regression: Agency Command must not create a duplicate CRM/BPO client table');
 notMatches(inboxRuntime,/CREATE TABLE IF NOT EXISTS\s+(?:crm_|bpo_clients)/i,'non-regression: Unified Inbox must not create a duplicate CRM/BPO client table');
-includes(deployWorkflow,'Enforce effective GitHub main ruleset before production build','reliability: production branch-protection safety gate remains installed as a dedicated workflow step');
+includes(deployWorkflow,'Verify effective main ruleset before production deployment','reliability: production branch-protection safety gate remains installed as a dedicated workflow job');
 includes(deployWorkflow,'run: node scripts/verify-main-protection.mjs','reliability: production deployment executes the effective main-ruleset verifier before building');
 includes(deployWorkflow,'actions/create-github-app-token@v3','reliability: dedicated production audit job mints a short-lived repository-scoped GitHub App token');
 includes(deployWorkflow,'permission-administration: write','reliability: audit token requests only the ruleset administration permission needed to inspect bypass actors');
