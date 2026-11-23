@@ -250,11 +250,15 @@ assert.equal(unavailable.status, 'manual');
 // Keep the ruleset credential isolated from npm lifecycle scripts and dependencies.
 const deployWorkflow = readFileSync(new URL('../../.github/workflows/deploy.yml', import.meta.url), 'utf8');
 const frontendPackage = JSON.parse(readFileSync(new URL('../../frontend/package.json', import.meta.url), 'utf8'));
+const gateScript = readFileSync(new URL('../../frontend/scripts/verify-main-protection.mjs', import.meta.url), 'utf8');
 const gateStep = deployWorkflow.split('- name: Enforce effective GitHub main ruleset before production build')[1]?.split('\n      - name:')[0] || '';
 const buildStep = deployWorkflow.split('- name: Build frontend')[1]?.split('\n      - name:')[0] || '';
 assert.ok(gateStep.includes('RULESET_AUDIT_TOKEN'), 'Dedicated production gate must receive the ruleset audit credential.');
 assert.ok(gateStep.includes('node scripts/verify-main-protection.mjs'), 'Dedicated production gate must execute the ruleset verifier.');
 assert.ok(!buildStep.includes('RULESET_AUDIT_TOKEN'), 'High-privilege ruleset credential must not enter npm build or dependency scripts.');
 assert.ok(!frontendPackage.scripts.prebuild.includes('verify-main-protection.mjs'), 'npm prebuild lifecycle must not receive the ruleset audit credential.');
+assert.ok(deployWorkflow.includes('Manual production deployments must be dispatched from main'), 'Manual production deployments must reject non-main refs.');
+assert.ok(deployWorkflow.includes('GITHUB_REF_NAME: ${{ github.ref_name }}'), 'Production gate must inspect the actual dispatch ref, not a hard-coded main value.');
+assert.ok(gateScript.includes("if (branch !== 'main')"), 'The production gate must fail closed for non-main deployment refs.');
 
 console.log('Main ruleset audit assessment: 16 cases passed, including audit-token isolation.');
