@@ -68,7 +68,9 @@ function zipStore(entries:Array<{path:string;content:string}>){
  ed.setUint32(0,0x06054b50,true);ed.setUint16(4,0,true);ed.setUint16(6,0,true);
  ed.setUint16(8,entries.length,true);ed.setUint16(10,entries.length,true);ed.setUint32(12,centralSize,true);
  ed.setUint32(16,offset,true);ed.setUint16(20,0,true);
- return new Blob([...locals,...central,end],{type:'application/zip'});
+ const parts=[...locals,...central,end],total=parts.reduce((sum,part)=>sum+part.byteLength,0),combined=new Uint8Array(total);let cursor=0;
+ for(const part of parts){combined.set(part,cursor);cursor+=part.byteLength;}
+ return new Blob([combined.buffer as ArrayBuffer],{type:'application/zip'});
 }
 function slug(value:string){return (value||'magnanimous-project').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,48)||'magnanimous-project';}
 function defaultContent(path:string){
