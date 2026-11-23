@@ -93,6 +93,8 @@ assert.ok(read('worker/src/magnanimous-dev-agent.js').includes("id:'vibe-safe-re
 for(const word of ['MAX_VIBE_FILES=19','MAX_VIBE_FILE_BYTES=65536','MAX_VIBE_PROJECT_BYTES=262144','normalizeVibeFilePath','validateVibeFileContent','magnanimous_vibe_files','magnanimous_vibe_file_versions','tenant_id=? AND user_id=?','VIBE_FILE_REVISION_CONFLICT','VIBE_PROJECT_SIZE_LIMIT'])
  assert.ok(runtime.includes(word),'Multi-file Vibe Studio runtime contract missing '+word);
 assert.ok(!runtime.includes('DELETE FROM magnanimous_vibe_files'),'File history must not be silently deleted.');
+assert.ok(runtime.includes('v.tenant_id=? AND v.user_id=?'),'File version existence checks must remain tenant/user scoped.');
+assert.ok(runtime.includes('Check that the required Vibe Studio migrations are applied'),'Migration failure diagnostics must mention the required schema.');
 const filesClient=read('frontend/app/vibe-studio/files/VibeStudioFilesClient.tsx');
 for(const word of ['getPlatformAuthToken','sandbox="allow-scripts"','connect-src &#39;none&#39;','MAGNANIMOUS_FIXTURES','zipStore','crc32','/files/','/versions','Save file','Export ZIP'])
  assert.ok(filesClient.includes(word),'Multi-file Vibe Studio UI feature missing '+word);
