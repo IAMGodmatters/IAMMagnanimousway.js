@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {buildVibeScaffold,pickVibeTemplate,reviewVibeSource,MAGNANIMOUS_VIBE_STUDIO_POLICY} from '../../worker/src/magnanimous-vibe-studio.js';
+import {buildVibeScaffold,pickVibeTemplate,reviewVibeSource,normalizeVibeFilePath,validateVibeFileContent,MAGNANIMOUS_VIBE_STUDIO_POLICY} from '../../worker/src/magnanimous-vibe-studio.js';
 
 const read=path=>readFileSync(path,'utf8');
 assert.equal(MAGNANIMOUS_VIBE_STUDIO_POLICY.identity,'Magnanimous AI');
@@ -50,6 +50,22 @@ assert.equal(reviewVibeSource('<html><body>Hello world! This is a full preview d
 const migration=read('worker/migrations/0109_magnanimous_vibe_studio.sql');
 for(const word of ['magnanimous_vibe_projects','magnanimous_vibe_versions','tenant_id','user_id','PRIMARY KEY (project_id,revision)'])
  assert.ok(migration.includes(word),'D1 migration missing '+word);
+const multiMigration=read('worker/migrations/0113_magnanimous_vibe_multifile.sql');
+for(const word of ['magnanimous_vibe_files','magnanimous_vibe_file_versions','PRIMARY KEY (project_id, path)','PRIMARY KEY (project_id, path, revision)','tenant_id','user_id','ON DELETE CASCADE'])
+ assert.ok(multiMigration.includes(word),'Multi-file Vibe Studio migration missing '+word);
+assert.equal(normalizeVibeFilePath('styles.css'),'styles.css');
+assert.equal(normalizeVibeFilePath('src/app.js'),'src/app.js');
+assert.equal(normalizeVibeFilePath('fixtures/demo.json'),'fixtures/demo.json');
+for(const path of ['/src/app.js','../secret.js','src/../secret.js','src\\\\app.js','index.html','.env','package.json','src/.secret.js','src/app.exe'])
+ assert.equal(normalizeVibeFilePath(path),'','Unsafe or unsupported project file path must be rejected: '+path);
+assert.equal(validateVibeFileContent('fixtures/demo.json','{"ok":true}'),'');
+assert.ok(validateVibeFileContent('fixtures/demo.json','{'),'Invalid JSON fixtures must be rejected.');
+assert.ok(validateVibeFileContent('styles.css','@import url(https://example.com/a.css);'),'External CSS imports must be rejected.');
+assert.ok(validateVibeFileContent('styles.css','</style><script>alert(1)</script>'),'CSS breakout must be rejected.');
+assert.ok(validateVibeFileContent('app.js','</script><script>alert(1)</script>'),'Script breakout must be rejected.');
+assert.ok(validateVibeFileContent('app.js','é'.repeat(32769)),'UTF-8 file byte limits must be enforced.');
+assert.equal(validateVibeFileContent('notes.md','# Private notes'),'');
+
 const runtime=read('worker/src/magnanimous-vibe-studio.js');
 for(const word of ['requirePlatformOwner(request,env)','currentUser(request,env)','env.DB.batch([','tenant_id=? AND user_id=?','expected_revision','VIBE_REVISION_CONFLICT','NOT EXISTS (SELECT 1 FROM magnanimous_vibe_versions','MAX_HTML=65536','MAX_PROJECTS=25'])
  assert.ok(runtime.includes(word),'Vibe Studio runtime safety contract missing '+word);
@@ -71,4 +87,16 @@ assert.ok(read('frontend/app/owner-center/page.tsx').includes('href="/vibe-studi
 assert.ok(read('frontend/app/god-coding/page.tsx').includes('href="/vibe-studio"'),'God Coding handoff link required.');
 assert.ok(read('worker/src/magnanimous-agent-skills.js').includes("name:'vibe-coding-studio'"),'Native vibe Agent Skill required.');
 assert.ok(read('worker/src/magnanimous-dev-agent.js').includes("id:'vibe-safe-release'"),'Dev Agent safe release skill required.');
-console.log('Magnanimous Vibe Studio: PASS — original runnable scaffolds, opaque-origin preview, owner D1 projects, checkpoint review and no-spend release boundary.');
+
+for(const word of ['MAX_VIBE_FILES=19','MAX_VIBE_FILE_BYTES=65536','MAX_VIBE_PROJECT_BYTES=262144','normalizeVibeFilePath','validateVibeFileContent','magnanimous_vibe_files','magnanimous_vibe_file_versions','tenant_id=? AND user_id=?','VIBE_FILE_REVISION_CONFLICT','VIBE_PROJECT_SIZE_LIMIT'])
+ assert.ok(runtime.includes(word),'Multi-file Vibe Studio runtime contract missing '+word);
+assert.ok(!runtime.includes('DELETE FROM magnanimous_vibe_files'),'File history must not be silently deleted.');
+const filesClient=read('frontend/app/vibe-studio/files/VibeStudioFilesClient.tsx');
+for(const word of ['getPlatformAuthToken','sandbox="allow-scripts"','connect-src &#39;none&#39;','MAGNANIMOUS_FIXTURES','zipStore','crc32','/files/','/versions','Save file','Export ZIP'])
+ assert.ok(filesClient.includes(word),'Multi-file Vibe Studio UI feature missing '+word);
+assert.ok(!filesClient.includes('dangerouslySetInnerHTML'),'Multi-file source must never be injected into the parent app.');
+assert.ok(read('frontend/app/vibe-studio/files/page.tsx').includes('<VibeStudioFilesClient />'),'Multi-file workspace route must render its authenticated client.');
+assert.ok(read('frontend/app/vibe-studio/page.tsx').includes('href="/vibe-studio/files"'),'Single-file Vibe Studio must link to the multi-file workspace.');
+assert.ok(read('frontend/app/vibe-studio/files/vibe-files.css').includes('@media(max-width:520px)'),'Multi-file workspace must have a mobile layout.');
+
+console.log('Magnanimous Vibe Studio: PASS — single-file prototypes, tenant-scoped multi-file source, per-file checkpoints, ZIP export, opaque-origin preview and no-spend release boundary.');
