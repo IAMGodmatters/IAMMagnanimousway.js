@@ -312,14 +312,26 @@ export async function handleMagnanimousVibeStudio(request,env){
   if(!Number.isSafeInteger(expected)||expected<MIN_REVISION)return json({detail:'Expected revision is required.'},400);
   if(expected!==Number(project.revision))return json({detail:'A newer version exists. Reload before saving to avoid overwriting another device.',code:'VIBE_REVISION_CONFLICT',current_revision:project.revision},409);
   if(source===project.html)return json({project:{...projectPublic(project),html:project.html},saved:false,unchanged:true});
+  const sourceBytes=new TextEncoder().encode(source).length;
+  const extraUsage=await env.DB.prepare('SELECT COALESCE(SUM(length(CAST(content AS BLOB))),0) AS bytes FROM magnanimous_vibe_files WHERE project_id=? AND tenant_id=? AND user_id=?')
+   .bind(project.id,String(user.tenant_id),String(user.id)).first();
+  if(sourceBytes+Number(extraUsage?.bytes||0)>MAX_VIBE_PROJECT_BYTES)return json({detail:'This project has reached its 256 KiB total source limit.',code:'VIBE_PROJECT_SIZE_LIMIT'},413);
   const stamp=now();
   const steps=await env.DB.batch([
-   env.DB.prepare('UPDATE magnanimous_vibe_projects SET html=?,revision=revision+1,updated_at=? WHERE id=? AND tenant_id=? AND user_id=? AND revision=?')
-    .bind(source,stamp,project.id,String(user.tenant_id),String(user.id),expected),
+   env.DB.prepare('UPDATE magnanimous_vibe_projects SET html=?,revision=revision+1,updated_at=? WHERE id=? AND tenant_id=? AND user_id=? AND revision=? AND length(CAST(? AS BLOB))+COALESCE((SELECT SUM(length(CAST(f.content AS BLOB))) FROM magnanimous_vibe_files f WHERE f.project_id=? AND f.tenant_id=? AND f.user_id=?),0)<=?')
+    .bind(source,stamp,project.id,String(user.tenant_id),String(user.id),expected,source,project.id,String(user.tenant_id),String(user.id),MAX_VIBE_PROJECT_BYTES),
    env.DB.prepare('INSERT INTO magnanimous_vibe_versions(project_id,tenant_id,user_id,revision,html,note,created_at) SELECT p.id,p.tenant_id,p.user_id,p.revision,p.html,?,? FROM magnanimous_vibe_projects p WHERE p.id=? AND p.tenant_id=? AND p.user_id=? AND p.revision=? AND NOT EXISTS (SELECT 1 FROM magnanimous_vibe_versions v WHERE v.project_id=p.id AND v.revision=p.revision)')
     .bind(note,stamp,project.id,String(user.tenant_id),String(user.id),expected+1)
   ]);
-  if(Number(steps?.[0]?.meta?.changes||0)!==1)return json({detail:'Concurrent edit detected; reload and compare before saving.',code:'VIBE_REVISION_CONFLICT'},409);
+  if(Number(steps?.[0]?.meta?.changes||0)!==1){
+   const latest=await scopedProject(env,user,project.id);
+   if(!latest)return json({detail:'Project not found.'},404);
+   if(Number(latest.revision)!==expected)return json({detail:'Concurrent edit detected; reload and compare before saving.',code:'VIBE_REVISION_CONFLICT'},409);
+   const latestExtra=await env.DB.prepare('SELECT COALESCE(SUM(length(CAST(content AS BLOB))),0) AS bytes FROM magnanimous_vibe_files WHERE project_id=? AND tenant_id=? AND user_id=?')
+    .bind(project.id,String(user.tenant_id),String(user.id)).first();
+   if(sourceBytes+Number(latestExtra?.bytes||0)>MAX_VIBE_PROJECT_BYTES)return json({detail:'This project has reached its 256 KiB total source limit.',code:'VIBE_PROJECT_SIZE_LIMIT'},413);
+   return json({detail:'Concurrent edit detected; reload and compare before saving.',code:'VIBE_REVISION_CONFLICT'},409);
+  }
   return json({project:{...projectPublic(project),html:source,revision:expected+1,updated_at:stamp},saved:true,production_published:false});
  }catch(error){
   console.error('Magnanimous private Vibe Studio operation failed',String(error?.message||error).slice(0,240));
