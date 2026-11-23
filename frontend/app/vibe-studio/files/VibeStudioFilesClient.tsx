@@ -31,8 +31,8 @@ function inlineScriptJson(value:unknown){
 
 function previewDocument(html:string,files:StoredFile[]){
  const csp='<meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; script-src &#39;unsafe-inline&#39;; style-src &#39;unsafe-inline&#39;; img-src data: blob:; font-src data:; media-src data: blob:; connect-src &#39;none&#39;; form-action &#39;none&#39;; frame-src &#39;none&#39;; object-src &#39;none&#39;; base-uri &#39;none&#39;">';
- let output=String(html||'').replace(/<meta[^>]+http-equiv\\s*=\\s*["']?Content-Security-Policy[^>]*>/gi,'');
- if(!/<head\\b[^>]*>/i.test(output))output='<!doctype html><html><head></head><body>'+output+'</body></html>';
+ let output=String(html||'').replace(/<meta[^>]+http-equiv\s*=\s*["']?Content-Security-Policy[^>]*>/gi,'');
+ if(!/<head\b[^>]*>/i.test(output))output='<!doctype html><html><head></head><body>'+output+'</body></html>';
  output=output.replace(/<head\\b[^>]*>/i,match=>match+csp);
  const cssFiles=files.filter(file=>file.path.toLowerCase().endsWith('.css')).sort((a,b)=>a.path.localeCompare(b.path)).map(file=>({path:file.path,content:file.content}));
  const jsFiles=files.filter(file=>file.path.toLowerCase().endsWith('.js')).sort((a,b)=>a.path.localeCompare(b.path)).map(file=>({path:file.path,content:file.content}));
