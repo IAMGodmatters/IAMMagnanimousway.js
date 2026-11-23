@@ -58,16 +58,30 @@ export function evaluateMainRulesets(rulesets, detailsById, branchRules) {
   }
 
   const applicable = applicableIds.map(id => activeById.get(id));
-  const unreadable = applicable.filter(item => {
-    const detail = detailsById?.[String(item.id)];
-    return !detail || !Array.isArray(detail.rules) || !Array.isArray(detail.bypass_actors);
-  });
-  if (unreadable.length > 0) {
-    return {
-      status: 'manual',
-      activeRulesets: applicable.length,
-      gaps: ['Not every applicable ruleset detail, rule list, and bypass-actor list could be read; manual owner verification is required.']
-    };
+  const missingRuleDetails = applicable.filter(item =>
+    !Array.isArray(detailsById?.[String(item.id)]?.rules)
+  );
+  const missingBypassDetails = applicable.filter(item =>
+    !Array.isArray(detailsById?.[String(item.id)]?.bypass_actors)
+  );
+  if (missingRuleDetails.length > 0 || missingBypassDetails.length > 0) {
+    const gaps = [];
+    if (missingRuleDetails.length > 0) {
+      gaps.push(
+        'Complete rules were not returned for applicable ruleset(s): ' +
+        missingRuleDetails.map(item => String(item.id)).join(', ') + '.'
+      );
+    }
+    if (missingBypassDetails.length > 0) {
+      gaps.push(
+        'GitHub omitted bypass_actors for applicable ruleset(s): ' +
+        missingBypassDetails.map(item => String(item.id)).join(', ') +
+        '. GitHub only returns this field when the API caller has write access to the ruleset. ' +
+        'Use a repository-restricted audit credential with the required ruleset visibility, ' +
+        'or complete manual owner verification; do not broaden the production GITHUB_TOKEN.'
+      );
+    }
+    return { status: 'manual', activeRulesets: applicable.length, gaps };
   }
 
   // Use GitHub's effective branch-rule response for applicability and rule
