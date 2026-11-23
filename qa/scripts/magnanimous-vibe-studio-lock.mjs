@@ -94,6 +94,7 @@ for(const word of ['MAX_VIBE_FILES=19','MAX_VIBE_FILE_BYTES=65536','MAX_VIBE_PRO
  assert.ok(runtime.includes(word),'Multi-file Vibe Studio runtime contract missing '+word);
 assert.ok(!runtime.includes('DELETE FROM magnanimous_vibe_files'),'File history must not be silently deleted.');
 assert.ok(runtime.includes('v.tenant_id=? AND v.user_id=?'),'File version existence checks must remain tenant/user scoped.');
+assert.ok(runtime.includes('UPDATE magnanimous_vibe_projects SET html=?,revision=revision+1,updated_at=? WHERE id=? AND tenant_id=? AND user_id=? AND revision=? AND length(CAST(? AS BLOB))'),'Legacy index.html saves must enforce the combined project byte limit inside the database update.');
 assert.ok(runtime.includes('Check that the required Vibe Studio migrations are applied'),'Migration failure diagnostics must mention the required schema.');
 const filesClient=read('frontend/app/vibe-studio/files/VibeStudioFilesClient.tsx');
 for(const word of ['getPlatformAuthToken','sandbox="allow-scripts"','connect-src &#39;none&#39;','MAGNANIMOUS_FIXTURES','zipStore','crc32','/files/','/versions','Save file','Export ZIP'])
