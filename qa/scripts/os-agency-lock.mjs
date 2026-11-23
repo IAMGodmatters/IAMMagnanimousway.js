@@ -142,7 +142,7 @@ notMatches(inboxRuntime,/CREATE TABLE IF NOT EXISTS\s+(?:crm_|bpo_clients)/i,'no
 includes(deployWorkflow,'Enforce effective GitHub main ruleset before production build','reliability: production branch-protection safety gate remains installed as a dedicated workflow step');
 includes(deployWorkflow,'run: node scripts/verify-main-protection.mjs','reliability: production deployment executes the effective main-ruleset verifier before building');
 includes(deployWorkflow,'RULESET_AUDIT_TOKEN','reliability: dedicated production gate can inspect ruleset bypass actors when owner credential is configured');
-notMatches(packageJson, /\"prebuild\"[^\\n]*verify-main-protection\\.mjs/,'reliability: privileged ruleset audit is not invoked from the npm build lifecycle');
+notMatches(packageJson, /verify-main-protection\\.mjs/,'reliability: privileged ruleset audit is not invoked from the npm build lifecycle');
 
 console.log(`Magnanimous OS + Agency locks: ${passes.length} checks passed.`);
 if(failures.length){console.error(`\nMAGNANIMOUS OS / AGENCY CONTRACT FAILURE (${failures.length})`);for(const f of failures)console.error(`- ${f}`);process.exit(1)}
