@@ -323,6 +323,6 @@ export async function handleMagnanimousVibeStudio(request,env){
   return json({project:{...projectPublic(project),html:source,revision:expected+1,updated_at:stamp},saved:true,production_published:false});
  }catch(error){
   console.error('Magnanimous private Vibe Studio operation failed',String(error?.message||error).slice(0,240));
-  return json({detail:'Vibe Studio could not complete this request. Check that migration 0109 is applied and retry.',code:'VIBE_STUDIO_UNAVAILABLE'},503);
+  return json({detail:'Vibe Studio could not complete this request. Check that the required Vibe Studio migrations are applied and retry.',code:'VIBE_STUDIO_UNAVAILABLE'},503);
  }
 }
