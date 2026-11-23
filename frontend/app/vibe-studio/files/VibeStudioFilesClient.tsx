@@ -16,6 +16,7 @@ async function requestWithToken(token:string,path:string,options:RequestInit={})
  const headers:Record<string,string>={Authorization:'Bearer '+token};
  if(options.body)headers['Content-Type']='application/json';
  const response=await fetch(api+path,{...options,headers:{...headers,...(options.headers as Record<string,string>||{})},cache:'no-store'});
+ if(response.status===401||response.status===403){location.replace('/owner-login');throw new Error('Owner session expired or access was not authorized. Sign in again.');}
  const raw=await response.text();let data:ApiData;
  try{data=JSON.parse(raw)}catch{data={detail:raw.slice(0,300)||'Unexpected response'};}
  if(!response.ok)throw new Error(data.detail||('Magnanimous request failed (HTTP '+response.status+').'));
@@ -81,6 +82,7 @@ function displayTime(value:number){return value?new Date(value*1000).toLocaleStr
 export default function VibeStudioFilesClient(){
  const[token,setToken]=useState(''),[projects,setProjects]=useState<ProjectCard[]>([]);
  const[project,setProject]=useState<Project|null>(null),[files,setFiles]=useState<StoredFile[]>([]);
+ const[projectVersions,setProjectVersions]=useState<Version[]>([]);
  const[selectedPath,setSelectedPath]=useState('index.html'),[content,setContent]=useState('');
  const[versions,setVersions]=useState<Version[]>([]),[newPath,setNewPath]=useState('styles.css');
  const[preview,setPreview]=useState(''),[busy,setBusy]=useState(''),[error,setError]=useState('');
@@ -103,7 +105,7 @@ export default function VibeStudioFilesClient(){
     requestWithToken(t,'/api/magnanimous/vibe-studio/projects/'+encodeURIComponent(id)+'/files')
    ]);
    if(!p.project)throw new Error('Project response was incomplete.');
-   setProject(p.project);setFiles(f.files||[]);setSelectedPath(focus);
+   setProject(p.project);setFiles(f.files||[]);setProjectVersions(p.versions||[]);setSelectedPath(focus);
    const chosen=focus==='index.html'?p.project.html:(f.files||[]).find(file=>file.path===focus)?.content||'';
    setContent(chosen);setPreview('');
    if(focus==='index.html')setVersions(p.versions||[]);
@@ -126,7 +128,7 @@ export default function VibeStudioFilesClient(){
   if(dirty&&!window.confirm('Discard the unsaved edit in '+selectedPath+' and open '+path+'?'))return;
   if(!project||!token)return;
   setSelectedPath(path);setPreview('');
-  if(path==='index.html'){setContent(project.html);setVersions([]);return;}
+  if(path==='index.html'){setContent(project.html);setVersions(projectVersions);return;}
   const file=files.find(item=>item.path===path);
   setContent(file?.content||'');
   try{
@@ -155,6 +157,7 @@ export default function VibeStudioFilesClient(){
 
  async function addFile(){
   if(!project||!token)return;
+  if(dirty&&!window.confirm('Discard the unsaved edit in '+selectedPath+' before creating a new file?'))return;
   const path=newPath.trim(),initial=defaultContent(path);
   setBusy('add');setError('');
   try{
@@ -195,7 +198,7 @@ export default function VibeStudioFilesClient(){
    const entry=entries.find(file=>file.path===selectedPath);if(entry)entry.content=content;
   }
   const blob=zipStore(entries),url=URL.createObjectURL(blob),anchor=document.createElement('a');
-  anchor.href=url;anchor.download=slug(project.title)+'.zip';anchor.click();URL.revokeObjectURL(url);
+  anchor.href=url;anchor.download=slug(project.title)+'.zip';anchor.click();window.setTimeout(()=>URL.revokeObjectURL(url),5000);
   setNotice('Downloaded a local ZIP containing '+entries.length+' project files. Nothing was published.');
  }
 
