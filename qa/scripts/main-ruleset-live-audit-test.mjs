@@ -231,7 +231,8 @@ assert.equal(unreadable.status, 'manual');
 const missingBypassActors = { 1: { rules: healthy[1].rules } };
 const hiddenBypass = evaluateMainRulesets(active, missingBypassActors, healthyBranchRules);
 assert.equal(hiddenBypass.status, 'manual');
-assert.ok(hiddenBypass.gaps.some(item => item.includes('bypass-actor list')));
+assert.ok(hiddenBypass.gaps.some(item => item.includes('bypass_actors')));
+assert.ok(hiddenBypass.gaps.some(item => item.includes('write access to the ruleset')));
 const missingRuleset = evaluateMainRulesets(active, healthy, [
   { type: 'pull_request', ruleset_id: 999, parameters: { required_approving_review_count: 1 } }
 ]);
