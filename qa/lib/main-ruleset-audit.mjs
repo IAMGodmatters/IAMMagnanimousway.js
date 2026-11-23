@@ -5,6 +5,11 @@ export const REQUIRED_MAIN_CHECK_CONTEXTS = Object.freeze([
   'verify-command-architecture'
 ]);
 
+// Verified from the current main commit's check-runs API: both required
+// contexts are emitted by the GitHub Actions integration (app ID 15368).
+// A matching context from an arbitrary writer is not sufficient.
+export const REQUIRED_MAIN_CHECK_APP_ID = 15368;
+
 /**
  * Evaluate the rules GitHub says are effective on main, not an approximation
  * based only on repository-owned rulesets. The branch-rules endpoint includes
@@ -80,6 +85,12 @@ export function evaluateMainRulesets(rulesets, detailsById, branchRules) {
   const missingRequiredChecks = REQUIRED_MAIN_CHECK_CONTEXTS.filter(
     context => !requiredCheckContexts.includes(context)
   );
+  const wrongSourceRequiredChecks = REQUIRED_MAIN_CHECK_CONTEXTS.filter(context => {
+    const matching = requiredChecks.filter(item => String(item?.context || '').trim() === context);
+    return matching.length > 0 && !matching.every(
+      item => Number(item?.integration_id) === REQUIRED_MAIN_CHECK_APP_ID
+    );
+  });
   const strictRequiredStatusChecksPolicy = statusCheckRules.length > 0 &&
     statusCheckRules.every(rule => rule.parameters?.strict_required_status_checks_policy === true);
   const requiredApprovals = Math.max(0, ...pullRequestRules.map(rule =>
@@ -103,6 +114,12 @@ export function evaluateMainRulesets(rulesets, detailsById, branchRules) {
   } else if (missingRequiredChecks.length > 0) {
     gaps.push('Required status checks are missing: ' + missingRequiredChecks.join(', ') + '.');
   }
+  if (wrongSourceRequiredChecks.length > 0) {
+    gaps.push(
+      'Required status checks must be restricted to the GitHub Actions app (integration ID ' +
+      REQUIRED_MAIN_CHECK_APP_ID + '): ' + wrongSourceRequiredChecks.join(', ') + '.'
+    );
+  }
   if (statusCheckRules.length > 0 && !strictRequiredStatusChecksPolicy) {
     gaps.push('Every effective required-status-check rule must require the branch to be up to date.');
   }
@@ -118,7 +135,9 @@ export function evaluateMainRulesets(rulesets, detailsById, branchRules) {
     requiredApprovals,
     requiredChecks: requiredCheckContexts.length,
     requiredCheckContexts,
+    requiredCheckAppId: REQUIRED_MAIN_CHECK_APP_ID,
     missingRequiredChecks,
+    wrongSourceRequiredChecks,
     strictRequiredStatusChecksPolicy,
     alwaysBypassActors,
     unrestrictedBypassActors: unrestrictedBypassActors.length,
