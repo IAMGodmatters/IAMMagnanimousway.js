@@ -6,11 +6,16 @@ const workflow = process.env.GITHUB_WORKFLOW || '';
 const repo = process.env.GITHUB_REPOSITORY || 'IAMGodmatters/IAMMagnanimousway.js';
 const token = process.env.RULESET_AUDIT_TOKEN || process.env.GITHUB_TOKEN || '';
 
-// Local builds, feature branches, and diagnostic workflows remain runnable.
-// Only the actual production deployment build is subject to this fail-closed gate.
-if (!inActions || branch !== 'main' || workflow !== 'Build and Deploy I AM') {
+// Local builds and diagnostic workflows remain runnable. A real production
+// deployment workflow must originate from main; a manual dispatch from another
+// ref is a release attempt against a non-authoritative branch and fails closed.
+if (!inActions || workflow !== 'Build and Deploy I AM') {
   console.log('Main branch protection gate: skipped outside the production deployment workflow.');
   process.exit(0);
+}
+if (branch !== 'main') {
+  console.error('::error::PRODUCTION DEPLOYMENT BLOCKED: production deployments must run from the authoritative main branch.');
+  process.exit(1);
 }
 
 if (!token) {
