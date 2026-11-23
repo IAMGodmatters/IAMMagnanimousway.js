@@ -10,7 +10,7 @@ type Project=ProjectCard&{html:string};
 type StoredFile={path:string;content:string;revision:number;created_at:number;updated_at:number;bytes?:number};
 type StudioFile=StoredFile&{virtual?:boolean};
 type Version={revision:number;note:string;created_at:number};
-type ApiData={detail?:string;projects?:ProjectCard[];project?:Project;files?:StoredFile[];versions?:Version[];version?:{content:string;revision:number;note:string;created_at:number};file?:StoredFile};
+type ApiData={detail?:string;projects?:ProjectCard[];project?:Project;files?:StoredFile[];versions?:Version[];version?:{html?:string;content?:string;revision:number;note:string;created_at:number};file?:StoredFile;valid?:boolean;error?:string};
 
 async function requestWithToken(token:string,path:string,options:RequestInit={}):Promise<ApiData>{
  const headers:Record<string,string>={Authorization:'Bearer '+token};
@@ -183,20 +183,21 @@ export default function VibeStudioFilesClient(){
   }catch(e){setError(e instanceof Error?e.message:'Checkpoint could not be loaded.');}finally{setBusy('');}
  }
 
- function runPreview(){
-  if(!project){setError('Select a project first.');return;}
+ async function runPreview(){
+  if(!project||!token){setError('Select a project first.');return;}
   const html=selectedPath==='index.html'?content:project.html;
   const currentFiles=files.map(file=>file.path===selectedPath?{...file,content}:file);
-  setPreview(previewDocument(html,currentFiles));
-  setNotice('Preview assembled from index.html, local CSS/JS files and JSON fixtures. Network, forms and external resources remain blocked.');
+  setBusy('preview');setError('');
+  try{
+   const checked=await requestWithToken(token,'/api/magnanimous/vibe-studio/review',{method:'POST',body:JSON.stringify({html})});
+   if(!checked.valid)throw new Error(checked.error||'The index.html document did not pass structural validation.');
+   setPreview(previewDocument(html,currentFiles));
+   setNotice('Preview assembled from index.html, local CSS/JS files and JSON fixtures. Network, forms and external resources remain blocked.');
+  }catch(e){setError(e instanceof Error?e.message:'Preview validation failed.');}finally{setBusy('');}
  }
  function downloadZip(){
   if(!project)return;
   const entries=allFiles.map(file=>({path:file.path,content:file.path===selectedPath&&dirty?content:file.content}));
-  if(dirty&&selectedPath==='index.html')entries[0].content=content;
-  if(dirty&&selectedPath!=='index.html'){
-   const entry=entries.find(file=>file.path===selectedPath);if(entry)entry.content=content;
-  }
   const blob=zipStore(entries),url=URL.createObjectURL(blob),anchor=document.createElement('a');
   anchor.href=url;anchor.download=slug(project.title)+'.zip';anchor.click();window.setTimeout(()=>URL.revokeObjectURL(url),5000);
   setNotice('Downloaded a local ZIP containing '+entries.length+' project files. Nothing was published.');
