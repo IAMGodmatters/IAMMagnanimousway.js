@@ -103,7 +103,11 @@ if (assessment.status !== 'pass') {
   for (const gap of assessment.gaps || ['The main ruleset could not be verified.']) {
     console.error('::error::' + gap);
   }
-  console.error('Required: at least one PR approval, exact checks "Code health and builds" and "verify-command-architecture", strict up-to-date checks, and no unrestricted bypass actors.');
+  console.error(
+    'Required: at least one PR approval; exact checks "Code health and builds" and ' +
+    '"verify-command-architecture", both restricted to GitHub Actions app ID 15368; ' +
+    'strict up-to-date checks; and no unrestricted bypass actors.'
+  );
   process.exit(1);
 }
 
@@ -111,5 +115,6 @@ console.log(
   'Main branch protection gate: PASS — ' +
   assessment.requiredApprovals + ' required PR approval(s); exact checks ' +
   assessment.requiredCheckContexts.join('; ') +
+  ' from GitHub Actions app ID ' + assessment.requiredCheckAppId +
   '; strict up-to-date policy enabled; no unrestricted bypass actors.'
 );
