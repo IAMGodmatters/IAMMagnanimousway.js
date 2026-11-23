@@ -12,6 +12,10 @@ const escape=(v)=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;',
 const kinds=new Set(['landing','dashboard','tasks','calculator','form','portfolio']);
 const MAX_HTML=65536;
 const MAX_PROJECTS=25;
+const MAX_VIBE_FILES=19; // index.html is the twentieth, virtual, project file.
+const MAX_VIBE_FILE_BYTES=65536;
+const MAX_VIBE_PROJECT_BYTES=262144;
+const VIBE_FILE_EXTENSIONS=new Set(['.css','.js','.json','.md']);
 const MIN_REVISION=1;
 
 export const MAGNANIMOUS_VIBE_STUDIO_POLICY=Object.freeze({
@@ -107,6 +111,30 @@ export function reviewVibeSource(html){
   ]};
 }
 
+
+export function normalizeVibeFilePath(value){
+ const path=String(value??'').trim();
+ if(!path||path.length>160||path.startsWith('/')||path.endsWith('/')||path.includes('\\')||path.includes('\0')||path.includes('?')||path.includes('#'))return '';
+ const segments=path.split('/');
+ if(segments.some(part=>!part||part==='.'||part==='..'||part.startsWith('.')||! /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(part)))return '';
+ if(path.toLowerCase()==='index.html')return '';
+ const ext=path.slice(path.lastIndexOf('.')).toLowerCase();
+ return VIBE_FILE_EXTENSIONS.has(ext)?path:'';
+}
+
+export function validateVibeFileContent(path,content){
+ if(!normalizeVibeFilePath(path))return 'Use a safe relative CSS, JavaScript, JSON or Markdown path. index.html is managed by the main editor.';
+ if(typeof content!=='string')return 'File content must be text.';
+ const bytes=new TextEncoder().encode(content).length;
+ if(bytes>MAX_VIBE_FILE_BYTES)return 'Each additional file is limited to 65,536 UTF-8 bytes.';
+ if(content.includes('\0'))return 'Null bytes are not supported.';
+ const ext=path.slice(path.lastIndexOf('.')).toLowerCase();
+ if(ext==='.json'){try{JSON.parse(content)}catch{return 'JSON fixture files must contain valid JSON.'}}
+ if(ext==='.css'&&(/<\/style\s*>/i.test(content)||/@import\b/i.test(content)))return 'CSS files cannot break out of preview styles or import external stylesheets.';
+ if(ext==='.js'&&/<\/script\s*>/i.test(content))return 'JavaScript files cannot contain a closing script tag that could break preview isolation.';
+ return '';
+}
+
 const projectPublic=row=>row&&({
  id:row.id,title:row.title,brief:row.brief,template:row.template,revision:Number(row.revision),
  created_at:Number(row.created_at),updated_at:Number(row.updated_at)
@@ -161,6 +189,96 @@ export async function handleMagnanimousVibeStudio(request,env){
    }
    return methodNotAllowed();
   }
+
+  // Multi-file static project support. index.html remains in the legacy project row
+  // so existing single-file projects and checkpoints stay backward compatible.
+  const fileVersionMatch=p.match(/^\/api\/magnanimous\/vibe-studio\/projects\/([a-f0-9-]{36})\/files\/(.+)\/versions\/(\d+)$/);
+  if(fileVersionMatch){
+   if(request.method!=='GET')return methodNotAllowed();
+   let filePath='';try{filePath=normalizeVibeFilePath(decodeURIComponent(fileVersionMatch[2]))}catch{return json({detail:'Invalid file path.'},400)}
+   if(!filePath)return json({detail:'Invalid file path.'},400);
+   const fileProject=await scopedProject(env,user,fileVersionMatch[1]);if(!fileProject)return json({detail:'Project not found.'},404);
+   const row=await env.DB.prepare('SELECT path,revision,content,note,created_at FROM magnanimous_vibe_file_versions WHERE project_id=? AND tenant_id=? AND user_id=? AND path=? AND revision=? LIMIT 1')
+    .bind(fileProject.id,String(user.tenant_id),String(user.id),filePath,Number(fileVersionMatch[3])).first();
+   return row?json({version:row}):json({detail:'File checkpoint not found.'},404);
+  }
+  const fileVersionsMatch=p.match(/^\/api\/magnanimous\/vibe-studio\/projects\/([a-f0-9-]{36})\/files\/(.+)\/versions$/);
+  if(fileVersionsMatch){
+   if(request.method!=='GET')return methodNotAllowed();
+   let filePath='';try{filePath=normalizeVibeFilePath(decodeURIComponent(fileVersionsMatch[2]))}catch{return json({detail:'Invalid file path.'},400)}
+   if(!filePath)return json({detail:'Invalid file path.'},400);
+   const fileProject=await scopedProject(env,user,fileVersionsMatch[1]);if(!fileProject)return json({detail:'Project not found.'},404);
+   const rows=await env.DB.prepare('SELECT path,revision,note,created_at FROM magnanimous_vibe_file_versions WHERE project_id=? AND tenant_id=? AND user_id=? AND path=? ORDER BY revision DESC LIMIT 30')
+    .bind(fileProject.id,String(user.tenant_id),String(user.id),filePath).all();
+   return json({versions:rows.results||[]});
+  }
+  const filesCollectionMatch=p.match(/^\/api\/magnanimous\/vibe-studio\/projects\/([a-f0-9-]{36})\/files$/);
+  if(filesCollectionMatch){
+   const fileProject=await scopedProject(env,user,filesCollectionMatch[1]);if(!fileProject)return json({detail:'Project not found.'},404);
+   if(request.method==='GET'){
+    const rows=await env.DB.prepare('SELECT path,content,revision,created_at,updated_at,length(CAST(content AS BLOB)) AS bytes FROM magnanimous_vibe_files WHERE project_id=? AND tenant_id=? AND user_id=? ORDER BY path LIMIT ?')
+     .bind(fileProject.id,String(user.tenant_id),String(user.id),MAX_VIBE_FILES).all();
+    const extraBytes=(rows.results||[]).reduce((sum,row)=>sum+Number(row.bytes||0),0);
+    const baseBytes=new TextEncoder().encode(String(fileProject.html||'')).length;
+    return json({files:rows.results||[],limits:{max_files:MAX_VIBE_FILES+1,max_file_bytes:MAX_VIBE_FILE_BYTES,max_project_bytes:MAX_VIBE_PROJECT_BYTES,used_bytes:baseBytes+extraBytes}});
+   }
+   if(request.method==='POST'){
+    const b=await request.json().catch(()=>({})),path=normalizeVibeFilePath(b.path),source=String(b.content??''),error=validateVibeFileContent(path,source);
+    if(error)return json({detail:error,code:'VIBE_FILE_INVALID'},400);
+    const stamp=now(),tenant=String(user.tenant_id),owner=String(user.id);
+    const results=await env.DB.batch([
+     env.DB.prepare('INSERT INTO magnanimous_vibe_files(project_id,tenant_id,user_id,path,content,revision,created_at,updated_at) SELECT ?,?,?,?, ?,1,?,? WHERE EXISTS (SELECT 1 FROM magnanimous_vibe_projects p WHERE p.id=? AND p.tenant_id=? AND p.user_id=? AND (SELECT COUNT(*) FROM magnanimous_vibe_files f WHERE f.project_id=p.id AND f.tenant_id=p.tenant_id AND f.user_id=p.user_id)<? AND length(CAST(p.html AS BLOB))+COALESCE((SELECT SUM(length(CAST(f.content AS BLOB))) FROM magnanimous_vibe_files f WHERE f.project_id=p.id AND f.tenant_id=p.tenant_id AND f.user_id=p.user_id),0)+length(CAST(? AS BLOB))<=? AND NOT EXISTS (SELECT 1 FROM magnanimous_vibe_files f WHERE f.project_id=p.id AND f.tenant_id=p.tenant_id AND f.user_id=p.user_id AND f.path=?))')
+      .bind(fileProject.id,tenant,owner,path,source,stamp,stamp,fileProject.id,tenant,owner,MAX_VIBE_FILES,source,MAX_VIBE_PROJECT_BYTES,path),
+     env.DB.prepare('INSERT INTO magnanimous_vibe_file_versions(project_id,tenant_id,user_id,path,revision,content,note,created_at) SELECT project_id,tenant_id,user_id,path,revision,content,?,? FROM magnanimous_vibe_files WHERE project_id=? AND tenant_id=? AND user_id=? AND path=? AND revision=1 AND NOT EXISTS (SELECT 1 FROM magnanimous_vibe_file_versions v WHERE v.project_id=? AND v.path=? AND v.revision=1)')
+      .bind('Created file',stamp,fileProject.id,tenant,owner,path,fileProject.id,path),
+     env.DB.prepare('UPDATE magnanimous_vibe_projects SET updated_at=? WHERE id=? AND tenant_id=? AND user_id=? AND EXISTS (SELECT 1 FROM magnanimous_vibe_files f WHERE f.project_id=? AND f.tenant_id=? AND f.user_id=? AND f.path=?)')
+      .bind(stamp,fileProject.id,tenant,owner,fileProject.id,tenant,owner,path)
+    ]);
+    if(Number(results?.[0]?.meta?.changes||0)!==1){
+     const existing=await env.DB.prepare('SELECT 1 AS found FROM magnanimous_vibe_files WHERE project_id=? AND tenant_id=? AND user_id=? AND path=? LIMIT 1').bind(fileProject.id,tenant,owner,path).first();
+     if(existing)return json({detail:'That file already exists. Open it and edit the existing file instead.',code:'VIBE_FILE_EXISTS'},409);
+     const usage=await env.DB.prepare('SELECT (SELECT COUNT(*) FROM magnanimous_vibe_files WHERE project_id=? AND tenant_id=? AND user_id=?) AS file_count,length(CAST(? AS BLOB))+COALESCE((SELECT SUM(length(CAST(content AS BLOB))) FROM magnanimous_vibe_files WHERE project_id=? AND tenant_id=? AND user_id=?),0)+length(CAST(? AS BLOB)) AS projected_bytes')
+      .bind(fileProject.id,tenant,owner,fileProject.html,fileProject.id,tenant,owner,source).first();
+     if(Number(usage?.file_count||0)>=MAX_VIBE_FILES)return json({detail:'This project has reached its 20-file limit, including index.html.',code:'VIBE_FILE_LIMIT'},409);
+     if(Number(usage?.projected_bytes||0)>MAX_VIBE_PROJECT_BYTES)return json({detail:'This project has reached its 256 KiB total source limit.',code:'VIBE_PROJECT_SIZE_LIMIT'},413);
+     return json({detail:'The file could not be created. Reload the project and retry.',code:'VIBE_FILE_CREATE_CONFLICT'},409);
+    }
+    return json({file:{path,content:source,revision:1,created_at:stamp,updated_at:stamp},saved:true,production_published:false},201);
+   }
+   return methodNotAllowed();
+  }
+  const fileRouteMatch=p.match(/^\/api\/magnanimous\/vibe-studio\/projects\/([a-f0-9-]{36})\/files\/(.+)$/);
+  if(fileRouteMatch){
+   if(request.method!=='PUT')return methodNotAllowed();
+   let filePath='';try{filePath=normalizeVibeFilePath(decodeURIComponent(fileRouteMatch[2]))}catch{return json({detail:'Invalid file path.'},400)}
+   if(!filePath)return json({detail:'Invalid file path.'},400);
+   const fileProject=await scopedProject(env,user,fileRouteMatch[1]);if(!fileProject)return json({detail:'Project not found.'},404);
+   const b=await request.json().catch(()=>({})),source=String(b.content??''),error=validateVibeFileContent(filePath,source);
+   if(error)return json({detail:error,code:'VIBE_FILE_INVALID'},400);
+   const current=await env.DB.prepare('SELECT path,content,revision,created_at,updated_at FROM magnanimous_vibe_files WHERE project_id=? AND tenant_id=? AND user_id=? AND path=? LIMIT 1')
+    .bind(fileProject.id,String(user.tenant_id),String(user.id),filePath).first();
+   if(!current)return json({detail:'File not found. Create it before editing.',code:'VIBE_FILE_NOT_FOUND'},404);
+   const expected=Number(b.expected_revision);
+   if(!Number.isSafeInteger(expected)||expected<1)return json({detail:'Expected file revision is required.'},400);
+   if(expected!==Number(current.revision))return json({detail:'A newer file checkpoint exists. Reload before saving.',code:'VIBE_FILE_REVISION_CONFLICT',current_revision:current.revision},409);
+   const usage=await env.DB.prepare('SELECT length(CAST(? AS BLOB))+COALESCE((SELECT SUM(length(CAST(content AS BLOB))) FROM magnanimous_vibe_files WHERE project_id=? AND tenant_id=? AND user_id=?),0) AS total_bytes')
+    .bind(fileProject.html,fileProject.id,String(user.tenant_id),String(user.id)).first();
+   const projected=Number(usage?.total_bytes||0)-new TextEncoder().encode(String(current.content||'')).length+new TextEncoder().encode(source).length;
+   if(projected>MAX_VIBE_PROJECT_BYTES)return json({detail:'This project has reached its 256 KiB total source limit.',code:'VIBE_PROJECT_SIZE_LIMIT'},413);
+   if(source===current.content)return json({file:current,saved:false,unchanged:true});
+   const stamp=now(),tenant=String(user.tenant_id),owner=String(user.id),next=expected+1;
+   const results=await env.DB.batch([
+    env.DB.prepare('UPDATE magnanimous_vibe_files SET content=?,revision=revision+1,updated_at=? WHERE project_id=? AND tenant_id=? AND user_id=? AND path=? AND revision=?')
+     .bind(source,stamp,fileProject.id,tenant,owner,filePath,expected),
+    env.DB.prepare('INSERT INTO magnanimous_vibe_file_versions(project_id,tenant_id,user_id,path,revision,content,note,created_at) SELECT project_id,tenant_id,user_id,path,revision,content,?,? FROM magnanimous_vibe_files WHERE project_id=? AND tenant_id=? AND user_id=? AND path=? AND revision=? AND NOT EXISTS (SELECT 1 FROM magnanimous_vibe_file_versions v WHERE v.project_id=? AND v.path=? AND v.revision=?)')
+     .bind(clean(b.note,200)||'Edited file',stamp,fileProject.id,tenant,owner,filePath,next,fileProject.id,filePath,next),
+    env.DB.prepare('UPDATE magnanimous_vibe_projects SET updated_at=? WHERE id=? AND tenant_id=? AND user_id=? AND EXISTS (SELECT 1 FROM magnanimous_vibe_files f WHERE f.project_id=? AND f.tenant_id=? AND f.user_id=? AND f.path=? AND f.revision=?)')
+     .bind(stamp,fileProject.id,tenant,owner,fileProject.id,tenant,owner,filePath,next)
+   ]);
+   if(Number(results?.[0]?.meta?.changes||0)!==1)return json({detail:'Concurrent file edit detected. Reload and compare before saving.',code:'VIBE_FILE_REVISION_CONFLICT'},409);
+   return json({file:{path:filePath,content:source,revision:next,created_at:Number(current.created_at),updated_at:stamp},saved:true,production_published:false});
+  }
+
   const version=p.match(/^\/api\/magnanimous\/vibe-studio\/projects\/([a-f0-9-]{36})\/versions\/(\d+)$/);
   if(version){
    if(request.method!=='GET')return methodNotAllowed();
