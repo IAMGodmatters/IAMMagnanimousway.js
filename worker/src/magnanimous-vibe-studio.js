@@ -133,6 +133,7 @@ export function validateVibeFileContent(path,content){
  if(ext==='.json'){try{JSON.parse(content)}catch{return 'JSON fixture files must contain valid JSON.'}}
  if(ext==='.css'&&(/<\/style\s*>/i.test(content)||/@import\b/i.test(content)))return 'CSS files cannot break out of preview styles or import external stylesheets.';
  if(ext==='.js'&&/<\/script\s*>/i.test(content))return 'JavaScript files cannot contain a closing script tag that could break preview isolation.';
+ if(ext==='.js'&&(/^\s*(?:import\s+|export\s+)/m.test(content)||/\bimport\s*\(/.test(content)||/\brequire\s*\(/.test(content)))return 'ES module imports and Node require are not supported in this static preview phase.';
  return '';
 }
 
