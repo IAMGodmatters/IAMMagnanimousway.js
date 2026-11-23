@@ -115,6 +115,7 @@ const filesClient=read('frontend/app/vibe-studio/files/VibeStudioFilesClient.tsx
 assert.ok(filesClient.includes('function inlineScriptJson(value:unknown)'),'Preview must use a dedicated safe inline-JSON serializer.');
 assert.ok(filesClient.includes('http-equiv\\s*=\\s*'),'CSP meta-tag filtering must recognize normal HTML whitespace.');
 assert.ok(filesClient.includes("output=output.replace(/<head\\b[^>]*>/i"),'The restrictive CSP must be inserted into the actual document head.');
+assert.ok(filesClient.includes("output=output.replace(/<html\\b[^>]*>/i,match=>match+'<head></head>')"),'Documents without a head must receive a head without nesting a second html document.');
 assert.ok(filesClient.includes(".replace(/</g,'\\\\u003c')"),'Inline JSON must use one JavaScript Unicode escape so fixture values round-trip exactly.');
 assert.ok(filesClient.includes('style.textContent=file.content'),'CSS source must be inserted through DOM textContent, not HTML markup concatenation.');
 assert.ok(filesClient.includes('script.textContent=file.content'),'JavaScript source must be inserted through DOM textContent, not HTML markup concatenation.');
