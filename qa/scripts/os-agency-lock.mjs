@@ -141,7 +141,9 @@ notMatches(agencyRuntime,/CREATE TABLE IF NOT EXISTS\s+(?:crm_|bpo_clients)/i,'n
 notMatches(inboxRuntime,/CREATE TABLE IF NOT EXISTS\s+(?:crm_|bpo_clients)/i,'non-regression: Unified Inbox must not create a duplicate CRM/BPO client table');
 includes(deployWorkflow,'Enforce effective GitHub main ruleset before production build','reliability: production branch-protection safety gate remains installed as a dedicated workflow step');
 includes(deployWorkflow,'run: node scripts/verify-main-protection.mjs','reliability: production deployment executes the effective main-ruleset verifier before building');
-includes(deployWorkflow,'RULESET_AUDIT_TOKEN','reliability: dedicated production gate can inspect ruleset bypass actors when owner credential is configured');
+includes(deployWorkflow,'actions/create-github-app-token@v3','reliability: dedicated production audit job mints a short-lived repository-scoped GitHub App token');
+includes(deployWorkflow,'permission-administration: write','reliability: audit token requests only the ruleset administration permission needed to inspect bypass actors');
+includes(deployWorkflow,'needs: [runtime-impact, ruleset-audit]','reliability: production deployment waits for successful effective-ruleset verification');
 includes(deployWorkflow,'Manual production deployments must be dispatched from main','reliability: manual production deployments cannot use a non-authoritative branch');
 must(!packageJson.includes('verify-main-protection.mjs'),'reliability: privileged ruleset audit is not invoked from the npm build lifecycle');
 
