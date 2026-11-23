@@ -199,9 +199,10 @@ export async function handleMagnanimousVibeStudio(request,env){
    if(request.method!=='GET')return methodNotAllowed();
    let filePath='';try{filePath=normalizeVibeFilePath(decodeURIComponent(fileVersionMatch[2]))}catch{return json({detail:'Invalid file path.'},400)}
    if(!filePath)return json({detail:'Invalid file path.'},400);
+   const revision=Number(fileVersionMatch[3]);if(!Number.isSafeInteger(revision)||revision<1)return json({detail:'Invalid file revision.'},400);
    const fileProject=await scopedProject(env,user,fileVersionMatch[1]);if(!fileProject)return json({detail:'Project not found.'},404);
    const row=await env.DB.prepare('SELECT path,revision,content,note,created_at FROM magnanimous_vibe_file_versions WHERE project_id=? AND tenant_id=? AND user_id=? AND path=? AND revision=? LIMIT 1')
-    .bind(fileProject.id,String(user.tenant_id),String(user.id),filePath,Number(fileVersionMatch[3])).first();
+    .bind(fileProject.id,String(user.tenant_id),String(user.id),filePath,revision).first();
    return row?json({version:row}):json({detail:'File checkpoint not found.'},404);
   }
   const fileVersionsMatch=p.match(/^\/api\/magnanimous\/vibe-studio\/projects\/([a-f0-9-]{36})\/files\/(.+)\/versions$/);
@@ -231,8 +232,8 @@ export async function handleMagnanimousVibeStudio(request,env){
     const results=await env.DB.batch([
      env.DB.prepare('INSERT INTO magnanimous_vibe_files(project_id,tenant_id,user_id,path,content,revision,created_at,updated_at) SELECT ?,?,?,?, ?,1,?,? WHERE EXISTS (SELECT 1 FROM magnanimous_vibe_projects p WHERE p.id=? AND p.tenant_id=? AND p.user_id=? AND (SELECT COUNT(*) FROM magnanimous_vibe_files f WHERE f.project_id=p.id AND f.tenant_id=p.tenant_id AND f.user_id=p.user_id)<? AND length(CAST(p.html AS BLOB))+COALESCE((SELECT SUM(length(CAST(f.content AS BLOB))) FROM magnanimous_vibe_files f WHERE f.project_id=p.id AND f.tenant_id=p.tenant_id AND f.user_id=p.user_id),0)+length(CAST(? AS BLOB))<=? AND NOT EXISTS (SELECT 1 FROM magnanimous_vibe_files f WHERE f.project_id=p.id AND f.tenant_id=p.tenant_id AND f.user_id=p.user_id AND f.path=?))')
       .bind(fileProject.id,tenant,owner,path,source,stamp,stamp,fileProject.id,tenant,owner,MAX_VIBE_FILES,source,MAX_VIBE_PROJECT_BYTES,path),
-     env.DB.prepare('INSERT INTO magnanimous_vibe_file_versions(project_id,tenant_id,user_id,path,revision,content,note,created_at) SELECT project_id,tenant_id,user_id,path,revision,content,?,? FROM magnanimous_vibe_files WHERE project_id=? AND tenant_id=? AND user_id=? AND path=? AND revision=1 AND NOT EXISTS (SELECT 1 FROM magnanimous_vibe_file_versions v WHERE v.project_id=? AND v.path=? AND v.revision=1)')
-      .bind('Created file',stamp,fileProject.id,tenant,owner,path,fileProject.id,path),
+     env.DB.prepare('INSERT INTO magnanimous_vibe_file_versions(project_id,tenant_id,user_id,path,revision,content,note,created_at) SELECT project_id,tenant_id,user_id,path,revision,content,?,? FROM magnanimous_vibe_files WHERE project_id=? AND tenant_id=? AND user_id=? AND path=? AND revision=1 AND NOT EXISTS (SELECT 1 FROM magnanimous_vibe_file_versions v WHERE v.project_id=? AND v.tenant_id=? AND v.user_id=? AND v.path=? AND v.revision=1)')
+      .bind('Created file',stamp,fileProject.id,tenant,owner,path,fileProject.id,tenant,owner,path),
      env.DB.prepare('UPDATE magnanimous_vibe_projects SET updated_at=? WHERE id=? AND tenant_id=? AND user_id=? AND EXISTS (SELECT 1 FROM magnanimous_vibe_files f WHERE f.project_id=? AND f.tenant_id=? AND f.user_id=? AND f.path=?)')
       .bind(stamp,fileProject.id,tenant,owner,fileProject.id,tenant,owner,path)
     ]);
@@ -272,8 +273,8 @@ export async function handleMagnanimousVibeStudio(request,env){
    const results=await env.DB.batch([
     env.DB.prepare('UPDATE magnanimous_vibe_files SET content=?,revision=revision+1,updated_at=? WHERE project_id=? AND tenant_id=? AND user_id=? AND path=? AND revision=? AND length(CAST((SELECT p.html FROM magnanimous_vibe_projects p WHERE p.id=? AND p.tenant_id=? AND p.user_id=?) AS BLOB))+COALESCE((SELECT SUM(length(CAST(f.content AS BLOB))) FROM magnanimous_vibe_files f WHERE f.project_id=? AND f.tenant_id=? AND f.user_id=?),0)-length(CAST(content AS BLOB))+length(CAST(? AS BLOB))<=?')
      .bind(source,stamp,fileProject.id,tenant,owner,filePath,expected,fileProject.id,tenant,owner,fileProject.id,tenant,owner,source,MAX_VIBE_PROJECT_BYTES),
-    env.DB.prepare('INSERT INTO magnanimous_vibe_file_versions(project_id,tenant_id,user_id,path,revision,content,note,created_at) SELECT project_id,tenant_id,user_id,path,revision,content,?,? FROM magnanimous_vibe_files WHERE project_id=? AND tenant_id=? AND user_id=? AND path=? AND revision=? AND NOT EXISTS (SELECT 1 FROM magnanimous_vibe_file_versions v WHERE v.project_id=? AND v.path=? AND v.revision=?)')
-     .bind(clean(b.note,200)||'Edited file',stamp,fileProject.id,tenant,owner,filePath,next,fileProject.id,filePath,next),
+    env.DB.prepare('INSERT INTO magnanimous_vibe_file_versions(project_id,tenant_id,user_id,path,revision,content,note,created_at) SELECT project_id,tenant_id,user_id,path,revision,content,?,? FROM magnanimous_vibe_files WHERE project_id=? AND tenant_id=? AND user_id=? AND path=? AND revision=? AND NOT EXISTS (SELECT 1 FROM magnanimous_vibe_file_versions v WHERE v.project_id=? AND v.tenant_id=? AND v.user_id=? AND v.path=? AND v.revision=?)')
+     .bind(clean(b.note,200)||'Edited file',stamp,fileProject.id,tenant,owner,filePath,next,fileProject.id,tenant,owner,filePath,next),
     env.DB.prepare('UPDATE magnanimous_vibe_projects SET updated_at=? WHERE id=? AND tenant_id=? AND user_id=? AND EXISTS (SELECT 1 FROM magnanimous_vibe_files f WHERE f.project_id=? AND f.tenant_id=? AND f.user_id=? AND f.path=? AND f.revision=?)')
      .bind(stamp,fileProject.id,tenant,owner,fileProject.id,tenant,owner,filePath,next)
    ]);
