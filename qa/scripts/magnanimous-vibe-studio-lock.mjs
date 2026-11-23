@@ -113,8 +113,10 @@ assert.ok(runtime.includes('UPDATE magnanimous_vibe_projects SET html=?,revision
 assert.ok(runtime.includes('Check that the required Vibe Studio migrations are applied'),'Migration failure diagnostics must mention the required schema.');
 const filesClient=read('frontend/app/vibe-studio/files/VibeStudioFilesClient.tsx');
 assert.ok(filesClient.includes('function inlineScriptJson(value:unknown)'),'Preview must use a dedicated safe inline-JSON serializer.');
-assert.ok(filesClient.includes('http-equiv\\s*=\\s*'),'CSP meta-tag filtering must recognize normal HTML whitespace.');
-assert.ok(filesClient.includes("output=output.replace(/<head\\b[^>]*>/i"),'The restrictive CSP must be inserted into the actual document head.');
+assert.ok(filesClient.includes("let output=String(html||'');"),'Preview must preserve user HTML and any existing CSP instead of regex-stripping source text.');
+assert.ok(filesClient.includes("output=output.replace(/<head\\b[^>]*>/i,match=>match+csp)"),'The restrictive CSP must be inserted into the actual document head.');
+assert.ok(filesClient.includes("function insertBeforeLastClosingTag(source:string,tag:'body'|'html',insertion:string)"),'Preview must use a closing-tag-aware insertion helper.');
+assert.ok(filesClient.includes("source.matchAll(/<\\/body\\s*>/gi)"),'Preview must insert before the final body close, not a matching string inside inline JavaScript.');
 assert.ok(filesClient.includes("output=output.replace(/<html\\b[^>]*>/i,match=>match+'<head></head>')"),'Documents without a head must receive a head without nesting a second html document.');
 assert.ok(filesClient.includes(".replace(/</g,'\\\\u003c')"),'Inline JSON must use one JavaScript Unicode escape so fixture values round-trip exactly.');
 assert.ok(filesClient.includes('style.textContent=file.content'),'CSS source must be inserted through DOM textContent, not HTML markup concatenation.');

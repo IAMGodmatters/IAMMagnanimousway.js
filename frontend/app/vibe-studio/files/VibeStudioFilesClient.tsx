@@ -29,9 +29,16 @@ function inlineScriptJson(value:unknown){
  return serialized.replace(/</g,'\\u003c').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029');
 }
 
+function insertBeforeLastClosingTag(source:string,tag:'body'|'html',insertion:string){
+ const matches=tag==='body'?[...source.matchAll(/<\/body\s*>/gi)]:[...source.matchAll(/<\/html\s*>/gi)];
+ const match=matches[matches.length-1];
+ if(!match||match.index===undefined)return null;
+ return source.slice(0,match.index)+insertion+match[0]+source.slice(match.index+match[0].length);
+}
+
 function previewDocument(html:string,files:StoredFile[]){
  const csp='<meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; script-src &#39;unsafe-inline&#39;; style-src &#39;unsafe-inline&#39;; img-src data: blob:; font-src data:; media-src data: blob:; connect-src &#39;none&#39;; form-action &#39;none&#39;; frame-src &#39;none&#39;; object-src &#39;none&#39;; base-uri &#39;none&#39;">';
- let output=String(html||'').replace(/<meta[^>]+http-equiv\s*=\s*["']?Content-Security-Policy[^>]*>/gi,'');
+ let output=String(html||'');
  if(!/<head\b[^>]*>/i.test(output))output=output.replace(/<html\b[^>]*>/i,match=>match+'<head></head>');
  output=output.replace(/<head\b[^>]*>/i,match=>match+csp);
  const cssFiles=files.filter(file=>file.path.toLowerCase().endsWith('.css')).sort((a,b)=>a.path.localeCompare(b.path)).map(file=>({path:file.path,content:file.content}));
@@ -43,9 +50,13 @@ function previewDocument(html:string,files:StoredFile[]){
  // Serialize user-controlled values as JavaScript data, then create style/script
  // elements with textContent. User source never becomes markup in the iframe parser.
  const bootstrap='<script>(()=>{const fixtures='+inlineScriptJson(fixtures)+';window.MAGNANIMOUS_FIXTURES=fixtures;const styles='+inlineScriptJson(cssFiles)+';for(const file of styles){const style=document.createElement("style");style.setAttribute("data-vibe-file",file.path);style.textContent=file.content;document.head.appendChild(style);}const scripts='+inlineScriptJson(jsFiles)+';for(const file of scripts){const script=document.createElement("script");script.setAttribute("data-vibe-file",file.path);script.textContent=file.content;document.body.appendChild(script);}})();</script>';
- if(/<\/body\s*>/i.test(output))output=output.replace(/<\/body\s*>/i,bootstrap+'</body>');
- else if(/<\/html\s*>/i.test(output))output=output.replace(/<\/html\s*>/i,bootstrap+'</body></html>');
- else output+=bootstrap+'</body></html>';
+ const withBody=insertBeforeLastClosingTag(output,'body',bootstrap);
+ if(withBody!==null)output=withBody;
+ else{
+  const withHtml=insertBeforeLastClosingTag(output,'html',bootstrap+'</body>');
+  if(withHtml!==null)output=withHtml;
+  else output+=bootstrap+'</body></html>';
+ }
  return output;
 }
 
