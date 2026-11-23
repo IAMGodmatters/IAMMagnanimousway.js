@@ -1,0 +1,49 @@
+.vibeFilesShell{min-height:100vh;padding:28px clamp(14px,3vw,42px) 24px;background:radial-gradient(circle at 82% 2%,#173c63 0%,transparent 30%),linear-gradient(145deg,#061322,#0a1d34);color:#f5f8ff;font:15px/1.55 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.vibeFilesHeader{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;max-width:1500px;margin:0 auto 20px;padding:12px 0 24px;border-bottom:1px solid #294969}
+.vibeFilesHeader a,.vibeFilesFooter a{color:#f3d18b;text-decoration:none;font-weight:700}
+.vibeFilesHeader small,.vibeFilesPanel>small,.vibeFilesToolbar small,.vibeFilesHistory small,.vibeFilesPreview small{display:block;color:#e5c477;font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}
+.vibeFilesHeader h1{margin:9px 0 5px;font-size:clamp(30px,4vw,48px);line-height:1.08;letter-spacing:-.035em}
+.vibeFilesHeader p{max-width:760px;margin:8px 0 0;color:#b5c7db}
+.vibeFilesHeaderActions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.vibeFilesHeaderActions span{font-size:11px;color:#d8e3ef;letter-spacing:.1em;font-weight:800}
+.vibeFilesShell button{border:1px solid #45658a;border-radius:10px;padding:10px 14px;background:#102b48;color:#f7f9fc;font:inherit;font-weight:700;cursor:pointer}
+.vibeFilesShell button:disabled{opacity:.45;cursor:not-allowed}
+.vibeFilesShell button:hover:not(:disabled){border-color:#e8c77d}
+.vibeFilesShell button.primary,.vibeFilesHeaderActions button{background:linear-gradient(110deg,#f4d58a,#c99b52);color:#10243a;border:0}
+.vibeFilesNotice,.vibeFilesError{max-width:1500px;margin:0 auto 16px;padding:12px 15px;border:1px solid #355574;border-radius:12px;background:#0c233c;color:#d7e5f4}
+.vibeFilesError{border-color:#9a4e50;background:#3a1b25;color:#ffe1df}
+.vibeFilesLayout{display:grid;grid-template-columns:minmax(250px,330px) minmax(0,1fr);gap:18px;max-width:1500px;margin:0 auto}
+.vibeFilesSidebar,.vibeFilesEditor{min-width:0}
+.vibeFilesPanel,.vibeFilesEditor,.vibeFilesEmpty,.vibeFilesHistory,.vibeFilesPreview{border:1px solid #294969;border-radius:18px;background:#0b2038eF;box-shadow:0 16px 36px #0003}
+.vibeFilesPanel{padding:18px;margin-bottom:16px}
+.vibeFilesPanel h2,.vibeFilesToolbar h2,.vibeFilesHistory h3,.vibeFilesPreview h3{margin:4px 0 12px;font-size:20px}
+.vibeFilesPanel p,.vibeFilesHint,.vibeFilesPreview>p,.vibeFilesEmpty p{color:#afc2d8}
+.vibeFilesPanel label,.vibeFilesAdd label{display:block;margin-top:12px;color:#eaf0f7;font-size:13px;font-weight:700}
+.vibeFilesShell input,.vibeFilesShell select,.vibeFilesCode{display:block;width:100%;margin-top:7px;border:1px solid #3b5c7f;border-radius:10px;background:#07182a;color:#f6f9ff;padding:11px;font:inherit}
+.vibeFilesUsage{margin-top:14px;color:#f0d28e;font-size:12px;font-weight:700}
+.vibeFileRow{display:flex!important;justify-content:space-between;align-items:center;gap:10px;width:100%;margin:7px 0;text-align:left}
+.vibeFileRow span{overflow-wrap:anywhere}
+.vibeFileRow small{color:#adc3da;font-size:11px;font-weight:500;white-space:nowrap}
+.vibeFileRow.selected{border-color:#e9c97f;background:#183654}
+.vibeFilesAdd{margin-top:18px;padding-top:16px;border-top:1px solid #294969}
+.vibeFilesAdd button{margin-top:8px;width:100%}
+.vibeFilesAdd>small{display:block;margin-top:8px;color:#9fb5cc;font-size:11px}
+.vibeFilesEditor{padding:18px}
+.vibeFilesToolbar{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;padding-bottom:15px;border-bottom:1px solid #294969}
+.vibeFilesToolbar h2{margin:4px 0;font-size:22px;overflow-wrap:anywhere}
+.vibeFilesToolbar span{color:#adc2d7;font-size:12px}
+.vibeFilesToolbar>div:last-child{display:flex;gap:8px;flex-wrap:wrap}
+.vibeFilesCode{min-height:360px;margin:16px 0 8px;resize:vertical;white-space:pre;overflow:auto;tab-size:2;font:13px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace}
+.vibeFilesCode:focus,.vibeFilesShell input:focus,.vibeFilesShell select:focus{outline:2px solid #e7c67d;outline-offset:2px}
+.vibeFilesHint{font-size:12px}
+.vibeFilesHistory,.vibeFilesPreview{margin-top:16px;padding:16px}
+.vibeFilesVersion{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-top:1px solid #294969}
+.vibeFilesVersion span{min-width:0}
+.vibeFilesVersion strong{display:block;color:#f3d18b}
+.vibeFilesVersion small{color:#a9bdd2;font-size:11px;letter-spacing:0;text-transform:none;overflow-wrap:anywhere}
+.vibeFilesPreview iframe{display:block;width:100%;height:560px;margin-top:12px;border:1px solid #365b80;border-radius:12px;background:white}
+.vibeFilesEmpty{padding:32px}
+.vibeFilesEmpty a{color:#f3d18b;font-weight:700}
+.vibeFilesFooter{display:flex;justify-content:space-between;gap:14px;max-width:1500px;margin:22px auto 0;padding-top:16px;border-top:1px solid #294969;color:#9fb5cc;font-size:12px}
+@media(max-width:850px){.vibeFilesHeader{align-items:flex-start;flex-direction:column}.vibeFilesLayout{grid-template-columns:1fr}.vibeFilesCode{min-height:300px}.vibeFilesPreview iframe{height:460px}}
+@media(max-width:520px){.vibeFilesShell{padding:18px 12px}.vibeFilesPanel,.vibeFilesEditor{padding:14px}.vibeFilesToolbar{align-items:flex-start;flex-direction:column}.vibeFilesToolbar>div:last-child{width:100%}.vibeFilesToolbar button{flex:1}.vibeFilesFooter{flex-direction:column}.vibeFilesPreview iframe{height:380px}}
