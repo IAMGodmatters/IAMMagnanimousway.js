@@ -53,16 +53,16 @@ Read-only inspection on 2026-11-23 found:
 
 It adds effective-rule inspection, approval/check requirements, strict up-to-date enforcement, bypass validation, and a fail-closed production build gate. A further hardening change binds both required contexts to GitHub Actions integration ID `15368`; a same-named check from another app or an unbound “any source” check is rejected.
 
-Exact-head checks have now completed: 29 successful, 4 skipped by workflow conditions, and zero failed. The standalone offline bundle build passed; the standalone deployment and browser/functional QA jobs were skipped. The automated independent change-review workflow passed, but there are no submitted human reviews. PR #992 is now ready for independent review, not merged. Do not merge until the owner configures the real ruleset and confirms the read-only audit permission.
+Exact-head checks have now completed: 29 successful, 4 skipped by workflow conditions, and zero failed. The standalone offline bundle build passed; the standalone deployment and browser/functional QA jobs were skipped. The automated independent change-review workflow passed, but there are no submitted human reviews. PR #992 is now ready for independent review, not merged. Do not merge until the owner configures the real ruleset and safely provisions the dedicated audit credential described below.
 
-**Important deployment consequence:** after PR #992 is merged, the next main production build will intentionally fail closed until the real GitHub ruleset meets the requirements and the workflow has a least-privilege read-only token able to inspect effective rules and bypass actors. Do not merge it before the owner has configured those settings and the audit token if required.
+**Important deployment consequence:** after PR #992 is merged, the next main production build will intentionally fail closed until the real GitHub ruleset meets the requirements and the workflow can inspect effective rules and bypass actors. GitHub omits `bypass_actors` unless the API caller has write access to the ruleset, so this requires a dedicated repository-restricted credential with sufficient ruleset write access. The code uses it only for GET requests and passes it only to the dedicated gate step, never to npm build scripts or dependencies.
 
 Required owner configuration:
 1. Require at least one pull-request approval.
 2. Require `Code health and builds` and `verify-command-architecture`, each bound to GitHub Actions app ID `15368`.
 3. Require the branch to be up to date.
 4. Remove unrestricted `always` / `exempt` bypass modes; retain only narrow PR-scoped exceptions if needed.
-5. Configure a least-privilege read-only `RULESET_AUDIT_TOKEN` only if the Actions token cannot read the required ruleset data.
+5. GitHub omits `bypass_actors` unless the API caller has write access to the ruleset. The current Actions token can read effective branch rules but cannot read this bypass list. After main protections are enforced, provision a repository-restricted `RULESET_AUDIT_TOKEN` with sufficient ruleset write access for this GET-only audit. Treat it as high privilege: store it only as a secret, pass it only to the dedicated gate step, and never expose it to npm build scripts or dependencies. Do not add it before unreviewed workflow edits are blocked.
 
 Repository privacy is a separate owner action. Before switching to private, verify GitHub Apps, Actions permissions and included minutes, release artifacts, deployment integrations and any unauthenticated source fetch. Keep Actions spending capped at zero; do not enable paid overage.
 
