@@ -1,5 +1,9 @@
 import assert from 'node:assert/strict';
-import { evaluateMainRulesets, REQUIRED_MAIN_CHECK_CONTEXTS } from '../lib/main-ruleset-audit.mjs';
+import {
+  evaluateMainRulesets,
+  REQUIRED_MAIN_CHECK_CONTEXTS,
+  REQUIRED_MAIN_CHECK_APP_ID
+} from '../lib/main-ruleset-audit.mjs';
 
 const repository = 'IAMGodmatters/IAMMagnanimousway.js';
 const active = [{
@@ -17,7 +21,10 @@ const healthy = {
       {
         type: 'required_status_checks',
         parameters: {
-          required_status_checks: REQUIRED_MAIN_CHECK_CONTEXTS.map(context => ({ context })),
+          required_status_checks: REQUIRED_MAIN_CHECK_CONTEXTS.map(context => ({
+            context,
+            integration_id: REQUIRED_MAIN_CHECK_APP_ID
+          })),
           strict_required_status_checks_policy: true
         }
       }
@@ -31,7 +38,10 @@ const healthyBranchRules = [
     type: 'required_status_checks',
     ruleset_id: 1,
     parameters: {
-      required_status_checks: REQUIRED_MAIN_CHECK_CONTEXTS.map(context => ({ context })),
+      required_status_checks: REQUIRED_MAIN_CHECK_CONTEXTS.map(context => ({
+        context,
+        integration_id: REQUIRED_MAIN_CHECK_APP_ID
+      })),
       strict_required_status_checks_policy: true
     }
   }
@@ -43,6 +53,8 @@ assert.equal(pass.requiredApprovals, 1);
 assert.equal(pass.requiredChecks, 2);
 assert.deepEqual(pass.requiredCheckContexts, [...REQUIRED_MAIN_CHECK_CONTEXTS].sort());
 assert.deepEqual(pass.missingRequiredChecks, []);
+assert.deepEqual(pass.wrongSourceRequiredChecks, []);
+assert.equal(pass.requiredCheckAppId, REQUIRED_MAIN_CHECK_APP_ID);
 assert.equal(pass.strictRequiredStatusChecksPolicy, true);
 assert.equal(pass.unrestrictedBypassActors, 0);
 
@@ -71,8 +83,8 @@ const misleadingRules = [
     ruleset_id: 1,
     parameters: {
       required_status_checks: [
-        { context: 'Full Platform QA' },
-        { context: 'Magnanimous Command Lock' }
+        { context: 'Full Platform QA', integration_id: REQUIRED_MAIN_CHECK_APP_ID },
+        { context: 'Magnanimous Command Lock', integration_id: REQUIRED_MAIN_CHECK_APP_ID }
       ],
       strict_required_status_checks_policy: true
     }
@@ -83,8 +95,46 @@ const misleading = evaluateMainRulesets(active, {
 }, misleadingRules);
 assert.equal(misleading.status, 'warning');
 assert.deepEqual(misleading.missingRequiredChecks, [...REQUIRED_MAIN_CHECK_CONTEXTS].sort());
+assert.deepEqual(misleading.wrongSourceRequiredChecks, []);
 assert.ok(misleading.gaps.some(item => item.includes('Code health and builds')));
 assert.ok(misleading.gaps.some(item => item.includes('verify-command-architecture')));
+
+// Correct context names without a trusted app binding must fail closed.
+const unboundRules = [
+  healthyBranchRules[0],
+  {
+    type: 'required_status_checks',
+    ruleset_id: 1,
+    parameters: {
+      required_status_checks: REQUIRED_MAIN_CHECK_CONTEXTS.map(context => ({ context })),
+      strict_required_status_checks_policy: true
+    }
+  }
+];
+const unbound = evaluateMainRulesets(active, healthy, unboundRules);
+assert.equal(unbound.status, 'warning');
+assert.deepEqual(unbound.missingRequiredChecks, []);
+assert.deepEqual(unbound.wrongSourceRequiredChecks, [...REQUIRED_MAIN_CHECK_CONTEXTS].sort());
+assert.ok(unbound.gaps.some(item => item.includes('GitHub Actions app')));
+
+// A different integration cannot impersonate the trusted GitHub Actions check.
+const wrongAppRules = unboundRules.map(rule =>
+  rule.type === 'required_status_checks'
+    ? {
+        ...rule,
+        parameters: {
+          ...rule.parameters,
+          required_status_checks: REQUIRED_MAIN_CHECK_CONTEXTS.map(context => ({
+            context,
+            integration_id: 123456
+          }))
+        }
+      }
+    : rule
+);
+const wrongApp = evaluateMainRulesets(active, healthy, wrongAppRules);
+assert.equal(wrongApp.status, 'warning');
+assert.deepEqual(wrongApp.wrongSourceRequiredChecks, [...REQUIRED_MAIN_CHECK_CONTEXTS].sort());
 
 const missingOneRules = [
   healthyBranchRules[0],
@@ -92,7 +142,10 @@ const missingOneRules = [
     type: 'required_status_checks',
     ruleset_id: 1,
     parameters: {
-      required_status_checks: [{ context: 'Code health and builds' }],
+      required_status_checks: [{
+        context: 'Code health and builds',
+        integration_id: REQUIRED_MAIN_CHECK_APP_ID
+      }],
       strict_required_status_checks_policy: true
     }
   }
@@ -154,7 +207,6 @@ assert.equal(combined.activeRulesets, 2);
 assert.equal(combined.requiredApprovals, 1);
 assert.equal(combined.requiredChecks, 2);
 
-// Organization-level bypass actors must be evaluated, not silently filtered out.
 const inheritedBypass = evaluateMainRulesets(
   [splitRulesets[1]],
   {
@@ -193,4 +245,4 @@ assert.ok(missingRuleId.gaps.some(item => item.includes('without a ruleset ID'))
 const unavailable = evaluateMainRulesets(active, healthy, null);
 assert.equal(unavailable.status, 'manual');
 
-console.log('Main ruleset audit assessment: 13 cases passed.');
+console.log('Main ruleset audit assessment: 16 cases passed.');
