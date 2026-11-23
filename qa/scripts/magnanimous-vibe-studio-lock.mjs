@@ -120,6 +120,10 @@ assert.ok(filesClient.includes(".replace(/</g,'\\\\u003c')"),'Inline JSON must u
 assert.ok(filesClient.includes('style.textContent=file.content'),'CSS source must be inserted through DOM textContent, not HTML markup concatenation.');
 assert.ok(filesClient.includes('script.textContent=file.content'),'JavaScript source must be inserted through DOM textContent, not HTML markup concatenation.');
 assert.ok(filesClient.includes('inlineScriptJson(fixtures)'),'JSON fixtures must be safely serialized into the isolated preview.');
+assert.ok(filesClient.includes('aria-keyshortcuts="Control+S Meta+S Control+Enter Meta+Enter"'),'The editor must advertise accessible save and preview shortcuts.');
+assert.ok(filesClient.includes("e.key.toLowerCase()==='s'"),'Control/Command+S must save a new checkpoint.');
+assert.ok(filesClient.includes("e.key==='Enter'"),'Control/Command+Enter must refresh the isolated preview.');
+assert.ok(filesClient.includes("aria-current={selectedPath===file.path?'page':undefined}"),'The active file must be exposed to assistive technology.');
 const fixturePayload=JSON.stringify({fixture:'</script>'}).replace(/</g,'\\u003c').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029');
 assert.ok(!fixturePayload.includes('</script>'),'Serialized fixture data must not contain a parser-visible script end tag.');
 assert.deepEqual(JSON.parse(fixturePayload),{fixture:'</script>'},'Serialized fixture data must round-trip without changing values.');
