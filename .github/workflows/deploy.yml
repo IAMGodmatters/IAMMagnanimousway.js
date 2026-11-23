@@ -35,6 +35,10 @@ jobs:
         run: |
           set -euo pipefail
           if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            if [ "${GITHUB_REF_NAME}" != "main" ]; then
+              echo "::error::Manual production deployments must be dispatched from main; refusing ref ${GITHUB_REF_NAME}."
+              exit 1
+            fi
             echo "changed=true" >> "$GITHUB_OUTPUT"
             echo "standalone_changed=true" >> "$GITHUB_OUTPUT"
             echo "Manual production deployment requested."
@@ -98,7 +102,7 @@ jobs:
         working-directory: frontend
         env:
           GITHUB_ACTIONS: 'true'
-          GITHUB_REF_NAME: main
+          GITHUB_REF_NAME: ${{ github.ref_name }}
           GITHUB_WORKFLOW: Build and Deploy I AM
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_TOKEN: ${{ github.token }}
