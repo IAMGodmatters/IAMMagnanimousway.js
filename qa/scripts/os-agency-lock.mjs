@@ -34,6 +34,7 @@ const wrangler=read('worker/wrangler.jsonc');
 const notFound=read('frontend/app/not-found.tsx');
 const notFoundRecovery=read('frontend/app/not-found-recovery.tsx');
 const packageJson=read('frontend/package.json');
+const deployWorkflow=read('.github/workflows/deploy.yml');
 
 // Option A — Reliability First.
 includes(standaloneLayout,"iam_standalone_voice_hidden",'reliability: standalone voice controls retain persistent hide/show state');
@@ -138,7 +139,10 @@ includes(agencyBilling,"String(sub.status||'')!=='active'",'billing: Agency acti
 // Non-regression boundaries.
 notMatches(agencyRuntime,/CREATE TABLE IF NOT EXISTS\s+(?:crm_|bpo_clients)/i,'non-regression: Agency Command must not create a duplicate CRM/BPO client table');
 notMatches(inboxRuntime,/CREATE TABLE IF NOT EXISTS\s+(?:crm_|bpo_clients)/i,'non-regression: Unified Inbox must not create a duplicate CRM/BPO client table');
-includes(packageJson,'verify-main-protection.mjs','reliability: production branch-protection safety gate remains installed');
+includes(deployWorkflow,'Enforce effective GitHub main ruleset before production build','reliability: production branch-protection safety gate remains installed as a dedicated workflow step');
+includes(deployWorkflow,'run: node scripts/verify-main-protection.mjs','reliability: production deployment executes the effective main-ruleset verifier before building');
+includes(deployWorkflow,'RULESET_AUDIT_TOKEN','reliability: dedicated production gate can inspect ruleset bypass actors when owner credential is configured');
+notMatches(packageJson, /\"prebuild\"[^\\n]*verify-main-protection\\.mjs/,'reliability: privileged ruleset audit is not invoked from the npm build lifecycle');
 
 console.log(`Magnanimous OS + Agency locks: ${passes.length} checks passed.`);
 if(failures.length){console.error(`\nMAGNANIMOUS OS / AGENCY CONTRACT FAILURE (${failures.length})`);for(const f of failures)console.error(`- ${f}`);process.exit(1)}
