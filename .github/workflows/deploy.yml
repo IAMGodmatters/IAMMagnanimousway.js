@@ -94,11 +94,21 @@ jobs:
         working-directory: frontend
         run: npm run typecheck
 
+      - name: Enforce effective GitHub main ruleset before production build
+        working-directory: frontend
+        env:
+          GITHUB_ACTIONS: 'true'
+          GITHUB_REF_NAME: main
+          GITHUB_WORKFLOW: Build and Deploy I AM
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ github.token }}
+          RULESET_AUDIT_TOKEN: ${{ secrets.RULESET_AUDIT_TOKEN }}
+        run: node scripts/verify-main-protection.mjs
+
       - name: Build frontend
         working-directory: frontend
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          RULESET_AUDIT_TOKEN: ${{ secrets.RULESET_AUDIT_TOKEN }}
         run: npm run build
 
       - name: Lock product and specialist QA contracts
