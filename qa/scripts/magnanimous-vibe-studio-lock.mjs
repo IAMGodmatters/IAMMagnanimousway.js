@@ -63,6 +63,8 @@ assert.ok(validateVibeFileContent('fixtures/demo.json','{'),'Invalid JSON fixtur
 assert.ok(validateVibeFileContent('styles.css','@import url(https://example.com/a.css);'),'External CSS imports must be rejected.');
 assert.ok(validateVibeFileContent('styles.css','</style><script>alert(1)</script>'),'CSS breakout must be rejected.');
 assert.ok(validateVibeFileContent('app.js','</script><script>alert(1)</script>'),'Script breakout must be rejected.');
+assert.ok(validateVibeFileContent('app.js','import React from \'react\';'),'Static JavaScript must not imply module or package installation support.');
+assert.ok(validateVibeFileContent('app.js','const fs = require(\'node:fs\');'),'Node require must not be advertised as a browser preview capability.');
 assert.ok(validateVibeFileContent('app.js','é'.repeat(32769)),'UTF-8 file byte limits must be enforced.');
 assert.equal(validateVibeFileContent('notes.md','# Private notes'),'');
 
