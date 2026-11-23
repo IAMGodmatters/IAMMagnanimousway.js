@@ -168,9 +168,9 @@ export function validateVibeFileContent(path,content){
  if(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(content))return 'Unsupported control characters are not allowed in project files.';
  const ext=path.slice(path.lastIndexOf('.')).toLowerCase();
  if(ext==='.json'){try{JSON.parse(content)}catch{return 'JSON fixture files must contain valid JSON.'}}
- if(ext==='.css'&&(/<\\/style(?=[\\t\\n\\f\\r />])/i.test(content)||/@import\\b/i.test(content)))return 'CSS files cannot break out of preview styles or import external stylesheets.';
- if(ext==='.js'&&/<\\/script(?=[\\t\\n\\f\\r />])/i.test(content))return 'JavaScript files cannot contain an HTML script end tag that could break preview isolation.';
- if(ext==='.js'&&(/^\\s*(?:import\\s+|export\\s+)/m.test(content)||/\\bimport\\s*\\(/.test(content)||/\\brequire\\s*\\(/.test(content)))return 'ES module imports and Node require are not supported in this static preview phase.';
+ if(ext==='.css'&&(/<\/style(?=[\t\n\f\r />])/i.test(content)||/@import\b/i.test(content)))return 'CSS files cannot break out of preview styles or import external stylesheets.';
+ if(ext==='.js'&&/<\/script(?=[\t\n\f\r />])/i.test(content))return 'JavaScript files cannot contain an HTML script end tag that could break preview isolation.';
+ if(ext==='.js'&&(/^\s*(?:import\s+|export\s+)/m.test(content)||/\bimport\s*\(/.test(content)||/\brequire\s*\(/.test(content)))return 'ES module imports and Node require are not supported in this static preview phase.';
  return '';
 }
 

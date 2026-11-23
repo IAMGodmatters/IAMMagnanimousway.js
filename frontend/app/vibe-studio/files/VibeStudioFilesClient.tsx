@@ -40,11 +40,11 @@ function previewDocument(html:string,files:StoredFile[]){
  for(const file of files.filter(item=>item.path.toLowerCase().endsWith('.json'))){
   try{fixtures[file.path]=JSON.parse(file.content)}catch{throw new Error('A saved JSON fixture is invalid. Reload the project before previewing.');}
  }
- // Serialize every user-controlled value as JavaScript data, then create style/script
- // elements with textContent. User source never becomes markup in the iframe HTML parser.
+ // Serialize user-controlled values as JavaScript data, then create style/script
+ // elements with textContent. User source never becomes markup in the iframe parser.
  const bootstrap='<script>(()=>{const fixtures='+inlineScriptJson(fixtures)+';window.MAGNANIMOUS_FIXTURES=fixtures;const styles='+inlineScriptJson(cssFiles)+';for(const file of styles){const node=document.createElement("style");node.setAttribute("data-vibe-file",file.path);node.textContent=file.content;document.head.appendChild(node);}const scripts='+inlineScriptJson(jsFiles)+';for(const file of scripts){const node=document.createElement("script");node.setAttribute("data-vibe-file",file.path);node.textContent=file.content;document.body.appendChild(node);}})();</script>';
- if(/<\\/body\\s*>/i.test(output))output=output.replace(/<\\/body\\s*>/i,bootstrap+'</body>');
- else if(/<\\/html\\s*>/i.test(output))output=output.replace(/<\\/html\\s*>/i,bootstrap+'</body></html>');
+ if(/<\/body\s*>/i.test(output))output=output.replace(/<\/body\s*>/i,bootstrap+'</body>');
+ else if(/<\/html\s*>/i.test(output))output=output.replace(/<\/html\s*>/i,bootstrap+'</body></html>');
  else output+=bootstrap+'</body></html>';
  return output;
 }
