@@ -14,7 +14,7 @@
 - Preview assembly that injects local CSS and JavaScript and exposes valid JSON fixtures as `window.MAGNANIMOUS_FIXTURES`.
 - An opaque-origin iframe with `sandbox="allow-scripts"`, restrictive CSP, no same-origin permission, no form submission, and no network connections.
 - D1 limits: 20 files including `index.html`, 65,536 UTF-8 bytes per auxiliary file, and 262,144 UTF-8 bytes for the complete project.
-- Path validation that rejects traversal, absolute paths, hidden files, unsupported extensions and attempts to overwrite `index.html` through the auxiliary-file API.
+- Path validation that rejects traversal, absolute paths, hidden files, unsupported extensions, dependency manifests and attempts to overwrite `index.html` through the auxiliary-file API.
 - No file-delete endpoint in this first slice; existing checkpoints are preserved.
 
 ## API contract
@@ -36,7 +36,7 @@ The project and file records are always filtered by project ID, tenant ID and us
 - All stored `.js` files are injected after the document body in stable path order.
 - Valid `.json` files are exposed by relative path in `window.MAGNANIMOUS_FIXTURES`.
 - The preview CSP denies connections and external resource loading. It is a browser preview, not a VM, production host or security certification for exported files.
-- JavaScript may use only browser-local behavior that works in the opaque sandbox; server APIs, credentials and production data are not provided.
+- JavaScript is classic browser script only; module imports and Node `require` are rejected. It may use only browser-local behavior that works in the opaque sandbox; server APIs, credentials and production data are not provided.
 
 ## Verification added
 
