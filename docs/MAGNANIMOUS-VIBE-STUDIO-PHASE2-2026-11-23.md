@@ -36,6 +36,8 @@ The project and file records are always filtered by project ID, tenant ID and us
 - All stored `.js` files are injected after the document body in stable path order.
 - Valid `.json` files are exposed by relative path in `window.MAGNANIMOUS_FIXTURES`.
 - The preview CSP denies connections and external resource loading. It is a browser preview, not a VM, production host or security certification for exported files.
+- CSS and JavaScript are inserted through DOM `textContent` after safe JSON serialization, not concatenated into raw HTML tags; JSON fixtures round-trip without parser-visible `</script>` sequences.
+- File create/update requests are streamed through a 512 KiB transport cap, decoded as fatal UTF-8 JSON, and reject non-string content and unsupported control characters before D1 writes.
 - JavaScript is classic browser script only; module imports and Node `require` are rejected. It may use only browser-local behavior that works in the opaque sandbox; server APIs, credentials and production data are not provided.
 
 ## Verification added

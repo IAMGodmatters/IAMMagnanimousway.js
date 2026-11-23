@@ -23,25 +23,29 @@ async function requestWithToken(token:string,path:string,options:RequestInit={})
  return data;
 }
 
+function inlineScriptJson(value:unknown){
+ const serialized=JSON.stringify(value);
+ if(serialized===undefined)throw new Error('Preview data could not be serialized.');
+ return serialized.replace(/</g,'\\u003c').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029');
+}
+
 function previewDocument(html:string,files:StoredFile[]){
  const csp='<meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; script-src &#39;unsafe-inline&#39;; style-src &#39;unsafe-inline&#39;; img-src data: blob:; font-src data:; media-src data: blob:; connect-src &#39;none&#39;; form-action &#39;none&#39;; frame-src &#39;none&#39;; object-src &#39;none&#39;; base-uri &#39;none&#39;">';
- let output=String(html||'').replace(/<meta[^>]+http-equiv\s*=\s*["']?Content-Security-Policy[^>]*>/gi,'');
- if(!/<head\b[^>]*>/i.test(output))output='<!doctype html><html><head></head><body>'+output+'</body></html>';
- output=output.replace(/<head\b[^>]*>/i,match=>match+csp);
- const css=files.filter(file=>file.path.toLowerCase().endsWith('.css')).sort((a,b)=>a.path.localeCompare(b.path))
-  .map(file=>'<style data-vibe-file="'+file.path.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'">'+file.content.replace(/<\/style/gi,'<\\/style')+'</style>').join('\n');
- if(css)output=output.replace(/<\/head\s*>/i,css+'</head>');
- const fixtures:Record<string,unknown>={};
+ let output=String(html||'').replace(/<meta[^>]+http-equiv\\s*=\\s*["']?Content-Security-Policy[^>]*>/gi,'');
+ if(!/<head\\b[^>]*>/i.test(output))output='<!doctype html><html><head></head><body>'+output+'</body></html>';
+ output=output.replace(/<head\\b[^>]*>/i,match=>match+csp);
+ const cssFiles=files.filter(file=>file.path.toLowerCase().endsWith('.css')).sort((a,b)=>a.path.localeCompare(b.path)).map(file=>({path:file.path,content:file.content}));
+ const jsFiles=files.filter(file=>file.path.toLowerCase().endsWith('.js')).sort((a,b)=>a.path.localeCompare(b.path)).map(file=>({path:file.path,content:file.content}));
+ const fixtures:Record<string,unknown>=Object.create(null);
  for(const file of files.filter(item=>item.path.toLowerCase().endsWith('.json'))){
-  try{fixtures[file.path]=JSON.parse(file.content)}catch{fixtures[file.path]=null}
+  try{fixtures[file.path]=JSON.parse(file.content)}catch{throw new Error('A saved JSON fixture is invalid. Reload the project before previewing.');}
  }
- const fixtureScript='<script>window.MAGNANIMOUS_FIXTURES='+JSON.stringify(fixtures).replace(/</g,'\\u003c')+';</script>';
- const scripts=files.filter(file=>file.path.toLowerCase().endsWith('.js')).sort((a,b)=>a.path.localeCompare(b.path))
-  .map(file=>'<script data-vibe-file="'+file.path.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'">'+file.content.replace(/<\/script/gi,'<\\/script')+'</script>').join('\n');
- const injected=fixtureScript+(scripts?'\n'+scripts:'');
- if(/<\/body\s*>/i.test(output))output=output.replace(/<\/body\s*>/i,injected+'</body>');
- else if(/<\/html\s*>/i.test(output))output=output.replace(/<\/html\s*>/i,injected+'</body></html>');
- else output+='</body></html>';
+ // Serialize every user-controlled value as JavaScript data, then create style/script
+ // elements with textContent. User source never becomes markup in the iframe HTML parser.
+ const bootstrap='<script>(()=>{const fixtures='+inlineScriptJson(fixtures)+';window.MAGNANIMOUS_FIXTURES=fixtures;const styles='+inlineScriptJson(cssFiles)+';for(const file of styles){const node=document.createElement("style");node.setAttribute("data-vibe-file",file.path);node.textContent=file.content;document.head.appendChild(node);}const scripts='+inlineScriptJson(jsFiles)+';for(const file of scripts){const node=document.createElement("script");node.setAttribute("data-vibe-file",file.path);node.textContent=file.content;document.body.appendChild(node);}})();</script>';
+ if(/<\\/body\\s*>/i.test(output))output=output.replace(/<\\/body\\s*>/i,bootstrap+'</body>');
+ else if(/<\\/html\\s*>/i.test(output))output=output.replace(/<\\/html\\s*>/i,bootstrap+'</body></html>');
+ else output+=bootstrap+'</body></html>';
  return output;
 }
 

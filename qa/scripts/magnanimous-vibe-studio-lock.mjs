@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {buildVibeScaffold,pickVibeTemplate,reviewVibeSource,normalizeVibeFilePath,validateVibeFileContent,MAGNANIMOUS_VIBE_STUDIO_POLICY} from '../../worker/src/magnanimous-vibe-studio.js';
+import {buildVibeScaffold,pickVibeTemplate,reviewVibeSource,normalizeVibeFilePath,validateVibeFileContent,readBoundedVibeJson,MAGNANIMOUS_VIBE_STUDIO_POLICY} from '../../worker/src/magnanimous-vibe-studio.js';
 
 const read=path=>readFileSync(path,'utf8');
 assert.equal(MAGNANIMOUS_VIBE_STUDIO_POLICY.identity,'Magnanimous AI');
@@ -67,6 +67,21 @@ assert.ok(validateVibeFileContent('app.js','import React from \'react\';'),'Stat
 assert.ok(validateVibeFileContent('app.js','const fs = require(\'node:fs\');'),'Node require must not be advertised as a browser preview capability.');
 assert.ok(validateVibeFileContent('app.js','é'.repeat(32769)),'UTF-8 file byte limits must be enforced.');
 assert.equal(validateVibeFileContent('notes.md','# Private notes'),'');
+assert.equal(normalizeVibeFilePath(42),'','File paths must be supplied as strings.');
+assert.ok(validateVibeFileContent('app.js',42),'Non-string file content must be rejected.');
+assert.ok(validateVibeFileContent('styles.css','</style data-breakout="yes">'),'Malformed HTML style end tags must be rejected.');
+assert.ok(validateVibeFileContent('app.js','</script data-breakout="yes">'),'Malformed HTML script end tags must be rejected.');
+assert.ok(validateVibeFileContent('app.js','const value = "\u0001";'),'Unsupported control characters must be rejected.');
+
+const boundedRequest=await readBoundedVibeJson(new Request('https://example.test/files',{method:'POST',body:JSON.stringify({path:'app.js',content:'console.log("ok")'})}));
+assert.equal(boundedRequest.ok,true,'Bounded JSON reader must accept a valid small request.');
+assert.equal(boundedRequest.value.content,'console.log("ok")');
+const oversizedRequest=await readBoundedVibeJson(new Request('https://example.test/files',{method:'POST',body:'{"content":"123456789"}'}),8);
+assert.equal(oversizedRequest.ok,false,'Bounded JSON reader must stop oversized streaming bodies.');
+assert.equal(oversizedRequest.code,'VIBE_REQUEST_TOO_LARGE');
+const invalidJsonRequest=await readBoundedVibeJson(new Request('https://example.test/files',{method:'POST',body:'{'}));
+assert.equal(invalidJsonRequest.ok,false,'Bounded JSON reader must reject malformed JSON.');
+
 
 const runtime=read('worker/src/magnanimous-vibe-studio.js');
 for(const word of ['requirePlatformOwner(request,env)','currentUser(request,env)','env.DB.batch([','tenant_id=? AND user_id=?','expected_revision','VIBE_REVISION_CONFLICT','NOT EXISTS (SELECT 1 FROM magnanimous_vibe_versions','MAX_HTML=65536','MAX_PROJECTS=25'])
@@ -97,6 +112,15 @@ assert.ok(runtime.includes('v.tenant_id=? AND v.user_id=?'),'File version existe
 assert.ok(runtime.includes('UPDATE magnanimous_vibe_projects SET html=?,revision=revision+1,updated_at=? WHERE id=? AND tenant_id=? AND user_id=? AND revision=? AND length(CAST(? AS BLOB))'),'Legacy index.html saves must enforce the combined project byte limit inside the database update.');
 assert.ok(runtime.includes('Check that the required Vibe Studio migrations are applied'),'Migration failure diagnostics must mention the required schema.');
 const filesClient=read('frontend/app/vibe-studio/files/VibeStudioFilesClient.tsx');
+assert.ok(filesClient.includes('function inlineScriptJson(value:unknown)'),'Preview must use a dedicated safe inline-JSON serializer.');
+assert.ok(filesClient.includes(".replace(/</g,'\\\\u003c')"),'Inline JSON must use one JavaScript Unicode escape so fixture values round-trip exactly.');
+assert.ok(filesClient.includes('style.textContent=file.content'),'CSS source must be inserted through DOM textContent, not HTML markup concatenation.');
+assert.ok(filesClient.includes('script.textContent=file.content'),'JavaScript source must be inserted through DOM textContent, not HTML markup concatenation.');
+assert.ok(filesClient.includes('inlineScriptJson(fixtures)'),'JSON fixtures must be safely serialized into the isolated preview.');
+const fixturePayload=JSON.stringify({fixture:'</script>'}).replace(/</g,'\\u003c').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029');
+assert.ok(!fixturePayload.includes('</script>'),'Serialized fixture data must not contain a parser-visible script end tag.');
+assert.deepEqual(JSON.parse(fixturePayload),{fixture:'</script>'},'Serialized fixture data must round-trip without changing values.');
+
 for(const word of ['getPlatformAuthToken','sandbox="allow-scripts"','connect-src &#39;none&#39;','MAGNANIMOUS_FIXTURES','zipStore','crc32','/files/','/versions','Save file','Export ZIP'])
  assert.ok(filesClient.includes(word),'Multi-file Vibe Studio UI feature missing '+word);
 assert.ok(!filesClient.includes('dangerouslySetInnerHTML'),'Multi-file source must never be injected into the parent app.');

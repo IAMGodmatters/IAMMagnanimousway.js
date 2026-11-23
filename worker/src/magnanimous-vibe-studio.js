@@ -16,6 +16,42 @@ const MAX_VIBE_FILES=19; // index.html is the twentieth, virtual, project file.
 const MAX_VIBE_FILE_BYTES=65536;
 const MAX_VIBE_PROJECT_BYTES=262144;
 const VIBE_FILE_EXTENSIONS=new Set(['.css','.js','.json','.md']);
+const MAX_VIBE_REQUEST_BYTES=524288;
+
+export async function readBoundedVibeJson(request,maxBytes=MAX_VIBE_REQUEST_BYTES){
+ if(!Number.isSafeInteger(maxBytes)||maxBytes<1)return{ok:false,code:'VIBE_REQUEST_LIMIT_INVALID',error:'The request size limit is invalid.'};
+ const declaredHeader=request.headers.get('content-length');
+ if(declaredHeader!==null){
+  const declared=Number(declaredHeader);
+  if(Number.isFinite(declared)&&declared>maxBytes)return{ok:false,code:'VIBE_REQUEST_TOO_LARGE',error:'The file request exceeds the 512 KiB transport limit.'};
+ }
+ if(!request.body)return{ok:false,code:'VIBE_REQUEST_INVALID',error:'A JSON request body is required.'};
+ const reader=request.body.getReader(),chunks=[];
+ let total=0;
+ try{
+  while(true){
+   const{done,value}=await reader.read();
+   if(done)break;
+   total+=value.byteLength;
+   if(total>maxBytes){
+    try{await reader.cancel();}catch{}
+    return{ok:false,code:'VIBE_REQUEST_TOO_LARGE',error:'The file request exceeds the 512 KiB transport limit.'};
+   }
+   chunks.push(value);
+  }
+  const bytes=new Uint8Array(total);let offset=0;
+  for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}
+  let source='';
+  try{source=new TextDecoder('utf-8',{fatal:true}).decode(bytes);}
+  catch{return{ok:false,code:'VIBE_REQUEST_INVALID',error:'The request must contain valid UTF-8 JSON.'};}
+  try{return{ok:true,value:JSON.parse(source)};}
+  catch{return{ok:false,code:'VIBE_REQUEST_INVALID',error:'The request body must be valid JSON.'};}
+ }catch{
+  return{ok:false,code:'VIBE_REQUEST_INVALID',error:'The request body could not be read safely.'};
+ }finally{
+  try{reader.releaseLock();}catch{}
+ }
+}
 const MIN_REVISION=1;
 
 export const MAGNANIMOUS_VIBE_STUDIO_POLICY=Object.freeze({
@@ -113,7 +149,8 @@ export function reviewVibeSource(html){
 
 
 export function normalizeVibeFilePath(value){
- const path=String(value??'').trim();
+ if(typeof value!=='string')return '';
+ const path=value.trim();
  if(!path||path.length>160||path.startsWith('/')||path.endsWith('/')||path.includes('\\')||path.includes('\0')||path.includes('?')||path.includes('#'))return '';
  const segments=path.split('/');
  if(segments.some(part=>!part||part==='.'||part==='..'||part.startsWith('.')||! /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(part)))return '';
@@ -128,12 +165,12 @@ export function validateVibeFileContent(path,content){
  if(typeof content!=='string')return 'File content must be text.';
  const bytes=new TextEncoder().encode(content).length;
  if(bytes>MAX_VIBE_FILE_BYTES)return 'Each additional file is limited to 65,536 UTF-8 bytes.';
- if(content.includes('\0'))return 'Null bytes are not supported.';
+ if(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(content))return 'Unsupported control characters are not allowed in project files.';
  const ext=path.slice(path.lastIndexOf('.')).toLowerCase();
  if(ext==='.json'){try{JSON.parse(content)}catch{return 'JSON fixture files must contain valid JSON.'}}
- if(ext==='.css'&&(/<\/style\s*>/i.test(content)||/@import\b/i.test(content)))return 'CSS files cannot break out of preview styles or import external stylesheets.';
- if(ext==='.js'&&/<\/script\s*>/i.test(content))return 'JavaScript files cannot contain a closing script tag that could break preview isolation.';
- if(ext==='.js'&&(/^\s*(?:import\s+|export\s+)/m.test(content)||/\bimport\s*\(/.test(content)||/\brequire\s*\(/.test(content)))return 'ES module imports and Node require are not supported in this static preview phase.';
+ if(ext==='.css'&&(/<\\/style(?=[\\t\\n\\f\\r />])/i.test(content)||/@import\\b/i.test(content)))return 'CSS files cannot break out of preview styles or import external stylesheets.';
+ if(ext==='.js'&&/<\\/script(?=[\\t\\n\\f\\r />])/i.test(content))return 'JavaScript files cannot contain an HTML script end tag that could break preview isolation.';
+ if(ext==='.js'&&(/^\\s*(?:import\\s+|export\\s+)/m.test(content)||/\\bimport\\s*\\(/.test(content)||/\\brequire\\s*\\(/.test(content)))return 'ES module imports and Node require are not supported in this static preview phase.';
  return '';
 }
 
@@ -226,7 +263,10 @@ export async function handleMagnanimousVibeStudio(request,env){
     return json({files:rows.results||[],limits:{max_files:MAX_VIBE_FILES+1,max_file_bytes:MAX_VIBE_FILE_BYTES,max_project_bytes:MAX_VIBE_PROJECT_BYTES,used_bytes:baseBytes+extraBytes}});
    }
    if(request.method==='POST'){
-    const b=await request.json().catch(()=>({})),path=normalizeVibeFilePath(b.path),source=String(b.content??''),error=validateVibeFileContent(path,source);
+    const parsed=await readBoundedVibeJson(request);
+    if(!parsed.ok)return json({detail:parsed.error,code:parsed.code},parsed.code==='VIBE_REQUEST_TOO_LARGE'?413:400);
+    const b=parsed.value&&typeof parsed.value==='object'&&!Array.isArray(parsed.value)?parsed.value:{};
+    const path=normalizeVibeFilePath(b.path),source=b.content,error=validateVibeFileContent(path,source);
     if(error)return json({detail:error,code:'VIBE_FILE_INVALID'},400);
     const stamp=now(),tenant=String(user.tenant_id),owner=String(user.id);
     const results=await env.DB.batch([
@@ -256,7 +296,10 @@ export async function handleMagnanimousVibeStudio(request,env){
    let filePath='';try{filePath=normalizeVibeFilePath(decodeURIComponent(fileRouteMatch[2]))}catch{return json({detail:'Invalid file path.'},400)}
    if(!filePath)return json({detail:'Invalid file path.'},400);
    const fileProject=await scopedProject(env,user,fileRouteMatch[1]);if(!fileProject)return json({detail:'Project not found.'},404);
-   const b=await request.json().catch(()=>({})),source=String(b.content??''),error=validateVibeFileContent(filePath,source);
+   const parsed=await readBoundedVibeJson(request);
+   if(!parsed.ok)return json({detail:parsed.error,code:parsed.code},parsed.code==='VIBE_REQUEST_TOO_LARGE'?413:400);
+   const b=parsed.value&&typeof parsed.value==='object'&&!Array.isArray(parsed.value)?parsed.value:{};
+   const source=b.content,error=validateVibeFileContent(filePath,source);
    if(error)return json({detail:error,code:'VIBE_FILE_INVALID'},400);
    const current=await env.DB.prepare('SELECT path,content,revision,created_at,updated_at FROM magnanimous_vibe_files WHERE project_id=? AND tenant_id=? AND user_id=? AND path=? LIMIT 1')
     .bind(fileProject.id,String(user.tenant_id),String(user.id),filePath).first();
