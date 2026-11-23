@@ -1,6 +1,9 @@
 import { appendFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
-import { evaluateMainRulesets } from '../lib/main-ruleset-audit.mjs';
+import {
+  evaluateMainRulesets,
+  REQUIRED_MAIN_CHECK_APP_ID
+} from '../lib/main-ruleset-audit.mjs';
 
 const repository = process.env.GITHUB_REPOSITORY || 'IAMGodmatters/IAMMagnanimousway.js';
 const token = process.env.RULESET_AUDIT_TOKEN || process.env.GITHUB_TOKEN || '';
@@ -82,6 +85,7 @@ export async function runMainRulesetAudit() {
         'Applicable rulesets, including inherited rulesets: ' + assessment.activeRulesets + '.',
         'Required pull-request approvals: ' + assessment.requiredApprovals + '.',
         'Exact required status checks: ' + assessment.requiredCheckContexts.join('; ') + '.',
+        'Required check source: GitHub Actions app ID ' + REQUIRED_MAIN_CHECK_APP_ID + '.',
         'Strict up-to-date policy: enabled.',
         'Unrestricted bypass actors: ' + assessment.unrestrictedBypassActors + '.'
       ]);
