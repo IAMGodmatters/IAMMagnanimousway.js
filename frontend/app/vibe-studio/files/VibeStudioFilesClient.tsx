@@ -42,7 +42,7 @@ function previewDocument(html:string,files:StoredFile[]){
  }
  // Serialize user-controlled values as JavaScript data, then create style/script
  // elements with textContent. User source never becomes markup in the iframe parser.
- const bootstrap='<script>(()=>{const fixtures='+inlineScriptJson(fixtures)+';window.MAGNANIMOUS_FIXTURES=fixtures;const styles='+inlineScriptJson(cssFiles)+';for(const file of styles){const node=document.createElement("style");node.setAttribute("data-vibe-file",file.path);node.textContent=file.content;document.head.appendChild(node);}const scripts='+inlineScriptJson(jsFiles)+';for(const file of scripts){const node=document.createElement("script");node.setAttribute("data-vibe-file",file.path);node.textContent=file.content;document.body.appendChild(node);}})();</script>';
+ const bootstrap='<script>(()=>{const fixtures='+inlineScriptJson(fixtures)+';window.MAGNANIMOUS_FIXTURES=fixtures;const styles='+inlineScriptJson(cssFiles)+';for(const file of styles){const style=document.createElement("style");style.setAttribute("data-vibe-file",file.path);style.textContent=file.content;document.head.appendChild(style);}const scripts='+inlineScriptJson(jsFiles)+';for(const file of scripts){const script=document.createElement("script");script.setAttribute("data-vibe-file",file.path);script.textContent=file.content;document.body.appendChild(script);}})();</script>';
  if(/<\/body\s*>/i.test(output))output=output.replace(/<\/body\s*>/i,bootstrap+'</body>');
  else if(/<\/html\s*>/i.test(output))output=output.replace(/<\/html\s*>/i,bootstrap+'</body></html>');
  else output+=bootstrap+'</body></html>';
