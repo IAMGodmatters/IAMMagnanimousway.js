@@ -53,7 +53,7 @@ Read-only inspection on 2026-11-23 found:
 
 It adds effective-rule inspection, approval/check requirements, strict up-to-date enforcement, bypass validation, and a fail-closed production build gate. A further hardening change binds both required contexts to GitHub Actions integration ID `15368`; a same-named check from another app or an unbound “any source” check is rejected.
 
-At the time of this checkpoint, 27 check runs had succeeded, 2 were still running, and none had failed. The standalone bundle build and exact-head Full Platform QA were among the running checks. There were no submitted human reviews. Keep this PR in draft until exact-head checks finish and independent review is completed.
+Exact-head checks have now completed: 29 successful, 4 skipped by workflow conditions, and zero failed. The standalone offline bundle build passed; the standalone deployment and browser/functional QA jobs were skipped. The automated independent change-review workflow passed, but there are no submitted human reviews. PR #992 is now ready for independent review, not merged. Do not merge until the owner configures the real ruleset and confirms the read-only audit permission.
 
 **Important deployment consequence:** after PR #992 is merged, the next main production build will intentionally fail closed until the real GitHub ruleset meets the requirements and the workflow has a least-privilege read-only token able to inspect effective rules and bypass actors. Do not merge it before the owner has configured those settings and the audit token if required.
 
