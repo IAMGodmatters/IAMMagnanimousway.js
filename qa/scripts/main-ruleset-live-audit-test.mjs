@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
   evaluateMainRulesets,
   REQUIRED_MAIN_CHECK_CONTEXTS,
@@ -246,4 +247,14 @@ assert.ok(missingRuleId.gaps.some(item => item.includes('without a ruleset ID'))
 const unavailable = evaluateMainRulesets(active, healthy, null);
 assert.equal(unavailable.status, 'manual');
 
-console.log('Main ruleset audit assessment: 16 cases passed.');
+// Keep the ruleset credential isolated from npm lifecycle scripts and dependencies.
+const deployWorkflow = readFileSync(new URL('../../.github/workflows/deploy.yml', import.meta.url), 'utf8');
+const frontendPackage = JSON.parse(readFileSync(new URL('../../frontend/package.json', import.meta.url), 'utf8'));
+const gateStep = deployWorkflow.split('- name: Enforce effective GitHub main ruleset before production build')[1]?.split('\n      - name:')[0] || '';
+const buildStep = deployWorkflow.split('- name: Build frontend')[1]?.split('\n      - name:')[0] || '';
+assert.ok(gateStep.includes('RULESET_AUDIT_TOKEN'), 'Dedicated production gate must receive the ruleset audit credential.');
+assert.ok(gateStep.includes('node scripts/verify-main-protection.mjs'), 'Dedicated production gate must execute the ruleset verifier.');
+assert.ok(!buildStep.includes('RULESET_AUDIT_TOKEN'), 'High-privilege ruleset credential must not enter npm build or dependency scripts.');
+assert.ok(!frontendPackage.scripts.prebuild.includes('verify-main-protection.mjs'), 'npm prebuild lifecycle must not receive the ruleset audit credential.');
+
+console.log('Main ruleset audit assessment: 16 cases passed, including audit-token isolation.');
