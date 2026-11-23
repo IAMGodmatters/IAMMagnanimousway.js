@@ -40,6 +40,7 @@ function previewDocument(html:string,files:StoredFile[]){
   .map(file=>'<script data-vibe-file="'+file.path.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'">'+file.content.replace(/<\/script/gi,'<\\/script')+'</script>').join('\n');
  const injected=fixtureScript+(scripts?'\n'+scripts:'');
  if(/<\/body\s*>/i.test(output))output=output.replace(/<\/body\s*>/i,injected+'</body>');
+ else if(/<\/html\s*>/i.test(output))output=output.replace(/<\/html\s*>/i,injected+'</body></html>');
  else output+='</body></html>';
  return output;
 }
