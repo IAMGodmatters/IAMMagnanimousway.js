@@ -117,7 +117,8 @@ export function normalizeVibeFilePath(value){
  if(!path||path.length>160||path.startsWith('/')||path.endsWith('/')||path.includes('\\')||path.includes('\0')||path.includes('?')||path.includes('#'))return '';
  const segments=path.split('/');
  if(segments.some(part=>!part||part==='.'||part==='..'||part.startsWith('.')||! /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(part)))return '';
- if(path.toLowerCase()==='index.html')return '';
+ const filename=segments[segments.length-1].toLowerCase();
+ if(filename==='index.html'||filename==='package.json'||filename==='package-lock.json')return '';
  const ext=path.slice(path.lastIndexOf('.')).toLowerCase();
  return VIBE_FILE_EXTENSIONS.has(ext)?path:'';
 }
