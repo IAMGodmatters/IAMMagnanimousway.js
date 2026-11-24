@@ -115,6 +115,29 @@ try {
   const project = await createProject(tokenA, 'SQLite-backed Vibe Studio project');
   const root = '/api/magnanimous/vibe-studio/projects/' + project.id;
   const initialCss = 'body { color: #123456; }';
+  const validReview = await call(tokenA, 'POST', '/api/magnanimous/vibe-studio/review', {
+    html: project.html,
+    files: [{ path: 'src/styles.css', content: initialCss }],
+  });
+  assert.equal(validReview.status, 200);
+  assert.equal(validReview.data.valid, true, 'The preview review must validate all supported project files.');
+  assert.equal(validReview.data.files_checked, 1);
+
+  const invalidFileReview = await call(tokenA, 'POST', '/api/magnanimous/vibe-studio/review', {
+    html: project.html,
+    files: [{ path: 'src/remote.css', content: '@import url(https://example.test/a.css);' }],
+  });
+  assert.equal(invalidFileReview.data.valid, false, 'Preview must reject unsafe unsaved CSS before execution.');
+
+  const caseCollisionReview = await call(tokenA, 'POST', '/api/magnanimous/vibe-studio/review', {
+    html: project.html,
+    files: [
+      { path: 'src/App.js', content: 'console.log("A");' },
+      { path: 'src/app.js', content: 'console.log("B");' },
+    ],
+  });
+  assert.equal(caseCollisionReview.data.valid, false, 'Preview must reject paths that collide on case-insensitive filesystems.');
+
   const created = await createFile(tokenA, project.id, 'src/styles.css', initialCss);
   assert.equal(created.status, 201, 'Nested CSS files should be stored.');
   assert.equal(created.data.file.path, 'src/styles.css');
@@ -153,6 +176,10 @@ try {
 
   const duplicateFile = await createFile(tokenA, project.id, 'src/styles.css', 'duplicate path');
   assert.equal(duplicateFile.status, 409, 'Duplicate project paths must not replace existing files.');
+  const caseVariantDuplicate = await createFile(tokenA, project.id, 'SRC/STYLES.CSS', 'case variant duplicate');
+  assert.equal(caseVariantDuplicate.status, 409, 'Case-insensitive path collisions must be rejected before Windows ZIP export.');
+  const reservedWindowsPath = await createFile(tokenA, project.id, 'src/CON.js', 'reserved name');
+  assert.equal(reservedWindowsPath.status, 400, 'Windows device names must not enter portable project ZIPs.');
   const utf8Boundary = await createFile(tokenA, project.id, 'utf8-boundary.md', '😀'.repeat(16_384));
   assert.equal(utf8Boundary.status, 201, 'A file at exactly 65,536 UTF-8 bytes must be accepted.');
   const utf8Overflow = await createFile(tokenA, project.id, 'utf8-overflow.md', '😀'.repeat(16_385));
