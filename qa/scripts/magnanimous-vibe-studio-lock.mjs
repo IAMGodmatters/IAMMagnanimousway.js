@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {buildVibeScaffold,pickVibeTemplate,reviewVibeSource,normalizeVibeFilePath,validateVibeFileContent,readBoundedVibeJson,MAGNANIMOUS_VIBE_STUDIO_POLICY} from '../../worker/src/magnanimous-vibe-studio.js';
+import {buildVibeScaffold,pickVibeTemplate,reviewVibeSource,reviewVibeProject,normalizeVibeFilePath,validateVibeFileContent,readBoundedVibeJson,MAGNANIMOUS_VIBE_STUDIO_POLICY} from '../../worker/src/magnanimous-vibe-studio.js';
 
 const read=path=>readFileSync(path,'utf8');
 assert.equal(MAGNANIMOUS_VIBE_STUDIO_POLICY.identity,'Magnanimous AI');
@@ -56,7 +56,7 @@ for(const word of ['magnanimous_vibe_files','magnanimous_vibe_file_versions','PR
 assert.equal(normalizeVibeFilePath('styles.css'),'styles.css');
 assert.equal(normalizeVibeFilePath('src/app.js'),'src/app.js');
 assert.equal(normalizeVibeFilePath('fixtures/demo.json'),'fixtures/demo.json');
-for(const path of ['/src/app.js','../secret.js','src/../secret.js','src\\\\app.js','index.html','.env','package.json','src/.secret.js','src/app.exe'])
+for(const path of ['/src/app.js','../secret.js','src/../secret.js','src\\\\app.js','index.html','.env','package.json','src/.secret.js','src/app.exe','CON.js','src/NUL.md','dir./app.js'])
  assert.equal(normalizeVibeFilePath(path),'','Unsafe or unsupported project file path must be rejected: '+path);
 assert.equal(validateVibeFileContent('fixtures/demo.json','{"ok":true}'),'');
 assert.ok(validateVibeFileContent('fixtures/demo.json','{'),'Invalid JSON fixtures must be rejected.');
@@ -68,6 +68,14 @@ assert.ok(validateVibeFileContent('app.js','const fs = require(\'node:fs\');'),'
 assert.ok(validateVibeFileContent('app.js','é'.repeat(32769)),'UTF-8 file byte limits must be enforced.');
 assert.equal(validateVibeFileContent('notes.md','# Private notes'),'');
 assert.equal(normalizeVibeFilePath(42),'','File paths must be supplied as strings.');
+const reviewHtml=buildVibeScaffold({title:'Review project',brief:'A valid local review project.'}).html;
+assert.equal(reviewVibeProject(reviewHtml,[{path:'src/app.js',content:'console.log("safe");'}]).valid,true);
+assert.equal(reviewVibeProject(reviewHtml,[{path:'src/app.js',content:'import x from "https://example.test/x.js";'}]).valid,false);
+assert.equal(reviewVibeProject(reviewHtml,[{path:'src/App.js',content:'ok'},{path:'src/app.js',content:'ok'}]).valid,false);
+assert.equal(reviewVibeProject(reviewHtml,Array.from({length:20},(_,i)=>({path:'file-'+i+'.md',content:'x'}))).valid,false);
+assert.ok(runtime.includes('reviewVibeProject(b.html,b.files===undefined?[]:b.files)'),'Preview review must validate all auxiliary files before iframe execution.');
+assert.ok(runtime.includes('lower(f.path)=lower(?)'),'File creation must prevent case-insensitive path collisions.');
+assert.ok(multiMigration.includes('ON magnanimous_vibe_files(project_id, lower(path))'),'Database must enforce portable path uniqueness.');
 assert.ok(validateVibeFileContent('app.js',42),'Non-string file content must be rejected.');
 assert.ok(validateVibeFileContent('styles.css','</style data-breakout="yes">'),'Malformed HTML style end tags must be rejected.');
 assert.ok(validateVibeFileContent('app.js','</script data-breakout="yes">'),'Malformed HTML script end tags must be rejected.');
