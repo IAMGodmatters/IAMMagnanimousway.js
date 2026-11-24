@@ -84,6 +84,11 @@ try {
       slug TEXT NOT NULL,
       owner_user_id TEXT NOT NULL
     );
+    CREATE TABLE billing_subscriptions (
+      tenant_id TEXT PRIMARY KEY,
+      plan TEXT NOT NULL,
+      status TEXT NOT NULL
+    );
   `);
   await db.exec(readFileSync('worker/migrations/0109_magnanimous_vibe_studio.sql', 'utf8'));
   await db.exec(readFileSync('worker/migrations/0113_magnanimous_vibe_multifile.sql', 'utf8'));
@@ -94,13 +99,15 @@ try {
     db.prepare('INSERT INTO tenants(id,slug,owner_user_id) VALUES(?,?,?)')
       .bind('owner-tenant-a', 'owner', 'owner-user-a'),
     db.prepare('INSERT INTO users(id,tenant_id,name,email,role,active) VALUES(?,?,?,?,?,1)')
-      .bind('owner-user-b', 'owner-tenant-b', 'Owner B', 'owner@example.test', 'owner'),
+      .bind('customer-user-b', 'customer-tenant-b', 'Customer B', 'customer@example.test', 'member'),
     db.prepare('INSERT INTO tenants(id,slug,owner_user_id) VALUES(?,?,?)')
-      .bind('owner-tenant-b', 'owner', 'owner-user-b'),
+      .bind('customer-tenant-b', 'customer', 'customer-user-b'),
+    db.prepare('INSERT INTO billing_subscriptions(tenant_id,plan,status) VALUES(?,?,?)')
+      .bind('customer-tenant-b', 'business', 'active'),
   ]);
 
   const tokenA = await ownerToken('owner-user-a', 'owner-tenant-a');
-  const tokenB = await ownerToken('owner-user-b', 'owner-tenant-b');
+  const tokenB = await ownerToken('customer-user-b', 'customer-tenant-b');
 
   const unauthenticated = await call('', 'GET', '/api/magnanimous/vibe-studio/projects');
   assert.equal(unauthenticated.status, 401, 'Unauthenticated requests must fail closed.');
@@ -153,10 +160,11 @@ try {
   const oversizedRequest = await createFile(tokenA, project.id, 'oversized-request.md', 'x'.repeat(524_300));
   assert.equal(oversizedRequest.status, 413, 'Streaming request-size limits must be enforced.');
 
-  const crossTenantProject = await call(tokenB, 'GET', root);
-  assert.equal(crossTenantProject.status, 404, 'A different owner tenant must not read another tenant project.');
-  const crossTenantFiles = await call(tokenB, 'GET', root + '/files');
-  assert.equal(crossTenantFiles.status, 404, 'A different owner tenant must not read another tenant file list.');
+  const customerRoot = '/api/customer/code-studio/projects/' + project.id;
+  const crossTenantProject = await call(tokenB, 'GET', customerRoot);
+  assert.equal(crossTenantProject.status, 404, 'An active paid customer tenant must not read another tenant owner project.');
+  const crossTenantFiles = await call(tokenB, 'GET', customerRoot + '/files');
+  assert.equal(crossTenantFiles.status, 404, 'An active paid customer tenant must not read another tenant file list.');
 
   const sizeProject = await createProject(tokenA, 'Project byte limit test');
   for (let index = 1; index <= 3; index += 1) {
