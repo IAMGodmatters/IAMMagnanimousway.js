@@ -127,4 +127,14 @@ test('owner multi-file Vibe Studio saves, previews, checkpoints, adds and export
   await page.getByRole('button', { name: /Export ZIP/ }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe('demo-project.zip');
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByRole('heading', { name: 'Multi-file workspace' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Preview/ })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: /Edit src\/extra\.js/ })).toBeVisible();
+  const mobileWidth = await page.locator('html').evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+  }));
+  expect(mobileWidth.scrollWidth).toBeLessThanOrEqual(mobileWidth.clientWidth + 1);
 });
