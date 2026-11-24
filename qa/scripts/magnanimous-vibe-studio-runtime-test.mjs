@@ -151,6 +151,13 @@ try {
   });
   assert.equal(staleUpdate.status, 409, 'Stale revisions must not overwrite newer file content.');
 
+  const duplicateFile = await createFile(tokenA, project.id, 'src/styles.css', 'duplicate path');
+  assert.equal(duplicateFile.status, 409, 'Duplicate project paths must not replace existing files.');
+  const utf8Boundary = await createFile(tokenA, project.id, 'utf8-boundary.md', '😀'.repeat(16_384));
+  assert.equal(utf8Boundary.status, 201, 'A file at exactly 65,536 UTF-8 bytes must be accepted.');
+  const utf8Overflow = await createFile(tokenA, project.id, 'utf8-overflow.md', '😀'.repeat(16_385));
+  assert.equal(utf8Overflow.status, 400, 'Multi-byte content must be measured in UTF-8 bytes, not JavaScript characters.');
+
   const traversal = await createFile(tokenA, project.id, '../secret.js', 'globalThis.secret = true;');
   assert.equal(traversal.status, 400, 'Path traversal must be rejected.');
   const externalCss = await createFile(tokenA, project.id, 'external.css', '@import url(https://example.test/remote.css);');
