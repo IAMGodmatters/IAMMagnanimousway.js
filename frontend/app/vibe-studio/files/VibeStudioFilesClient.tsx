@@ -207,10 +207,10 @@ export default function VibeStudioFilesClient(){
   const currentFiles=files.map(file=>file.path===selectedPath?{...file,content}:file);
   setBusy('preview');setError('');
   try{
-   const checked=await requestWithToken(token,'/api/magnanimous/vibe-studio/review',{method:'POST',body:JSON.stringify({html})});
+   const checked=await requestWithToken(token,'/api/magnanimous/vibe-studio/review',{method:'POST',body:JSON.stringify({html,files:currentFiles.map(file=>({path:file.path,content:file.content}))})});
    if(!checked.valid)throw new Error(checked.error||'The index.html document did not pass structural validation.');
    setPreview(previewDocument(html,currentFiles));
-   setNotice('Preview assembled from index.html, local CSS/JS files and JSON fixtures. Network, forms and external resources remain blocked.');
+   setNotice('Preview assembled from index.html, local CSS/JS files and JSON fixtures. It runs in an opaque-origin browser frame with a restrictive content policy; it is not a full-stack VM.');
   }catch(e){setError(e instanceof Error?e.message:'Preview validation failed.');}finally{setBusy('');}
  }
  function downloadZip(){
