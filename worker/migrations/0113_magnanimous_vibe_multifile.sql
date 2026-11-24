@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS magnanimous_vibe_files (
   PRIMARY KEY (project_id, path),
   FOREIGN KEY (project_id) REFERENCES magnanimous_vibe_projects(id) ON DELETE CASCADE
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_magnanimous_vibe_files_project_path_ci
+  ON magnanimous_vibe_files(project_id, lower(path));
 CREATE INDEX IF NOT EXISTS idx_magnanimous_vibe_files_owner
   ON magnanimous_vibe_files(tenant_id, user_id, project_id, path);
 CREATE TABLE IF NOT EXISTS magnanimous_vibe_file_versions (
