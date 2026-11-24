@@ -50,6 +50,7 @@ assert.equal(reviewVibeSource('<html><body>Hello world! This is a full preview d
 const migration=read('worker/migrations/0109_magnanimous_vibe_studio.sql');
 for(const word of ['magnanimous_vibe_projects','magnanimous_vibe_versions','tenant_id','user_id','PRIMARY KEY (project_id,revision)'])
  assert.ok(migration.includes(word),'D1 migration missing '+word);
+const runtime=read('worker/src/magnanimous-vibe-studio.js');
 const multiMigration=read('worker/migrations/0113_magnanimous_vibe_multifile.sql');
 for(const word of ['magnanimous_vibe_files','magnanimous_vibe_file_versions','PRIMARY KEY (project_id, path)','PRIMARY KEY (project_id, path, revision)','tenant_id','user_id','ON DELETE CASCADE'])
  assert.ok(multiMigration.includes(word),'Multi-file Vibe Studio migration missing '+word);
@@ -91,7 +92,6 @@ const invalidJsonRequest=await readBoundedVibeJson(new Request('https://example.
 assert.equal(invalidJsonRequest.ok,false,'Bounded JSON reader must reject malformed JSON.');
 
 
-const runtime=read('worker/src/magnanimous-vibe-studio.js');
 for(const word of ['requirePlatformOwner(request,env)','currentUser(request,env)','env.DB.batch([','tenant_id=? AND user_id=?','expected_revision','VIBE_REVISION_CONFLICT','NOT EXISTS (SELECT 1 FROM magnanimous_vibe_versions','MAX_HTML=65536','MAX_PROJECTS=25'])
  assert.ok(runtime.includes(word),'Vibe Studio runtime safety contract missing '+word);
 assert.ok(!runtime.includes('eval('),'Server must never eval prototype source.');
