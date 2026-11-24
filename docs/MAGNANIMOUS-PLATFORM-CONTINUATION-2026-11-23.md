@@ -1,12 +1,20 @@
 # Magnanimous Platform Continuity Checkpoint
 
-**Reviewed:** 2026-11-23 (Asia/Manila)  
+**Reviewed:** 2026-11-24 (Asia/Manila)  
 **Repository:** `IAMGodmatters/IAMMagnanimousway.js`  
 **Production:** https://iammagnanimousway.com/  
 **Authoritative branch:** `main`  
 **Verified main SHA:** `5abe2daa750a206986f117e1187811962db483f3`
 
 This checkpoint preserves verified state and the next safe actions across chat or automation interruptions. It is an evidence ledger, not a claim that every platform capability is complete.
+
+## 0. Continuation update — 2026-11-24
+
+- The authoritative `main` still resolves to `5abe2daa750a206986f117e1187811962db483f3`; the latest merged change is PR #991, which registers the native Magnanimous Marketing Department skills/resources in chat and the Capability Mesh.
+- PR #998 is still a draft. Its latest head is `dc238d432ca1b885f1b57aeefacb221af75bec8b` (35 commits, 11 changed files). The bounded static multi-file workspace now has a local Playwright journey and a SQLite-backed D1 runtime test in the Full Platform QA workflow. The earlier exact head `a5945c39b1af63256ccff9df2732d7f3f5fe2e5e` passed Full Platform QA code health/builds and all **17/17** local browser journeys, including the new save/preview/add/export journey. The current head adds real SQLite-backed handler coverage for migrations, owner authentication, paid-customer tenant isolation, nested paths, immutable revisions, stale-write conflicts, request/file/project/count limits and no-publication/deletion safeguards; its exact-head workflow set is still running. Do not merge until the current head completes every required check.
+- PR #992 remains open and unmerged at `43819b9efc9bac0be81366ba991757bd12eb9c75`; all 31 associated workflow runs succeeded. No human review has been submitted, and no GitHub ruleset or repository-visibility settings were changed by this continuation.
+- GitHub repository metadata still reports visibility `public`. The current GitHub connector exposes repository metadata and source/PR operations but not a ruleset or visibility mutation operation. The Opera browser connector did not respond during a read-only connection check.
+
 
 ## 1. Current source and production evidence
 
@@ -70,7 +78,7 @@ Repository privacy is a separate owner action. Before switching to private, veri
 
 | Area | Current boundary | Tracking |
 |---|---|---|
-| Vibe Studio | Phase 1 is a native single-file HTML prototype builder. Draft PR [#998](https://github.com/IAMGodmatters/IAMMagnanimousway.js/pull/998) stages the first Phase 2 slice: tenant/user-scoped CSS/JS/JSON/Markdown files, per-file checkpoints, local ZIP export and isolated static preview. Exact-head CI is running; no production migration has been applied. No arbitrary server execution or package installation. | [#790](https://github.com/IAMGodmatters/IAMMagnanimousway.js/issues/790), [#791](https://github.com/IAMGodmatters/IAMMagnanimousway.js/issues/791) |
+| Vibe Studio | Phase 1 is a native single-file HTML prototype builder. Draft PR [#998](https://github.com/IAMGodmatters/IAMMagnanimousway.js/pull/998) stages the first Phase 2 slice: tenant/user-scoped CSS/JS/JSON/Markdown files, per-file checkpoints, local ZIP export and isolated static preview. Latest head `dc238d4` adds a local Playwright journey and a SQLite-backed D1 runtime test; exact-head CI is running. No production migration has been applied. No arbitrary server execution or package installation. | [#790](https://github.com/IAMGodmatters/IAMMagnanimousway.js/issues/790), [#791](https://github.com/IAMGodmatters/IAMMagnanimousway.js/issues/791) |
 | Media provenance | C2PA signing and verification through actual exports remains unfinished. A JSON sidecar alone is not sufficient proof. | [#787](https://github.com/IAMGodmatters/IAMMagnanimousway.js/issues/787) |
 | Telecom / Contact Center | Code and CI contracts do not prove a public carrier route. Public-host TLS, trusted certificate, real carrier agreements, regulatory authority and two-way media must be independently verified. Never claim NTC authority or live calling without evidence. | Active telecom and carrier readiness records |
 | TV / Kids | Authenticated actions and actual Kids playback need browser and production verification; a loading page or route 200 is not playback proof. | [#738](https://github.com/IAMGodmatters/IAMMagnanimousway.js/issues/738) |
