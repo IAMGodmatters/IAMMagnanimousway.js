@@ -106,7 +106,13 @@ export class DurableLiveEventJournal {
     try {
       if (fs.existsSync(this.filePath) && fs.statSync(this.filePath).size > MAX_JOURNAL_BYTES) this._compact();
       fd = fs.openSync(this.filePath, 'a', 0o600);
-      fs.writeSync(fd, line, null, 'utf8');
+      const bytes = Buffer.from(line, 'utf8');
+      let offset = 0;
+      while (offset < bytes.length) {
+        const written = fs.writeSync(fd, bytes, offset, bytes.length - offset);
+        if (written <= 0) throw new Error('The event journal write did not make progress.');
+        offset += written;
+      }
       fs.fsyncSync(fd);
     } catch {
       this.storageFailed = true;
@@ -186,7 +192,13 @@ export class DurableLiveEventJournal {
     let fd;
     try {
       fd = fs.openSync(temp, 'w', 0o600);
-      fs.writeSync(fd, body, null, 'utf8');
+      const bytes = Buffer.from(body, 'utf8');
+      let offset = 0;
+      while (offset < bytes.length) {
+        const written = fs.writeSync(fd, bytes, offset, bytes.length - offset);
+        if (written <= 0) throw new Error('The compacted journal write did not make progress.');
+        offset += written;
+      }
       fs.fsyncSync(fd);
       fs.closeSync(fd);
       fd = undefined;
