@@ -49,7 +49,7 @@ test('pair endpoint requires an authenticated tenant and returns two distinct sh
  assert.equal(response.status,201);
  const data=await response.json();
  assert.equal(data.ok,true);
- assert.match(data.endpoint,/^https:\/\/iammagnanimousway\.com\/api\/live-bridge\/ws\//);
+ assert.match(data.endpoint,/^wss:\/\/iammagnanimousway\.com\/api\/live-bridge\/ws\//);
  assert.equal(data.browserToken.length,43);
  assert.equal(data.companionToken.length,43);
  assert.notEqual(data.browserToken,data.companionToken);
