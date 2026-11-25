@@ -104,6 +104,7 @@ checks.push(
  ['AI host can append reviewed dialogue to the encrypted creator draft',app.includes('function addHostLineToNotes')&&app.includes('Save it to keep the change in your encrypted workspace')],
  ['online bridge can request AI host speech without exposing provider credentials',bridgePage.includes("action!=='host.speak'")&&bridgePage.includes('value="host.speak"')&&bridgePage.includes('Words for the AI host')&&bridgePage.includes('clientRef.current?.sendCommand')],
  ['remote host speech is queued locally and cannot speak before operator approval',host.includes("value.action==='host.speak'")&&host.includes("command.action==='host.speak'")&&app.includes("result.action==='host.speak'")&&app.includes('speakHostLine()')&&host.includes("body.approved!==true")],
+ ['approved host speech is control-character sanitized and length bounded',host.includes("replace(/[\\u0000-\\u001f\\u007f]/g")&&host.includes('.slice(0,500)')],
  ['online host speech is spoken only through the selected local device voice',app.includes("const selectedVoice=$('hostVoiceSelect').value")&&app.includes('window.speechSynthesis.speak(utterance)')&&app.includes("$('hostLine').value=String(result.speechText).slice(0,500)")],
 
  ['workspace lock clears private draft, host and viewer text from the browser UI',app.includes('function clearSensitiveUi()')&&app.includes("['passphrase','prompt','outputTitle','output','hostTopic','hostScript','hostLine','liveTestText','obsPassword','bridgeToken']")&&app.includes("state.lastHostEvent=null")&&app.includes("clearSensitiveUi();")],
