@@ -430,7 +430,7 @@ export async function scheduledMagnanimousRoutines(env){
  if(!env?.DB)return{ok:false,reason:'database-unavailable'};
  await ensureSchema(env);const stamp=now(),events=[];
 
- const{results:waiting=[]}=await env.DB.prepare("SELECT * FROM magnanimous_routine_runs WHERE status IN ('waiting_external','retry_wait') ORDER BY updated_at ASC LIMIT 40").all();
+ const{results:waiting=[]}=await env.DB.prepare("SELECT * FROM magnanimous_routine_runs WHERE status IN ('waiting_external','retry_wait') ORDER BY updated_at ASC LIMIT 4").all();
  for(const row of waiting){
   try{
    if(row.status==='retry_wait'){
@@ -445,7 +445,7 @@ export async function scheduledMagnanimousRoutines(env){
   }
  }
 
- const{results:due=[]}=await env.DB.prepare("SELECT * FROM magnanimous_routines WHERE status='active' AND next_run_at<=? ORDER BY next_run_at ASC LIMIT 20").bind(stamp).all();
+ const{results:due=[]}=await env.DB.prepare("SELECT * FROM magnanimous_routines WHERE status='active' AND next_run_at<=? ORDER BY next_run_at ASC LIMIT 3").bind(stamp).all();
  for(const routine of due){
   const next=stamp+Math.max(MIN_INTERVAL_MINUTES,Number(routine.interval_minutes||60))*60;
   await env.DB.prepare('UPDATE magnanimous_routines SET next_run_at=?,updated_at=? WHERE id=?').bind(next,stamp,routine.id).run();
