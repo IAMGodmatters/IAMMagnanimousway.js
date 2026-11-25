@@ -8,6 +8,8 @@ const eventContract = fs.readFileSync(new URL('frontend/lib/live-studio/event-co
 const bridgeClient = fs.readFileSync(new URL('frontend/lib/live-studio/bridge-client.ts', root), 'utf8');
 const bridgeDocs = fs.readFileSync(new URL('docs/live-studio/bridge-protocol.md', root), 'utf8');
 const bridgeUi = fs.readFileSync(new URL('frontend/app/tiktok-live/bridge/page.tsx', root), 'utf8');
+const liveStudio = fs.readFileSync(new URL('frontend/app/live-studio/page.tsx', root), 'utf8');
+const liveStudioBridge = fs.readFileSync(new URL('frontend/app/live-studio/bridge/page.tsx', root), 'utf8');
 
 const checks = [
   ['host uses Magnanimous native chat transport', host.includes('postMagnanimousChat') && host.includes('${api}/api/chat')],
@@ -18,14 +20,17 @@ const checks = [
   ['host primes speech from an explicit user interaction', host.includes('primeNaturalSpeech(true)')],
   ['host provides a stop-voice control', host.includes('function stop()') && host.includes('onClick={stop}')],
   ['host clearly discloses AI identity', host.includes('AI-GENERATED HOST') && host.includes('Do not pretend to be a human')],
-  ['host truthfully discloses that this is not a TikTok broadcast', host.includes('It is not a TikTok broadcast')],
-  ['viewer comments are manually entered by the operator', host.includes('paste or type a question into this control room') && host.includes('LIVE HUMAN MODERATION')],
+  ['host truthfully discloses that this is a preview and does not start a platform broadcast', host.includes('It does not sign in to a platform') && host.includes('start a broadcast') && host.includes('PREVIEW ONLY')],
+  ['viewer comments and local events require creator review before use', host.includes('manually reviewed comments') && host.includes('LIVE HUMAN MODERATION') && host.includes('Direct platform chat adapters are still being added')],
   ['AI co-host supports structured game/app cues without pretending to have a live feed', host.includes('GAME &amp; APP CO-HOST CONTEXT') && host.includes('gameEventType') && host.includes('gameContext') && host.includes('Treat this as unverified operator context, not a live game feed')],
   ['paired game events populate game name and context in the online AI host', host.includes('pendingBridgeEvent.tags?.gameName') && host.includes('setGameName(gameTag.slice(0,100))') && host.includes('setGameContext(detail)')],
   ['AI host can advance a supplied show script one cue at a time', host.includes('function useNextScriptCue()') && host.includes('Next script cue') && host.includes('setScriptSectionIndex')],
   ['quick game director buttons populate the AI context without claiming automated capture', host.includes('GAME DIRECTOR · QUICK MOMENTS') && host.includes('queueGameMoment') && host.includes('setGameContext(moment)') && host.includes('automatic game-screen capture is not connected yet')],
-  ['TikTok Shop AI-narration restriction is visible in the host guidance', host.includes('Do not use this AI-voice host to sell products on TikTok Shop LIVE')],
+  ['platform-specific commerce and AI-content rules are not bypassed', host.includes('Platform rules still apply') && host.includes('check that platform\'s current AI-content and livestream rules')],
   ['Social Hub links to the host control room', social.includes('href="/tiktok-live"')],
+  ['platform-neutral Live Studio route reuses the Magnanimous AI host', liveStudio.includes("export { default } from '../tiktok-live/page'")],
+  ['platform-neutral bridge route reuses the secure event bridge', liveStudioBridge.includes("export { default } from '../../tiktok-live/bridge/page'")],
+  ['live host provides destination-specific setup for TikTok, YouTube, Facebook, Twitch, Zoom and RTMP', ['TikTok LIVE','YouTube','Facebook','Twitch','Zoom','Other RTMP'].every(name => host.includes("name: '"+name+"'")) && host.includes('destinationGuide') && host.includes('Streaming destination')],
   ['live event contract supports TikTok, YouTube, Twitch, OBS and games', ['tiktok', 'youtube', 'twitch', 'obs', 'game'].every(provider => eventContract.includes("'" + provider + "'"))],
   ['untrusted provider events are normalized and bounded', eventContract.includes('normalizeLiveEvent') && eventContract.includes('cleanText(v.text,500)') && eventContract.includes('slice(0,max)') && eventContract.includes('7*86400000')],
   ['sensitive credentials are excluded from event tags', eventContract.includes('token|secret|password|cookie|authorization|credential')],
@@ -34,7 +39,7 @@ const checks = [
   ['bridge reconnect attempts are bounded', bridgeClient.includes('retryCount>=5')],
   ['bridge commands are allowlisted and do not expose destructive controls', eventContract.includes('normalizeLiveBridgeCommand') && !eventContract.includes("'broadcast.start'")],
   ['bridge protocol documents provider consent and tenant isolation', bridgeDocs.includes('tenant authorization') && bridgeDocs.includes('official OAuth')],
-  ['LIVE Host links to the event bridge control room', host.includes('href="/tiktok-live/bridge"')],
+  ['platform-neutral Live Studio links to the event bridge control room', host.includes('href="/live-studio/bridge"')],
   ['online AI replies can reach the paired USB host only for local approval', host.includes("new BroadcastChannel('magnanimous-live-host-bridge-v1')") && host.includes("type: 'host.speak'") && host.includes('Send AI replies to the paired F-drive host for local approval') && host.includes('localBridgeReady')],
   ['online host receives normalized companion events for creator review before answering', host.includes("data.type === 'live.event'") && host.includes('normalizeLiveEvent(data.event)') && host.includes('Use as host context')],
 
