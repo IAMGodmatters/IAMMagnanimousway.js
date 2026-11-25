@@ -30,7 +30,7 @@ const RUNDOWN_SEGMENTS = [
   { at: 0.42, title: 'Audience participation', cue: 'Ask one open, simple question and invite viewers to share ideas without revealing private details.' },
   { at: 0.60, title: 'Interactive round', cue: 'Run a short, friendly trivia or prediction round. Explain the rules and do not invent prizes.' },
   { at: 0.78, title: 'Practical takeaway', cue: 'Give one practical example or step viewers can use. Keep it relevant and safe.' },
-  { at: 0.93, title: 'Recap and close', cue: 'Summarize the main points, thank the audience, invite a final question and explain how viewers can find the next session.' },
+  { at: 0.86, title: 'Recap and close', cue: 'Summarize the main points, thank the audience, invite a final question and explain how viewers can find the next session.' },
 ] as const;
 
 export default function TikTokLiveHost() {
