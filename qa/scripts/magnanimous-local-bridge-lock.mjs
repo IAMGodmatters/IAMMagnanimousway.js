@@ -193,6 +193,13 @@ assert(page.includes('DOWNLOAD WINDOWS ACTIVATION FILE'));
 assert(page.includes('READY LOCAL — VERIFIED'));
 assert(page.includes('REVOKE DEVICE'));
 assert(page.includes('DOWNLOAD WINDOWS REMOVAL FILE'));
+assert(page.includes('OBS production controls'),'Owner Local Bridge page must expose the OBS production controls.');
+assert(page.includes('CHECK OBS STATUS')&&page.includes('LIST SCENES + APPROVED CUES'));
+assert(page.includes('SWITCH TO APPROVED SCENE')&&page.includes('RESTART APPROVED MEDIA CUE'));
+assert(page.includes('runObsTask')&&page.includes('confirmation_endpoint'),'OBS changes must use the owner task confirmation endpoint.');
+assert(page.includes('python bridge_agent.py obs-configure'),'Owner page must show the local credential setup command.');
+assert(!page.includes('password_dpapi')&&!page.includes('obsPassword'),'OBS credentials must never enter the browser page.');
+
 assert(page.includes('LOCAL BRIDGE REQUIRED'));
 assert(robots.includes('Disallow: /local-bridge/'));
 assert(deploy.includes('Local Bridge customer isolation expected HTTP 403'),'production smoke must preserve platform-owner-only Local Bridge control');
