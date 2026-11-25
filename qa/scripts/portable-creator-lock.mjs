@@ -12,8 +12,6 @@ const gameIntegration=read('portable-creator/game-event-integration.mjs');
 const gameIntegrationTests=read('portable-creator/game-event-integration.test.mjs');
 const gameEventClient=read('portable-creator/game-event-client.mjs');
 const gameEventClientTests=read('portable-creator/game-event-client.test.mjs');
-const gameEventClient=read('portable-creator/game-event-client.mjs');
-const gameEventClientTests=read('portable-creator/game-event-client.test.mjs');
 const app=read('portable-creator/app/app.js');
 const html=read('portable-creator/app/index.html');
 const avatarHtml=read('portable-creator/app/avatar.html');
@@ -40,8 +38,6 @@ execFileSync(process.execPath,['--check',path.join(ROOT,'portable-creator/obs-cl
 execFileSync(process.execPath,[path.join(ROOT,'qa/scripts/portable-obs-client.test.mjs')],{cwd:ROOT,stdio:'inherit'});
 execFileSync(process.execPath,['--check',path.join(ROOT,'portable-creator/game-event-integration.mjs')],{cwd:ROOT,stdio:'inherit'});
 execFileSync(process.execPath,[path.join(ROOT,'portable-creator/game-event-integration.test.mjs')],{cwd:ROOT,stdio:'inherit'});
-execFileSync(process.execPath,['--check',path.join(ROOT,'portable-creator/game-event-client.mjs')],{cwd:ROOT,stdio:'inherit'});
-execFileSync(process.execPath,[path.join(ROOT,'portable-creator/game-event-client.test.mjs')],{cwd:ROOT,stdio:'inherit'});
 execFileSync(process.execPath,['--check',path.join(ROOT,'portable-creator/game-event-client.mjs')],{cwd:ROOT,stdio:'inherit'});
 execFileSync(process.execPath,[path.join(ROOT,'portable-creator/game-event-client.test.mjs')],{cwd:ROOT,stdio:'inherit'});
 
