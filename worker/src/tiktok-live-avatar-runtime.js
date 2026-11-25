@@ -6,16 +6,17 @@ const MAX_SESSION_SECONDS=120;
 const MAX_IDLE_SECONDS=30;
 const MAX_MONTHLY_SESSIONS=20;
 const MAX_PENDING_AGE_SECONDS=180;
-const SIMLI_SESSION_URL='https://api.simli.ai/compose/token';
+const SIMLI_SESSION_URL='https://api.simli.ai/startAudioToVideoSession';
+const SIMLI_ICE_URL='https://api.simli.ai/getIceServer';
 
 function monthKey(date=new Date()){return date.toISOString().slice(0,7)}
 function now(){return Math.floor(Date.now()/1000)}
 function ready(env){return env?.SIMLI_AVATAR_ENABLED==='true'&&Boolean(String(env?.SIMLI_API_KEY||'').trim())&&Boolean(String(env?.SIMLI_FACE_ID||'').trim())}
 
-async function providerPost(url,apiKey,body){
+async function providerPost(url,body){
  const response=await fetch(url,{
   method:'POST',
-  headers:{'content-type':'application/json','x-simli-api-key':apiKey},
+  headers:{'content-type':'application/json'},
   body:JSON.stringify(body),
   signal:AbortSignal.timeout(15000)
  });
@@ -32,8 +33,15 @@ async function authorizedOwner(request,env){
 }
 
 async function usage(env,tenantId,month){
+ const stamp=now();
+ // An issued session is provider-limited to 120 seconds plus a 30-second idle
+ // window. Reclaim its live slot after that bound, but keep it counted in the
+ // monthly reservation total so repeated start/stop calls cannot bypass quotas.
+ await env.DB.prepare(
+  "UPDATE tiktok_live_avatar_sessions SET state='expired',updated_at=? WHERE tenant_id=? AND usage_month=? AND state IN ('pending','issued') AND updated_at<?"
+ ).bind(stamp,tenantId,month,stamp-MAX_SESSION_SECONDS-MAX_IDLE_SECONDS-30).run();
  const row=await env.DB.prepare(
-  "SELECT COUNT(*) AS issued FROM tiktok_live_avatar_sessions WHERE tenant_id=? AND usage_month=? AND state IN ('pending','issued')"
+  "SELECT COUNT(*) AS issued FROM tiktok_live_avatar_sessions WHERE tenant_id=? AND usage_month=? AND state IN ('pending','issued','ended','expired')"
  ).bind(tenantId,month).first();
  const used=Number(row?.issued||0);
  return{
@@ -52,8 +60,8 @@ async function usage(env,tenantId,month){
 export async function handleTikTokLiveAvatar(request,env){
  const url=new URL(request.url),path=url.pathname;
  if(!path.startsWith('/api/tiktok-live/avatar/'))return null;
- if(path!=='/api/tiktok-live/avatar/usage'&&path!=='/api/tiktok-live/avatar/session')return json({detail:'Unknown live-avatar endpoint.'},404);
- if((path.endsWith('/usage')&&request.method!=='GET')||(path.endsWith('/session')&&request.method!=='POST'))return json({detail:'Method not allowed.'},405);
+ if(!['/api/tiktok-live/avatar/usage','/api/tiktok-live/avatar/session','/api/tiktok-live/avatar/end'].includes(path))return json({detail:'Unknown live-avatar endpoint.'},404);
+ if((path.endsWith('/usage')&&request.method!=='GET')||((path.endsWith('/session')||path.endsWith('/end'))&&request.method!=='POST'))return json({detail:'Method not allowed.'},405);
  if(!env?.DB)return json({detail:'The Magnanimous usage ledger is unavailable.'},503);
  const access=await authorizedOwner(request,env);
  if(access.response)return access.response;
@@ -65,14 +73,26 @@ export async function handleTikTokLiveAvatar(request,env){
   return json(await usage(env,user.tenant_id,month));
  }
 
+ if(path.endsWith('/end')){
+  let body;
+  try{body=await request.json()}catch{return json({detail:'A valid JSON reservation_id is required.'},400)}
+  const reservationId=String(body?.reservation_id||'').trim();
+  if(!/^[0-9a-f-]{36}$/i.test(reservationId))return json({detail:'Invalid avatar reservation ID.'},400);
+  const result=await env.DB.prepare(
+   "UPDATE tiktok_live_avatar_sessions SET state='ended',updated_at=? WHERE id=? AND tenant_id=? AND user_id=? AND state='issued' RETURNING id"
+  ).bind(stamp,reservationId,user.tenant_id,user.id).first();
+  if(!result?.id)return json({code:'SIMLI_RESERVATION_NOT_ACTIVE',detail:'This avatar reservation is not active or does not belong to this account.'},404);
+  return json({ok:true,usage:await usage(env,user.tenant_id,month)});
+ }
+
  if(!ready(env)){
   return json({code:'SIMLI_AVATAR_NOT_CONFIGURED',detail:'The avatar gateway is safely disabled. The owner must configure SIMLI_AVATAR_ENABLED, SIMLI_API_KEY, and SIMLI_FACE_ID as server-side Worker settings before a session can start.'},503);
  }
 
  try{
   await env.DB.prepare(
-   "UPDATE tiktok_live_avatar_sessions SET state='expired',updated_at=? WHERE state='pending' AND created_at<?"
-  ).bind(stamp,stamp-MAX_PENDING_AGE_SECONDS).run();
+   "UPDATE tiktok_live_avatar_sessions SET state='expired',updated_at=? WHERE tenant_id=? AND usage_month=? AND state='pending' AND created_at<?"
+  ).bind(stamp,user.tenant_id,month,stamp-MAX_PENDING_AGE_SECONDS).run();
 
   const reservationId=crypto.randomUUID();
   const reservation=await env.DB.prepare(`
@@ -81,7 +101,7 @@ export async function handleTikTokLiveAvatar(request,env){
    SELECT ?,?,?,?,?, 'pending',?,?
    WHERE (
     SELECT COUNT(*) FROM tiktok_live_avatar_sessions
-    WHERE tenant_id=? AND usage_month=? AND state IN ('pending','issued')
+    WHERE tenant_id=? AND usage_month=? AND state IN ('pending','issued','ended','expired')
    ) < ?
    RETURNING id
   `).bind(
@@ -95,12 +115,20 @@ export async function handleTikTokLiveAvatar(request,env){
 
   let session;
   try{
-   session=await providerPost(SIMLI_SESSION_URL,String(env.SIMLI_API_KEY),{
+   // Simli's documented backend-auth flow first retrieves ICE configuration,
+   // then starts an audio-to-video session. Both calls happen server-side.
+   const ice=await providerPost(SIMLI_ICE_URL,{apiKey:String(env.SIMLI_API_KEY)});
+   if(!ice.ok||!ice.data){
+    await env.DB.prepare("UPDATE tiktok_live_avatar_sessions SET state='failed',updated_at=? WHERE id=?").bind(now(),reservationId).run();
+    return json({code:'SIMLI_ICE_UNAVAILABLE',detail:'Simli did not return ICE configuration. No avatar session was created.'},502);
+   }
+
+   session=await providerPost(SIMLI_SESSION_URL,{
+    apiKey:String(env.SIMLI_API_KEY),
     faceId:String(env.SIMLI_FACE_ID),
-    handleSilence:false,
+    handleSilence:true,
     maxSessionLength:MAX_SESSION_SECONDS,
-    maxIdleTime:MAX_IDLE_SECONDS,
-    audioInputFormat:'pcm16'
+    maxIdleTime:MAX_IDLE_SECONDS
    });
    if(!session.ok||!session.data?.session_token){
     await env.DB.prepare("UPDATE tiktok_live_avatar_sessions SET state='failed',updated_at=? WHERE id=?").bind(now(),reservationId).run();
@@ -110,8 +138,10 @@ export async function handleTikTokLiveAvatar(request,env){
    await env.DB.prepare("UPDATE tiktok_live_avatar_sessions SET state='issued',updated_at=? WHERE id=?").bind(now(),reservationId).run();
    return json({
     provider:'simli',
-    transport_mode:'livekit',
+    transport_mode:'webrtc',
     session_token:session.data.session_token,
+    ice_config:ice.data,
+    warnings:Array.isArray(session.data.warnings)?session.data.warnings:[],
     max_session_length_seconds:MAX_SESSION_SECONDS,
     max_idle_time_seconds:MAX_IDLE_SECONDS,
     reservation_id:reservationId,
