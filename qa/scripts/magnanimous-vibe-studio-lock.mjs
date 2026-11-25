@@ -127,7 +127,7 @@ assert.ok(filesClient.includes("if(doctypeMatch)output=output.slice(0,doctypeMat
 assert.ok(filesClient.includes("else output='<!doctype html>'+csp+output;"),'Documents without a doctype must receive a safe doctype and CSP before source markup.');
 assert.ok(filesClient.includes("function insertBeforeLastClosingTag(source:string,tag:'body'|'html',insertion:string)"),'Preview must use a closing-tag-aware insertion helper.');
 assert.ok(filesClient.includes("source.matchAll(/<\\/body\\s*>/gi)"),'Preview must insert before the final body close, not a matching string inside inline JavaScript.');
-assert.ok(filesClient.includes("output=output.replace(/<html\\b[^>]*>/i,match=>match+'<head></head>')"),'Documents without a head must receive a head without nesting a second html document.');
+assert.ok(!filesClient.includes("output=output.replace(/<html\\b[^>]*>/i,match=>match+'<head></head>')"),'Preview must not insert a late head after user-authored markup; the CSP prelude creates the parser head first.');
 assert.ok(filesClient.includes(".replace(/</g,'\\\\u003c')"),'Inline JSON must use one JavaScript Unicode escape so fixture values round-trip exactly.');
 assert.ok(filesClient.includes('style.textContent=file.content'),'CSS source must be inserted through DOM textContent, not HTML markup concatenation.');
 assert.ok(filesClient.includes('script.textContent=file.content'),'JavaScript source must be inserted through DOM textContent, not HTML markup concatenation.');
