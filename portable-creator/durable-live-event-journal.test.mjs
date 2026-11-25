@@ -71,7 +71,7 @@ test('recovers complete records after a truncated trailing write', t => {
   const f = fixture(t);
   let journal = f.create();
   journal.ingest(makeEvent('recover-1'));
-  fs.appendFileSync(f.filePath, '{"version":1,"op":"put","broken":');
+  fs.appendFileSync(f.filePath, '{"version":1,"cipher":"aes-256-gcm","iv":"broken');
   journal = f.create();
   assert.equal(journal.status().queued, 1);
   assert.equal(journal.status().recovery.truncatedTail, true);
