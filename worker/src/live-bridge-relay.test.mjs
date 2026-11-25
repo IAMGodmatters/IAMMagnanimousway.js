@@ -103,7 +103,7 @@ test('limits authenticated browser message rate',async()=>{
  const socket={deserializeAttachment:()=>attachment,serializeAttachment:value=>{attachment=value;},send(){},close:code=>{closed=code;}};
  const state={storage:{get:async()=>null},getWebSockets:()=>[socket]};
  const room=new MagnanimousLiveBridgeRoom(state,{});
- for(let i=0;i<31;i++)await room.webSocketMessage(socket,JSON.stringify({kind:'ping'}));
+ for(let i=0;i<11;i++)await room.webSocketMessage(socket,JSON.stringify({kind:'ping'}));
  assert.equal(closed,4429);
 });
 
