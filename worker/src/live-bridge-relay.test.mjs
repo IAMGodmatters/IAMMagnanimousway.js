@@ -56,6 +56,7 @@ test('pair endpoint requires an authenticated tenant and returns two distinct sh
  assert.notEqual(data.browserToken,data.companionToken);
  assert.ok(data.expiresAt);
  assert.equal(initialized.tenantId,'tenant-1');
+ assert.equal(initialized.expectedOrigin,'https://iammagnanimousway.com');
  assert.equal(rateKey,'tenant-1:user-1');
  assert.equal(initialized.userId,'user-1');
  assert.deepEqual(initialized.allowedProviders,['manual','obs','game','browser']);
@@ -76,6 +77,15 @@ test('pair endpoint rejects cross-site and originless requests before allocating
  assert.equal(allocations,0);
 });
 
+
+test('pair endpoint rejects missing or cross-site browser origins',async()=>{
+ const env={LIVE_BRIDGE_PAIR_LIMITER:{limit:async()=>({success:true})},LIVE_BRIDGE_ROOMS:{idFromName:id=>id,get:()=>({fetch:async()=>Response.json({ok:true})})}};
+ const missing=await handleLiveBridgeRelay(new Request('https://iammagnanimousway.com/api/live-bridge/pair',{method:'POST'}),env,{id:'u',tenant_id:'t'});
+ assert.equal(missing.status,403);
+ const cross=await handleLiveBridgeRelay(new Request('https://iammagnanimousway.com/api/live-bridge/pair',{method:'POST',headers:{Origin:'https://attacker.example','Sec-Fetch-Site':'cross-site'}}),env,{id:'u',tenant_id:'t'});
+ assert.equal(cross.status,403);
+});
+
 test('pair endpoint enforces the per-user pairing rate limit',async()=>{
  const env={LIVE_BRIDGE_PAIR_LIMITER:{limit:async()=>({success:false})},LIVE_BRIDGE_ROOMS:{idFromName:id=>id,get:()=>({fetch:async()=>Response.json({ok:true})})}};
  const request=new Request('https://iammagnanimousway.com/api/live-bridge/pair',{method:'POST',headers:{Origin:'https://iammagnanimousway.com','Sec-Fetch-Site':'same-origin'}});
@@ -94,7 +104,7 @@ test('Durable Object room stores only token hashes and rejects duplicate initial
  },acceptWebSocket(){},getWebSockets(){return[];}};
  const room=new MagnanimousLiveBridgeRoom(state,{});
  const body={pairId:'room-1',tenantId:'tenant-1',userId:'user-1',browserHash:'a'.repeat(64),companionHash:'b'.repeat(64),allowedProviders:['manual','obs','game','browser'],pairExpiresAt:NOW+600000};
- const first=await room.fetch(new Request('https://bridge.internal/internal/create',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}));
+ const first=await room.fetch(new Request('https://bridge.internal/internal/create',{method:'POST',headers:{'content-type':'application/json','Origin':'https://iammagnanimousway.com','Sec-Fetch-Site':'same-origin'},body:JSON.stringify(body)}));
  assert.equal(first.status,200);
  const stored=values.get('pair');
  assert.equal(stored.tenantId,'tenant-1');
