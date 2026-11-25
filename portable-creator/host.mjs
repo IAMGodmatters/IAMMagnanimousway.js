@@ -38,13 +38,20 @@ const OBS_PORT=4455;
 fs.mkdirSync(DATA,{recursive:true});
 let liveEventsRestored=false;
 let liveEventJournalError='';
+let liveEventJournalWarning='';
 const liveEventJournal=new LiveEventJournal(path.join(DATA,'live-events.jsonl'),{keyProvider:()=>vaultKey?crypto.createHmac('sha256',vaultKey).update('magnanimous-live-event-journal-v1').digest():null});
-const liveEvents=new LiveEventRuntime({onAccept:event=>liveEventJournal.appendEvent(event),onConsume:events=>liveEventJournal.appendAcks(events)});
+const liveEvents=new LiveEventRuntime({onAccept:event=>liveEventJournal.appendEvent(event),onConsume:events=>{
+ try{liveEventJournal.appendAcks(events);}
+ catch(error){
+  if(String(error?.message||'').includes('safety limit')){liveEventJournal.compact(liveEvents.queue);liveEventJournal.appendAcks(events);}
+  else throw error;
+ }
+}});
 function restoreLiveEvents(){
  if(liveEventsRestored)return{restored:0,acknowledged:0};
  try{
   const result=liveEvents.restore(liveEventJournal.load());
-  liveEventsRestored=true;liveEventJournalError='';
+  liveEventsRestored=true;liveEventJournalError='';liveEventJournalWarning='';
   console.log('Recovered '+result.restored+' live events; acknowledged '+result.acknowledged+'.');
   return result;
  }catch(error){
@@ -133,7 +140,7 @@ function unlockVault(passphrase){
 }
 function lockVault(){
  closeBridge();
- liveEvents.clear();liveEventsRestored=false;liveEventJournalError='';
+ liveEvents.clear();liveEventsRestored=false;liveEventJournalError='';liveEventJournalWarning='';
  if(vaultKey)vaultKey.fill(0);
  vaultKey=null;vaultSalt=null;vaultData=null;
 }
@@ -273,7 +280,7 @@ async function handleApi(req,res,url){
   catch(error){return json(res,502,{detail:error.message||'OBS could not stop recording.'});}
  }
  if(req.method==='GET'&&url.pathname==='/api/bridge/status'){
-  return json(res,200,{...bridgeSnapshot(),workspaceUnlocked:Boolean(vaultKey),journalError:liveEventJournalError});
+  return json(res,200,{...bridgeSnapshot(),workspaceUnlocked:Boolean(vaultKey),journalError:liveEventJournalError,journalWarning:liveEventJournalWarning});
  }
  if(req.method==='POST'&&url.pathname==='/api/bridge/connect'){
   if(!vaultKey)return json(res,423,{detail:'Unlock the encrypted USB workspace before connecting the online bridge.'});
@@ -296,7 +303,7 @@ async function handleApi(req,res,url){
   catch(error){return json(res,502,{detail:error.message||'OBS did not confirm the scene change.'});}
  }
  if(req.method==='GET'&&url.pathname==='/api/live/events/status'){
-  return json(res,200,{...liveEvents.status(),recoveryLocked:!vaultKey&&fs.existsSync(liveEventJournal.filePath),journalError:liveEventJournalError});
+  return json(res,200,{...liveEvents.status(),recoveryLocked:!vaultKey&&fs.existsSync(liveEventJournal.filePath),journalError:liveEventJournalError,journalWarning:liveEventJournalWarning});
  }
  if(req.method==='POST'&&url.pathname==='/api/live/events/ingest'){
   if(!vaultKey)return json(res,423,{detail:'Unlock the encrypted USB workspace before accepting events.'});
@@ -312,6 +319,7 @@ async function handleApi(req,res,url){
   if(result.status==='duplicate')return json(res,200,result);
   if(result.status==='rate_limited')return json(res,429,result);
   if(result.status==='queue_full')return json(res,503,result);
+  if(result.status==='persistence_error')return json(res,507,result);
   return json(res,400,result);
  }
  if(req.method==='POST'&&url.pathname==='/api/live/events/consume'){
@@ -319,8 +327,15 @@ async function handleApi(req,res,url){
   if(!liveEventsRestored||liveEventJournalError)return json(res,503,{detail:liveEventJournalError||'The encrypted event journal has not been verified.'});
   const body=await readJson(req);
   const limit=Number.isInteger(body.limit)?Math.max(1,Math.min(50,body.limit)):10;
-  const events=liveEvents.consume(limit);
-  return json(res,200,{events,reviewCues:createReviewCues(events),...liveEvents.status()});
+  let events;
+  try{events=liveEvents.consume(limit);}
+  catch(error){liveEventJournalWarning=String(error?.message||'The event acknowledgement could not be saved.').slice(0,240);return json(res,507,{detail:liveEventJournalWarning,queued:liveEvents.status().queued});}
+  let journalCompacted=false;
+  if(liveEventJournal.needsCompaction()){
+   try{liveEventJournal.compact(liveEvents.queue);liveEventJournalWarning='';journalCompacted=true;}
+   catch(error){liveEventJournalWarning=String(error?.message||'The event journal could not be compacted.').slice(0,240);}
+  }
+  return json(res,200,{events,reviewCues:createReviewCues(events),journalCompacted,journalWarning:liveEventJournalWarning,...liveEvents.status()});
  }
  if(req.method==='POST'&&url.pathname==='/api/chat'){
   const body=await readJson(req),prompt=String(body.prompt||'').trim();
