@@ -4,6 +4,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { ObsWebSocketClient } from './obs-client.mjs';
+import { LiveEventRuntime } from './live-event-runtime.mjs';
 
 const args=process.argv.slice(2);
 function arg(name,fallback){const i=args.indexOf(name);return i>=0?args[i+1]:fallback;}
@@ -27,6 +28,7 @@ let chatCount=0;
 let serverPort=PORT;
 let obsClient=null;
 const OBS_PORT=4455;
+const liveEvents=new LiveEventRuntime();
 
 fs.mkdirSync(DATA,{recursive:true});
 
@@ -203,6 +205,23 @@ async function handleApi(req,res,url){
   if(!obsClient?.connected)return json(res,409,{detail:'Connect to OBS first.'});
   try{const result=await obsClient.stopRecording();return json(res,200,{ok:true,recording:false,outputPath:String(result.outputPath||'')});}
   catch(error){return json(res,502,{detail:error.message||'OBS could not stop recording.'});}
+ }
+ if(req.method==='GET'&&url.pathname==='/api/live/events/status'){
+  return json(res,200,liveEvents.status());
+ }
+ if(req.method==='POST'&&url.pathname==='/api/live/events/ingest'){
+  const body=await readJson(req);
+  const result=liveEvents.ingest(body.event);
+  if(result.status==='accepted')return json(res,202,result);
+  if(result.status==='duplicate')return json(res,200,result);
+  if(result.status==='rate_limited')return json(res,429,result);
+  if(result.status==='queue_full')return json(res,503,result);
+  return json(res,400,result);
+ }
+ if(req.method==='POST'&&url.pathname==='/api/live/events/consume'){
+  const body=await readJson(req);
+  const limit=Number.isInteger(body.limit)?Math.max(1,Math.min(50,body.limit)):10;
+  return json(res,200,{events:liveEvents.consume(limit),...liveEvents.status()});
  }
  if(req.method==='POST'&&url.pathname==='/api/chat'){
   const body=await readJson(req),prompt=String(body.prompt||'').trim();
