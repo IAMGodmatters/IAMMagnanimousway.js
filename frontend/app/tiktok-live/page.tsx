@@ -261,8 +261,7 @@ export default function TikTokLiveHost() {
           MIDI: ['Message'],
           Custom: ['Event', 'CodeEvent'],
           StreamElements: ['Connected', 'Disconnected', 'Tip', 'Merch'],
-          Streamlabs: ['Connected', 'Disconnected', 'Donation', 'CharityDonation', 'Merchandise'],
-          StreamDeck: ['Action', 'Connected', 'Disconnected', 'Info']
+          Streamlabs: ['Connected', 'Disconnected', 'Donation', 'CharityDonation', 'Merchandise']
         }
       }));
     };
