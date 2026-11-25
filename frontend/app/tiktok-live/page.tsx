@@ -21,7 +21,7 @@ function authHeaders(): Record<string, string> {
   return { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 }
 
-const WELCOME = 'Welcome, everyone. You are watching an AI-assisted live session hosted by Magnanimous AI. I am here to share useful information, answer your questions, and keep the conversation respectful. Add your question in the comments and our host operator will bring it into the conversation.';
+const WELCOME = 'Welcome, everyone. This is Magnanimous AI, an openly disclosed AI co-host. I am here to share useful information, answer your questions, and keep the conversation respectful. Add your question in the comments and the host operator will bring it into the conversation.';
 
 export default function TikTokLiveHost() {
   const [topic, setTopic] = useState('Faith & Scripture');
@@ -177,7 +177,7 @@ export default function TikTokLiveHost() {
         </div>
 
         <aside className="console">
-          <div className="consoleHead"><div><small>LIVE CONTROL ROOM</small><h2>Talk with your audience</h2></div><span className="safe">OWNER CONTROL</span></div>
+          <div className="consoleHead"><div><small>LIVE CONTROL ROOM</small><h2>Talk with your audience</h2></div><span className="safe">HOST OPERATOR</span></div>
           <label className="field">Host topic
             <select value={topic} onChange={event => setTopic(event.target.value)}>
               <option>Faith &amp; Scripture</option>
@@ -209,7 +209,7 @@ export default function TikTokLiveHost() {
         <ol>
           <li><b>Use your Windows computer.</b> Open this page in Chrome or Edge and allow browser audio. The voice runs on the computer; this page does not require a paid voice subscription.</li>
           <li><b>Open OBS Studio.</b> Add a Window Capture source for this browser window. Crop the capture to the vertical preview stage (hold Alt while dragging the source edges), then set your OBS canvas/output to portrait 1080 × 1920.</li>
-          <li><b>Send OBS to TikTok.</b> Start OBS Virtual Camera. In TikTok LIVE Manager / LIVE Studio, choose OBS Virtual Camera as the video source and select the computer/browser audio as the audio source. TikTok controls whether your account is eligible to start LIVE.</li>
+          <li><b>Send OBS to TikTok.</b> Start OBS Virtual Camera. In TikTok LIVE Studio (or the desktop LIVE Manager flow available to your account), choose OBS Virtual Camera as the video source and select the computer/browser audio separately; the virtual camera itself carries video, not audio. Use Practice Mode where available to test both before going public. TikTok controls whether your account is eligible to start LIVE.</li>
           <li><b>Bring comments in safely.</b> Read comments in TikTok yourself, then paste or type a question into this control room. Magnanimous will answer and, when auto-speak is on, speak the response through the browser audio.</li>
           <li><b>Disclose the AI host.</b> Keep the visible AI-generated label. Do not use another person's face or voice without permission.</li>
         </ol>
