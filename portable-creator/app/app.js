@@ -123,6 +123,7 @@ async function connectObs(){
   state.obsConnected=Boolean(result.connected);
   message('obsMessage','Connected to OBS locally. Your password was not saved.','success');
   await refreshObsStatus();
+  await refreshReviewReceipts();
  }catch(error){$('obsPassword').value='';message('obsMessage',error.message,'error');}
  finally{updateControls();}
 }
@@ -144,6 +145,47 @@ async function setObsRecording(start){
  }catch(error){message('obsMessage',error.message,'error');}
  updateControls();
 }
+async function decideReviewCue(cue,decision,card,actions,status){
+ const controls=[...actions.querySelectorAll('button')];
+ controls.forEach(button=>button.disabled=true);
+ try{
+  const result=await api('/api/live/cues/decision',{method:'POST',body:JSON.stringify({cueId:cue.cueId,decision})});
+  status.textContent=result.receipt?.decision==='approve'
+   ?'APPROVED FOR OPERATOR USE · NO ACTION EXECUTED'
+   :'DISMISSED · NO ACTION EXECUTED';
+  card.classList.add('review-complete');
+  actions.remove();
+  message('liveEventMessage','Operator decision recorded locally. No speech, scene, publishing, moderation or game action was executed.','success');
+  await refreshReviewReceipts();
+ }catch(error){
+  controls.forEach(button=>button.disabled=false);
+  message('liveEventMessage',error.message,'error');
+ }
+}
+function renderReviewReceipts(receipts=[]){
+ const list=$('liveReviewReceipts');list.replaceChildren();
+ if(!receipts.length){
+  const empty=document.createElement('p');empty.className='muted';
+  empty.textContent='No decisions recorded in this session.';list.append(empty);return;
+ }
+ for(const receipt of receipts){
+  const item=document.createElement('article');item.className='review-receipt';
+  const title=document.createElement('strong');
+  title.textContent=(receipt.decision==='approve'?'APPROVED':'DISMISSED')+' · '+(receipt.title||'Show cue');
+  const details=document.createElement('small');
+  const when=Number.isFinite(Date.parse(receipt.decidedAt))?new Date(receipt.decidedAt).toLocaleString():'time unavailable';
+  details.textContent=(receipt.kind||'review cue')+' · '+when+' · No action executed';
+  item.append(title,details);list.append(item);
+ }
+}
+async function refreshReviewReceipts(){
+ try{
+  const data=await api('/api/live/cues/receipts');
+  renderReviewReceipts(data.receipts||[]);
+ }catch{
+  const list=$('liveReviewReceipts');list.textContent='Session receipts are unavailable.';
+ }
+}
 function renderLiveEvents(events,cues=[]){
  const cueByEvent=new Map(cues.map(cue=>[cue.eventId,cue]));
  const list=$('liveEventList');list.replaceChildren();
@@ -155,7 +197,19 @@ function renderLiveEvents(events,cues=[]){
   const body=document.createElement('p');body.textContent=event.text||'(No message text)';
   item.append(meta,actor,body);
   const cue=cueByEvent.get(event.eventId);
-  if(cue){const review=document.createElement('small');review.textContent='MAGNANIMOUS SUGGESTION · '+cue.title+' · '+cue.prompt+' · OPERATOR APPROVAL REQUIRED';review.className='director-cue';item.append(review);}
+  if(cue){
+   const review=document.createElement('section');review.className='director-cue';
+   const title=document.createElement('strong');title.textContent='MAGNANIMOUS SUGGESTION · '+cue.title;
+   const prompt=document.createElement('p');prompt.textContent=cue.prompt;
+   const note=document.createElement('small');note.textContent='Short-lived review cue · operator decision required · never executes an action by itself';
+   const status=document.createElement('small');status.className='director-decision';status.textContent='AWAITING OPERATOR DECISION';
+   const actions=document.createElement('div');actions.className='director-actions';
+   const approve=document.createElement('button');approve.type='button';approve.className='secondary';approve.textContent='Approve for operator use';
+   approve.addEventListener('click',()=>decideReviewCue(cue,'approve',item,actions,status));
+   const dismiss=document.createElement('button');dismiss.type='button';dismiss.className='quiet';dismiss.textContent='Dismiss';
+   dismiss.addEventListener('click',()=>decideReviewCue(cue,'dismiss',item,actions,status));
+   actions.append(approve,dismiss);review.append(title,prompt,note,status,actions);item.append(review);
+  }
   list.append(item);
  }
 }
