@@ -72,7 +72,7 @@ async function refreshAutonomyStatus(){
   status.className='status '+(state.autonomyActive?'warning':'');
   updateAutonomyControls();
   if(state.autonomyActive)startAutonomyPolling();
-  else stopAutonomyPolling(false);
+  else stopAutonomyPolling(true);
  }catch(error){
   $('liveAutonomyStatus').textContent='Autonomy status unavailable';
  }
