@@ -37,7 +37,7 @@ const checks = [
   ['Simli server gateway is owner-only', avatarRuntime.includes('platformOwnerDeveloperIdentity') && avatarRuntime.includes('Only the platform owner')],
   ['Simli gateway uses documented server-side session and ICE endpoints', avatarRuntime.includes('https://api.simli.ai/startAudioToVideoSession') && avatarRuntime.includes('https://api.simli.ai/getIceServer')],
   ['Simli provider key remains a Worker secret and is not returned', avatarRuntime.includes('SIMLI_API_KEY') && avatarRuntime.includes('apiKey:String(env.SIMLI_API_KEY)') && !avatarRuntime.includes('apiKey:session')],
-  ['Simli gateway is fail-closed until explicitly enabled', avatarRuntime.includes("env?.SIMLI_AVATAR_ENABLED==='true'") && avatarRuntime.includes('SIMLI_AVATAR_NOT_CONFIGURED')),
+  ['Simli gateway is fail-closed until explicitly enabled', avatarRuntime.includes("env?.SIMLI_AVATAR_ENABLED==='true'") && avatarRuntime.includes('SIMLI_AVATAR_NOT_CONFIGURED'),
   ['Simli sessions are provider-capped at 120 seconds and 30 idle seconds', avatarRuntime.includes('MAX_SESSION_SECONDS=120') && avatarRuntime.includes('MAX_IDLE_SECONDS=30')],
   ['Simli free-tier usage has a conservative 20-session reservation ceiling', avatarRuntime.includes('MAX_MONTHLY_SESSIONS=20') && avatarRuntime.includes('SIMLI_MONTHLY_TRIAL_LIMIT')),
   ['Simli D1 ledger does not store credentials or provider session tokens', avatarMigration.includes('session_seconds') && !/api_key|session_token/i.test(avatarMigration)),
