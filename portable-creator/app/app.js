@@ -179,7 +179,7 @@ async function pullLiveEvents(){
   const events=data.events||[];
   renderLiveEvents(events,data.reviewCues||[]);
   if(data.deliveryId&&events.length){
-   const receipt=await api('/api/live/events/ack',{method:'POST',body:JSON.stringify({deliveryId:data.deliveryId,eventIds:events.map(event=>event.eventId)})});
+   const receipt=await api('/api/live/events/ack',{method:'POST',body:JSON.stringify({deliveryId:data.deliveryId,eventKeys:data.eventKeys||[]})});
    message('liveEventMessage',receipt.acknowledged+' event(s) safely received and acknowledged.','success');
   }else message('liveEventMessage','No unclaimed events are waiting.','info');
   $('liveQueueStatus').textContent=data.queued+' queued · '+data.capacity+' capacity';
