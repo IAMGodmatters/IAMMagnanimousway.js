@@ -43,7 +43,7 @@ const liveEventJournal=new LiveEventJournal(path.join(DATA,'live-events.jsonl'),
 const liveEvents=new LiveEventRuntime({onAccept:event=>liveEventJournal.appendEvent(event),onConsume:events=>{
  try{liveEventJournal.appendAcks(events);}
  catch(error){
-  if(String(error?.message||'').includes('safety limit')){liveEventJournal.compact(liveEvents.queue);liveEventJournal.appendAcks(events);liveEventJournalWarning='';}
+  if(String(error?.message||'').includes('safety limit')){liveEventJournal.compact(liveEvents.queue,liveEvents.snapshotSeen());liveEventJournal.appendAcks(events);liveEventJournalWarning='';}
   else throw error;
  }
 }});
