@@ -34,6 +34,17 @@ test('replay recovery does not append duplicate event records',()=>{
  fs.rmSync(dir,{recursive:true,force:true});
 });
 
+
+test('restores a persisted backlog without applying live ingress rate limits',()=>{
+ const dir=temporary(),journal=journalFor(path.join(dir,'events.jsonl'));
+ journal.append(Array.from({length:150},(_,i)=>({kind:'event',event:event('backlog-'+i)})));
+ const runtime=new LiveEventRuntime({now:()=>NOW,rateLimitPerMinute:120});
+ const result=runtime.restore(journal.load());
+ assert.equal(result.restored,150);
+ assert.equal(runtime.status().queued,150);
+ fs.rmSync(dir,{recursive:true,force:true});
+});
+
 test('a failed durable acknowledgement leaves the event queued',()=>{
  const runtime=new LiveEventRuntime({now:()=>NOW,onConsume:()=>{throw new Error('disk full');}});
  runtime.ingest(event('keep'));
