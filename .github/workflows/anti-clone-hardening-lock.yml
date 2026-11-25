@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   verify:
+    name: anti-clone-hardening-lock
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
