@@ -14,6 +14,7 @@ const target=path.join(temp,'portable');
 fs.mkdirSync(path.join(target,'app'),{recursive:true});
 fs.copyFileSync(path.join(SOURCE,'host.mjs'),path.join(target,'host.mjs'));
 fs.copyFileSync(path.join(SOURCE,'obs-client.mjs'),path.join(target,'obs-client.mjs'));
+fs.copyFileSync(path.join(SOURCE,'live-event-runtime.mjs'),path.join(target,'live-event-runtime.mjs'));
 for(const file of ['index.html','app.js','styles.css'])fs.copyFileSync(path.join(SOURCE,'app',file),path.join(target,'app',file));
 
 function freePort(){
@@ -52,6 +53,17 @@ try{
  const health=await (await fetch(origin+'/api/health')).json();
  assert.equal(health.mode,'offline-portable');
  assert.equal(health.model.ready,false,'Local generation must remain disabled when no runtime is installed.');
+ const eventStatus=await (await fetch(origin+'/api/live/events/status')).json();
+ assert.equal(eventStatus.queued,0,'Live event queue should start empty.');
+ const liveEvent={protocolVersion:1,eventId:'runtime-'+Date.now(),provider:'manual',type:'chat.message',occurredAt:new Date().toISOString(),actorName:'QA viewer',text:'Hello Magnanimous'};
+ const acceptedEvent=await post(origin+'/api/live/events/ingest',origin,{event:liveEvent});
+ assert.equal(acceptedEvent.status,202,'Valid local live event should be accepted.');
+ const duplicateEvent=await post(origin+'/api/live/events/ingest',origin,{event:liveEvent});
+ assert.equal(duplicateEvent.status,200,'Repeated provider event should be deduplicated.');
+ const consumedEvents=await post(origin+'/api/live/events/consume',origin,{limit:1});
+ const consumedData=await consumedEvents.json();
+ assert.equal(consumedData.events.length,1,'Operator consumer should receive one bounded event.');
+ assert.equal(consumedData.events[0].text,'Hello Magnanimous');
  const obsStatus=await (await fetch(origin+'/api/obs/status')).json();
  assert.equal(obsStatus.connected,false,'OBS must remain disconnected until the operator pairs it.');
  assert.equal((await fetch(origin+'/api/obs/scenes')).status,409,'OBS scene reads must fail closed before local pairing.');
