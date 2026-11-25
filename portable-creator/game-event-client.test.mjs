@@ -36,8 +36,8 @@ test('rejects empty text, invalid event IDs and stale timestamps before network 
 
 test('sanitizes and bounds game metadata and rejects failed local responses',async()=>{
  let sent;
- await sendLocalGameEvent({token,gameName:'<Game>\\u0000'.repeat(30),actorName:'<Player>\\u0000',text:'A\\u0000 moment'},{fetchImpl:async(_url,init)=>{sent=JSON.parse(init.body);return Response.json({ok:true});}});
+ await sendLocalGameEvent({token,gameName:'<Game>\u0000'.repeat(30),actorName:'<Player>\u0000',text:'A\u0000 moment'},{fetchImpl:async(_url,init)=>{sent=JSON.parse(init.body);return Response.json({ok:true});}});
  assert.ok(sent.gameName.length<=80);
- assert.ok(!/[<>\\u0000-\\u001f]/.test(sent.gameName+sent.actorName+sent.text));
+ assert.ok(!/[<>\u0000-\u001f]/.test(sent.gameName+sent.actorName+sent.text));
  await assert.rejects(sendLocalGameEvent({token,text:'event'},{fetchImpl:async()=>Response.json({detail:'Workspace locked.'},{status:423})}),/Workspace locked/);
 });
