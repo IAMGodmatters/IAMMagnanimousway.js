@@ -112,7 +112,7 @@ Primary Cloudflare references:
 4. **Add approved Twitch and YouTube account adapters.** OAuth must be tenant-isolated and request only `user:read:chat`, `user:write:chat`, EventSub/chat scopes as needed. For YouTube prefer `liveChatMessages.streamList` with resume tokens.
 5. **Implement a durable event relay only if required.** Keep high-rate WebSocket, media and game events on the desktop. If remote multi-device fan-out is needed, use a bounded Durable Object/queue designed for event metadata, not full video/audio frames, with tenant limits and idempotency.
 6. **Add cost, safety and rights gates** before any voice/avatar API is enabled: session limits, no-overage defaults, spending caps, pause/stop, user confirmation, creator-owned/authorized assets, and disclosure.
-7. **Run a local end-to-end test** with the user's real Windows machine, browser, OBS, Streamer.bot, VTube Studio (if chosen), and an eligible TikTok account in practice mode. For TikTok Shop LIVE, do not use AI-generated audio/narration; the creator must use a real voice and remain actively engaged.
+7. **Run a local end-to-end test** with the user's real Windows machine, browser, OBS, Streamer.bot, VTube Studio (if chosen), and an eligible TikTok account in practice mode. For TikTok Shop LIVE, the operator must remain meaningfully engaged in sustained real-time interaction; a passive recorded or computer-generated voice loop risks non-interactive-content enforcement. For realistic AI-generated audio/video, follow TikTok's AI-generated content disclosure/labeling requirements.
 8. **Keep TikTok comments manual** until a documented, account-authorized LIVE chat API actually exists.
 
 ## Primary sources
@@ -141,8 +141,9 @@ Primary Cloudflare references:
 - Tavus developer plans and minute overage: https://www.tavus.io/pricing
 - HeyGen LiveAvatar official Help Center plan detail: https://help.heygen.com/en/articles/12758516-introducing-liveavatar
 - TikTok for Developers, API scopes reference: https://developers.tiktok.com/docs/en/tiktok-api-scopes
+- TikTok official AI-generated content disclosure and labeling: https://support.tiktok.com/en/using-tiktok/creating-videos/ai-generated-content\n- TikTok developer LIVE scope (partner-creator daily statistics only): https://developers.tiktok.com/docs/en/tiktok-api-scopes
 - TikTok Shop Philippines, AI-Generated Content (AIGC, dated 01/28/2026): https://seller-ph.tiktok.com/university/essay?default_language=en&identity=1&knowledge_id=7188082378639105
-- TikTok Shop Philippines, Unoriginal Content (updated 22 September 2026; prohibits copied/repackaged content; does not explicitly ban AI voice): https://seller-ph.tiktok.com/university/essay?knowledge_id=7654197957084929
+- TikTok Shop Philippines, Unoriginal Content (dated 12/24/2025; copied/repackaged-content policy): https://seller-ph.tiktok.com/university/essay?knowledge_id=7654197957084929
 - TikTok Shop Philippines, Non-Interactive Content (dated 09/10/2025): https://seller-ph.tiktok.com/university/essay?default_language=en&knowledge_id=7654203686192897
 - TikTok Shop Philippines, Non-Interactive Content: https://seller-ph.tiktok.com/university/essay?from=policy&identity=1&knowledge_id=7654203686192897&role=1
 - TikTok, About AI-generated content: https://support.tiktok.com/en/using-tiktok/creating-videos/ai-generated-content
