@@ -66,7 +66,7 @@ export class MagnanimousLiveBridgeRoom {
    const pairSocket=new WebSocketPair();
    const [client,server]=Object.values(pairSocket);
    this.state.acceptWebSocket(server);
-   server.serializeAttachment({pairId:pair.pairId,tenantId:pair.tenantId,role:null,authenticated:false,seen:[],sessionExpiresAt:0});
+   server.serializeAttachment({pairId:pair.pairId,tenantId:pair.tenantId,expectedOrigin:url.origin,origin:origin||null,role:null,authenticated:false,seen:[],sessionExpiresAt:0});
    return new Response(null,{status:101,webSocket:client});
   }
   return json({detail:'Bridge room route not found.'},404);
@@ -83,6 +83,7 @@ export class MagnanimousLiveBridgeRoom {
    const supplied=await hash(envelope.token);
    const role=sameHex(supplied,pair.browserHash)?'browser':sameHex(supplied,pair.companionHash)?'companion':null;
    if(!role){ws.send(JSON.stringify({kind:'error',code:'AUTH_FAILED',message:'The companion pairing token is invalid.'}));ws.close(4001,'Invalid pairing token');return;}
+   if((role==='browser'&&attachment.origin!==attachment.expectedOrigin)||(role==='companion'&&attachment.origin!==null)){ws.send(JSON.stringify({kind:'error',code:'ORIGIN_ROLE_MISMATCH',message:'This pairing token can only be used by its assigned browser or local companion.'}));ws.close(4003,'Pairing origin mismatch');return;}
    const sessionExpiresAt=pair.sessionExpiresAt||Date.now()+SESSION_TTL_MS;
    if(Date.now()>sessionExpiresAt){ws.send(JSON.stringify({kind:'error',code:'PAIRING_REVOKED',message:'The bridge session expired. Create a new pair.'}));ws.close(4001,'Bridge session expired');return;}
    if(!pair.sessionExpiresAt){pair.sessionExpiresAt=sessionExpiresAt;await this.state.storage.put('pair',pair);await this.state.storage.setAlarm(sessionExpiresAt);}
@@ -148,6 +149,8 @@ export async function handleLiveBridgeRelay(request,env,user=null){
  const url=new URL(request.url);
  if(url.pathname==='/api/live-bridge/pair'&&request.method==='POST'){
   if(!user?.id||!user?.tenant_id)return json({detail:'Sign in to create a live bridge.'},401);
+  const origin=request.headers.get('Origin');
+  if(origin!==url.origin||url.origin!=='https://iammagnanimousway.com'||(request.headers.get('Sec-Fetch-Site')&&request.headers.get('Sec-Fetch-Site')!=='same-origin'))return json({detail:'Bridge pairing must be initiated from the signed-in Magnanimous website.'},403);
   if(!env.LIVE_BRIDGE_ROOMS||!env.LIVE_BRIDGE_PAIR_LIMITER?.limit)return json({detail:'The online bridge service is not configured on this deployment.'},503);
   const rate=await env.LIVE_BRIDGE_PAIR_LIMITER.limit({key:String(user.tenant_id)+':'+String(user.id)});
   if(!rate?.success)return json({detail:'Too many pairing requests. Wait one minute before creating another pair.'},429);
