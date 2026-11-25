@@ -74,7 +74,10 @@ try{
  await waitFor(origin,child);
  const avatarPage=await fetch(origin+'/avatar.html');
  assert.equal(avatarPage.status,200,'OBS avatar page should load from the local host.');
- assert.ok((await avatarPage.text()).includes("new EventSource('/api/avatar/events')"),'OBS avatar must use the local event stream, not browser-profile messaging.');
+ assert.ok((await avatarPage.text()).includes('avatar.js'),'OBS avatar page should load its local script.');
+ const avatarScript=await fetch(origin+'/avatar.js');
+ assert.equal(avatarScript.status,200,'OBS avatar script should load from the local host.');
+ assert.ok((await avatarScript.text()).includes("new EventSource('/api/avatar/events')"),'OBS avatar must use the local event stream, not browser-profile messaging.');
  const avatarStream=await fetch(origin+'/api/avatar/events');
  assert.equal(avatarStream.status,200,'Local avatar event stream should connect.');
  assert.match(avatarStream.headers.get('content-type')||'',/text\/event-stream/);
