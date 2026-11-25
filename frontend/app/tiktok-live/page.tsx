@@ -33,7 +33,6 @@ export default function TikTokLiveHost() {
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [status, setStatus] = useState('PREVIEW ONLY');
   const [notice, setNotice] = useState('');
-  const [voiceReady, setVoiceReady] = useState(false);
   const [welcomeText, setWelcomeText] = useState(WELCOME);
 
   const topicInstruction = useMemo(() => {
@@ -53,7 +52,7 @@ export default function TikTokLiveHost() {
       configure: utterance => configurePersonaVoice(utterance, 'Magnanimous AI'),
       maxChunkChars: 190,
       interChunkDelayMs: 75,
-      onStart: () => { setSpeaking(true); setVoiceReady(true); setStatus('HOST SPEAKING'); },
+      onStart: () => { setSpeaking(true); setStatus('HOST SPEAKING'); },
       onEnd: () => { setSpeaking(false); setStatus('PREVIEW READY'); },
       onError: () => { setSpeaking(false); setStatus('VOICE NEEDS ATTENTION'); setNotice('The browser could not play the voice. Check the computer volume and browser audio permissions, then tap Speak again.'); },
     });
