@@ -20,6 +20,8 @@ const checks = [
   ['Gemini Live Avatar short-session limitation is disclosed', host.includes('few minutes') && host.includes('not hours')],
   ['GPT-Live-1 voice-only limitation and price are disclosed', host.includes('GPT-Live-1') && host.includes('$0.05 per live-voice minute') && host.includes('not a rendered avatar')],
   ['HeyGen LiveAvatar free-tier limits are disclosed', host.includes('10 credits per month') && host.includes('maximum two-minute session')],
+  ['HeyGen paid session tiers are disclosed accurately', host.includes('Starter $19/month') && host.includes('Essential $99/month') && host.includes('Business $475/month') && host.includes('up to 60-minute sessions')],
+  ['HeyGen credit-based time limits are disclosed', host.includes('30 seconds in Full mode or one minute in Lite mode')],
   ['no paid provider is activated by default', host.includes('Nothing below is activated, billed, or connected') && host.includes('NOT CONNECTED')],
   ['official live chat and stream access boundary is documented', research.includes('smb.creator_data.read') && research.includes('not a general-purpose permission to read live chat comments')],
   ['no-spend and Magnanimous-brain architecture is documented', research.includes('Magnanimous owns the intelligence') && research.includes('Do not silently buy minutes')],
