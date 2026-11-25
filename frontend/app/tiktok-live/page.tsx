@@ -93,23 +93,23 @@ export default function TikTokLiveHost() {
 
 function cleanLiveViewerText(value: string) {
     return String(value || '')
-      .replace(/[\\u0000-\\u001f\\u007f]/g, ' ')
-      .replace(/\\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\b/gi, '[email removed]')
-      .replace(/(?:\\+?\\d[\\d\\s().-]{7,}\\d)/g, '[phone number removed]')
-      .replace(/https?:\\/\\/\\S+/gi, '[link removed]')
-      .replace(/\\b(?:password|passcode|api[ _-]?key|access token|secret)\\s*[:=]\\s*\\S+/gi, '[sensitive detail removed]')
-      .replace(/\\s+/g, ' ')
+      .replace(/[\u0000-\u001f\u007f]/g, ' ')
+      .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[email removed]')
+      .replace(/(?:\+?\d[\d\s().-]{7,}\d)/g, '[phone number removed]')
+      .replace(/https?:\/\/\S+/gi, '[link removed]')
+      .replace(/\b(?:password|passcode|api[ _-]?key|access token|secret)\s*[:=]\s*\S+/gi, '[sensitive detail removed]')
+      .replace(/\s+/g, ' ')
       .trim()
       .slice(0, 500);
   }
 
   function cleanLiveHostText(value: string) {
     return String(value || '')
-      .replace(/[\\u0000-\\u001f\\u007f]/g, ' ')
-      .replace(/\\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\b/gi, '[email removed]')
-      .replace(/(?:\\+?\\d[\\d\\s().-]{7,}\\d)/g, '[phone number removed]')
-      .replace(/https?:\\/\\/\\S+/gi, '')
-      .replace(/\\s+/g, ' ')
+      .replace(/[\u0000-\u001f\u007f]/g, ' ')
+      .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[email removed]')
+      .replace(/(?:\+?\d[\d\s().-]{7,}\d)/g, '[phone number removed]')
+      .replace(/https?:\/\/\S+/gi, '')
+      .replace(/\s+/g, ' ')
       .trim()
       .slice(0, 700);
   }
@@ -321,9 +321,9 @@ function cleanLiveViewerText(value: string) {
             <div className="spokenReply">{hostReply}</div>
           </div>
           <div className="stageActions">
-            <button type="button" className="primary" onClick={welcome}>▶ Speak welcome</button>
-            <button type="button" className="secondary" onClick={() => speak(hostReply)}>↻ Speak current reply</button>
-            <button type="button" className="stop" onClick={stop}>■ Stop voice</button>
+            <button type="button" className="primary" onClick={welcome} disabled={takeoverActive}>▶ Speak welcome</button>
+            <button type="button" className="secondary" onClick={() => speak(hostReply)} disabled={takeoverActive}>↻ Speak current reply</button>
+            <button type="button" className="stop" onClick={stop}>■ {takeoverActive ? 'Stop current voice' : 'Stop voice'}</button>
           </div>
           <p className="stageHint">The picture above is the preview stage. It is not a TikTok broadcast until you start an authorized stream in TikTok LIVE Manager / LIVE Studio.</p>
         </div>
@@ -354,7 +354,7 @@ function cleanLiveViewerText(value: string) {
               <button type="button" className="stop" onClick={() => stopTakeover()} disabled={!takeoverActive}>STOP AI TAKEOVER</button>
             </div>
             <small>{queuedComments.length} comment(s) waiting in the local queue. The local queue is capped at 25 comments. When takeover is off, each comment requires a separate operator action.</small>
-            {failedQueuedComment && <div className="takeoverFailure" role="alert"><b>Automatic answer paused</b><p>The last comment could not be answered and has been preserved.</p><div><button type="button" className="secondary" onClick={retryFailedQueuedComment}>Retry comment</button><button type="button" className="quiet" onClick={skipFailedQueuedComment}>Skip and continue</button></div></div>}
+            {failedQueuedComment && <div className="takeoverFailure" role="alert"><b>Automatic answer paused</b><p>The comment “{failedQueuedComment.text}” could not be answered and has been preserved.</p><div><button type="button" className="secondary" onClick={retryFailedQueuedComment}>Retry comment</button><button type="button" className="quiet" onClick={skipFailedQueuedComment}>Skip and continue</button></div></div>}
             <p className="takeoverBoundary">TikTok does not provide a connected comment feed in this studio. You must still paste or type viewer comments here. AI takeover automatically answers and speaks queued comments; it does not start/end the broadcast, moderate viewers, send TikTok chat messages, spend money, or change account settings.</p>
           </section>
           <form onSubmit={answerComment}>
