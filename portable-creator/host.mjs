@@ -308,7 +308,7 @@ async function handleApi(req,res,url){
   if(body.approved!==true){pendingBridgeCommands.splice(index,1);return json(res,200,{ok:true,approved:false});}
   const command=pendingBridgeCommands[index];
   if(command.action==='host.speak'){
-   const speechText=String(command.text||'').replace(/[\\u0000-\\u001f\\u007f]/g,' ').trim().slice(0,500);
+   const speechText=String(command.text||'').replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,500);
    if(!speechText)return json(res,400,{detail:'The host speech request is empty or invalid.'});
    pendingBridgeCommands.splice(index,1);
    return json(res,200,{ok:true,approved:true,action:'host.speak',speechText});
