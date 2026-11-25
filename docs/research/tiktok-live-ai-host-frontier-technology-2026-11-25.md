@@ -149,6 +149,10 @@ Primary Cloudflare references:
 - TikTok, About AI-generated content: https://support.tiktok.com/en/using-tiktok/creating-videos/ai-generated-content
 - TikTok Shop Philippines, LIVE Manager / desktop and OBS Virtual Camera: https://seller-ph.tiktok.com/university/essay?knowledge_id=8100940387305232
 - OBS Project, obs-websocket: https://github.com/obsproject/obs-websocket
+- Streamer.bot integrations (Discord, Crowd Control, Elgato, StreamElements and more): https://docs.streamer.bot/guide/integrations
+- Streamer.bot Crowd Control game-event adapter: https://docs.streamer.bot/guide/integrations/crowd-control
+- Crowd Control developer API (Unity, Unreal, Godot, modded connectors and WebSocket/HTTP): https://developer.crowdcontrol.live/
+- VTube Studio API and event stream: https://github.com/DenchiSoft/VTubeStudio
 
 ---
 
