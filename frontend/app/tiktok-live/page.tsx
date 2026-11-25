@@ -48,6 +48,7 @@ export default function TikTokLiveHost() {
   const [takeoverActive, setTakeoverActive] = useState(false);
   const [showRundownEnabled, setShowRundownEnabled] = useState(false);
   const [activeRundownSegment, setActiveRundownSegment] = useState('');
+  const [rundownSegmentsRemaining, setRundownSegmentsRemaining] = useState(RUNDOWN_SEGMENTS.length);
   const [takeoverDuration, setTakeoverDuration] = useState(30);
   const [takeoverEndsAt, setTakeoverEndsAt] = useState<number | null>(null);
   const [takeoverSeconds, setTakeoverSeconds] = useState(0);
@@ -286,6 +287,7 @@ function cleanLiveViewerText(value: string) {
     takeoverStartedAtRef.current = Date.now();
     takeoverDeadlineRef.current = takeoverStartedAtRef.current + takeoverDuration * 60_000;
     nextRundownSegmentRef.current = 0;
+    setRundownSegmentsRemaining(RUNDOWN_SEGMENTS.length);
     takeoverGreetingRef.current = Boolean(welcomeText.trim());
     setTakeoverActive(true);
     setTakeoverEndsAt(takeoverDeadlineRef.current);
@@ -305,6 +307,7 @@ function cleanLiveViewerText(value: string) {
     takeoverDeadlineRef.current = null;
     takeoverStartedAtRef.current = null;
     nextRundownSegmentRef.current = 0;
+    setRundownSegmentsRemaining(RUNDOWN_SEGMENTS.length);
     takeoverGreetingRef.current = false;
     takeoverAbortRef.current?.abort();
     takeoverAbortRef.current = null;
@@ -378,6 +381,7 @@ function cleanLiveViewerText(value: string) {
       setQueuedComments(pending);
       setActiveRundownSegment(segment.title);
       nextRundownSegmentRef.current += 1;
+      setRundownSegmentsRemaining(RUNDOWN_SEGMENTS.length - nextRundownSegmentRef.current);
     };
     scheduleNext();
     const timer = window.setInterval(scheduleNext, 1000);
@@ -465,7 +469,7 @@ function cleanLiveViewerText(value: string) {
             <p className="bridgeStatusNote">When a paired Magnanimous Companion and an authorized provider/game adapter are connected in that tab, supported events can enter this host queue automatically. The companion and TikTok comment adapter are not yet deployed, so manual comments remain available.</p>
             <label className="takeoverConsent"><input type="checkbox" checked={takeoverConsent} disabled={takeoverActive} onChange={event => setTakeoverConsent(event.target.checked)} /> I authorize Magnanimous AI to run this host session and speak queued replies for the selected time.</label>
             <label className="takeoverConsent"><input type="checkbox" checked={showRundownEnabled} disabled={takeoverActive} onChange={event => setShowRundownEnabled(event.target.checked)} /> Let Magnanimous autonomously run the timed show rundown: teaching, audience participation, interactive round, practical takeaway and closing.</label>
-            {showRundownEnabled && <div className="rundownStatus">SHOW DIRECTOR · {activeRundownSegment || 'Waiting for the first segment'} · {Math.max(0, RUNDOWN_SEGMENTS.length - nextRundownSegmentRef.current)} segment(s) remaining</div>}
+            {showRundownEnabled && <div className="rundownStatus">SHOW DIRECTOR · {activeRundownSegment || 'Waiting for the first segment'} · {rundownSegmentsRemaining} segment(s) remaining</div>}
             <label className="field takeoverDuration">Maximum takeover session
               <select value={takeoverDuration} disabled={takeoverActive} onChange={event => setTakeoverDuration(Number(event.target.value))}>
                 <option value={10}>10 minutes</option><option value={30}>30 minutes</option><option value={60}>60 minutes</option>
