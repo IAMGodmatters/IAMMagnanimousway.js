@@ -32,7 +32,7 @@ const checks = [
   ['LIVE Host links to the event bridge control room', host.includes('href="/tiktok-live/bridge"')],
   ['bridge UI uses the provider-neutral client', bridgeUi.includes('createLiveBridgeClient') && bridgeUi.includes('LiveEvent')],
   ['bridge UI truthfully discloses that the companion and adapters are not deployed', bridgeUi.includes('Provider account adapters and public broadcasting are not yet connected.')],
-  ['bridge UI rejects provider passwords and uses temporary revocable pairing credentials', bridgeUi.includes('Do not enter TikTok, Google, Meta, Twitch, Zoom, OBS or game-account passwords') && bridgeUi.includes('one-time pairing tokens') && bridgeUi.includes('Revoke pairing')],
+  ['bridge UI rejects provider passwords and uses temporary revocable pairing credentials', bridgeUi.includes('Do not enter TikTok, Google, Meta, Twitch, Zoom, OBS or game-account passwords') && bridgeUi.includes('temporary pairing credentials') && bridgeUi.includes('Revoke pairing')],
   ['bridge UI never persists pairing tokens', bridgeUi.includes('never saved in browser storage') && !bridgeUi.includes('localStorage')],
   ['bridge UI bounds the event feed', bridgeUi.includes('.slice(0,50)')],
 ];
