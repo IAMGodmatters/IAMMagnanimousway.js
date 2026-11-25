@@ -372,7 +372,7 @@ export default {
         if(bridgeResponse){
           // A 101 upgrade must pass through untouched; JSON responses still receive
           // the normal assistant-action, carrier and platform security postflight.
-          if(bridgeResponse.status===101)return finalizeResponse(request,bridgeResponse);
+          if(bridgeResponse.status===101)return bridgeResponse;
           const assistantCompleted=await completeAssistantActionPolicy(assistantContext,bridgeResponse,env);
           const carrierCompleted=await completeCarrierWebhook(carrierContext,assistantCompleted,env);
           return finalizeResponse(request,await securityPostflight(policyRequest,carrierCompleted,env));
