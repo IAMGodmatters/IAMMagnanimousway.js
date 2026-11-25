@@ -709,6 +709,14 @@ export default function TikTokLiveHost() {
               <b className="techStatus">BEST NEXT AVATAR ADAPTER • NOT CONNECTED</b>
             </article>
 
+            <article className="techCard recommended">
+              <span className="techTag">TOP FREE CPU VOICE CANDIDATE • MULTILINGUAL</span>
+              <h3>Kyutai Pocket TTS</h3>
+              <p>A compact open-source speech engine designed to run on ordinary CPUs without a GPU or metered voice API. Its official project reports streamed audio, roughly 200 ms to first audio chunk, about 6× real-time on an M4 MacBook Air using two CPU cores, and English, French, German, Portuguese, Italian, Spanish and Dutch support.</p>
+              <p className="techNote">It is a local Python/Rust application today; browser/WASM builds are community implementations, not official support. We should run it through the Magnanimous Local Bridge on your Windows PC, benchmark CPU/RAM and voice quality, then expose a narrow audio-stream capability to the host. Voice cloning must only use a voice you own or have permission to use.</p>
+              <div className="techLinks"><a href="https://github.com/kyutai-labs/pocket-tts" target="_blank" rel="noreferrer">Official Pocket TTS project</a><a href="https://github.com/kyutai-labs/pocket-tts/blob/main/docs/CLI%20Commands/export_voice.md" target="_blank" rel="noreferrer">Voice profile / export guide</a></div>
+              <b className="techStatus">FREE LOCAL CANDIDATE • NOT YET BENCHMARKED ON YOUR PC</b>
+            </article>
             <article className="techCard">
               <span className="techTag">FREE LOCAL NEURAL VOICE • EXPERIMENTAL</span>
               <h3>HeadTTS + Kokoro 82M</h3>
