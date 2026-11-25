@@ -23,7 +23,8 @@ fs.mkdirSync(path.join(target,'app'),{recursive:true});
 fs.copyFileSync(path.join(SOURCE,'host.mjs'),path.join(target,'host.mjs'));
 fs.copyFileSync(path.join(SOURCE,'obs-client.mjs'),path.join(target,'obs-client.mjs'));
 fs.copyFileSync(path.join(SOURCE,'live-event-runtime.mjs'),path.join(target,'live-event-runtime.mjs'));
-fs.copyFileSync(path.join(SOURCE,'live-show-director.mjs'),path.join(target,'live-show-director.mjs'));\nfs.copyFileSync(path.join(SOURCE,'durable-live-event-journal.mjs'),path.join(target,'durable-live-event-journal.mjs'));
+fs.copyFileSync(path.join(SOURCE,'live-show-director.mjs'),path.join(target,'live-show-director.mjs'));
+fs.copyFileSync(path.join(SOURCE,'durable-live-event-journal.mjs'),path.join(target,'durable-live-event-journal.mjs'));
 for(const file of ['index.html','app.js','styles.css'])fs.copyFileSync(path.join(SOURCE,'app',file),path.join(target,'app',file));
 const appSyntax=spawnSync(process.execPath,['--check',path.join(target,'app','app.js')],{encoding:'utf8'});
 if(appSyntax.status!==0){console.error(appSyntax.stderr||'');throw new Error('Portable creator browser script syntax check failed.');}
@@ -70,7 +71,8 @@ try{
  assert.equal(health.mode,'offline-portable');
  assert.equal(health.model.ready,false,'Local generation must remain disabled when no runtime is installed.');
  const eventStatus=await (await fetch(origin+'/api/live/events/status')).json();
- assert.equal(eventStatus.queued,0,'Live event queue should start empty.');\n assert.equal(eventStatus.durable,true,'Live event queue must report durable USB storage.');\n assert.equal(eventStatus.storageReady,true,'Live event journal must be ready before intake.');
+ assert.equal(eventStatus.queued,0,'Live event queue should start empty.');
+ assert.equal(eventStatus.durable,true,'Live event queue must report durable USB storage.');\n assert.equal(eventStatus.storageReady,true,'Live event journal must be ready before intake.');
  const liveEvent={protocolVersion:1,eventId:'runtime-'+Date.now(),provider:'manual',type:'chat.message',occurredAt:new Date().toISOString(),actorName:'QA viewer',text:'Hello Magnanimous'};
  const spoofedEvent=await post(origin+'/api/live/events/ingest',origin,{event:{...liveEvent,eventId:'spoof-'+Date.now(),provider:'tiktok'}});
  assert.equal(spoofedEvent.status,403,'Browser intake must reject provider-labelled events without authenticated companion adapters.');
