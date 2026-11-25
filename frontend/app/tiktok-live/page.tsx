@@ -5,6 +5,7 @@ import type { FormEvent } from 'react';
 import { postMagnanimousChat } from '../../lib/magnanimous-chat-transport';
 import { primeNaturalSpeech, speakTextNaturally, stopNaturalSpeech } from '../../lib/natural-speech';
 import { configurePersonaVoice } from '../../lib/persona-voice';
+import Local3DAvatar from './local-3d-avatar';
 
 const api = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 type Line = { id: number; role: 'viewer' | 'host'; text: string };
@@ -496,7 +497,7 @@ export default function TikTokLiveHost() {
         <div>
           <small>MAGNANIMOUS AI • TIKTOK LIVE HOST</small>
           <h1>Your AI host.<br /><em>Your message.</em></h1>
-          <p>Run a transparent AI co-host for Bible learning, education, and community Q&amp;A. Magnanimous AI writes the answers; browser speech is the current voice fallback; a free local neural voice and a real-time avatar are being prepared as optional renderers. OBS or TikTok LIVE Studio carries the broadcast.</p>
+          <p>Run a transparent AI co-host for Bible learning, education, and community Q&amp;A. Magnanimous AI writes the answers; use the included native 3D avatar and optional browser neural voice for a faceless host, or keep the existing browser voice fallback. OBS or TikTok LIVE Studio carries the broadcast.</p>
         </div>
         <div className="noticeCard">
           <b>Important platform boundary</b>
@@ -530,6 +531,7 @@ export default function TikTokLiveHost() {
             <button type="button" className="stop" onClick={stop}>■ Stop voice</button>
           </div>
           <p className="stageHint">The picture above is the preview stage. It is not a TikTok broadcast until you start an authorized stream in TikTok LIVE Manager / LIVE Studio.</p>
+          <Local3DAvatar textToSpeak={hostReply} />
         </div>
 
         <aside className="console">
