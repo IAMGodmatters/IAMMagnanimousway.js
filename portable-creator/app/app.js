@@ -226,6 +226,13 @@ function exportCopy(){
  anchor.href=url;anchor.download=safe+'.md';anchor.click();URL.revokeObjectURL(url);
  message('creatorMessage','Exported a separate Markdown copy. Choose the USB drive as the save location.','success');
 }
+$('obsConnectButton').addEventListener('click',connectObs);
+$('obsDisconnectButton').addEventListener('click',disconnectObs);
+$('obsRefreshButton').addEventListener('click',()=>refreshObsStatus());
+$('obsSwitchButton').addEventListener('click',switchObsScene);
+$('obsStartRecordButton').addEventListener('click',()=>setObsRecording(true));
+$('obsStopRecordButton').addEventListener('click',()=>setObsRecording(false));
+$('obsSceneSelect').addEventListener('change',updateControls);
 $('unlockButton').addEventListener('click',unlock);
 $('lockButton').addEventListener('click',lock);
 $('generateButton').addEventListener('click',generate);
