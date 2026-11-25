@@ -383,15 +383,25 @@ async function handleApi(req,res,url){
   if(!liveEventsRestored||liveEventJournalError)return json(res,503,{detail:liveEventJournalError||'The encrypted event journal has not been verified.'});
   const body=await readJson(req);
   const limit=Number.isInteger(body.limit)?Math.max(1,Math.min(50,body.limit)):10;
-  let events;
-  try{events=liveEvents.consume(limit);}
-  catch(error){liveEventJournalWarning=String(error?.message||'The event acknowledgement could not be saved.').slice(0,240);return json(res,507,{detail:liveEventJournalWarning,queued:liveEvents.status().queued});}
-  let journalCompacted=false;
-  if(liveEventJournal.needsCompaction()){
-   try{liveEventJournal.compact(liveEvents.queue);liveEventJournalWarning='';journalCompacted=true;}
-   catch(error){liveEventJournalWarning=String(error?.message||'The event journal could not be compacted.').slice(0,240);}
+  const delivery=liveEvents.claim(limit);
+  return json(res,200,{...delivery,reviewCues:createReviewCues(delivery.events),...liveEvents.status()});
+ }
+ if(req.method==='POST'&&url.pathname==='/api/live/events/ack'){
+  if(!vaultKey)return json(res,423,{detail:'Unlock the encrypted USB workspace before acknowledging events.'});
+  if(!liveEventsRestored||liveEventJournalError)return json(res,503,{detail:liveEventJournalError||'The encrypted event journal has not been verified.'});
+  const body=await readJson(req);
+  const result=liveEvents.acknowledge(body.deliveryId,body.eventKeys);
+  if(result.status==='persistence_error'){
+   liveEventJournalWarning=result.detail;
+   return json(res,507,result);
   }
-  return json(res,200,{events,reviewCues:createReviewCues(events),journalCompacted,journalWarning:liveEventJournalWarning,...liveEvents.status()});
+  if(result.status==='not_leased')return json(res,409,result);
+  if(result.status==='invalid')return json(res,400,result);
+  if(result.status==='acknowledged'&&liveEventJournal.needsCompaction()){
+   try{liveEventJournal.compact(liveEvents.queue,liveEvents.snapshotSeen());liveEventJournalWarning='';}
+   catch(error){liveEventJournalWarning=String(error?.message||'The encrypted event journal needs compaction.').slice(0,240);}
+  }
+  return json(res,200,{...result,journalWarning:liveEventJournalWarning,...liveEvents.status()});
  }
  if(req.method==='POST'&&url.pathname==='/api/chat'){
   const body=await readJson(req),prompt=String(body.prompt||'').trim();
