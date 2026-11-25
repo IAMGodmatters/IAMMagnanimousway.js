@@ -43,6 +43,6 @@ test('sanitizes and bounds game metadata and rejects failed local responses',asy
  const event=payload.event;
  assert.ok(event&&typeof event==='object','The game client must send a wrapped event payload.');
  assert.ok(event.gameName.length<=80);
- assert.ok(!/[<>\u0000-\u001f]/.test(event.gameName+event.actorName+event.text));
+ assert.ok(![...event.gameName+event.actorName+event.text].some(char=>{const code=char.charCodeAt(0);return code===60||code===62||code<=31||code===127;}));
  await assert.rejects(sendLocalGameEvent({token,text:'event'},{fetchImpl:async()=>Response.json({detail:'Workspace locked.'},{status:423})}),/Workspace locked/);
 });
