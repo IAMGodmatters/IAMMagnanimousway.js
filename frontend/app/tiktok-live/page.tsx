@@ -17,7 +17,7 @@ async function read(response: Response) {
 
 function authHeaders(): Record<string, string> {
   if (typeof window === 'undefined') return { 'Content-Type': 'application/json' };
-  const token = localStorage.getItem('iam_account_token') || localStorage.getItem('odin_admin_token') || '';
+  const token = localStorage.getItem('iam_account_token') || '';
   return { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 }
 
