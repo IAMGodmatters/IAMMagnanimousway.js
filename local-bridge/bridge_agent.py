@@ -2166,7 +2166,7 @@ def action_pocket_tts_generate(config, payload):
     if os.name == "nt" and not _pocket_tts_avx2_available():
         raise RuntimeError("The installed Pocket TTS v4.0.1 Windows binary requires AVX2, which this computer or its OS does not report. Generation was stopped to avoid an illegal-instruction crash.")
     text = str(payload.get("text") or "").strip()
-    if not text or len(text) > 800 or "\\x00" in text:
+    if not text or len(text) > 800 or "\x00" in text:
         raise RuntimeError("Speech text must contain 1–800 characters.")
     language = str(payload.get("language") or "english").strip().lower()
     allowed_languages = {
