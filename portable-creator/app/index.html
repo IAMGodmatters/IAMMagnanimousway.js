@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Magnanimous Portable Creator</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">M</span><div><strong>MAGNANIMOUS</strong><small>PORTABLE CREATOR</small></div></div>
+    <div class="mode"><span class="dot"></span> LOCAL DEVICE ONLY</div>
+  </header>
+  <main class="layout">
+    <section class="hero">
+      <div class="eyebrow">YOUR STUDIO • YOUR FILES • YOUR DEVICE</div>
+      <h1>Create without<br><em>the connection.</em></h1>
+      <p>Plan a livestream, write a show script, build a lesson, create a storyboard or prepare an AI-host segment. Your saved projects stay in an encrypted workspace on this drive.</p>
+      <div class="status-row">
+        <span id="modelStatus" class="status">Checking local AI…</span>
+        <span id="vaultStatus" class="status">Workspace locked</span>
+      </div>
+    </section>
+
+    <section class="grid">
+      <article class="panel vault-panel">
+        <div class="panel-heading"><div><small>PRIVATE USB WORKSPACE</small><h2>Unlock your projects</h2></div><span class="lock-icon">◇</span></div>
+        <p class="muted">Your passphrase encrypts project contents before they are written to the USB drive. It is not saved by this app. Keep a safe copy of your passphrase.</p>
+        <label for="passphrase">Workspace passphrase</label>
+        <input id="passphrase" type="password" autocomplete="current-password" minlength="12" placeholder="At least 12 characters">
+        <div class="actions">
+          <button id="unlockButton" class="primary">Create / unlock workspace</button>
+          <button id="lockButton" class="quiet" disabled>Lock</button>
+        </div>
+        <div id="vaultMessage" class="message" role="status">First use creates a new encrypted vault.</div>
+      </article>
+
+      <article class="panel creator-panel">
+        <div class="panel-heading"><div><small>MAGNANIMOUS LOCAL BRAIN</small><h2>Make something</h2></div><span class="spark">✦</span></div>
+        <label for="contentType">What are we creating?</label>
+        <select id="contentType">
+          <option value="live-show">Livestream show rundown</option>
+          <option value="script">Host script or conversation</option>
+          <option value="lesson">Educational lesson</option>
+          <option value="storyboard">Video storyboard</option>
+          <option value="idea">Creative idea</option>
+        </select>
+        <label for="prompt">Describe what you want to create</label>
+        <textarea id="prompt" rows="5" maxlength="6000" placeholder="Example: Create a 30-minute faceless live show about learning English. Include a welcome, audience questions, a simple game and a closing."></textarea>
+        <div class="actions">
+          <button id="generateButton" class="primary" disabled>✦ Create with local AI</button>
+          <span id="generateStatus" class="muted">Add a compatible local model to enable AI generation.</span>
+        </div>
+        <label for="outputTitle">Project title</label>
+        <input id="outputTitle" maxlength="120" value="My first Magnanimous project">
+        <label for="output">Your creation</label>
+        <textarea id="output" rows="10" placeholder="Your generated work will appear here. You can also write and save your own content while offline."></textarea>
+        <div class="actions">
+          <button id="saveButton" class="secondary" disabled>Save encrypted to USB</button>
+          <button id="exportButton" class="quiet" disabled>Export a copy</button>
+        </div>
+        <div id="creatorMessage" class="message" role="status"></div>
+      </article>
+
+      <article class="panel projects-panel">
+        <div class="panel-heading"><div><small>YOUR ENCRYPTED LIBRARY</small><h2>Saved projects</h2></div><span id="projectCount" class="count">0</span></div>
+        <div id="projectList" class="project-list"><p class="muted">Unlock the workspace to see your projects.</p></div>
+      </article>
+    </section>
+
+    <section class="boundary">
+      <strong>Offline means local creation, not live broadcasting.</strong>
+      <p>This edition does not send data to Magnanimous cloud services, TikTok, Facebook, YouTube or Zoom. A network connection is still required to broadcast online or join a Zoom meeting. Use the online platform connectors only after you reconnect and authorize them.</p>
+    </section>
+  </main>
+  <footer><span>I AM MAGNANIMOUS WAY™</span><span>Local workspace • No telemetry • No cloud calls</span></footer>
+</body>
+</html>
