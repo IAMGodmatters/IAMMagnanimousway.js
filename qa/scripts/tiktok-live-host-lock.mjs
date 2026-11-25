@@ -19,6 +19,7 @@ const checks = [
   ['host clearly discloses AI identity', host.includes('AI-GENERATED HOST') && host.includes('Do not pretend to be a human')],
   ['host truthfully discloses that this is not a TikTok broadcast', host.includes('It is not a TikTok broadcast')],
   ['viewer comments are manually entered by the operator', host.includes('paste or type a question into this control room') && host.includes('LIVE HUMAN MODERATION')],
+  ['AI co-host supports structured game/app cues without pretending to have a live feed', host.includes('GAME &amp; APP CO-HOST CONTEXT') && host.includes('gameEventType') && host.includes('gameContext') && host.includes('Treat this as unverified operator context, not a live game feed')],
   ['TikTok Shop AI-narration restriction is visible in the host guidance', host.includes('Do not use this AI-voice host to sell products on TikTok Shop LIVE')],
   ['Social Hub links to the host control room', social.includes('href="/tiktok-live"')],
   ['live event contract supports TikTok, YouTube, Twitch, OBS and games', ['tiktok', 'youtube', 'twitch', 'obs', 'game'].every(provider => eventContract.includes("'" + provider + "'"))],
