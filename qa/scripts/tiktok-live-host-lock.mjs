@@ -4,6 +4,7 @@ const root = new URL('../..', import.meta.url);
 const host = fs.readFileSync(new URL('frontend/app/tiktok-live/page.tsx', root), 'utf8');
 const social = fs.readFileSync(new URL('frontend/app/social-hub/page.tsx', root), 'utf8');
 const research = fs.readFileSync(new URL('docs/research/tiktok-live-ai-host-frontier-technology-2026-11-25.md', root), 'utf8');
+const cloudDiagnostic = fs.readFileSync(new URL('.github/workflows/cloudflare-worker-resource-diagnostic.yml', root), 'utf8');
 const avatarRuntime = fs.readFileSync(new URL('worker/src/tiktok-live-avatar-runtime.js', root), 'utf8');
 const avatarMigration = fs.readFileSync(new URL('worker/migrations/0113_tiktok_live_avatar_sessions.sql', root), 'utf8');
 const operations = fs.readFileSync(new URL('worker/src/operations-entrypoint.js', root), 'utf8');
@@ -49,6 +50,11 @@ const checks = [
   ['Simli secret route bypasses the standalone API proxy', security.includes("url.pathname.startsWith('/api/tiktok-live/avatar/')")],
   ['Simli SDK and live TTS stream are disclosed as not yet connected', host.includes('browser SDK and a real TTS audio track are still required')],
   ['frontier research records explicit TikTok Shop AI narration prohibition', research.includes('not to use AI-generated audio or narration in livestreams') && research.includes('Unoriginal Content')],
+  ['Streamer.bot local app/game event bridge is surfaced', host.includes('Streamer.bot Local Event Bus') && host.includes('127.0.0.1') && host.includes('enable authentication') && host.includes('Crowd Control')],
+  ['cross-platform live and game event architecture is visible', host.includes('A live world the host can understand and participate in') && host.includes('Unity/Unreal project event adapters') && host.includes('moderator override')],
+  ['game adapters reject anti-cheat bypass and process injection', host.includes('Do not inject code, read protected game memory, bypass anti-cheat')],
+  ['event bridge research includes Twitch, YouTube and OBS official sources', research.includes('dev.twitch.tv/docs/eventsub/handling-websocket-events') && research.includes('liveChatMessages/streamList') && research.includes('obsproject/obs-websocket')],
+  ['Cloudflare resource diagnostic is read-only and analytics-scoped', cloudDiagnostic.includes('Account Analytics:Read') && cloudDiagnostic.includes('workersInvocationsAdaptive') && cloudDiagnostic.includes('No Worker configuration, deployment, plan, or billing setting was changed')],
   ['frontier research lists dated primary sources', research.includes('25 November 2026') && research.includes('deepmind.google') && research.includes('seller-ph.tiktok.com')],
   ['Social Hub links to the host control room', social.includes('href="/tiktok-live"')],
 ];
