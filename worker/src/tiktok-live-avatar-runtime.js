@@ -120,9 +120,12 @@ export async function handleTikTokLiveAvatar(request,env){
    // /compose/token API takes a flat SimliSessionRequest; no P2P ICE lookup.
    session=await providerRequest(SIMLI_SESSION_URL,apiKey,{body:{
     faceId:String(env.SIMLI_FACE_ID),
+    apiVersion:'v2',
+    sessionAggregator:null,
     handleSilence:false,
     maxSessionLength:MAX_SESSION_SECONDS,
     maxIdleTime:MAX_IDLE_SECONDS,
+    startFrame:0,
     audioInputFormat:'pcm16'
    }});
    if(!session.ok||!session.data?.session_token){
