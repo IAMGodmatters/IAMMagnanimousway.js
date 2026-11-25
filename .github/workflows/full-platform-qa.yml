@@ -191,6 +191,11 @@ jobs:
           npm run typecheck
           npm run build
 
+      - name: Verify offline Portable Creator security and local runtime
+        run: |
+          node qa/scripts/portable-creator-lock.mjs
+          node qa/scripts/portable-creator-runtime-test.mjs
+
       - name: Install isolated browser journey dependencies
         working-directory: qa
         run: |
