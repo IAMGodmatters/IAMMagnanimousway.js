@@ -210,11 +210,11 @@ function validateTask(action,payload){
   const allowed=action==='obs_scene_set'?['sceneName']:action==='obs_audio_cue'?['cueId']:[];
   for(const key of Object.keys(body))if(!allowed.includes(key))throw new Error('Unsupported OBS task field: '+key);
   if(action==='obs_scene_set'){
-   const sceneName=clip(body.sceneName,80);
+   if(!sceneName||Array.from(sceneName).some(ch=>ch.charCodeAt(0)<32||ch.charCodeAt(0)===127))throw new Error('obs_scene_set requires a valid sceneName.');
    if(!sceneName||/[\\u0000-\\u001f\\u007f]/.test(sceneName))throw new Error('obs_scene_set requires a valid sceneName.');
   }
   if(action==='obs_audio_cue'){
-   const cueId=clip(body.cueId,80);
+   if(!cueId||Array.from(cueId).some(ch=>ch.charCodeAt(0)<32||ch.charCodeAt(0)===127))throw new Error('obs_audio_cue requires a valid cueId.');
    if(!cueId||/[\\u0000-\\u001f\\u007f]/.test(cueId))throw new Error('obs_audio_cue requires a valid cueId.');
   }
  }
