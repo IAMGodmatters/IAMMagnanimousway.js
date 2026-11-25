@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {handleLiveBridgeRelay,normalizeRelayCommand,normalizeRelayEvent} from './live-bridge-relay.js';
+import {handleLiveBridgeRelay,MagnanimousLiveBridgeRoom,normalizeRelayCommand,normalizeRelayEvent} from './live-bridge-relay.js';
 
 const NOW=Date.parse('2026-11-25T00:00:00.000Z');
 
@@ -56,6 +56,30 @@ test('pair endpoint requires an authenticated tenant and returns two distinct sh
  assert.equal(initialized.userId,'user-1');
  assert.notEqual(initialized.browserHash,data.browserToken);
  assert.notEqual(initialized.companionHash,data.companionToken);
+});
+
+
+test('Durable Object room stores only token hashes and rejects duplicate initialization',async()=>{
+ const values=new Map();
+ const alarms=[];
+ const state={storage:{
+  get:async key=>values.get(key),
+  put:async(key,value)=>values.set(key,value),
+  setAlarm:async at=>alarms.push(at),
+  deleteAll:async()=>values.clear()
+ },acceptWebSocket(){},getWebSockets(){return[];}};
+ const room=new MagnanimousLiveBridgeRoom(state,{});
+ const body={pairId:'room-1',tenantId:'tenant-1',userId:'user-1',browserHash:'a'.repeat(64),companionHash:'b'.repeat(64),pairExpiresAt:NOW+600000};
+ const first=await room.fetch(new Request('https://bridge.internal/internal/create',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}));
+ assert.equal(first.status,200);
+ const stored=values.get('pair');
+ assert.equal(stored.tenantId,'tenant-1');
+ assert.equal(stored.browserHash,body.browserHash);
+ assert.equal(stored.companionHash,body.companionHash);
+ assert.equal(stored.browserToken,undefined);
+ assert.deepEqual(alarms,[body.pairExpiresAt]);
+ const duplicate=await room.fetch(new Request('https://bridge.internal/internal/create',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}));
+ assert.equal(duplicate.status,409);
 });
 
 test('pair endpoint fails closed when the online bridge namespace is absent',async()=>{
