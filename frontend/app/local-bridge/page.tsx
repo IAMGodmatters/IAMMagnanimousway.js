@@ -5,6 +5,19 @@ import {useEffect,useMemo,useState} from 'react';
 type Activation={verified:boolean;status:string;task_id:string|null;completed_at:number;error:string};
 type Device={id:string;name:string;hostname:string;platform:string;status:string;online:boolean;last_seen_at:number;capabilities:string[];activation:Activation};
 type Overview={ready:boolean;paired:boolean;policy:Record<string,unknown>;devices:Device[];pending_tasks:number;actions:Record<string,{risk:string;confirmation:boolean;family:string}>};
+const POCKET_TTS_VOICES:Record<string,string[]> = {
+ english:['alba','anna','azelma','bill_boerst','caro_davy','charles','cosette','eponine','eve','fantine','george','jane','jean','javert','marius','mary','michael','paul','peter_yearsley','stuart_bell'],
+ french_24l:['estelle'],
+ german:['juergen'], german_24l:['juergen'],
+ portuguese:['rafael'], portuguese_24l:['rafael'],
+ italian:['giovanni'], italian_24l:['giovanni'],
+ spanish:['lola'], spanish_24l:['lola'],
+};
+const POCKET_TTS_DEFAULT_VOICE:Record<string,string> = {
+ english:'alba', french_24l:'estelle', german:'juergen', german_24l:'juergen',
+ portuguese:'rafael', portuguese_24l:'rafael', italian:'giovanni', italian_24l:'giovanni',
+ spanish:'lola', spanish_24l:'lola',
+};
 
 const RAW_INSTALLER='https://iammagnanimousway.com/downloads/local-bridge/bootstrap.ps1';
 const RAW_UNINSTALLER='https://iammagnanimousway.com/downloads/local-bridge/uninstall.ps1';
@@ -242,12 +255,12 @@ export default function LocalBridgePage(){
    <div className="grid" style={{marginTop:8}}>
     <label>Voice
      <select value={pocketTtsVoice} onChange={e=>setPocketTtsVoice(e.target.value)}>
-      {['alba','anna','azelma','caro_davy','charles','cosette','eponine','eve','fantine','george','jane','jean','javert','marius','mary','michael','paul','vera'].map(v=><option key={v} value={v}>{v}</option>)}
+      {(POCKET_TTS_VOICES[pocketTtsLanguage]||['alba']).map(v=><option key={v} value={v}>{v}</option>)}
      </select>
     </label>
     <label>Language
-     <select value={pocketTtsLanguage} onChange={e=>setPocketTtsLanguage(e.target.value)}>
-      <option value="english">English</option><option value="french_24l">French</option><option value="german">German</option><option value="portuguese">Portuguese</option><option value="italian">Italian</option><option value="spanish">Spanish</option>
+     <select value={pocketTtsLanguage} onChange={e=>{const language=e.target.value;setPocketTtsLanguage(language);setPocketTtsVoice(POCKET_TTS_DEFAULT_VOICE[language]||'alba')}}>
+      <option value="english">English</option><option value="french_24l">French</option><option value="german">German</option><option value="german_24l">German 24L</option><option value="portuguese">Portuguese</option><option value="portuguese_24l">Portuguese 24L</option><option value="italian">Italian</option><option value="italian_24l">Italian 24L</option><option value="spanish">Spanish</option><option value="spanish_24l">Spanish 24L</option>
      </select>
     </label>
    </div>
