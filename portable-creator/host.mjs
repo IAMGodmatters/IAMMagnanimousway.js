@@ -43,7 +43,7 @@ const liveEventJournal=new LiveEventJournal(path.join(DATA,'live-events.jsonl'),
 const liveEvents=new LiveEventRuntime({onAccept:event=>liveEventJournal.appendEvent(event),onConsume:events=>{
  try{liveEventJournal.appendAcks(events);}
  catch(error){
-  if(String(error?.message||'').includes('safety limit')){liveEventJournal.compact(liveEvents.queue);liveEventJournal.appendAcks(events);}
+  if(String(error?.message||'').includes('safety limit')){liveEventJournal.compact(liveEvents.queue);liveEventJournal.appendAcks(events);liveEventJournalWarning='';}
   else throw error;
  }
 }});
@@ -284,7 +284,7 @@ async function handleApi(req,res,url){
  }
  if(req.method==='POST'&&url.pathname==='/api/bridge/connect'){
   if(!vaultKey)return json(res,423,{detail:'Unlock the encrypted USB workspace before connecting the online bridge.'});
-  if(!liveEventsRestored||liveEventJournalError)return json(res,503,{detail:liveEventJournalError||'The encrypted event journal has not been verified.'});
+  if(!liveEventsRestored||liveEventJournalError||liveEventJournalWarning)return json(res,503,{detail:liveEventJournalError||liveEventJournalWarning||'The encrypted event journal has not been verified.'});
   const body=await readJson(req);
   try{connectBridge(String(body.endpoint||''),String(body.token||''));return json(res,202,{ok:true,status:bridgeStatus});}
   catch(error){bridgeStatus='error';bridgeError=error.message;return json(res,400,{detail:error.message});}
@@ -307,7 +307,7 @@ async function handleApi(req,res,url){
  }
  if(req.method==='POST'&&url.pathname==='/api/live/events/ingest'){
   if(!vaultKey)return json(res,423,{detail:'Unlock the encrypted USB workspace before accepting events.'});
-  if(!liveEventsRestored||liveEventJournalError)return json(res,503,{detail:liveEventJournalError||'The encrypted event journal has not been verified.'});
+  if(!liveEventsRestored||liveEventJournalError||liveEventJournalWarning)return json(res,503,{detail:liveEventJournalError||liveEventJournalWarning||'The encrypted event journal has not been verified.'});
   const body=await readJson(req);
   if(body.event?.provider!=='manual')return json(res,403,{status:'provider_untrusted',detail:'Browser intake accepts operator-entered manual events only; provider adapters must authenticate in the local companion.'});
   const result=liveEvents.ingest(body.event);
