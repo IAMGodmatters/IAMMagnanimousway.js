@@ -1294,7 +1294,12 @@ def action_obs_scene_list(config, payload):
             name = str(item.get("sceneName") or "")[:80]
             if name:
                 scenes.append({"name": name, "current": name == current, "approved_for_remote_switch": name in allowed})
-        return {"ok": True, "current_scene": current, "scenes": scenes[:100]}
+        return {
+            "ok": True,
+            "current_scene": current,
+            "scenes": scenes[:100],
+            "approved_audio_cues": sorted(set((config.get("obs_bridge") or {}).get("approved_audio_cues") or []))[:50],
+        }
 
 
 def action_obs_output_status(config, payload):
