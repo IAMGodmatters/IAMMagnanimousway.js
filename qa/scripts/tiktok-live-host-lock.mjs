@@ -2,6 +2,9 @@ import fs from 'node:fs';
 
 const root = new URL('../..', import.meta.url);
 const host = fs.readFileSync(new URL('frontend/app/tiktok-live/page.tsx', root), 'utf8');
+const localAvatar = fs.readFileSync(new URL('frontend/app/tiktok-live/local-3d-avatar.tsx', root), 'utf8');
+const localVoiceBootstrap = fs.readFileSync(new URL('frontend/public/tiktok-live/transformers-no-cache.mjs', root), 'utf8');
+const layout = fs.readFileSync(new URL('frontend/app/layout.tsx', root), 'utf8');
 const social = fs.readFileSync(new URL('frontend/app/social-hub/page.tsx', root), 'utf8');
 const research = fs.readFileSync(new URL('docs/research/tiktok-live-ai-host-frontier-technology-2026-11-25.md', root), 'utf8');
 const cloudDiagnostic = fs.readFileSync(new URL('.github/workflows/cloudflare-worker-resource-diagnostic.yml', root), 'utf8');
@@ -93,6 +96,14 @@ const checks = [
   ['Cloudflare resource diagnostic measures D1 daily row usage through official D1 Analytics', cloudDiagnostic.includes('d1AnalyticsAdaptiveGroups') && cloudDiagnostic.includes('rowsRead rowsWritten readQueries writeQueries') && cloudDiagnostic.includes('5000000 free-tier daily rows') && cloudDiagnostic.includes('100000 free-tier daily rows')],
   ['D1 analytics uses the UTC daily reset boundary and remains read-only', cloudDiagnostic.includes('TODAY="$(date -u +%Y-%m-%d)"') && cloudDiagnostic.includes('date_geq: $start, date_leq: $end') && cloudDiagnostic.includes('adaptive analytics estimates') && cloudDiagnostic.includes('Avoid nonessential materialization/cleanup writes')],
   ['frontier research lists dated primary sources', research.includes('25 November 2026') && research.includes('deepmind.google') && research.includes('seller-ph.tiktok.com')],
+  ['local 3D avatar renderer is integrated into the host page', host.includes("import Local3DAvatar from './local-3d-avatar'") && host.includes('<Local3DAvatar textToSpeak={hostReply} />')],
+  ['local avatar supports user-owned GLB without server upload', localAvatar.includes('URL.createObjectURL(file)') && localAvatar.includes('Choose 3D avatar (.glb)') && localAvatar.includes('It is not uploaded to Magnanimous') && !localAvatar.includes('fetch(modelUrl')],
+  ['local avatar is only loaded after creator action and not fetched by page load', localAvatar.includes('function loadAvatar()') && localAvatar.includes('onClick={loadAvatar}') && localAvatar.includes('function chooseAvatar(file?: File)')],
+  ['TalkingHead and HeadTTS versions are pinned to MIT-licensed upstream packages', localAvatar.includes('@met4citizen/talkinghead@1.8.2') && localAvatar.includes('@met4citizen/headtts@1.4.0') && localAvatar.includes('MPFB_CC0_DOWNLOAD')],
+  ['local neural voice outputs viseme-aware audio into the 3D renderer', localAvatar.includes('tts.synthesize({ input: text })') && localAvatar.includes('head.speakAudio(message.data, { lipsyncLang: \'en\' })')],
+  ['local model weights and WASM binaries are not persisted in browser cache', localVoiceBootstrap.includes('env.useBrowserCache = false') && localVoiceBootstrap.includes('env.useWasmCache = false') && localVoiceBootstrap.includes('env.useFSCache = false') && localVoiceBootstrap.includes('cache: "no-store"')],
+  ['root import map pins Three.js and addons for the native 3D renderer', layout.includes('type="importmap"') && layout.includes('three@0.186.0/build/three.module.js') && layout.includes('three@0.186.0/examples/jsm/')],
+  ['3D avatar model upload is bounded to 80 MB', localAvatar.includes('MAX_AVATAR_BYTES = 80 * 1024 * 1024') && localAvatar.includes('file.size > MAX_AVATAR_BYTES')],
   ['Social Hub links to the host control room', social.includes('href="/tiktok-live"')],
 ];
 
