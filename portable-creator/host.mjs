@@ -349,7 +349,8 @@ async function handleApi(req,res,url){
   return json(res,200,{events,reviewCues,...liveEvents.status()});
  }
  if(req.method==='GET'&&url.pathname==='/api/live/cues/receipts'){
-  return json(res,200,{receipts:reviewLedger.list(20),...reviewLedger.status()});
+  const state=reviewLedger.status();
+  return json(res,200,{receipts:reviewLedger.list(20),pending:state.pending,receiptCount:state.receipts,retention:state.retention});
  }
  if(req.method==='POST'&&url.pathname==='/api/live/cues/decision'){
   const body=await readJson(req),cueId=typeof body.cueId==='string'?body.cueId.trim():'';
