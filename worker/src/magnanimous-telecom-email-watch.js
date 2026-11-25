@@ -201,7 +201,7 @@ export async function scheduledTelecomEmailWatch(env){
  const conn=await googleConnection(env,user.tenant_id);if(!conn){await state(env,user.tenant_id,{last_error:'Connect Gmail in Magnanimous Connections to activate telecom email monitoring.'});return{enabled:true,status:'gmail-not-connected'}};
  const token=await accessToken(env,conn);if(!token){await state(env,user.tenant_id,{last_error:'Connected Gmail needs reauthorization.'});return{enabled:true,status:'gmail-reauthorize'}};
  try{
-  const list=await jsonFetch('https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50&q='+encodeURIComponent(WATCH_QUERY),{headers:{Authorization:`Bearer ${token}`}});
+  const list=await jsonFetch('https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=10&q='+encodeURIComponent(WATCH_QUERY),{headers:{Authorization:`Bearer ${token}`}});
   let processed=0,replied=0,lastMessage=0;
   for(const row of list.messages||[]){
    if(await seen(env,row.id))continue;
