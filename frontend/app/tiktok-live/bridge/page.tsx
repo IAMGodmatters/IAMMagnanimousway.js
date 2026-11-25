@@ -98,21 +98,6 @@ export default function LiveEventBridgePage() {
     setNotice('Browser connection disconnected. Use Revoke pairing to stop the local companion and invalidate both tokens.');
   }
 
-  async function revokePair() {
-    setError('');setNotice('');
-    try {
-      const pairId=new URL(endpoint).pathname.split('/').pop()||'';
-      const response=await fetch('/api/live-bridge/revoke',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({pairId}),cache:'no-store'});
-      const data=await response.json().catch(()=>({}));
-      if(!response.ok)throw new Error(data.detail||'The bridge pairing could not be revoked.');
-      clientRef.current?.disconnect();clientRef.current=null;
-      setCompanionToken('');setPairingToken('');setStatus('disconnected');
-      setNotice(data.revoked?'Pairing revoked. The local companion has been disconnected.':'No active pair remained to revoke.');
-    } catch(cause) {
-      setError(cause instanceof Error?cause.message:'The pairing could not be revoked.');
-    }
-  }
-
   function sendCommand() {
     const commandId=globalThis.crypto?.randomUUID?.()||String(Date.now());
     const payload=action==='scene.set'?{sceneName:target}
