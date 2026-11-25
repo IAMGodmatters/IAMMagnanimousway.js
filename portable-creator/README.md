@@ -63,6 +63,16 @@ To open the optional portable OBS folder, start the launcher with `-LaunchOBS`. 
 5. Incoming normalized audience/game events are encrypted with a subkey derived from the workspace key before they are written to the local recovery journal. Remote production commands are placed in a local approval queue. A scene change requires OBS to be connected and a second approval on the local computer.
 6. Locking the workspace disconnects the bridge and clears the in-memory event queue; unacknowledged events remain encrypted on USB and are restored after the next unlock. Disconnect locally or revoke/expire the pairing. Tokens are not written to disk and are cleared when the local process exits.
 
+### Use the online AI host with the local USB avatar
+
+1. Keep LIVE Event Bridge open in one browser tab and open AI Host (/tiktok-live) in another tab on the same official Magnanimous origin.
+2. Create the secure pair in LIVE Event Bridge and paste only the companion token into the F-drive Creator. The browser token stays inside the bridge tab; it is never copied into the AI Host tab or browser storage.
+3. When the local companion reports connected, the AI Host can receive normalized audience/game events from the bridge tab. Each event is shown for creator review; it is not automatically answered or spoken.
+4. Enable “Send AI replies to the paired F-drive host for local approval” when you want the local avatar/voice to deliver the online AI Host's answer. The bridge forwards only a bounded host.speak request; the F-drive Creator displays it for a second, local approval before speech.
+5. If the browser tab is closed, the bridge disconnects or the pair expires, the AI Host reports that the companion is unavailable. The AI Host can still generate and speak in the browser when its online AI service is reachable.
+
+The two tabs use a same-origin in-memory BroadcastChannel only for normalized event context, bridge status and bounded speech requests. It does not carry pairing tokens, credentials, provider passwords or OBS passwords.
+
 The relay is a transport, not a social-platform adapter. New pairs authorize only local/manual, OBS, game and browser events. TikTok, Facebook, YouTube, Twitch and Zoom are schema-supported but explicitly denied until a separate official account adapter is authorized. This connection does not itself fetch platform chat, start a broadcast or transmit audio/video. Those require separate official account authorization and provider adapters. The local companion supports only two remote actions: locally approved OBS scene selection and locally approved `host.speak` requests. Host speech is played through the selected device/browser voice; it is not a cloud voice service. Overlay and audio-cue execution remain disabled until their local engines are implemented. Game events can be normalized and turned into review cues, but live game-specific adapters are not connected by this slice.
 
 The cloud relay implementation is in draft PR #1017 and is not deployed. The local connection path becomes usable only after that PR passes CI, the Durable Object namespace is provisioned safely, and the production deployment gate is cleared. Do not paste provider passwords, cookies, OAuth tokens or OBS passwords into the pairing fields.
