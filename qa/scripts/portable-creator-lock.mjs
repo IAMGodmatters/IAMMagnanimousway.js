@@ -8,6 +8,8 @@ const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const read=rel=>fs.readFileSync(path.join(ROOT,rel),'utf8');
 const exists=rel=>fs.existsSync(path.join(ROOT,rel));
 const host=read('portable-creator/host.mjs');
+const gameIntegration=read('portable-creator/game-event-integration.mjs');
+const gameIntegrationTests=read('portable-creator/game-event-integration.test.mjs');
 const app=read('portable-creator/app/app.js');
 const html=read('portable-creator/app/index.html');
 const avatarHtml=read('portable-creator/app/avatar.html');
@@ -32,8 +34,17 @@ execFileSync(process.execPath,['--check',path.join(ROOT,'portable-creator/host.m
 execFileSync(process.execPath,['--check',path.join(ROOT,'portable-creator/app/app.js')],{cwd:ROOT,stdio:'inherit'});
 execFileSync(process.execPath,['--check',path.join(ROOT,'portable-creator/obs-client.mjs')],{cwd:ROOT,stdio:'inherit'});
 execFileSync(process.execPath,[path.join(ROOT,'qa/scripts/portable-obs-client.test.mjs')],{cwd:ROOT,stdio:'inherit'});
+execFileSync(process.execPath,['--check',path.join(ROOT,'portable-creator/game-event-integration.mjs')],{cwd:ROOT,stdio:'inherit'});
+execFileSync(process.execPath,[path.join(ROOT,'portable-creator/game-event-integration.test.mjs')],{cwd:ROOT,stdio:'inherit'});
 
 const checks=[
+ ['game integration uses a 256-bit per-unlock token and constant-time bearer comparison',gameIntegration.includes('randomBytes(32)')&&gameIntegration.includes('timingSafeEqual')&&host.includes('gameIntegrationToken=null')&&host.includes('gameIntegrationToken=createLocalGameIntegrationToken()')],
+ ['game integration accepts only bounded game.event payloads and strips controls',gameIntegration.includes("provider: 'game'")&&gameIntegration.includes("type: 'game.event'")&&gameIntegration.includes('slice(0, 500)')&&gameIntegration.includes('7 * 86400000')],
+ ['game integration endpoint requires a bearer token and remains loopback-only',host.includes('/api/integrations/game/event')&&host.includes('verifyLocalGameIntegrationToken')&&host.includes("server.listen(PORT,'127.0.0.1'")&&host.includes('isLoopbackAddress(req.socket.remoteAddress)')],
+ ['game integration token reveal is same-origin POST and cleared on workspace lock',host.includes("req.method==='POST'&&url.pathname==='/api/integrations/game/token'")&&app.includes("api('/api/integrations/game/token',{method:'POST'")&&app.includes("gameIntegrationToken.value=''")&&app.includes("gameIntegrationToken').type='password'")],
+ ['game events are encrypted before acceptance and forwarded only through a paired relay',host.includes('liveEvents.ingest(event)')&&host.includes('liveEventJournal.appendEvent(event)')&&host.includes("bridgeSocket?.readyState===1")],
+ ['game integration tests cover token, payload bounds and hostile input',gameIntegrationTests.includes('game integration token accepts only its exact bearer credential')&&gameIntegrationTests.includes('does not forward credential-shaped or arbitrary caller fields')],
+
  ['portable host binds only to IPv4 loopback',host.includes("server.listen(PORT,'127.0.0.1'")&&!host.includes("server.listen(PORT,'0.0.0.0'")],
  ['host enforces a loopback Host header and same-origin mutation boundary',host.includes('req.headers.host')&&host.includes("origin==='http://127.0.0.1:'")],
  ['host uses CSP, no-store, nosniff and frame protections',host.includes('content-security-policy')&&host.includes("cache-control','no-store")&&host.includes('x-content-type-options')&&host.includes('x-frame-options')],
