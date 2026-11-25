@@ -38,6 +38,10 @@ const checks = [
   ['viewer PII and secrets are redacted before the Magnanimous prompt', host.includes('cleanLiveViewerText') && host.includes('[email removed]') && host.includes('[phone number removed]') && host.includes('[sensitive detail removed]')],
   ['AI host output is cleaned and bounded before browser speech', host.includes('cleanLiveHostText') && host.includes('.slice(0, 700)')],
   ['autonomous viewer comments cannot invoke Magnanimous tools or actions', host.includes('use_tools: false') && host.includes('Do not pretend to be a human')],
+  ['paired event bridge relays only normalized events into the host queue', host.includes('normalizeLiveEvent(payload.event)') && host.includes("new BroadcastChannel('magnanimous-live-events-v1')") && host.includes('liveEventToHostPrompt')],
+  ['event bridge page sends authenticated companion events to the host tab', bridgeUi.includes("new BroadcastChannel('magnanimous-live-events-v1')") && bridgeUi.includes("postMessage({kind:'event',event})") && bridgeUi.includes('onEvent:event=>')],
+  ['autonomous queue is capped for companion events as well as typed comments', host.includes('queuedCommentsRef.current.length >= 25') && host.includes('The live event queue is full (25 items)')],
+
   ['manual speaking controls cannot interrupt autonomous host speech', host.includes('onClick={welcome} disabled={takeoverActive}') && host.includes('onClick={() => speak(hostReply)} disabled={takeoverActive}')],
   ['LIVE Host links to the event bridge control room', host.includes('href="/tiktok-live/bridge"')],
   ['bridge UI uses the provider-neutral client', bridgeUi.includes('createLiveBridgeClient') && bridgeUi.includes('LiveEvent')],
