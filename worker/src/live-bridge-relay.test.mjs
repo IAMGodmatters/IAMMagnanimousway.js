@@ -163,6 +163,24 @@ test('official browser and originless local companion tokens authenticate only t
  assert.equal(companion.socket.attachment.role,'companion');
 });
 
+test('pairing tokens expire after ten minutes while an already authenticated session may continue',async()=>{
+ const originalNow=Date.now,startedAt=originalNow();
+ const {room,socket,token}=makeRoomForAuth('browser','https://iammagnanimousway.com');
+ const auth=JSON.stringify({kind:'auth',protocolVersion:1,token});
+ try{
+  await room.webSocketMessage(socket,auth);
+  assert.equal(socket.attachment.authenticated,true);
+  assert.ok(socket.attachment.sessionExpiresAt>startedAt+10*60_000);
+  Date.now=()=>startedAt+10*60_000+1;
+  await room.webSocketMessage(socket,JSON.stringify({kind:'ping'}));
+  assert.equal(socket.messages.at(-1)?.kind,'pong','An already authenticated connection may continue within its session window.');
+  socket.serializeAttachment({...socket.attachment,authenticated:false,role:null});
+  await room.webSocketMessage(socket,auth);
+  assert.equal(socket.closed?.code,4001,'The original pairing token must not establish a new connection after ten minutes.');
+  assert.equal(socket.messages.at(-1)?.code,'PAIRING_REVOKED');
+ }finally{Date.now=originalNow;}
+});
+
 test('authenticated companion cannot spoof a platform event without adapter authorization',async()=>{
  const socket=makeSocket({authenticated:true,role:'companion',allowedProviders:['manual','obs','game','browser'],seen:[],sessionExpiresAt:Date.now()+60000,windowStartedAt:Date.now(),windowCount:0});
  const state={getWebSockets:()=>[socket]};
