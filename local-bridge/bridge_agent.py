@@ -1166,6 +1166,12 @@ class _ObsWebSocket:
             return data
         raise RuntimeError(f"OBS did not answer the {request_type} request.")
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
     def close(self) -> None:
         try:
             if getattr(self, "_sock", None):
@@ -1335,7 +1341,7 @@ def action_obs_audio_cue(config, payload):
             "mediaAction": "OBS_WEBSOCKET_MEDIA_INPUT_ACTION_RESTART",
         })
         status = obs.request("GetMediaInputStatus", {"inputName": cue_id})
-        return {"ok": True, "cue_id": cue_id, "state": str(status.get(" mediaState") or status.get("mediaState") or "")[:60]}
+        return {"ok": True, "cue_id": cue_id, "state": str(status.get("mediaState") or "")[:60]}
 
 
 def configure_obs(args):
