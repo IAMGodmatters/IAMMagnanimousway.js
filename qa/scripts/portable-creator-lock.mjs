@@ -12,6 +12,8 @@ const gameIntegration=read('portable-creator/game-event-integration.mjs');
 const gameIntegrationTests=read('portable-creator/game-event-integration.test.mjs');
 const gameEventClient=read('portable-creator/game-event-client.mjs');
 const gameEventClientTests=read('portable-creator/game-event-client.test.mjs');
+const gameEventClient=read('portable-creator/game-event-client.mjs');
+const gameEventClientTests=read('portable-creator/game-event-client.test.mjs');
 const app=read('portable-creator/app/app.js');
 const html=read('portable-creator/app/index.html');
 const avatarHtml=read('portable-creator/app/avatar.html');
@@ -40,6 +42,8 @@ execFileSync(process.execPath,['--check',path.join(ROOT,'portable-creator/game-e
 execFileSync(process.execPath,[path.join(ROOT,'portable-creator/game-event-integration.test.mjs')],{cwd:ROOT,stdio:'inherit'});
 execFileSync(process.execPath,['--check',path.join(ROOT,'portable-creator/game-event-client.mjs')],{cwd:ROOT,stdio:'inherit'});
 execFileSync(process.execPath,[path.join(ROOT,'portable-creator/game-event-client.test.mjs')],{cwd:ROOT,stdio:'inherit'});
+execFileSync(process.execPath,['--check',path.join(ROOT,'portable-creator/game-event-client.mjs')],{cwd:ROOT,stdio:'inherit'});
+execFileSync(process.execPath,[path.join(ROOT,'portable-creator/game-event-client.test.mjs')],{cwd:ROOT,stdio:'inherit'});
 
 const checks=[
  ['game event client targets only loopback and wraps the required event envelope',gameEventClient.includes("LOOPBACK_ENDPOINT='http://127.0.0.1:3219/api/integrations/game/event'")&&gameEventClient.includes("body:JSON.stringify({event})")&&gameEventClient.includes("redirect:'error'")],
@@ -50,6 +54,9 @@ const checks=[
  ['game integration token reveal is same-origin POST and cleared on workspace lock',host.includes("req.method==='POST'&&url.pathname==='/api/integrations/game/token'")&&app.includes("api('/api/integrations/game/token',{method:'POST'")&&app.includes("'gameIntegrationToken'")&&app.includes('function clearSensitiveUi()')&&app.includes("gameIntegrationToken').type='password'")],
  ['game events are encrypted before acceptance and forwarded only through a paired relay',host.includes('liveEvents.ingest(event)')&&host.includes('liveEventJournal.appendEvent(event)')&&host.includes("bridgeSocket?.readyState===1")],
  ['game integration tests cover token, payload bounds and hostile input',gameIntegrationTests.includes('game integration token accepts only its exact bearer credential')&&gameIntegrationTests.includes('does not forward credential-shaped or arbitrary caller fields')],
+ ['game/app SDK sends events only to the fixed loopback Creator endpoint',gameEventClient.includes("const LOOPBACK_ENDPOINT='http://127.0.0.1:3219/api/integrations/game/event'")&&gameEventClient.includes("redirect:'error'")&&!gameEventClient.includes('endpointUrl')&&!gameEventClient.includes('https://')],
+ ['game/app SDK validates its temporary token, bounds metadata and sanitizes control characters',gameEventClient.includes("TOKEN=/^[A-Za-z0-9_-]{43}$/")&&gameEventClient.includes('slice(0,500)')&&gameEventClient.includes('CONTROL=/[\\u0000-\\u001f\\u007f]/g')],
+ ['game/app SDK tests prove fixed destination, token rejection, bounds and response failures',gameEventClientTests.includes('fixed loopback Creator endpoint')&&gameEventClientTests.includes('invalid bearer token')&&gameEventClientTests.includes('stale timestamps')&&gameEventClientTests.includes('Workspace locked.')],
 
  ['portable host binds only to IPv4 loopback',host.includes("server.listen(PORT,'127.0.0.1'")&&!host.includes("server.listen(PORT,'0.0.0.0'")],
  ['host enforces a loopback Host header and same-origin mutation boundary',host.includes('req.headers.host')&&host.includes("origin==='http://127.0.0.1:'")],
