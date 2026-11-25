@@ -8,7 +8,7 @@ import {LiveEventRuntime} from './live-event-runtime.mjs';
 
 const NOW=1_800_000_000_000;
 const KEY=Buffer.alloc(32,7);
-const journalFor=(file,options={})=>new LiveEventJournal(file,{...options,keyProvider:()=>KEY});
+const journalFor=(file,options={})=>new LiveEventJournal(file,{...options,keyProvider:()=>Buffer.from(KEY)});
 const event=(eventId,extra={})=>({protocolVersion:1,eventId,provider:'manual',type:'chat.message',occurredAt:new Date(NOW).toISOString(),text:'hello',...extra});
 function temporary(){return fs.mkdtempSync(path.join(os.tmpdir(),'magnanimous-journal-'));}
 
