@@ -18,9 +18,16 @@ export default function LiveEventBridgePage() {
   const [speech,setSpeech]=useState('');
   const clientRef=useRef<ReturnType<typeof createLiveBridgeClient>|null>(null);
   const channelRef=useRef<BroadcastChannel|null>(null);
+  const statusRef=useRef<LiveBridgeStatus>('disconnected');
+  statusRef.current=status;
 
   useEffect(()=>{
-    if(typeof BroadcastChannel!=='undefined')channelRef.current=new BroadcastChannel('magnanimous-live-events-v1');
+    if(typeof BroadcastChannel!=='undefined'){
+      channelRef.current=new BroadcastChannel('magnanimous-live-events-v1');
+      channelRef.current.onmessage=message=>{
+        if(message.data?.kind==='request-status')channelRef.current?.postMessage({kind:'status',status:statusRef.current});
+      };
+    }
     return ()=>{clientRef.current?.disconnect();clientRef.current=null;channelRef.current?.close();channelRef.current=null;};
   },[]);
 
@@ -29,7 +36,7 @@ export default function LiveEventBridgePage() {
     try {
       clientRef.current?.disconnect();
       const client=createLiveBridgeClient(endpoint,pairingToken,{
-        onStatus:next=>{setStatus(next);channelRef.current?.postMessage({kind:'status',status:next});},
+        onStatus:next=>{statusRef.current=next;setStatus(next);channelRef.current?.postMessage({kind:'status',status:next});},
         onEvent:event=>{
           setEvents(current=>[event,...current.filter(item=>item.eventId!==event.eventId)].slice(0,50));
           channelRef.current?.postMessage({kind:'event',event});
@@ -48,6 +55,7 @@ export default function LiveEventBridgePage() {
   function disconnect() {
     clientRef.current?.disconnect();
     clientRef.current=null;
+    statusRef.current='disconnected';
     setStatus('disconnected');
     channelRef.current?.postMessage({kind:'status',status:'disconnected'});
     setNotice('Disconnected from the companion.');
