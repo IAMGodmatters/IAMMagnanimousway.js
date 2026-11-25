@@ -60,7 +60,9 @@ async function apiRequest(env,method,path,body){
  }catch(error){return{ok:false,status:502,data:{detail:'Cloudflare API request failed.',error:String(error?.message||error).slice(0,500)}};}
 }
 
-const WORKER_ANALYTICS_QUERY=`query WorkerResourceMetrics($accountTag: string, $datetimeStart: string, $datetimeEnd: string) {
+const WORKER_ANALYTICS_WINDOW_LIMITS={min:1,max:24};
+
+const WORKER_ANALYTICS_QUERY=`query WorkerResourceMetrics($accountTag: string!, $datetimeStart: Time!, $datetimeEnd: Time!) {
  viewer {
   accounts(filter: {accountTag: $accountTag}) {
    workersInvocationsAdaptive(limit: 1000, filter: {
@@ -82,7 +84,7 @@ function workerAnalyticsToken(env){
 async function readWorkerAnalytics(env,hoursValue='24'){
  const accountTag=String(env.CLOUDFLARE_PLATFORM_ACCOUNT_ID||'').trim();
  const auth=workerAnalyticsToken(env);
- const hours=Math.max(1,Math.min(24,Math.floor(Number(hoursValue)||24)));
+ const hours=Math.max(WORKER_ANALYTICS_WINDOW_LIMITS.min,Math.min(WORKER_ANALYTICS_WINDOW_LIMITS.max,Math.floor(Number(hoursValue)||24)));
  if(!accountTag)return json({code:'CLOUDFLARE_ACCOUNT_ID_REQUIRED',detail:'Set CLOUDFLARE_PLATFORM_ACCOUNT_ID before requesting Worker analytics.'},409);
  if(!auth)return json({code:'CLOUDFLARE_ANALYTICS_TOKEN_REQUIRED',detail:'The dedicated Cloudflare analytics secret is not configured. Add CLOUDFLARE_ANALYTICS_READ_TOKEN with Account Analytics:Read permission; the platform/deployment token is deliberately not reused.'},503);
  const end=new Date(),start=new Date(end.getTime()-hours*60*60*1000);
