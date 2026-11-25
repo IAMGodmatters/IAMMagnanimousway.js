@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const repo = process.env.GITHUB_REPOSITORY || '';
-const visibilityToken = process.env.GITHUB_RULESET_READ_TOKEN || '';
+const visibilityToken = process.env.GITHUB_TOKEN || '';
 assert(/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo), 'GITHUB_REPOSITORY must identify the authoritative repository.');
-assert(visibilityToken, 'GITHUB_RULESET_READ_TOKEN is required to verify private repository visibility; the lock fails closed without it.');
+assert(visibilityToken, 'GITHUB_TOKEN is required to verify private repository visibility; the lock fails closed without it.');
 const visibilityResponse = await fetch('https://api.github.com/repos/' + repo, {
   headers: {
     Accept: 'application/vnd.github+json',
