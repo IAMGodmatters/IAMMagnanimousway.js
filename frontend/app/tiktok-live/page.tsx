@@ -30,6 +30,23 @@ async function sha256Base64(value: string): Promise<string> {
   return btoa(binary);
 }
 
+const SENSITIVE_EVENT_FIELD = /(password|token|secret|cookie|authorization|email|phone|mobile|address|refresh|api.?key|access.?key|user.?id|broadcaster.?id|channel.?id)/i;
+function cleanEventText(value: string): string {
+  return value
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/gi, '[email redacted]')
+    .replace(/(password|token|secret|cookie|authorization|api[_-]?key)=([^\\s&]+)/gi, '$1=[redacted]')
+    .slice(0, 140);
+}
+function summarizeLocalEvent(data: Record<string, unknown>): string {
+  return Object.entries(data).slice(0, 8).map(([key, value]) => {
+    const safe = SENSITIVE_EVENT_FIELD.test(key) ? '[redacted]' :
+      typeof value === 'string' ? cleanEventText(value) :
+      typeof value === 'number' || typeof value === 'boolean' ? String(value) :
+      '[structured data]';
+    return key.slice(0, 48) + ': ' + safe;
+  }).join(' • ').slice(0, 560);
+}
+
 const WELCOME = 'Welcome, everyone. This is Magnanimous AI, an openly disclosed AI co-host. I am here to share useful information, answer your questions, and keep the conversation respectful. Add your question in the comments and the host operator will bring it into the conversation.';
 
 export default function TikTokLiveHost() {
@@ -207,12 +224,20 @@ export default function TikTokLiveHost() {
         request: 'Subscribe',
         id: 'magnanimous-live-events',
         events: {
-          Twitch: ['ChatMessage', 'Follow', 'Cheer', 'Sub', 'Raid'],
-          YouTube: ['Message', 'SuperChat', 'SuperSticker'],
-          Kick: ['ChatMessage', 'Follow', 'Subscription'],
-          OBS: ['SceneChanged', 'StreamingStarted', 'StreamingStopped'],
-          CrowdControl: ['EffectRequest', 'EffectSuccess', 'EffectFailure'],
-          Inputs: ['InputControllerButton', 'InputKeyPress']
+          Twitch: ['ChatMessage', 'Follow', 'Cheer', 'Sub', 'ReSub', 'GiftSub', 'GiftBomb', 'Raid', 'RewardRedemption', 'PresentViewers'],
+          YouTube: ['Message', 'SuperChat', 'SuperSticker', 'NewSubscriber', 'NewSponsor', 'PollStarted', 'PollUpdated', 'PollClosed', 'BroadcastStarted', 'BroadcastEnded'],
+          Kick: ['ChatMessage', 'Follow', 'Subscription', 'RewardRedemption', 'StreamOnline', 'StreamOffline', 'ViewerCountUpdate'],
+          OBS: ['Connected', 'Disconnected', 'RecordingStarted', 'RecordingStopped', 'SceneChanged', 'StreamingStarted', 'StreamingStopped', 'Event', 'VendorEvent'],
+          VTubeStudio: ['Connected', 'Disconnected', 'HotkeyTriggered', 'ItemEvent', 'ModelAnimation', 'ModelClicked', 'ModelLoaded', 'ModelUnloaded', 'TrackingStatusChanged', 'BackgroundChanged', 'ModelConfigChanged'],
+          StreamDeck: ['Action', 'Connected', 'Disconnected', 'Info'],
+          Voicemod: ['Connected', 'Disconnected', 'SoundboardChanged', 'VoiceLoaded'],
+          CrowdControl: ['CoinExchange', 'EffectRequest', 'EffectSuccess', 'EffectFailure', 'GameSessionStart', 'GameSessionEnd', 'TimedEffectStarted', 'TimedEffectEnded', 'TimedEffectUpdated'],
+          Inputs: ['InputKeyPress', 'InputMouseClick'],
+          MIDI: ['Message'],
+          Custom: ['Event', 'CodeEvent'],
+          StreamElements: ['Connected', 'Disconnected', 'Tip', 'Merch'],
+          Streamlabs: ['Connected', 'Disconnected', 'Donation', 'CharityDonation', 'Merchandise'],
+          StreamDeck: ['Action', 'Connected', 'Disconnected', 'Info']
         }
       }));
     };
@@ -257,10 +282,7 @@ export default function TikTokLiveHost() {
           const source = String(payload.event.source).slice(0, 40);
           const type = String(payload.event.type).slice(0, 60);
           const data = payload.data && typeof payload.data === 'object' ? payload.data : {};
-          const summary = Object.entries(data).slice(0, 5).map(([key, value]) => {
-            const safe = typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ? String(value) : '[structured data]';
-            return key + ': ' + safe.slice(0, 120);
-          }).join(' • ');
+          const summary = summarizeLocalEvent(data);
           const eventLine = { id: Date.now() + Math.random(), source, type, timestamp: String(payload.timeStamp || new Date().toISOString()), summary };
           setBridgeEvents(items => [...items.slice(-19), eventLine]);
         }
@@ -449,7 +471,7 @@ export default function TikTokLiveHost() {
           <li><b>Disclose the AI host.</b> Keep the visible AI-generated label. Do not use another person's face or voice without permission.</li>
         </ol>
         <section className="localBridge" aria-labelledby="local-bridge-title">
-          <div className="localBridgeHead"><div><small>LOCAL APP + GAME CONNECTION</small><h3 id="local-bridge-title">Connect Streamer.bot</h3><p>Receive approved local stream, OBS, controller and game events. This first connector is read-only: Magnanimous can understand an event and prepare a response, but cannot trigger game or OBS actions yet.</p></div><b className={bridgeStatus.includes('CONNECTED') ? 'bridgeOnline' : 'bridgeOffline'}>{bridgeStatus}</b></div>
+          <div className="localBridgeHead"><div><small>LOCAL APP + GAME CONNECTION</small><h3 id="local-bridge-title">Connect Streamer.bot</h3><p>Receive local events from OBS, VTube Studio, Stream Deck, Voicemod, MIDI, keyboard/mouse inputs, Crowd Control and supported chat/alert platforms. This connector is read-only: Magnanimous can understand an event and prepare a response, but cannot trigger game or OBS actions yet.</p></div><b className={bridgeStatus.includes('CONNECTED') ? 'bridgeOnline' : 'bridgeOffline'}>{bridgeStatus}</b></div>
           <label className="field">Local WebSocket address
             <input value={bridgeUrl} onChange={event => setBridgeUrl(event.target.value)} placeholder="ws://127.0.0.1:8080/" />
           </label>
@@ -457,8 +479,8 @@ export default function TikTokLiveHost() {
             <input type="password" autoComplete="off" value={bridgePassword} onChange={event => setBridgePassword(event.target.value)} placeholder="Enter local password if authentication is enabled" />
           </label>
           <div className="bridgeActions"><button className="primary" type="button" onClick={connectLocalBridge} disabled={bridgeStatus === 'CONNECTED • READ ONLY' || bridgeStatus === 'CONNECTING'}>Connect local events</button><button className="secondary" type="button" onClick={disconnectLocalBridge}>Disconnect</button></div>
-          <p className="techNote">Set Streamer.bot to bind to 127.0.0.1, enable Authentication and Enforce, and use a strong password. Never expose port 8080 publicly. The password is not sent to Magnanimous cloud services or saved to browser storage. Local-network browser permission and WebSocket policy may still vary by browser.</p>
-          <div className="bridgeFeed"><b>Recent local events</b>{bridgeEvents.length === 0 ? <p className="empty">No events received yet. Connect Streamer.bot, then test with a scene change or controller event.</p> : bridgeEvents.slice().reverse().map(item => <article key={item.id}><span>{item.source} • {item.type}</span><p>{item.summary || 'Event received'}</p><button type="button" onClick={() => useBridgeEvent(item)}>Use as host topic</button></article>)}</div>
+          <p className="techNote">Set Streamer.bot to bind to 127.0.0.1, enable Authentication and Enforce, and use a strong password. Never expose port 8080 publicly. Events stay in this page until you press Use as host topic; summaries redact common credential/contact fields before that. The local password is not sent to Magnanimous cloud services or saved to browser storage. Local-network browser permission and WebSocket policy may still vary by browser.</p>
+          <div className="bridgeFeed"><b>Recent local events</b>{bridgeEvents.length === 0 ? <p className="empty">No events received yet. Connect Streamer.bot, then test with an OBS scene change, VTube Studio hotkey, Stream Deck action, or approved game event.</p> : bridgeEvents.slice().reverse().map(item => <article key={item.id}><span>{item.source} • {item.type}</span><p>{item.summary || 'Event received'}</p><button type="button" onClick={() => useBridgeEvent(item)}>Use as host topic</button></article>)}</div>
         </section>
         <section className="frontier" aria-labelledby="frontier-title">
           <div className="frontierHead">
