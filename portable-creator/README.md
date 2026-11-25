@@ -86,7 +86,33 @@ The portable host now exposes a bounded, loopback-only event intake for future a
 - `POST /api/live/events/ingest` accepts a protocol-version-1 event in a JSON `event` field.
 - `POST /api/live/events/consume` returns a bounded batch (1–50 events) for the local operator/host runtime.
 
-Browser intake accepts operator-entered `manual` events only; provider-labelled events must arrive through the local companion and an explicitly authorized provider adapter. TikTok, Facebook, YouTube, Twitch and Zoom are not authorized by the initial bridge pair. The runtime validates provider, event type, event ID and timestamp; removes control characters; bounds viewer text and tags; strips credential-like tag names; deduplicates provider event IDs; applies a per-provider rate limit; and returns backpressure when the queue is full. It does not silently discard already accepted events.
+Browser intake accepts operator-entered `manual` events only; provider-labelled events must arrive through the local companion and an explicitly authorized provider adapter.
+
+### Connect a local game or app event source
+
+The Creator now exposes a narrow, authenticated local event endpoint for trusted desktop automation tools that can send HTTP requests. This is a generic adapter seam; it does not claim to include a native plugin for every game.
+
+1. Unlock the encrypted workspace.
+2. In **Audience & game events**, reveal the temporary local integration token. Copy it into the trusted local automation tool's secret/credential field.
+3. Configure that tool to send an HTTP POST to `http://127.0.0.1:3219/api/integrations/game/event` with an `Authorization: Bearer <token>` header and JSON content type.
+4. Send this event shape, replacing the example values and using a unique `eventId` for every event:
+
+```json
+{
+  "event": {
+    "protocolVersion": 1,
+    "eventId": "game-round-0001",
+    "occurredAt": "2026-11-25T12:00:00.000Z",
+    "gameName": "Your game",
+    "actorName": "Game event",
+    "text": "Round one has started"
+  }
+}
+```
+
+The local host accepts only bounded `game.event` records, validates the token with a constant-time comparison, writes accepted events to the encrypted USB journal before acknowledging them, and forwards them to the online relay only when the paired bridge is connected. The token is generated in memory and revoked when the workspace is locked or the process exits. The endpoint listens only on loopback; it is not a public webhook.
+
+This lets a trusted local app or automation tool report an event without giving Magnanimous permission to control the game. It does not capture the game screen, read arbitrary game memory, bypass anti-cheat, automate gameplay or connect a named automation product until that product's own adapter is separately tested. TikTok, Facebook, YouTube, Twitch and Zoom are not authorized by the initial bridge pair. The runtime validates provider, event type, event ID and timestamp; removes control characters; bounds viewer text and tags; strips credential-like tag names; deduplicates provider event IDs; applies a per-provider rate limit; and returns backpressure when the queue is full. It does not silently discard already accepted events.
 
 Queue and deduplication state are transient in memory and are cleared when the host exits. They are not a substitute for durable project storage. The endpoints are a local event-processing foundation only: no TikTok, Facebook, YouTube, Twitch or game adapter is connected by this change. Public broadcasting, account control, moderation and payments are not exposed.
 
