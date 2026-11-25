@@ -13,7 +13,7 @@ test('normalizes approved platform events and strips unsafe fields',()=>{
 });
 
 test('accepts Facebook and TikTok event envelopes without granting provider authority',()=>{
- for(const provider of ['facebook','tiktok','youtube','twitch']){
+ for(const provider of ['facebook','tiktok','youtube','twitch','zoom']){
   const event=normalizeRelayEvent({protocolVersion:1,eventId:provider+'-1',provider,type:'audience.follow',occurredAt:new Date(NOW).toISOString()},NOW);
   assert.equal(event?.provider,provider);
  }
