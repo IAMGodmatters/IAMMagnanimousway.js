@@ -9,7 +9,7 @@ const CUES=Object.freeze({
  'chat.deleted':{kind:'moderation_note',title:'Message removed',prompt:'A message was removed. Do not repeat its contents or infer who removed it.',priority:'high'},
  'system.notice':{kind:'operator_notice',title:'Show notice',prompt:'Review the notice and decide whether it belongs on screen. Do not display it automatically.',priority:'normal'}
 });
-const SAFE_NAME=/[\\u0000-\\u001f\\u007f]/g;
+const SAFE_NAME=/[\x00-\x1F\x7F]/g;
 export function createReviewCue(event,{now=Date.now(),ttlMs=45_000}={}){
  if(!event||typeof event!=='object'||Array.isArray(event)||typeof event.eventId!=='string'||event.eventId.length>160)return null;
  const template=CUES[event.type];if(!template)return null;
