@@ -73,11 +73,13 @@ For ministry and educational LIVE sessions, keep the AI identity clearly disclos
 ## Next integration sequence
 
 1. Validate the free/local path on the user's actual Windows computer: browser audio, OBS vertical canvas, and TikTok account-authorized LIVE access.
-2. Implement Simli's server-minted session token route; its API key must remain in a server secret and the browser must receive only a short-lived session token.
-3. Add a real streaming TTS audio source that Magnanimous controls. The audio stream feeds Simli; browser `speechSynthesis` is retained as a fallback because it is not a directly transferable MediaStreamTrack.
-4. Add hard session-minute limits, max monthly spend, no-overage default, live usage meter, explicit start/stop, and a secure server-side disconnect path before any provider key is enabled.
-5. Test only with a short, non-sensitive script and a provider account approved by the user. Leave TikTok Shop LIVE synthetic narration disabled.
-6. Do not make automatic TikTok comment ingestion or automated broadcasting available until a documented official API permission is approved and tested.
+2. The first server-side gateway scaffold is now implemented: owner-only `GET /api/tiktok-live/avatar/usage` and `POST /api/tiktok-live/avatar/session` routes call Simli's documented `startAudioToVideoSession` and `getIceServer` endpoints. The API key is supplied only by a Cloudflare Worker secret and is never sent to the browser or stored in D1.
+3. The gateway is disabled unless `SIMLI_AVATAR_ENABLED=true`, `SIMLI_API_KEY`, and `SIMLI_FACE_ID` are configured as Worker settings. Each provider session is capped at 120 seconds, idle at 30 seconds, with 20 session reservations/month (up to 40 minutes total) to stay below the free 50-minute plan. D1 reserves each launch atomically; failed provider setup releases the reservation.
+4. Add a real streaming TTS audio source that Magnanimous controls. The audio stream feeds Simli; browser `speechSynthesis` is retained as a fallback because it is not a directly transferable MediaStreamTrack.
+5. Install the official `simli-client` package in the frontend with a lockfile update, then connect its WebRTC client to the returned session token and ICE config. The current browser SpeechSynthesis output is not yet wired as a media track.
+6. Add an explicit start/stop control and a live usage meter. The server's two-minute and monthly reservation limits are scaffolding; they do not yet measure actual streamed seconds or prove billing totals.
+7. Test only with a short, non-sensitive script and a provider account approved by the user. Leave TikTok Shop LIVE synthetic narration disabled.
+8. Do not make automatic TikTok comment ingestion or automated broadcasting available until a documented official API permission is approved and tested.
 
 ## Primary sources
 
@@ -90,7 +92,9 @@ For ministry and educational LIVE sessions, keep the AI identity clearly disclos
 - HeyGen LiveAvatar current official plan/price table (checked 25 November 2026): https://www.liveavatar.com/
 - HeyGen LiveAvatar FAQ (credit calculation): https://help.heygen.com/en/articles/12758866-liveavatar-faq
 - Simli official pricing and plan limits: https://www.simli.com/pricing
-- Simli WebRTC client and secure server-token setup: https://www.npmjs.com/package/simli-client
+- Simli official Javascript SDK integration: https://docs.simli.com/api-reference/simli-client
+- Simli official backend authentication (server proxy for session token and ICE config): https://docs.simli.com/api-reference/backend-authentication
+- Simli WebRTC client package: https://www.npmjs.com/package/simli-client
 - Tavus CVI modular architecture and BYO LLM/audio: https://www.tavus.io/cvi
 - Tavus developer plans and minute overage: https://www.tavus.io/pricing
 - HeyGen LiveAvatar official Help Center plan detail: https://help.heygen.com/en/articles/12758516-introducing-liveavatar
