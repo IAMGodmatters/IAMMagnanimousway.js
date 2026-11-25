@@ -167,3 +167,13 @@ test('wrong-key recovery cannot erase a complete encrypted record missing only i
  assert.ok(fs.readFileSync(file,'utf8').endsWith('\n'),'Successful recovery should rewrite the journal with a complete line ending.');
  fs.rmSync(dir,{recursive:true,force:true});
 });
+
+test('refuses to read or repair a journal larger than the configured recovery bound',()=>{
+ const dir=temporary(),file=path.join(dir,'events.jsonl');
+ const oversized=Buffer.alloc(65*1024,0x61);
+ fs.writeFileSync(file,oversized);
+ const journal=journalFor(file,{maxBytes:64*1024});
+ assert.throws(()=>journal.appendEvent(event('oversized-file')),/exceeds its configured recovery size/);
+ assert.deepEqual(fs.readFileSync(file),oversized,'Oversized existing data must remain untouched.');
+ fs.rmSync(dir,{recursive:true,force:true});
+});
