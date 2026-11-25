@@ -27,9 +27,9 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-APP_DIR = Path.home() / ".magnanimous"
+APP_DIR = Path(os.environ.get("MAGNANIMOUS_LOCAL_BRIDGE_HOME") or (Path.home() / ".magnanimous")).expanduser().resolve()
 CONFIG_PATH = APP_DIR / "local-bridge.json"
-BROWSER_DIR = APP_DIR / "browser-profiles"
+BROWSER_DIR = Path(os.environ.get("MAGNANIMOUS_BROWSER_PROFILE_HOME") or (APP_DIR / "browser-profiles")).expanduser().resolve()
 MAX_OUTPUT = 250_000
 DEFAULT_SERVER = "https://iammagnanimousway.com"
 BROWSER_SESSIONS = {}
@@ -2053,20 +2053,24 @@ def action_ncs2_video_scan(config, payload):
 
 
 def _pocket_tts_root():
-    """Keep model cache and generated audio off C: on Windows."""
+    """Prefer the large F: data drive; fall back to D: and never write to C:."""
     configured = str(os.environ.get("MAGNANIMOUS_POCKET_TTS_HOME") or "").strip()
     if os.name == "nt":
-        root = Path(configured).expanduser() if configured else Path("D:/MagnanimousData/PocketTTS")
-        try:
-            root = root.resolve()
-        except OSError:
-            return None
-        if str(root.drive).lower() == "c:":
-            return None
-        drive_root = Path(root.anchor) if root.anchor else None
-        if not drive_root or not drive_root.exists():
-            return None
-        return root
+        if configured:
+            candidates = [Path(configured).expanduser()]
+        else:
+            candidates = [Path("F:/MagnanimousData/PocketTTS"), Path("D:/MagnanimousData/PocketTTS")]
+        for candidate in candidates:
+            try:
+                root = candidate.resolve()
+                if str(root.drive).lower() == "c:":
+                    continue
+                drive_root = Path(root.anchor) if root.anchor else None
+                if drive_root and drive_root.exists():
+                    return root
+            except OSError:
+                continue
+        return None
     root = Path(configured).expanduser() if configured else Path.home() / ".magnanimous" / "pocket-tts"
     try:
         return root.resolve()
@@ -2158,7 +2162,7 @@ def action_pocket_tts_status(config, payload):
         "binary": executable.name if executable else "",
         "version": version,
         "root_ready": bool(root),
-        "recommended_windows_root": "D:\\MagnanimousData\\PocketTTS",
+        "recommended_windows_root": str(root),
         "model_cache": "cache",
         "output_directory": "output",
         "cache_must_not_use_c_drive": os.name == "nt",
@@ -2173,9 +2177,9 @@ def action_pocket_tts_generate(config, payload):
     root = _pocket_tts_root()
     executable = _pocket_tts_executable(root)
     if not root:
-        raise RuntimeError("Pocket TTS storage is not configured. On Windows, connect the D: drive or configure MAGNANIMOUS_POCKET_TTS_HOME to a non-C: data drive.")
+        raise RuntimeError("Pocket TTS storage is not configured. On Windows, connect F: (preferred) or D: (fallback), or configure MAGNANIMOUS_POCKET_TTS_HOME to a non-C: data drive.")
     if not executable:
-        raise RuntimeError("Pocket TTS v4.0.1 is not installed in the approved D: data directory. Use the hardware check before installing the official binary.")
+        raise RuntimeError("Pocket TTS v4.0.1 is not installed in the approved F: preferred / D: fallback data directory. Use the hardware check before installing the official binary.")
     machine = platform.machine().lower()
     native_arch = machine in {"arm64", "aarch64"}
     x86_arch = machine in {"amd64", "x86_64"}
@@ -2218,7 +2222,7 @@ def action_pocket_tts_generate(config, payload):
         item.stat().st_size for item in output_dir.glob("magnanimous-*.wav") if item.is_file()
     )
     if existing_audio_bytes >= 250_000_000:
-        raise RuntimeError("Pocket TTS output reached its 250 MB local clip budget. Archive or remove old Magnanimous clips from the D: output folder before generating more.")
+        raise RuntimeError("Pocket TTS output reached its 250 MB local clip budget. Archive or remove old Magnanimous clips from the selected data-drive output folder before generating more.")
     output = output_dir / f"magnanimous-{int(time.time())}-{os.urandom(4).hex()}.wav"
     env = os.environ.copy()
     env.update({
