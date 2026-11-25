@@ -6,17 +6,16 @@ const MAX_SESSION_SECONDS=120;
 const MAX_IDLE_SECONDS=30;
 const MAX_MONTHLY_SESSIONS=20;
 const MAX_PENDING_AGE_SECONDS=180;
-const SIMLI_SESSION_URL='https://api.simli.ai/startAudioToVideoSession';
-const SIMLI_ICE_URL='https://api.simli.ai/getIceServer';
+const SIMLI_SESSION_URL='https://api.simli.ai/compose/token';
 
 function monthKey(date=new Date()){return date.toISOString().slice(0,7)}
 function now(){return Math.floor(Date.now()/1000)}
 function ready(env){return env?.SIMLI_AVATAR_ENABLED==='true'&&Boolean(String(env?.SIMLI_API_KEY||'').trim())&&Boolean(String(env?.SIMLI_FACE_ID||'').trim())}
 
-async function providerPost(url,body){
+async function providerPost(url,apiKey,body){
  const response=await fetch(url,{
   method:'POST',
-  headers:{'content-type':'application/json'},
+  headers:{'content-type':'application/json','x-simli-api-key':apiKey},
   body:JSON.stringify(body),
   signal:AbortSignal.timeout(15000)
  });
@@ -96,29 +95,25 @@ export async function handleTikTokLiveAvatar(request,env){
 
   let session;
   try{
-   session=await providerPost(SIMLI_SESSION_URL,{
-    apiKey:String(env.SIMLI_API_KEY),
-    faceId:String(env.SIMLI_FACE_ID),
-    handleSilence:false,
-    maxSessionLength:MAX_SESSION_SECONDS,
-    maxIdleTime:MAX_IDLE_SECONDS
+   session=await providerPost(SIMLI_SESSION_URL,String(env.SIMLI_API_KEY),{
+    config:{
+     faceId:String(env.SIMLI_FACE_ID),
+     handleSilence:false,
+     maxSessionLength:MAX_SESSION_SECONDS,
+     maxIdleTime:MAX_IDLE_SECONDS,
+     audioInputFormat:'pcm16'
+    }
    });
    if(!session.ok||!session.data?.session_token){
     await env.DB.prepare("UPDATE tiktok_live_avatar_sessions SET state='failed',updated_at=? WHERE id=?").bind(now(),reservationId).run();
     return json({code:'SIMLI_SESSION_UNAVAILABLE',detail:'Simli did not issue a valid short-lived session. No avatar session was returned to the browser.'},502);
    }
 
-   const ice=await providerPost(SIMLI_ICE_URL,{apiKey:String(env.SIMLI_API_KEY)});
-   if(!ice.ok||!ice.data){
-    await env.DB.prepare("UPDATE tiktok_live_avatar_sessions SET state='failed',updated_at=? WHERE id=?").bind(now(),reservationId).run();
-    return json({code:'SIMLI_ICE_UNAVAILABLE',detail:'Simli did not return ICE configuration. The browser connection was not started.'},502);
-   }
-
    await env.DB.prepare("UPDATE tiktok_live_avatar_sessions SET state='issued',updated_at=? WHERE id=?").bind(now(),reservationId).run();
    return json({
     provider:'simli',
+    transport_mode:'livekit',
     session_token:session.data.session_token,
-    ice_config:ice.data,
     max_session_length_seconds:MAX_SESSION_SECONDS,
     max_idle_time_seconds:MAX_IDLE_SECONDS,
     reservation_id:reservationId,
