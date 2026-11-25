@@ -140,7 +140,7 @@ export default function TikTokLiveHost() {
         <div>
           <small>MAGNANIMOUS AI • TIKTOK LIVE HOST</small>
           <h1>Your AI host.<br /><em>Your message.</em></h1>
-          <p>Run a transparent AI co-host for Bible learning, education, and community Q&amp;A. Magnanimous AI writes the answers; your browser supplies the voice; OBS or TikTok LIVE Studio carries the picture and sound.</p>
+          <p>Run a transparent AI co-host for Bible learning, education, and community Q&amp;A. Magnanimous AI writes the answers; browser speech is the current voice fallback; a free local neural voice and a real-time avatar are being prepared as optional renderers. OBS or TikTok LIVE Studio carries the broadcast.</p>
         </div>
         <div className="noticeCard">
           <b>Important platform boundary</b>
@@ -230,6 +230,14 @@ export default function TikTokLiveHost() {
               <b className="techStatus">BEST NEXT AVATAR ADAPTER • NOT CONNECTED</b>
             </article>
 
+            <article className="techCard">
+              <span className="techTag">FREE LOCAL NEURAL VOICE • EXPERIMENTAL</span>
+              <h3>HeadTTS + Kokoro 82M</h3>
+              <p>An open-source, MIT-licensed browser TTS engine that can run locally through WebGPU or WASM. It produces PCM/WAV audio plus phoneme timing and viseme data for lip-sync. This is a promising no-per-minute-fee speech source for Magnanimous.</p>
+              <p className="techNote">The current model is English-only. Default audio is 24 kHz; Simli's documented PCM input is 16 kHz, so the integration needs a tested resampler. First model load uses memory, and the WASM fallback is much slower than WebGPU. Performance has not been tested on your computer.</p>
+              <div className="techLinks"><a href="https://github.com/DeepakWorld/HeadTTS" target="_blank" rel="noreferrer">Open-source project and docs</a><a href="https://met4citizen.github.io/HeadTTS/" target="_blank" rel="noreferrer">Browser demo</a><a href="https://www.npmjs.com/package/@met4citizen/headtts" target="_blank" rel="noreferrer">NPM package</a></div>
+              <b className="techStatus">FREE LOCAL OPTION • NOT CONNECTED</b>
+            </article>
             <article className="techCard recommended">
               <span className="techTag">RECOMMENDED NOW • NO NEW PROVIDER FEE</span>
               <h3>Magnanimous Native Host</h3>
@@ -277,7 +285,7 @@ export default function TikTokLiveHost() {
               <b className="techStatus">OPEN SOURCE • LOCAL CONTROL</b>
             </article>
           </div>
-          <div className="techDecision"><b>Best architecture for Magnanimous:</b> Magnanimous owns identity, memory, reasoning, moderation rules, and the final answer. Voice/avatar vendors only render the approved response. Keep native Magnanimous chat as the brain; trial Simli first as a low-cost avatar renderer once an approved TTS audio stream and server secret are ready. Tavus is the richer but materially more expensive alternate. Use Gemini Live only if its separate managed model is acceptable for the brain; keep GPT-Live voice sessions disabled until a usage cap and funding source are configured.</div>
+          <div className="techDecision"><b>Best architecture for Magnanimous:</b> Magnanimous owns identity, memory, reasoning, moderation rules, and the final answer. Voice/avatar vendors only render the approved response. Keep native Magnanimous chat as the brain; benchmark HeadTTS locally as the free neural voice, then feed its resampled PCM audio into Simli as the low-cost avatar renderer once the server secret and avatar ID are ready. Tavus is the richer but materially more expensive alternate. Use Gemini Live only if its separate managed model is acceptable for the brain; keep GPT-Live voice sessions disabled until a usage cap and funding source are configured.</div>
         </section>
         <div className="policy"><b>Important: TikTok Shop LIVE does not allow AI-generated voiceovers</b><p>TikTok Shop Philippines permits AIGC in compliant content generally, but its separate Unoriginal Content creator guidance explicitly says not to use AI-generated audio or narration in livestreams. Its Non-Interactive Content policy also warns against static/looping scenes and streams without sustained, real-time verbal interaction. For any TikTok Shop LIVE, use a real human voice and active live interaction; do not use this synthetic-voice host as the narrator.</p><p>For non-Shop ministry or educational streams, TikTok’s general AI disclosure rules still apply to realistic AI audio/video. Keep the AI identity disclosed, have a real operator present, answer viewers meaningfully, and verify the current in-app rules and account eligibility before broadcasting.</p><div className="techLinks"><a href="https://seller-ph.tiktok.com/university/essay?knowledge_id=7654197957084929" target="_blank" rel="noreferrer">Philippines Unoriginal Content policy</a><a href="https://seller-ph.tiktok.com/university/essay?from=policy&identity=1&knowledge_id=7654203686192897&role=1" target="_blank" rel="noreferrer">Non-Interactive LIVE policy</a><a href="https://seller-ph.tiktok.com/university/essay?default_language=en&identity=1&knowledge_id=7188082378639105" target="_blank" rel="noreferrer">AIGC policy</a></div></div>
         <div className="footLinks"><a href="/ai-chat">Magnanimous AI Chat</a><a href="/video-agents">Video Agents</a><a href="/social-hub">Connect Social Accounts</a></div>
