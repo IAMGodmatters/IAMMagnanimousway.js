@@ -43,6 +43,7 @@ export class LiveEventJournal{
     if(record?.version!==1)return null;
     if(record.kind==='event'&&record.event&&typeof record.event==='object')return record;
     if(record.kind==='ack'&&Array.isArray(record.keys))return record;
+    if(record.kind==='seen'&&Array.isArray(record.keys))return record;
     return null;
    }finally{plain.fill(0);}
   }catch{
@@ -79,9 +80,10 @@ export class LiveEventJournal{
  }
  sizeBytes(){return fs.existsSync(this.filePath)?fs.statSync(this.filePath).size:0;}
  needsCompaction(){return this.sizeBytes()>Math.floor(this.maxBytes*0.5);}
- compact(events){
-  if(!Array.isArray(events))throw new TypeError('Compaction requires the remaining live-event queue.');
+ compact(events,seenKeys=[]){
+  if(!Array.isArray(events)||!Array.isArray(seenKeys))throw new TypeError('Compaction requires the remaining event queue and deduplication keys.');
   const records=events.map(event=>({kind:'event',event}));
+  for(let i=0;i<seenKeys.length;i+=100)records.push({kind:'seen',keys:seenKeys.slice(i,i+100)});
   const lines=records.map(record=>this.encode(record));
   const payload=lines.join('\n')+(lines.length?'\n':'');
   if(Buffer.byteLength(payload,'utf8')>this.maxBytes)throw new Error('The remaining event queue is larger than the recovery journal limit.');
