@@ -96,6 +96,8 @@ export default function TikTokLiveHost() {
 
   function queueGameMoment(moment: string) {
     setTopic('Gaming & Interactive');
+    setGameEventType('moment');
+    setGameContext(moment);
     setViewerComment('[OPERATOR GAME MOMENT] ' + moment + '. React as a disclosed AI co-host, keep commentary friendly, and invite viewers to predict or vote on what happens next.');
     setNotice('Game moment added. This is an operator-entered cue; automatic game-screen capture is not connected yet.');
   }
