@@ -11,13 +11,14 @@ function clearSensitiveUi(){
  $('hostVoiceStatus').textContent='Voice stopped';$('hostVoiceStatus').className='status warning';
 }
 const state={modelReady:false,vaultUnlocked:false,projects:[],obsConnected:false,obsRecording:false,bridgeConnected:false,bridgeStatus:'disconnected',bridgeJournalWarning:false,pendingBridgeCommands:[],lastHostEvent:null,pendingLiveDelivery:null,hostSectionIndex:0};
-const hostBroadcast=typeof BroadcastChannel==='function'?new BroadcastChannel('magnanimous-host-v1'):null;
 async function api(path,options={}){
  const response=await fetch(path,{...options,cache:'no-store',headers:{'content-type':'application/json',...(options.headers||{})}});
  const data=await response.json().catch(()=>({detail:'The local service returned an invalid response.'}));
  if(!response.ok){const error=new Error(data.detail||'The local operation failed.');error.status=response.status;throw error;}
  return data;
 }
+function publishHostAvatar(state){api('/api/avatar/state',{method:'POST',body:JSON.stringify(state)}).catch(()=>{});}
+
 function message(id,text,kind='info'){const el=$(id);el.textContent=text;el.className='message '+kind;}
 function updateControls(){
  $('generateButton').disabled=!$('prompt').value.trim();
@@ -248,17 +249,17 @@ function speakHostLine(){
  if(!('speechSynthesis' in window)||typeof SpeechSynthesisUtterance==='undefined'){message('hostMessage','This browser/device does not provide speech synthesis. Use a separately licensed local voice engine.','error');return;}
  window.speechSynthesis.cancel();
  const utterance=new SpeechSynthesisUtterance(text);
- hostBroadcast?.postMessage({type:'line',text});
+ publishHostAvatar({type:'line',text});
  utterance.rate=1;utterance.pitch=1;utterance.volume=1;
  const selectedVoice=$('hostVoiceSelect').value;
  if(selectedVoice){const voice=window.speechSynthesis.getVoices().find(item=>item.name===selectedVoice);if(voice)utterance.voice=voice;}
- utterance.onstart=()=>{hostBroadcast?.postMessage({type:'speaking'});$('hostStageStatus').textContent='Speaking';$('hostVoiceStatus').textContent='Device voice active';$('hostVoiceStatus').className='status ready';$('hostAvatar').classList.add('host-speaking');};
- utterance.onend=()=>{hostBroadcast?.postMessage({type:'stopped'});$('hostStageStatus').textContent='Ready for the next line';$('hostAvatar').classList.remove('host-speaking');};
- utterance.onerror=()=>{hostBroadcast?.postMessage({type:'stopped'});$('hostStageStatus').textContent='Voice playback stopped';$('hostAvatar').classList.remove('host-speaking');message('hostMessage','The device voice could not complete playback.','warning');};
+ utterance.onstart=()=>{publishHostAvatar({type:'speaking'});$('hostStageStatus').textContent='Speaking';$('hostVoiceStatus').textContent='Device voice active';$('hostVoiceStatus').className='status ready';$('hostAvatar').classList.add('host-speaking');};
+ utterance.onend=()=>{publishHostAvatar({type:'stopped'});$('hostStageStatus').textContent='Ready for the next line';$('hostAvatar').classList.remove('host-speaking');};
+ utterance.onerror=()=>{publishHostAvatar({type:'stopped'});$('hostStageStatus').textContent='Voice playback stopped';$('hostAvatar').classList.remove('host-speaking');message('hostMessage','The device voice could not complete playback.','warning');};
  window.speechSynthesis.speak(utterance);
 }
 function stopHostVoice(){
- if('speechSynthesis' in window)window.speechSynthesis.cancel();hostBroadcast?.postMessage({type:'stopped'});
+ if('speechSynthesis' in window)window.speechSynthesis.cancel();publishHostAvatar({type:'stopped'});
  $('hostStageStatus').textContent='Voice stopped';$('hostAvatar').classList.remove('host-speaking');
 }
 function addHostLineToNotes(){
