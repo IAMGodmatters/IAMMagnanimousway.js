@@ -74,6 +74,21 @@ export default function LiveEventBridgePage() {
     setNotice('Disconnected from the companion.');
   }
 
+  async function revokePair() {
+    setError('');setNotice('');
+    try {
+      const pairId=new URL(endpoint).pathname.split('/').pop()||'';
+      const response=await fetch('/api/live-bridge/revoke',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({pairId}),cache:'no-store'});
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(data.detail||'The bridge pairing could not be revoked.');
+      clientRef.current?.disconnect();clientRef.current=null;
+      setCompanionToken('');setPairingToken('');setStatus('disconnected');
+      setNotice(data.revoked?'Pairing revoked. The local companion has been disconnected.':'No active pair remained to revoke.');
+    } catch(cause) {
+      setError(cause instanceof Error?cause.message:'The pairing could not be revoked.');
+    }
+  }
+
   function sendCommand() {
     const commandId=globalThis.crypto?.randomUUID?.()||String(Date.now());
     const payload=action==='scene.set'?{sceneName:target}
@@ -120,6 +135,7 @@ export default function LiveEventBridgePage() {
         <div className="actions">
           <button onClick={connect} disabled={!endpoint.trim()||pairingToken.trim().length<16}>Connect companion</button>
           <button className="secondary" onClick={disconnect} disabled={status==='disconnected'}>Disconnect</button>
+          <button className="secondary" onClick={revokePair} disabled={!endpoint.trim()}>Revoke pairing</button>
         </div>
         <p className="hint">Remote connections require WSS. The browser and local companion use different temporary tokens. Tokens stay in memory and are never saved in browser storage or placed in the URL.</p>
       </section>
