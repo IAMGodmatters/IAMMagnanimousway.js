@@ -165,6 +165,8 @@ async function refreshLiveQueue(){
   state.liveStorageReady=Boolean(data.durable&&data.storageReady);
   $('liveQueueStatus').textContent=state.liveStorageReady
    ?data.queued+' queued · '+data.capacity+' capacity · encrypted on this USB'
+   :data.recovery?.authenticationError?'Encrypted LIVE journal could not be verified · original data preserved'
+   :data.recovery?.storageError?'Encrypted LIVE journal is unavailable · check this USB drive'
    :data.locked?'Unlock the encrypted workspace to protect LIVE event data':'Event storage paused · check this USB drive';
   $('liveQueueStatus').className='status '+(state.liveStorageReady?(data.queued?'ready':''):'warning');
   updateControls();
