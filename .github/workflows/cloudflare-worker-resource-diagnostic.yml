@@ -1,0 +1,105 @@
+name: Magnanimous Cloudflare Worker Resource Diagnostic
+
+on:
+  workflow_dispatch:
+    inputs:
+      hours:
+        description: "Lookback window in hours (1–168)"
+        required: false
+        default: "24"
+  schedule:
+    - cron: "17 0 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-worker-resource-diagnostic
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Query read-only Workers Analytics
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          HOURS_INPUT: ${{ inputs.hours || '24' }}
+        run: |
+          set -euo pipefail
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Missing CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID repository secret."
+            exit 1
+          fi
+          HOURS="$HOURS_INPUT"
+          if ! [[ "$HOURS" =~ ^[0-9]+$ ]] || [ "$HOURS" -lt 1 ] || [ "$HOURS" -gt 168 ]; then
+            echo "::error::Lookback must be an integer from 1 to 168 hours."
+            exit 1
+          fi
+          END="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          START="$(date -u -d "$HOURS hours ago" +%Y-%m-%dT%H:%M:%SZ)"
+          QUERY='query WorkerResourceDiagnosis($accountTag: string!, $start: Time!, $end: Time!) {
+            viewer {
+              accounts(filter: {accountTag: $accountTag}) {
+                workersInvocationsAdaptive(
+                  limit: 1000
+                  filter: {datetime_geq: $start, datetime_leq: $end}
+                  orderBy: [datetime_ASC]
+                ) {
+                  dimensions { datetime scriptName status }
+                  sum { requests errors }
+                  quantiles { cpuTimeP50 cpuTimeP99 }
+                }
+              }
+            }
+          }'
+          RESPONSE="$(curl --silent --show-error --fail-with-body https://api.cloudflare.com/client/v4/graphql \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H 'Content-Type: application/json' \
+            --data "$(jq -n --arg query "$QUERY" --arg account "$CLOUDFLARE_ACCOUNT_ID" --arg start "$START" --arg end "$END" '{query:$query,variables:{accountTag:$account,start:$start,end:$end}}')")" || {
+              echo "::error::Cloudflare GraphQL request failed. Verify the token has Account Analytics:Read permission."
+              exit 1
+            }
+          if [ "$(echo "$RESPONSE" | jq -r '(.errors // []) | length')" -gt 0 ]; then
+            echo "$RESPONSE" | jq -r '.errors[] | "Cloudflare Analytics error: " + (.message // "unknown")'
+            echo "::error::Cloudflare rejected the analytics query. Grant Account Analytics:Read to CLOUDFLARE_API_TOKEN (or use a dedicated read-only token). No Worker settings were changed."
+            exit 1
+          fi
+          echo "$RESPONSE" | jq -e '.data.viewer.accounts[0].workersInvocationsAdaptive' >/dev/null
+          echo "Lookback: $START through $END (UTC)"
+          echo "Counts are adaptive dataset estimates, not exact raw invocation totals."
+          echo "$RESPONSE" | jq -r '
+            .data.viewer.accounts[0].workersInvocationsAdaptive
+            | group_by(.dimensions.scriptName)
+            | map({
+                worker: (.[0].dimensions.scriptName // "unknown"),
+                requests_estimate: (map(.sum.requests // 0) | add),
+                errors_estimate: (map(.sum.errors // 0) | add),
+                cpu_p50_ms_max: (map(.quantiles.cpuTimeP50 // 0) | max),
+                cpu_p99_ms_max: (map(.quantiles.cpuTimeP99 // 0) | max),
+                statuses: (group_by(.dimensions.status) | map({status: .[0].dimensions.status, rows: length, requests_estimate: (map(.sum.requests // 0) | add), errors_estimate: (map(.sum.errors // 0) | add)}))
+              })
+            | sort_by(.errors_estimate) | reverse
+            | .[]
+            | "WORKER: \(.worker) requests≈\(.requests_estimate) errors≈\(.errors_estimate) cpuP50max=\(.cpu_p50_ms_max)ms cpuP99max=\(.cpu_p99_ms_max)ms statuses=\(.statuses)"
+          '
+          echo "No Worker configuration, deployment, plan, or billing setting was changed."
+          echo "The exceededResources status combines resource-limit outcomes; correlate it with Worker logs/CPU profiles before attributing every event to CPU."
+
+      - name: Save diagnostic evidence
+        if: always()
+        run: |
+          mkdir -p artifacts
+          {
+            echo "Cloudflare Worker Resource Diagnostic"
+            echo "UTC: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "This workflow is read-only. Inspect the run logs for worker-level estimates and CPU quantiles."
+          } > artifacts/cloudflare-worker-resource-diagnostic.txt
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: cloudflare-worker-resource-diagnostic
+          path: artifacts/cloudflare-worker-resource-diagnostic.txt
+          retention-days: 14
