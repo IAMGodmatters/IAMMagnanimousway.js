@@ -19,10 +19,10 @@ function isAllowedLocalEventUrl(value: string): boolean {
   try {
     const url = new URL(value);
     if (!['ws:', 'wss:'].includes(url.protocol) || url.username || url.password) return false;
-    const host = url.hostname.toLowerCase().replace(/^\\[|\\]$/g, '');
+    const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, '');
     return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host.endsWith('.local')
-      || /^10\\./.test(host) || /^192\\.168\\./.test(host)
-      || /^172\\.(1[6-9]|2\\d|3[01])\\./.test(host);
+      || /^10\./.test(host) || /^192\.168\./.test(host)
+      || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
   } catch {
     return false;
   }
