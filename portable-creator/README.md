@@ -67,13 +67,16 @@ The portable host now exposes a bounded, loopback-only event intake for future a
 
 - `GET /api/live/events/status` reports queue depth, capacity and deduplication state.
 - `POST /api/live/events/ingest` accepts a protocol-version-1 event in a JSON `event` field.
-- `POST /api/live/events/consume` returns a bounded batch (1–50 events) for the local operator/host runtime.
+- `POST /api/live/events/consume` claims a bounded batch (1–50 events) under a short delivery lease.
+- `POST /api/live/events/ack` acknowledges exact provider-scoped event keys only after the local UI has rendered the batch successfully.
 
-Browser intake accepts operator-entered `manual` events only; provider-labelled events must arrive through a future authenticated local companion adapter. The runtime validates provider, event type, event ID and timestamp; removes control characters; bounds viewer text and tags; strips credential-like tag names; deduplicates provider event IDs; applies a per-provider rate limit; and returns backpressure when the queue is full. It does not silently discard already accepted events.
+Browser intake accepts operator-entered `manual` events only; provider-labelled events must arrive through a future authenticated local companion adapter. The runtime validates provider, event type, event ID and timestamp; removes control characters; bounds viewer text and tags; strips credential-like tag names; deduplicates provider event IDs; applies a per-provider rate limit; and returns backpressure when the queue is full.
 
-Queue and deduplication state are transient in memory and are cleared when the host exits. They are not a substitute for durable project storage. The endpoints are a local event-processing foundation only: no TikTok, Facebook, YouTube, Twitch or game adapter is connected by this change. Public broadcasting, account control, moderation and payments are not exposed.
+Accepted events are appended to a USB-rooted JSONL journal and synchronously flushed before the intake endpoint confirms acceptance. Pending events and deduplication keys survive host restarts. Delivery uses expiring leases: if the application closes before acknowledgement, an event becomes available again after the lease expires. Acknowledgements are idempotent and use provider-scoped keys so two providers can safely use the same event ID. The journal compacts atomically after it reaches its size threshold, retains a bounded deduplication window, and recovers complete records if the final write is truncated. If storage fails, new intake pauses and returns an explicit storage error rather than pretending the event was saved.
 
-The portable UI includes an operator-controlled event review panel to pull and inspect a bounded batch. Browser intake accepts manual events only; it cannot impersonate a TikTok, Facebook, YouTube, Twitch or game adapter. The portable runtime QA suite copies this module into an isolated temporary host and exercises event ingestion, duplicate rejection, spoofed-provider rejection and bounded consumption. Unit tests cover validation, sanitization, rate limits, queue backpressure and cleanup.
+The endpoints are a local event-processing foundation only: no TikTok, Facebook, YouTube, Twitch or game adapter is connected by this change. Public broadcasting, account control, moderation and payments are not exposed.
+
+The portable UI includes an operator-controlled event review panel. It acknowledges a batch only after rendering it; unacknowledged events are retried after their lease expires. Browser intake accepts manual events only; it cannot impersonate a TikTok, Facebook, YouTube, Twitch or game adapter. Unit and runtime QA cover restart recovery, duplicate suppression, leases, acknowledgements, provider-scoped IDs, truncated-tail recovery, spoofed-provider rejection and queue backpressure.
 
 ## Broadcast and Zoom boundaries
 
