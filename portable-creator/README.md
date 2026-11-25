@@ -9,7 +9,8 @@ A Windows-first, offline-first creator workspace designed to live on an external
 - Creates scripts, lessons, livestream rundowns, storyboards and creative outlines without sending prompts to a cloud API.
 - Stores saved projects in an AES-256-GCM encrypted vault on the removable drive. The passphrase is not stored by the app; the key is held in memory only while the vault is unlocked.
 - Does not download binaries or models, enable telemetry, open a LAN listener, run shell commands from the browser, or connect to external providers.
-- Can optionally start a portable OBS installation. OBS scene files and media paths still need a portability review.
+- Can optionally start a portable OBS installation. The local creator includes an authenticated OBS WebSocket v5 control adapter for scene listing, scene switching and recording start/stop. OBS must already be installed/running with its WebSocket server enabled; this adapter does not install OBS or drivers.
+- OBS pairing is restricted to `127.0.0.1:4455`. The password is sent only to the local host for the OBS challenge handshake, is not stored in the vault or browser storage, and is not forwarded to any cloud service. Scene switching and recording require explicit operator clicks.
 
 This is a working local creator foundation, not yet the finished cross-platform USB broadcast appliance. The first Windows build requires compatible runtime binaries and an optional, separately licensed model to be placed in the documented folders.
 
@@ -50,6 +51,15 @@ Magnanimous-Portable/
 6. Write content locally and choose **Save encrypted to USB** to persist a project.
 
 To open the optional portable OBS folder, start the launcher with `-LaunchOBS`. The application itself does not install device drivers or elevate privileges.
+
+## Local OBS control
+
+1. Start OBS Studio on the same computer.
+2. In OBS, open **Tools → WebSocket Server Settings** and enable the WebSocket server (OBS Studio 28+ includes it). Keep the default local port `4455`; use a password and enter it only into the local Magnanimous OBS panel.
+3. Connect, refresh scenes, select a scene and explicitly switch. Start/stop recording only when you choose.
+4. Disconnect when finished. If OBS is not installed or the WebSocket server is disabled, the panel reports that it cannot connect; it does not install software or expose OBS to the network.
+
+This control path is local production only. It does not start a public livestream, connect a social account, or join Zoom. A real OBS hardware smoke test remains required before describing it as operational on a particular computer.
 
 ## Broadcast and Zoom boundaries
 
