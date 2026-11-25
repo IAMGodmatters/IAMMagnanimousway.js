@@ -50,6 +50,8 @@
     "automaticTiktokLiveChat": "not enabled without an approved and documented integration",
     "localObsControl": "Implemented as an optional authenticated loopback OBS WebSocket adapter; requires OBS Studio with WebSocket Server enabled and hardware verification",
     "onlineCompanion": "requires authenticated Magnanimous account, deployed relay and Node.js 22+",
-    "remoteCommandApproval": "local approval required; OBS scene.set only is executable"
+    "remoteCommandApproval": "local approval required; OBS scene.set only is executable",
+    "encryptedEventJournal": "AES-256-GCM with a subkey derived from the unlocked workspace key; bounded to 8 MiB with atomic compaction",
+    "eventRecovery": "requires workspace unlock; locking clears in-memory queue and disconnects online bridge; legacy plaintext journal is migrated on successful unlock"
   }
 }
