@@ -2,7 +2,7 @@ const $=id=>document.getElementById(id);
 const generationRequests=new Set();
 function cancelGenerationRequests(){for(const controller of generationRequests)controller.abort();generationRequests.clear();}
 function clearSensitiveUi(){
- for(const id of ['passphrase','prompt','outputTitle','output','hostTopic','hostScript','hostLine','liveTestText','obsPassword','bridgeToken']){const element=$(id);if(element)element.value='';}
+ for(const id of ['passphrase','prompt','outputTitle','output','hostTopic','hostScript','hostLine','liveTestText','obsPassword','bridgeToken','gameIntegrationToken']){const element=$(id);if(element)element.value='';}
  $('liveEventList').replaceChildren();
  for(const id of ['liveEventMessage','hostMessage','creatorMessage','bridgeMessage','obsMessage'])message(id,'');
  state.lastHostEvent=null;state.hostSectionIndex=0;
@@ -36,6 +36,8 @@ function updateControls(){
  $('obsStopRecordButton').disabled=!state.obsConnected||!state.obsRecording;
  $('livePullButton').disabled=!state.vaultUnlocked;
  $('liveSendButton').disabled=!state.vaultUnlocked||!$('liveTestText').value.trim();
+ $('gameIntegrationTokenButton').disabled=!state.vaultUnlocked;
+ $('gameIntegrationTokenHideButton').disabled=!$('gameIntegrationToken').value;
  $('bridgeConnectButton').disabled=!state.vaultUnlocked||state.bridgeJournalWarning||state.bridgeConnected||state.bridgeStatus==='connecting';
  $('bridgeDisconnectButton').disabled=state.bridgeStatus==='disconnected';
 }
@@ -344,6 +346,22 @@ async function reviewBridgeCommand(commandId,approved){
   await refreshBridgeStatus();await refreshObsStatus();
  }catch(error){message('bridgeMessage',error.message,'error');}
 }
+async function revealGameIntegrationToken(){
+ if(!state.vaultUnlocked){message('liveEventMessage','Unlock the encrypted workspace first.','warning');return;}
+ $('gameIntegrationTokenButton').disabled=true;
+ try{
+  const data=await api('/api/integrations/game/token');
+  $('gameIntegrationToken').value=String(data.token||'');
+  $('gameIntegrationToken').type='text';
+  message('liveEventMessage','Temporary local game token revealed. Copy it only into a trusted local integration. It is revoked when you lock or close this Creator.','success');
+ }catch(error){message('liveEventMessage',error.message,'error');}
+ finally{updateControls();}
+}
+function hideGameIntegrationToken(){
+ $('gameIntegrationToken').value='';
+ $('gameIntegrationToken').type='password';
+ updateControls();
+}
 async function sendLocalEvent(){
  const text=$('liveTestText').value.trim(),type=$('liveTestType').value;
  if(!text){message('liveEventMessage','Enter a short test event first.','error');return;}
@@ -387,7 +405,7 @@ async function unlock(){
  finally{$('unlockButton').disabled=false;}
 }
 async function lock(){
- const privateFields=['prompt','outputTitle','output','hostTopic','hostScript','hostLine','liveTestText','bridgeToken'];
+ const privateFields=['prompt','outputTitle','output','hostTopic','hostScript','hostLine','liveTestText','bridgeToken','gameIntegrationToken'];
  const hasUnsaved=privateFields.some(id=>$(id).value.trim())||Boolean(state.lastHostEvent)||state.pendingBridgeCommands.length>0;
  if(hasUnsaved&&!window.confirm('Locking clears unsaved drafts, host dialogue and private viewer data from this screen. Save anything you need first. Continue?'))return;
  cancelGenerationRequests();stopHostVoice();
@@ -475,6 +493,8 @@ $('hostLoadDraftButton').addEventListener('click',loadCreatorDraftIntoHost);
 $('bridgeConnectButton').addEventListener('click',connectBridge);
 $('bridgeDisconnectButton').addEventListener('click',disconnectBridge);
 $('liveSendButton').addEventListener('click',sendLocalEvent);
+$('gameIntegrationTokenButton').addEventListener('click',revealGameIntegrationToken);
+$('gameIntegrationTokenHideButton').addEventListener('click',hideGameIntegrationToken);
 $('liveTestText').addEventListener('input',updateControls);
 $('obsSceneSelect').addEventListener('change',updateControls);
 $('unlockButton').addEventListener('click',unlock);
