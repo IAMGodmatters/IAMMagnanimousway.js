@@ -35,6 +35,12 @@ test('fails closed when the audit has no account ID or token', async () => {
   await assert.rejects(runAudit({}, async () => { throw new Error('must not fetch'); }), /CLOUDFLARE_ACCOUNT_ID is missing/);
   await assert.rejects(runAudit({ CLOUDFLARE_ACCOUNT_ID: 'account-123' }, async () => { throw new Error('must not fetch'); }), /analytics token is missing/);
 });
+test('rejects a general Cloudflare API token instead of accepting broader permissions', async () => {
+  await assert.rejects(
+    runAudit({ CLOUDFLARE_ACCOUNT_ID: 'account-123', CLOUDFLARE_API_TOKEN: 'general-token' }, async () => { throw new Error('must not fetch'); }),
+    /analytics token is missing/,
+  );
+});
 test('does not treat an empty response as proof that no Cloudflare errors occurred', async () => {
   const mockFetch = async () => new Response(JSON.stringify({ data: { viewer: { accounts: [{ workersInvocationsAdaptive: [] }] } } }), { status: 200 });
   await assert.rejects(runAudit({ CLOUDFLARE_ACCOUNT_ID: 'account-123', CLOUDFLARE_ANALYTICS_READ_TOKEN: 'test-token' }, mockFetch, Date.parse('2026-11-25T00:00:00Z')), /not proof of zero usage/);
