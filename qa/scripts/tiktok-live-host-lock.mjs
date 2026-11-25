@@ -19,7 +19,7 @@ const checks = [
   ['host clearly discloses AI identity', host.includes('AI-GENERATED HOST') && host.includes('Do not pretend to be a human')],
   ['host truthfully discloses that this is not a TikTok broadcast', host.includes('It is not a TikTok broadcast')],
   ['viewer comments are manually entered by the operator', host.includes('Paste or type a viewer') && host.includes('LIVE HUMAN MODERATION')],
-  ['TikTok Shop LIVE prohibits AI-generated audio/narration in host guidance', host.includes('does not allow AI-generated voiceovers') && host.includes('do not use AI-generated audio or narration') && host.includes('real human voice')],
+  ['TikTok Shop LIVE prohibits AI-generated audio/narration in host guidance', host.includes('does not allow AI-generated voiceovers') && host.includes('not to use AI-generated audio or narration') && host.includes('real human voice')],
   ['TikTok AIGC permission is distinguished from the separate LIVE narration rule', host.includes('permits AIGC in compliant content generally') && host.includes('TikTok Shop LIVE')],
   ['frontier technology acquisition panel is visible', host.includes('The newest live-host technology you can acquire') && host.includes('frontier')],
   ['Gemini Live Avatar enterprise and reconnect limits are disclosed', host.includes('Gemini Enterprise') && host.includes('context compression') && host.includes('session resumption')],
