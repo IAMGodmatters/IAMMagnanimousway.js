@@ -104,3 +104,4 @@ No model weights or third-party binaries should be bundled until the exact versi
 - [ ] Failure fallback, disconnect and provider outage tested.
 - [ ] No-cost/free-tier behavior and paid-cost guard verified.
 - [ ] Human operator approval and action receipts confirmed.
+\n## Show director policy boundary\n\nThe first Magnanimous director release is intentionally a recommendation engine, not an autonomous actor. It maps normalized events to short-lived, typed review cues; it does not execute actions. The local UI renders cue text using text nodes, never HTML injection. Viewer-provided text is displayed as data and is not embedded into the director's instruction prompt. The next phase can add an explicit operator approval surface and receipts, then separately authorized speech/overlay/scene adapters.\n
