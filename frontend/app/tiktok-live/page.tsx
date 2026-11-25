@@ -489,7 +489,7 @@ export default function TikTokLiveHost() {
     };
     socket.onerror = () => {
       setStreamerBotStatus('CONNECTION ERROR');
-      setNotice('Could not reach Streamer.bot. Confirm it is running, bound to localhost/private LAN, and allowed by the computer firewall.');
+      setNotice('Could not reach Streamer.bot. Confirm it is running, bound to localhost/private LAN, allow the browser's Local Network/Loopback permission prompt, and check the computer firewall.');
     };
     socket.onclose = event => {
       window.clearTimeout(helloTimer);
@@ -647,7 +647,7 @@ export default function TikTokLiveHost() {
               <button type="button" className="stop" onClick={disconnectStreamerBot} disabled={streamerBotStatus === 'DISCONNECTED'}>DISCONNECT</button>
               <span className={streamerBotStatus.startsWith('LIVE') ? 'eventState on' : 'eventState'}>{streamerBotStatus}</span>
             </div>
-            <p className="directorNote">In Streamer.bot: Servers/Clients → WebSocket Server; bind to 127.0.0.1, enable Authentication and Enforce, set a password, and keep the port off the public Internet. The password is used only for the local challenge and is not saved, sent to Magnanimous, or stored in Cloudflare.</p>
+            <p className="directorNote">In Streamer.bot: Servers/Clients → WebSocket Server; bind to 127.0.0.1, enable Authentication and Enforce, set a password, and keep the port off the public Internet. The password is used only for the local challenge and is not saved, sent to Magnanimous, or stored in Cloudflare. Chrome may ask for Local Network or Loopback access before the socket opens; approve that browser permission for this site. If you blocked it earlier, change this site's Local Network/Loopback permission in browser site settings.</p>
             <div className="eventFeed">
               <div className="eventFeedHead"><b>Recent local app/game events</b><button type="button" onClick={() => setStreamerBotEvents([])}>Clear events</button></div>
               {streamerBotEvents.length === 0 ? <p className="directorNote">No local events received yet. Connect Streamer.bot, start an approved game/app or test trigger, and events will appear here.</p> : streamerBotEvents.map(item => <article key={item.id}><small>{item.source} • {item.type}</small><p>{item.summary}</p><button type="button" className="secondary" onClick={() => useStreamerBotEvent(item)}>USE FOR LIVE REACTION</button></article>)}
