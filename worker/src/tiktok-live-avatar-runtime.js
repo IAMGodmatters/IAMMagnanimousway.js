@@ -30,13 +30,7 @@ async function authorizedOwner(request,env){
 }
 
 async function usage(env,tenantId,month){
- const stamp=now();
- // An issued session is provider-limited to 120 seconds plus a 30-second idle
- // window. Reclaim its live slot after that bound, but keep it counted in the
- // monthly reservation total so repeated start/stop calls cannot bypass quotas.
- await env.DB.prepare(
-  "UPDATE tiktok_live_avatar_sessions SET state='expired',updated_at=? WHERE tenant_id=? AND usage_month=? AND state IN ('pending','issued') AND updated_at<?"
- ).bind(stamp,tenantId,month,stamp-MAX_SESSION_SECONDS-MAX_IDLE_SECONDS-30).run();
+ // Usage reads are deliberately read-only to protect the D1 daily write budget.
  const row=await env.DB.prepare(
   "SELECT COUNT(*) AS issued FROM tiktok_live_avatar_sessions WHERE tenant_id=? AND usage_month=? AND state IN ('pending','issued','ended','expired','failed')"
  ).bind(tenantId,month).first();
@@ -98,7 +92,7 @@ export async function handleTikTokLiveAvatar(request,env){
    SELECT ?,?,?,?,?, 'pending',?,?
    WHERE (
     SELECT COUNT(*) FROM tiktok_live_avatar_sessions
-    WHERE tenant_id=? AND usage_month=? AND state IN ('pending','issued','ended','expired')
+    WHERE tenant_id=? AND usage_month=? AND state IN ('pending','issued','ended','expired','failed')
    ) < ?
    RETURNING id
   `).bind(
@@ -112,9 +106,9 @@ export async function handleTikTokLiveAvatar(request,env){
 
   let session;
   try{
-   // The installed browser SDK is SimliClient's WebRTC P2P path. Its current
-   // Current LiveKit contract requires a short-lived Compose token only.
-   // P2P ICE is not used; the account API key never leaves this Worker.
+   // The optional SimliClient browser integration will use the SDK's default
+   // LiveKit transport. Mint only a short-lived Compose token; no P2P ICE lookup.
+   // The account API key never leaves this Worker.
    const apiKey=String(env.SIMLI_API_KEY);
    // Official simli-client 3.2.0 uses LiveKit by default. Its documented
    // /compose/token API takes a flat SimliSessionRequest; no P2P ICE lookup.
