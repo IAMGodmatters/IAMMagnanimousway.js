@@ -32,8 +32,8 @@ test('normalizes only bounded game events and strips control characters', () => 
     eventId: 'game-round-1',
     occurredAt: new Date().toISOString(),
     gameName: 'Minecraft',
-    actorName: '<player>\\u0000',
-    text: 'Round started\\u0000'
+    actorName: '<player>\u0000',
+    text: 'Round started\u0000'
   });
   assert.equal(event.provider, 'game');
   assert.equal(event.type, 'game.event');
