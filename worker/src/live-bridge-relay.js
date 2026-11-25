@@ -1,7 +1,8 @@
 const TOKEN_TTL_MS = 10 * 60 * 1000;
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const MAX_MESSAGE_BYTES = 16 * 1024;
-const PROVIDERS = new Set(['tiktok','facebook','youtube','twitch','zoom','obs','game','browser']);
+const PROVIDERS = new Set(['manual','tiktok','facebook','youtube','twitch','zoom','obs','game','browser']);
+const LOCAL_COMPANION_PROVIDERS = ['manual','obs','game','browser'];
 const EVENT_TYPES = new Set(['chat.message','chat.deleted','audience.follow','audience.subscription','audience.gift','audience.poll_vote','game.event','obs.scene_changed','system.notice']);
 const EVENT_ID = /^[A-Za-z0-9._:-]{1,160}$/;
 const CONTROL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
@@ -26,6 +27,7 @@ export function normalizeRelayEvent(input,now=Date.now()){
  if(event.type==='chat.message'&&!event.text)return null;
  return event;
 }
+export function isRelayProviderAllowed(provider,allowedProviders=[]){return Array.isArray(allowedProviders)&&allowedProviders.includes(provider);}
 export function normalizeRelayCommand(input){
  if(!input||typeof input!=='object'||Array.isArray(input)||typeof input.commandId!=='string'||!EVENT_ID.test(input.commandId))return null;
  if(input.action==='scene.set'){const sceneName=clean(input.sceneName,80);return sceneName?{commandId:input.commandId,action:'scene.set',sceneName}:null;}
@@ -45,10 +47,10 @@ export class MagnanimousLiveBridgeRoom {
   const url=new URL(request.url);
   if(url.pathname==='/internal/create'&&request.method==='POST'){
    const body=await request.json().catch(()=>null);
-   if(!body||typeof body.pairId!=='string'||typeof body.tenantId!=='string'||typeof body.userId!=='string'||typeof body.browserHash!=='string'||typeof body.companionHash!=='string'||!Number.isFinite(body.pairExpiresAt))return json({detail:'Invalid bridge room initialization.'},400);
+   if(!body||typeof body.pairId!=='string'||typeof body.tenantId!=='string'||typeof body.userId!=='string'||typeof body.browserHash!=='string'||typeof body.companionHash!=='string'||!Number.isFinite(body.pairExpiresAt)||!Array.isArray(body.allowedProviders))return json({detail:'Invalid bridge room initialization.'},400);
    const existing=await this.state.storage.get('pair');
    if(existing)return json({detail:'This bridge room already exists.'},409);
-   await this.state.storage.put('pair',{pairId:body.pairId,tenantId:body.tenantId,userId:body.userId,browserHash:body.browserHash,companionHash:body.companionHash,pairExpiresAt:body.pairExpiresAt,sessionExpiresAt:0,createdAt:Date.now()});
+   await this.state.storage.put('pair',{pairId:body.pairId,tenantId:body.tenantId,userId:body.userId,browserHash:body.browserHash,companionHash:body.companionHash,allowedProviders:body.allowedProviders.filter(provider=>LOCAL_COMPANION_PROVIDERS.includes(provider)),pairExpiresAt:body.pairExpiresAt,sessionExpiresAt:0,createdAt:Date.now()});
    await this.state.storage.setAlarm(body.pairExpiresAt);
    return json({ok:true});
   }
@@ -83,7 +85,7 @@ export class MagnanimousLiveBridgeRoom {
    const sessionExpiresAt=pair.sessionExpiresAt||Date.now()+SESSION_TTL_MS;
    if(Date.now()>sessionExpiresAt){ws.close(4001,'Bridge session expired');return;}
    if(!pair.sessionExpiresAt){pair.sessionExpiresAt=sessionExpiresAt;await this.state.storage.put('pair',pair);await this.state.storage.setAlarm(sessionExpiresAt);}
-   ws.serializeAttachment({...attachment,role,authenticated:true,seen:[],sessionExpiresAt});
+   ws.serializeAttachment({...attachment,role,authenticated:true,allowedProviders:pair.allowedProviders||[],seen:[],sessionExpiresAt});
    const existing=this.findRole(role,ws);
    if(existing){try{existing.close(4001,'Replaced by a newer connection');}catch{}}
    const browser=this.findRole('browser'),companion=this.findRole('companion');
@@ -96,6 +98,7 @@ export class MagnanimousLiveBridgeRoom {
   if(attachment.role==='companion'&&envelope?.kind==='event'&&envelope.protocolVersion===1){
    const event=normalizeRelayEvent(envelope.event);
    if(!event){ws.send(JSON.stringify({kind:'error',code:'INVALID_EVENT',message:'The event did not pass validation.'}));return;}
+   if(!isRelayProviderAllowed(event.provider,attachment.allowedProviders)){ws.send(JSON.stringify({kind:'error',code:'PROVIDER_NOT_AUTHORIZED',message:'This provider has no approved adapter for this bridge pair.'}));return;}
    const seen=Array.isArray(attachment.seen)?attachment.seen:[];
    const key=event.provider+':'+event.eventId;
    if(seen.includes(key))return;
@@ -145,7 +148,7 @@ export async function handleLiveBridgeRelay(request,env,user=null){
   const pairExpiresAt=Date.now()+TOKEN_TTL_MS;
   const id=env.LIVE_BRIDGE_ROOMS.idFromName(pairId);
   const stub=env.LIVE_BRIDGE_ROOMS.get(id);
-  const created=await stub.fetch('https://bridge.internal/internal/create',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({pairId,tenantId:String(user.tenant_id),userId:String(user.id),browserHash:await hash(browserToken),companionHash:await hash(companionToken),pairExpiresAt})});
+  const created=await stub.fetch('https://bridge.internal/internal/create',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({pairId,tenantId:String(user.tenant_id),userId:String(user.id),browserHash:await hash(browserToken),companionHash:await hash(companionToken),allowedProviders:LOCAL_COMPANION_PROVIDERS,pairExpiresAt})});
   if(!created.ok)return json({detail:'The secure bridge room could not be created.'},502);
   return json({ok:true,pairId,endpoint:url.origin+'/api/live-bridge/ws/'+pairId,browserToken,companionToken,expiresAt:new Date(pairExpiresAt).toISOString(),sessionHours:12},201);
  }
