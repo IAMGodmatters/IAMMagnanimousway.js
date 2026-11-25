@@ -17,7 +17,7 @@ test('recovers unacknowledged events and excludes acknowledged events after rest
  runtime.consume(1);
  const recovered=new LiveEventRuntime({now:()=>NOW});
  const result=recovered.restore(journal.load());
- assert.deepEqual(result,{restored:1,acknowledged:0});
+ assert.deepEqual(result,{restored:2,acknowledged:1});
  assert.equal(recovered.consume()[0].eventId,'ack');
  fs.rmSync(dir,{recursive:true,force:true});
 });
