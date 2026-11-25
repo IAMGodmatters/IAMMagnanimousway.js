@@ -29,7 +29,8 @@ export class LiveEventJournal{
   }finally{key.fill(0);}
  }
  decode(envelope){
-  if(envelope?.version!==1||envelope?.cipher!=='aes-256-gcm'||typeof envelope.iv!=='string'||typeof envelope.tag!=='string'||typeof envelope.ciphertext!=='string')return null;
+  if(envelope?.version!==1)return null;
+  if(envelope?.cipher!=='aes-256-gcm'||typeof envelope.iv!=='string'||typeof envelope.tag!=='string'||typeof envelope.ciphertext!=='string')throw new Error('The live-event journal uses an unsupported or incomplete encryption format.');
   const iv=Buffer.from(envelope.iv,'hex'),tag=Buffer.from(envelope.tag,'hex'),ciphertext=Buffer.from(envelope.ciphertext,'base64');
   if(iv.length!==12||tag.length!==16||ciphertext.length>MAX_RECORD_BYTES)throw new Error('The encrypted live-event journal contains an invalid record.');
   const key=this.getKey();
@@ -51,13 +52,30 @@ export class LiveEventJournal{
  load(){
   if(!fs.existsSync(this.filePath))return[];
   const source=fs.readFileSync(this.filePath,'utf8'),records=[];
+  let legacyDetected=false;
   for(const line of source.split(/\r?\n/)){
    if(!line||Buffer.byteLength(line,'utf8')>MAX_RECORD_BYTES)continue;
    let envelope;try{envelope=JSON.parse(line);}catch{continue;}
+   if(envelope?.version===1&&!envelope.cipher&&(envelope.kind==='event'||envelope.kind==='ack')){
+    legacyDetected=true;
+    if(envelope.kind==='event'&&envelope.event&&typeof envelope.event==='object')records.push({version:1,kind:'event',event:envelope.event});
+    else if(envelope.kind==='ack'&&Array.isArray(envelope.keys))records.push({version:1,kind:'ack',keys:envelope.keys});
+    continue;
+   }
    const record=this.decode(envelope);
    if(record)records.push(record);
   }
+  if(legacyDetected)this.rewriteEncrypted(records);
   return records;
+ }
+ rewriteEncrypted(records){
+  const lines=records.map(record=>this.encode(record));
+  const payload=lines.join('\n')+(lines.length?'\n':'');
+  if(Buffer.byteLength(payload,'utf8')>this.maxBytes)throw new Error('Legacy live-event journal is larger than the encrypted recovery limit. Export it before continuing.');
+  const temporary=this.filePath+'.migrate-'+crypto.randomBytes(6).toString('hex');
+  const fd=fs.openSync(temporary,'wx');
+  try{fs.writeSync(fd,payload,null,'utf8');fs.fsyncSync(fd);}finally{fs.closeSync(fd);}
+  try{fs.renameSync(temporary,this.filePath);}catch(error){try{fs.unlinkSync(temporary);}catch{}throw error;}
  }
  append(records){
   if(!Array.isArray(records)||records.length===0)return;
