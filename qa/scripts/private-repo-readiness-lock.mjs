@@ -1,6 +1,22 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
+const repo = process.env.GITHUB_REPOSITORY || '';
+const visibilityToken = process.env.GITHUB_RULESET_READ_TOKEN || '';
+assert(/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo), 'GITHUB_REPOSITORY must identify the authoritative repository.');
+assert(visibilityToken, 'GITHUB_RULESET_READ_TOKEN is required to verify private repository visibility; the lock fails closed without it.');
+const visibilityResponse = await fetch('https://api.github.com/repos/' + repo, {
+  headers: {
+    Accept: 'application/vnd.github+json',
+    Authorization: 'Bearer ' + visibilityToken,
+    'X-GitHub-Api-Version': '2022-11-28',
+    'User-Agent': 'magnanimous-private-repository-readiness-lock',
+  },
+});
+assert(visibilityResponse.ok, 'GitHub repository visibility could not be verified; check the read-only repository token.');
+const visibility = await visibilityResponse.json();
+assert.equal(visibility.private, true, 'The authoritative source repository must be private before proprietary releases can pass this lock.');
+
 const read = path => fs.readFileSync(new URL('../../' + path, import.meta.url), 'utf8');
 const page = read('frontend/app/local-bridge/page.tsx');
 const bootstrap = read('frontend/public/downloads/local-bridge/bootstrap.ps1');
