@@ -68,7 +68,7 @@ For ministry and educational LIVE sessions, keep the AI identity clearly disclos
 - Explains Gemini Live Avatar's enterprise access, session compression and reconnect requirements, and the tradeoff of using another model as the conversation brain.
 - Shows GPT-Live 1.1's active/standby pricing and makes clear it is a voice engine rather than an avatar.
 - Recommends OBS as the local media bridge and keeps Magnanimous as the intelligence layer.
-- Corrects the earlier overbroad policy wording: TikTok Shop Philippines allows some AIGC content generally, but its creator policy separately says not to use AI-generated audio or narration in livestreams. The UI now clearly blocks synthetic narration as a TikTok Shop LIVE recommendation.
+- Corrects the earlier overbroad policy wording: TikTok Shop Philippines' Non-Interactive Content article lists computer-generated voices as an example when they replace sustained real-time interaction; it is not a blanket ban on all AI voice. The UI now recommends a visibly present, human-led Shop LIVE with Magnanimous as an assistant.
 - Keeps manual comment relay and truthful preview-only status. No unofficial TikTok comment scraper, hidden session access, or automatic LIVE launch is added.
 - Does not install a paid SDK, store a provider key, start a paid session, or enable an automatic charge.
 
@@ -79,7 +79,7 @@ For ministry and educational LIVE sessions, keep the AI identity clearly disclos
 3. **Add tested audio conversion.** HeadTTS's default output is 24 kHz; Simli's current browser SDK expects mono PCM16 16 kHz chunks for `sendAudioData`. Resample and validate the byte format before passing audio to the avatar SDK.
 4. **Connect Magnanimous output to the avatar.** Magnanimous generates the answer, local TTS renders the approved words, and Simli renders the face. Preserve a clear AI disclosure and keep all provider credentials on the server.
 5. **Add operator controls and usage reporting.** Explicit start/stop, two-minute provider session ceiling, visible 40-minute monthly reservation budget, and local disconnect. Current gateway reservations are conservative launch caps—not an exact meter of streamed seconds.
-6. **Run an end-to-end test** with a short, non-sensitive script through the browser, OBS Virtual Camera, TikTok's account-authorized desktop workflow, and separately selected audio. Do not use synthetic narration for TikTok Shop LIVE.
+6. **Run an end-to-end test** with a short, non-sensitive script through the browser, OBS Virtual Camera, TikTok's account-authorized desktop workflow, and separately selected audio. For Shop LIVE, keep a real human host present and interacting; do not use a static synthetic avatar/voice as a replacement for sustained live engagement.
 7. **Keep TikTok comments manual** until an official documented API permission actually permits live-chat access. The currently documented LIVE developer scope only covers partner-creator daily statistics.
 
 ## Primary sources
@@ -104,7 +104,6 @@ For ministry and educational LIVE sessions, keep the AI identity clearly disclos
 - HeyGen LiveAvatar official Help Center plan detail: https://help.heygen.com/en/articles/12758516-introducing-liveavatar
 - TikTok for Developers, API scopes reference: https://developers.tiktok.com/docs/en/tiktok-api-scopes
 - TikTok Shop Philippines, AI-Generated Content (AIGC): https://seller-ph.tiktok.com/university/essay?default_language=en&identity=1&knowledge_id=7188082378639105
-- TikTok Shop Philippines, Unoriginal Content (AI-generated audio/narration in LIVEs): https://seller-ph.tiktok.com/university/essay?knowledge_id=7654197957084929
 - TikTok Shop Philippines, Non-Interactive Content: https://seller-ph.tiktok.com/university/essay?from=policy&identity=1&knowledge_id=7654203686192897&role=1
 - TikTok, About AI-generated content: https://support.tiktok.com/en/using-tiktok/creating-videos/ai-generated-content
 - TikTok Shop Philippines, LIVE Manager / desktop and OBS Virtual Camera: https://seller-ph.tiktok.com/university/essay?knowledge_id=8100940387305232
