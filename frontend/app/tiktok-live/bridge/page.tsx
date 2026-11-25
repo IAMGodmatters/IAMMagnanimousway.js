@@ -146,8 +146,8 @@ export default function LiveEventBridgePage() {
         <div className="panelHead"><div><small>01 • PAIR YOUR COMPANION</small><h2>Secure connection</h2></div><span className={connected?'online':'offline'}>{status.toUpperCase()}</span></div>
         <button onClick={createPair} disabled={pairBusy}>{pairBusy?'Creating secure pair…':'Create secure pair'}</button>
         <p className="hint">Sign in to your Magnanimous account first. A pair is valid for ten minutes and the connected session lasts up to twelve hours.</p>
-        <label>Companion WebSocket address
-          <input value={endpoint} onChange={e=>setEndpoint(e.target.value)} placeholder="wss://your-approved-companion.example/events" autoComplete="off" />
+        <label>Magnanimous secure WebSocket address
+          <input value={endpoint} onChange={e=>setEndpoint(e.target.value)} placeholder="wss://iammagnanimousway.com/api/live-bridge/ws/00000000-0000-4000-8000-000000000000" autoComplete="off" />
         </label>
         <label>Browser pairing token (optional manual entry)
           <input value={pairingToken} onChange={e=>setPairingToken(e.target.value)} type="password" placeholder="Use Create secure pair above or paste a browser token" autoComplete="new-password" />
