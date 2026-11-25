@@ -37,8 +37,8 @@ test('only approved production commands pass the relay contract',()=>{
 });
 
 test('pair endpoint requires an authenticated tenant and returns two distinct short-lived role tokens',async()=>{
- let initialized;
- const env={LIVE_BRIDGE_ROOMS:{
+ let initialized,rateKey;
+ const env={LIVE_BRIDGE_PAIR_LIMITER:{limit:async({key})=>{rateKey=key;return{success:true};}},LIVE_BRIDGE_ROOMS:{
   idFromName:id=>id,
   get:id=>({fetch:async(_url,init)=>{initialized=JSON.parse(init.body);return Response.json({ok:true});}})
  }};
@@ -55,12 +55,21 @@ test('pair endpoint requires an authenticated tenant and returns two distinct sh
  assert.notEqual(data.browserToken,data.companionToken);
  assert.ok(data.expiresAt);
  assert.equal(initialized.tenantId,'tenant-1');
+ assert.equal(rateKey,'tenant-1:user-1');
  assert.equal(initialized.userId,'user-1');
  assert.deepEqual(initialized.allowedProviders,['manual','obs','game','browser']);
  assert.notEqual(initialized.browserHash,data.browserToken);
  assert.notEqual(initialized.companionHash,data.companionToken);
 });
 
+
+
+test('pair endpoint enforces the per-user pairing rate limit',async()=>{
+ const env={LIVE_BRIDGE_PAIR_LIMITER:{limit:async()=>({success:false})},LIVE_BRIDGE_ROOMS:{idFromName:id=>id,get:()=>({fetch:async()=>Response.json({ok:true})})}};
+ const request=new Request('https://iammagnanimousway.com/api/live-bridge/pair',{method:'POST'});
+ const response=await handleLiveBridgeRelay(request,env,{id:'user-1',tenant_id:'tenant-1'});
+ assert.equal(response.status,429);
+});
 
 test('Durable Object room stores only token hashes and rejects duplicate initialization',async()=>{
  const values=new Map();
