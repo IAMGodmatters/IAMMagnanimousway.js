@@ -4,11 +4,15 @@ import os from 'node:os';
 import path from 'node:path';
 import net from 'node:net';
 import http from 'node:http';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const SOURCE=path.join(ROOT,'portable-creator');
+const eventTests=spawnSync(process.execPath,['--test',path.join(SOURCE,'live-event-runtime.test.mjs')],{encoding:'utf8'});
+if(eventTests.status!==0){console.error(eventTests.stdout||'');console.error(eventTests.stderr||'');throw new Error('Portable live-event runtime unit tests failed.');}
+console.log(eventTests.stdout.trim());
+
 const temp=fs.mkdtempSync(path.join(os.tmpdir(),'magnanimous-portable-'));
 const target=path.join(temp,'portable');
 fs.mkdirSync(path.join(target,'app'),{recursive:true});
