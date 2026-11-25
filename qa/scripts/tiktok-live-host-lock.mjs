@@ -41,7 +41,7 @@ const checks = [
   ['Simli sessions are provider-capped at 120 seconds and 30 idle seconds', avatarRuntime.includes('MAX_SESSION_SECONDS=120') && avatarRuntime.includes('MAX_IDLE_SECONDS=30')],
   ['Simli free-tier usage has a conservative 20-session reservation ceiling', avatarRuntime.includes('MAX_MONTHLY_SESSIONS=20') && avatarRuntime.includes('SIMLI_MONTHLY_TRIAL_LIMIT')),
   ['Simli D1 ledger does not store credentials or provider session tokens', avatarMigration.includes('session_seconds') && !/api_key|session_token/i.test(avatarMigration)),
-  ['Simli session route is wired into Worker operations', operations.includes('handleTikTokLiveAvatar') && operations.includes('/api/tiktok-live/avatar')],
+  ['Simli session route is wired into Worker operations', operations.includes('handleTikTokLiveAvatar') && operations.includes('await handleTikTokLiveAvatar(request,env)')],
   ['Simli secret route bypasses the standalone API proxy', security.includes("url.pathname.startsWith('/api/tiktok-live/avatar/')")],
   ['Simli SDK and live TTS stream are disclosed as not yet connected', host.includes('browser SDK and a real TTS audio track are still required')],
   ['frontier research records explicit TikTok Shop AI narration prohibition', research.includes('not to use AI-generated audio or narration in livestreams') && research.includes('Unoriginal Content')],
