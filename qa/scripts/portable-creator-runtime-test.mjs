@@ -133,6 +133,12 @@ try{
  assert.deepEqual(JSON.parse((await avatarReader.next()).slice(6)),{type:'line',text:'Hello avatar'},'Avatar stream must sanitize host text before broadcasting.');
  assert.equal((await post(origin+'/api/avatar/state',origin,{type:'speaking'})).status,200);
  assert.deepEqual(JSON.parse((await avatarReader.next()).slice(6)),{type:'speaking'});
+ const reconnectStream=await fetch(origin+'/api/avatar/events');
+ assert.equal(reconnectStream.status,200,'A restarted OBS browser source should reconnect.');
+ const reconnectReader=makeSseReader(reconnectStream.body.getReader());
+ assert.deepEqual(JSON.parse((await reconnectReader.next()).slice(6)),{type:'line',text:'Hello avatar'},'A reconnecting avatar must recover the current caption.');
+ assert.deepEqual(JSON.parse((await reconnectReader.next()).slice(6)),{type:'speaking'},'A reconnecting avatar must recover the current speaking state.');
+ await reconnectReader.cancel();
  assert.equal((await post(origin+'/api/avatar/state',origin,{type:'stopped'})).status,200);
  assert.deepEqual(JSON.parse((await avatarReader.next()).slice(6)),{type:'stopped'});
  const tokenReveal=await post(origin+'/api/integrations/game/token',origin,{});
