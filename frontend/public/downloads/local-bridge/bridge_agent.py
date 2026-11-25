@@ -20,14 +20,16 @@ import subprocess
 import sys
 import tempfile
 import time
+import wave
+import ctypes
 import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
 
-APP_DIR = Path.home() / ".magnanimous"
+APP_DIR = Path(os.environ.get("MAGNANIMOUS_LOCAL_BRIDGE_HOME") or (Path.home() / ".magnanimous")).expanduser().resolve()
 CONFIG_PATH = APP_DIR / "local-bridge.json"
-BROWSER_DIR = APP_DIR / "browser-profiles"
+BROWSER_DIR = Path(os.environ.get("MAGNANIMOUS_BROWSER_PROFILE_HOME") or (APP_DIR / "browser-profiles")).expanduser().resolve()
 MAX_OUTPUT = 250_000
 DEFAULT_SERVER = "https://iammagnanimousway.com"
 BROWSER_SESSIONS = {}
@@ -41,7 +43,7 @@ BASE_CAPS = {
     "system_info","health","workspace_list","read_file","search_text","heimdall_status",
     "android_emulator_status","android_emulator_list",
     "git_status","git_diff","git_log","web_fetch",
-    "apply_patch","git_create_branch","git_commit","desktop_tools_status",
+    "apply_patch","git_create_branch","git_commit","desktop_tools_status","pocket_tts_status",
 }
 APPROVED_DESKTOP_TOOLS = {
     "7zip": ["7z", "7z.exe"],
@@ -961,6 +963,9 @@ def capabilities(config):
     caps = set(BASE_CAPS)
     if shutil.which("git"):
         caps.update({"git_status","git_diff","git_log","apply_patch","git_create_branch","git_commit"})
+    pocket_root = _pocket_tts_root()
+    if _pocket_tts_executable(pocket_root) and (platform.system().lower() != "windows" or _pocket_tts_avx2_available()):
+        caps.add("pocket_tts_generate")
     if _approved_tool_path("ffprobe"):
         caps.update({"media_probe", "media_catalog"})
     if _approved_tool_path("ffmpeg"):
@@ -2047,6 +2052,237 @@ def action_ncs2_video_scan(config, payload):
     return _run_ncs2(config, ["video-scan", "--video", str(video), "--model", str(model), "--threshold", str(threshold), "--every", str(every), "--max-frames", str(max_frames)], timeout=900)
 
 
+def _pocket_tts_root():
+    """Prefer the large F: data drive; fall back to D: and never write to C:."""
+    configured = str(os.environ.get("MAGNANIMOUS_POCKET_TTS_HOME") or "").strip()
+    if os.name == "nt":
+        if configured:
+            candidates = [Path(configured).expanduser()]
+        else:
+            candidates = [Path("F:/MagnanimousData/PocketTTS"), Path("D:/MagnanimousData/PocketTTS")]
+        for candidate in candidates:
+            try:
+                root = candidate.resolve()
+                if str(root.drive).lower() == "c:":
+                    continue
+                drive_root = Path(root.anchor) if root.anchor else None
+                if drive_root and drive_root.exists():
+                    return root
+            except OSError:
+                continue
+        return None
+    root = Path(configured).expanduser() if configured else Path.home() / ".magnanimous" / "pocket-tts"
+    try:
+        return root.resolve()
+    except OSError:
+        return None
+
+
+def _pocket_tts_executable(root):
+    if not root:
+        return None
+    configured = str(os.environ.get("MAGNANIMOUS_POCKET_TTS_BIN") or "").strip()
+    candidates = [Path(configured).expanduser()] if configured else [
+        root / "pocket-tts.exe",
+        root / "bin" / "pocket-tts.exe",
+        root / "pocket-tts",
+        root / "bin" / "pocket-tts",
+    ]
+    for candidate in candidates:
+        try:
+            resolved = candidate.resolve()
+            if _within(resolved, root) and resolved.is_file() and resolved.name.lower() in {"pocket-tts.exe", "pocket-tts"}:
+                return resolved
+        except OSError:
+            continue
+    return None
+
+
+def _pocket_tts_avx2_available():
+    """Ask the OS for AVX2 support; never guess from a CPU model name."""
+    if os.name == "nt":
+        try:
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            check = kernel32.IsProcessorFeaturePresent
+            check.argtypes = [ctypes.c_uint]
+            check.restype = ctypes.c_int
+            return bool(check(40))  # PF_AVX2_INSTRUCTIONS_AVAILABLE
+        except Exception:
+            return False
+    if platform.system().lower() == "linux":
+        try:
+            cpuinfo = Path("/proc/cpuinfo").read_text(encoding="utf-8", errors="ignore").lower()
+            return any(" avx2 " in f" {line.strip()} " for line in cpuinfo.splitlines() if line.startswith("flags"))
+        except OSError:
+            return False
+    if platform.system().lower() == "darwin" and platform.machine().lower() in {"arm64", "aarch64"}:
+        return True  # Native Apple Silicon binary does not require AVX2.
+    return False
+
+
+def action_pocket_tts_status(config, payload):
+    root = _pocket_tts_root()
+    executable = _pocket_tts_executable(root)
+    avx2 = _pocket_tts_avx2_available()
+    installed = bool(executable)
+    machine = platform.machine().lower()
+    native_arch = machine in {"arm64", "aarch64"}
+    x86_arch = machine in {"amd64", "x86_64"}
+    compatible = bool(installed and ((x86_arch and avx2) or native_arch))
+    version = ""
+    if executable and compatible:
+        try:
+            result = subprocess.run(
+                [str(executable), "--version"],
+                capture_output=True, text=True, timeout=5, shell=False,
+                env={
+                    **os.environ,
+                    "HF_HOME": str(root / "cache"),
+                    "HF_HUB_CACHE": str(root / "cache" / "hub"),
+                    "HUGGINGFACE_HUB_CACHE": str(root / "cache" / "hub"),
+                    "XDG_CACHE_HOME": str(root / "cache"),
+                    "OMP_NUM_THREADS": "2",
+                    "MKL_NUM_THREADS": "2",
+                    "OPENBLAS_NUM_THREADS": "2",
+                },
+            )
+            version = ((result.stdout or result.stderr or "").strip())[:200]
+        except Exception:
+            version = "Installed; version could not be queried."
+    return {
+        "ok": True,
+        "provider": "pocket-tts-local",
+        "installed": installed,
+        "compatible": bool(compatible),
+        "cpu_architecture": platform.machine(),
+        "cpu_model": platform.processor()[:200],
+        "avx2_available": avx2,
+        "native_architecture_supported": bool(native_arch or x86_arch),
+        "required_instruction_set": "AVX2 on Windows x86-64 v4.0.1 build",
+        "binary": executable.name if executable else "",
+        "version": version,
+        "root_ready": bool(root),
+        "recommended_windows_root": str(root),
+        "model_cache": "cache",
+        "output_directory": "output",
+        "cache_must_not_use_c_drive": os.name == "nt",
+        "supported_languages": ["english", "french_24l", "german", "german_24l", "portuguese", "portuguese_24l", "italian", "italian_24l", "spanish", "spanish_24l"],
+        "default_voice": "alba",
+        "status": "ready" if compatible else ("cpu_incompatible" if installed and x86_arch and not avx2 else ("not_installed" if not installed else "not_supported")),
+        "read_only": True,
+    }
+
+
+def action_pocket_tts_generate(config, payload):
+    root = _pocket_tts_root()
+    executable = _pocket_tts_executable(root)
+    if not root:
+        raise RuntimeError("Pocket TTS storage is not configured. On Windows, connect F: (preferred) or D: (fallback), or configure MAGNANIMOUS_POCKET_TTS_HOME to a non-C: data drive.")
+    if not executable:
+        raise RuntimeError("Pocket TTS v4.0.1 is not installed in the approved F: preferred / D: fallback data directory. Use the hardware check before installing the official binary.")
+    machine = platform.machine().lower()
+    native_arch = machine in {"arm64", "aarch64"}
+    x86_arch = machine in {"amd64", "x86_64"}
+    if not ((x86_arch and _pocket_tts_avx2_available()) or native_arch):
+        raise RuntimeError("This Pocket TTS binary requires a supported x86-64 AVX2 or native ARM64 CPU. The local computer did not pass the architecture/CPU check, so generation was stopped safely.")
+    text = str(payload.get("text") or "").strip()
+    if not text or len(text) > 800 or "\x00" in text:
+        raise RuntimeError("Speech text must contain 1–800 characters.")
+    language = str(payload.get("language") or "english").strip().lower()
+    allowed_languages = {
+        "english", "french_24l", "german", "german_24l", "portuguese",
+        "portuguese_24l", "italian", "italian_24l", "spanish", "spanish_24l"
+    }
+    if language not in allowed_languages:
+        raise RuntimeError("Unsupported Pocket TTS language. Filipino and Cebuano are not currently supported by this model.")
+    voice = str(payload.get("voice") or "alba").strip().lower()
+    allowed_voices = {
+        "english": {"alba", "anna", "azelma", "bill_boerst", "caro_davy", "charles", "cosette", "eponine", "eve", "fantine", "george", "jane", "jean", "javert", "marius", "mary", "michael", "paul", "peter_yearsley", "stuart_bell"},
+        "french_24l": {"estelle"},
+        "german": {"juergen"},
+        "german_24l": {"juergen"},
+        "portuguese": {"rafael"},
+        "portuguese_24l": {"rafael"},
+        "italian": {"giovanni"},
+        "italian_24l": {"giovanni"},
+        "spanish": {"lola"},
+        "spanish_24l": {"lola"},
+    }
+    voices_for_language = allowed_voices.get(language, set())
+    if voice not in voices_for_language:
+        raise RuntimeError("Choose a built-in voice for the selected language: alba (English), estelle (French), juergen (German), rafael (Portuguese), giovanni (Italian), or lola (Spanish).")
+    usage = shutil.disk_usage(root)
+    if usage.free < 1_500_000_000:
+        raise RuntimeError("Pocket TTS needs at least 1.5 GB free on the selected data drive before loading or downloading its model.")
+    output_dir = root / "output"
+    cache_dir = root / "cache"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    existing_audio_bytes = sum(
+        item.stat().st_size for item in output_dir.glob("magnanimous-*.wav") if item.is_file()
+    )
+    if existing_audio_bytes >= 250_000_000:
+        raise RuntimeError("Pocket TTS output reached its 250 MB local clip budget. Archive or remove old Magnanimous clips from the selected data-drive output folder before generating more.")
+    output = output_dir / f"magnanimous-{int(time.time())}-{os.urandom(4).hex()}.wav"
+    env = os.environ.copy()
+    env.update({
+        "HF_HOME": str(cache_dir),
+        "HF_HUB_CACHE": str(cache_dir / "hub"),
+        "HUGGINGFACE_HUB_CACHE": str(cache_dir / "hub"),
+        "XDG_CACHE_HOME": str(cache_dir),
+        "OMP_NUM_THREADS": "2",
+        "MKL_NUM_THREADS": "2",
+        "OPENBLAS_NUM_THREADS": "2",
+    })
+    argv = [
+        str(executable), "generate", "--text", text, "--voice", voice,
+        "--language", language, "--output-path", str(output), "--quiet", "--quantize"
+    ]
+    try:
+        result = subprocess.run(argv, capture_output=True, text=True, timeout=120, shell=False, env=env)
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError("Pocket TTS exceeded the 120-second clip generation limit.") from exc
+    if result.returncode != 0 or not output.is_file():
+        try:
+            if output.exists():
+                output.unlink()
+        except OSError:
+            pass
+        detail = (result.stderr or result.stdout or "Pocket TTS did not create an audio file.").strip()
+        raise RuntimeError(detail[-1600:])
+    try:
+        with wave.open(str(output), "rb") as audio:
+            channels = audio.getnchannels()
+            sample_rate = audio.getframerate()
+            frames = audio.getnframes()
+            duration = frames / max(1, sample_rate)
+            sample_width = audio.getsampwidth()
+        size = output.stat().st_size
+        if duration <= 0 or duration > 90 or size > 30_000_000 or channels not in (1, 2) or sample_rate < 16000 or sample_width not in (2, 4):
+            raise RuntimeError("Generated WAV failed its bounded audio format check.")
+    except Exception:
+        try:
+            output.unlink()
+        except OSError:
+            pass
+        raise
+    return {
+        "ok": True,
+        "provider": "pocket-tts-local",
+        "file_name": output.name,
+        "local_path": str(output),
+        "file_size_bytes": size,
+        "duration_seconds": round(duration, 2),
+        "sample_rate_hz": sample_rate,
+        "channels": channels,
+        "voice": voice,
+        "language": language,
+        "cache_on_data_drive": os.name != "nt" or str(cache_dir.drive).lower() != "c:",
+        "file_stays_local": True,
+        "note": "This is a local audio clip, not continuous streaming audio. Send it to OBS or a user-approved Streamer.bot action to play it live."
+    }
+
+
 HANDLERS = {
     "system_info": action_system_info,
     "health": action_health,
@@ -2054,6 +2290,8 @@ HANDLERS = {
     "read_file": action_read_file,
     "search_text": action_search_text,
     "desktop_tools_status": action_desktop_tools_status,
+    "pocket_tts_status": action_pocket_tts_status,
+    "pocket_tts_generate": action_pocket_tts_generate,
     "media_probe": action_media_probe,
     "media_catalog": action_media_catalog,
     "media_transcode_mp4": action_media_transcode_mp4,

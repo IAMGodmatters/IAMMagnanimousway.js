@@ -60,6 +60,104 @@ async function apiRequest(env,method,path,body){
  }catch(error){return{ok:false,status:502,data:{detail:'Cloudflare API request failed.',error:String(error?.message||error).slice(0,500)}};}
 }
 
+const WORKER_ANALYTICS_WINDOW_LIMITS={min:1,max:24};
+
+const WORKER_ANALYTICS_QUERY=`query WorkerResourceMetrics($accountTag: string!, $datetimeStart: Time!, $datetimeEnd: Time!) {
+ viewer {
+  accounts(filter: {accountTag: $accountTag}) {
+   workersInvocationsAdaptive(limit: 1000, filter: {
+    datetime_geq: $datetimeStart,
+    datetime_leq: $datetimeEnd
+   }) {
+    sum { requests errors subrequests }
+    quantiles { cpuTimeP50 cpuTimeP99 }
+    dimensions { datetime scriptName status }
+   }
+  }
+ }
+}`;
+
+function workerAnalyticsToken(env){
+ return String(env.CLOUDFLARE_ANALYTICS_READ_TOKEN||'').trim();
+}
+
+async function readWorkerAnalytics(env,hoursValue='24'){
+ const accountTag=String(env.CLOUDFLARE_PLATFORM_ACCOUNT_ID||'').trim();
+ const auth=workerAnalyticsToken(env);
+ const hours=Math.max(WORKER_ANALYTICS_WINDOW_LIMITS.min,Math.min(WORKER_ANALYTICS_WINDOW_LIMITS.max,Math.floor(Number(hoursValue)||24)));
+ if(!accountTag)return json({code:'CLOUDFLARE_ACCOUNT_ID_REQUIRED',detail:'Set CLOUDFLARE_PLATFORM_ACCOUNT_ID before requesting Worker analytics.'},409);
+ if(!auth)return json({code:'CLOUDFLARE_ANALYTICS_TOKEN_REQUIRED',detail:'The dedicated Cloudflare analytics secret is not configured. Add CLOUDFLARE_ANALYTICS_READ_TOKEN with Account Analytics:Read permission; the platform/deployment token is deliberately not reused.'},503);
+ const end=new Date(),start=new Date(end.getTime()-hours*60*60*1000);
+ try{
+  const response=await fetch('https://api.cloudflare.com/client/v4/graphql',{
+   method:'POST',
+   headers:{Authorization:`Bearer ${auth}`,Accept:'application/json','content-type':'application/json'},
+   body:JSON.stringify({
+    query:WORKER_ANALYTICS_QUERY,
+    variables:{
+     accountTag,
+     datetimeStart:start.toISOString(),
+     datetimeEnd:end.toISOString()
+    }
+   }),
+   signal:AbortSignal.timeout(12000)
+  });
+  const payload=await response.json().catch(()=>null);
+  if(response.status===401||response.status===403){
+   return json({code:'CLOUDFLARE_ANALYTICS_PERMISSION_REQUIRED',detail:'Cloudflare rejected the analytics read. Verify the token has Account Analytics:Read; this request does not need Worker edit or deploy permissions.'},403);
+  }
+  if(!response.ok||!payload)return json({code:'CLOUDFLARE_ANALYTICS_UNAVAILABLE',detail:'Cloudflare Analytics GraphQL did not return a valid response.',provider_status:response.status},502);
+  if(Array.isArray(payload.errors)&&payload.errors.length){
+   const message=String(payload.errors[0]?.message||'Analytics query was rejected.').slice(0,300);
+   return json({code:'CLOUDFLARE_ANALYTICS_QUERY_REJECTED',detail:message},502);
+  }
+  const groups=payload?.data?.viewer?.accounts?.[0]?.workersInvocationsAdaptive||[];
+  const workers=new Map();
+  for(const item of groups){
+   const name=String(item?.dimensions?.scriptName||'unknown');
+   const status=String(item?.dimensions?.status||'unknown');
+   const key=name+'|'+status;
+   const current=workers.get(key)||{script_name:name,status,requests:0,errors:0,subrequests:0,peak_cpu_time_p50_us:0,peak_cpu_time_p99_us:0,buckets:0};
+   current.requests+=Number(item?.sum?.requests||0);
+   current.errors+=Number(item?.sum?.errors||0);
+   current.subrequests+=Number(item?.sum?.subrequests||0);
+   current.peak_cpu_time_p50_us=Math.max(current.peak_cpu_time_p50_us,Number(item?.quantiles?.cpuTimeP50||0));
+   current.peak_cpu_time_p99_us=Math.max(current.peak_cpu_time_p99_us,Number(item?.quantiles?.cpuTimeP99||0));
+   current.buckets+=1;
+   workers.set(key,current);
+  }
+  const rows=[...workers.values()].sort((a,b)=>b.errors-a.errors||b.peak_cpu_time_p99_us-a.peak_cpu_time_p99_us);
+  const total=rows.reduce((out,row)=>({requests:out.requests+row.requests,errors:out.errors+row.errors,subrequests:out.subrequests+row.subrequests}),{requests:0,errors:0,subrequests:0});
+  const resourceRows=rows.filter(row=>row.status.toLowerCase()==='exceededresources');
+  return json({
+   source:'Cloudflare Workers Analytics GraphQL',
+   window_hours:hours,
+   started_at:start.toISOString(),
+   ended_at:end.toISOString(),
+   totals:total,
+   workers:rows,
+   exceeded_resources:{
+    estimated_requests:resourceRows.reduce((n,row)=>n+row.requests,0),
+    status:'exceededResources',
+    caveat:'Cloudflare groups Worker error 1102 and request-limit error 1027 under exceededResources in this dataset. This result does not prove every row is a CPU-limit event.'
+   },
+   sampled_or_estimated:true,
+   cpu_quantile_unit:'microseconds',
+   rows_returned:groups.length,
+   rows_truncated:groups.length>=1000,
+   secrets_exposed:false,
+   mutations_performed:false,
+   caveats:[
+    'Adaptive analytics may return sampled/estimated counts; do not treat them as exact billing or alert totals.',
+    'The dataset reports status and CPU quantiles by Worker script/time bucket, not the exact HTTP route or stack trace.',
+    'Use Worker logs or a bounded profiler after identifying the affected script; do not enable broad tracing or change the Cloudflare plan blindly.'
+   ]
+  });
+ }catch(error){
+  return json({code:'CLOUDFLARE_ANALYTICS_READ_FAILED',detail:'Cloudflare analytics could not be fetched. Verify account read permission and try again.',error:String(error?.message||error).slice(0,220)},502);
+ }
+}
+
 async function audit(env,user,eventType,detail='',actionId=null,reqId=''){
  try{await env.DB.prepare('INSERT INTO magnanimous_cloudflare_audit(tenant_id,user_id,action_id,event_type,detail,request_id,created_at) VALUES(?,?,?,?,?,?,?)')
   .bind(String(user.tenant_id),String(user.id),actionId,String(eventType),String(detail).slice(0,1500),String(reqId).slice(0,160),now()).run();}catch(_){}
@@ -121,7 +219,7 @@ export async function handleMagnanimousCloudflare(request,env){
  const {denied,user}=await ownerContext(request,env);if(denied)return denied;
 
  if(request.method==='GET'&&(path==='/api/cloudflare'||path==='/api/cloudflare/overview'||path==='/api/cloudflare/capabilities')){
-  return json({...magnanimousCloudflareSummary(env),credential_names:['CLOUDFLARE_PLATFORM_API_TOKEN','CLOUDFLARE_PLATFORM_ACCOUNT_ID','CLOUDFLARE_PLATFORM_ZONE_ID'],credential_values_exposed:false});
+  return json({...magnanimousCloudflareSummary(env),credential_names:['CLOUDFLARE_PLATFORM_API_TOKEN','CLOUDFLARE_ANALYTICS_READ_TOKEN','CLOUDFLARE_PLATFORM_ACCOUNT_ID','CLOUDFLARE_PLATFORM_ZONE_ID'],credential_values_exposed:false});
  }
  if(request.method==='GET'&&path==='/api/cloudflare/mcp')return json({recommended:'https://mcp.cloudflare.com/mcp',servers:CLOUDFLARE_MANAGED_MCP_SERVERS,provider_tokens_exposed:false});
  if(request.method==='GET'&&path==='/api/cloudflare/skills')return json({skills:CLOUDFLARE_AGENT_SKILLS,source:'official Cloudflare Skills catalog',provider_internal_only:true});
@@ -139,6 +237,9 @@ export async function handleMagnanimousCloudflare(request,env){
  if(request.method==='GET'&&path==='/api/cloudflare/token-verify'){
   const result=await apiRequest(env,'GET','/user/tokens/verify');
   return json({configured:Boolean(token(env)),verification:result.data,secrets_exposed:false},result.status);
+ }
+ if(request.method==='GET'&&path==='/api/cloudflare/worker-analytics'){
+  return readWorkerAnalytics(env,url.searchParams.get('hours')||'24');
  }
  if(request.method==='GET'&&path==='/api/cloudflare/account'){
   const id=String(env.CLOUDFLARE_PLATFORM_ACCOUNT_ID||'').trim();if(!id)return json({detail:'CLOUDFLARE_PLATFORM_ACCOUNT_ID is not configured.'},409);

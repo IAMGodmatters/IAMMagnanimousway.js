@@ -26,6 +26,7 @@ import {handleMagnanimousCompanion} from './magnanimous-companion-runtime.js';
 import {handlePaymentLinkBilling,augmentBillingResponse} from './payment-link-runtime.js';
 import {handleSelfHealing,scheduledSelfHealing} from './self-healing-runtime.js';
 import {handlePremiumVoice} from './premium-voice-runtime.js';
+import {handleTikTokLiveAvatar} from './tiktok-live-avatar-runtime.js';
 import {handleMagnanimousApiContractIntelligence} from './magnanimous-api-contract-intelligence.js';
 import {scheduledTelecomEmailWatch,telecomEmailWatchStatus} from './magnanimous-telecom-email-watch.js';
 import {scheduledMagnanimousAttentionWatch,magnanimousAttentionWatchStatus} from './magnanimous-native-attention-watch.js';
@@ -154,6 +155,7 @@ async function whiteLabelObservationPayload(request){
 
 async function operationsFetch(request,env,ctx){
   const url=new URL(request.url),path=url.pathname;
+  try{const liveAvatar=await handleTikTokLiveAvatar(request,env);if(liveAvatar)return liveAvatar}catch(error){console.error('Magnanimous TikTok LIVE avatar gateway failed',error);return json({detail:'The secure TikTok LIVE avatar gateway could not complete this request.'},500)}
   if(request.method==='GET'&&LEGACY_ROUTES[path])return Response.redirect(new URL(LEGACY_ROUTES[path],url.origin).toString(),308);
   try{const publicFunnel=await handlePublicAgencyFunnel(request,env);if(publicFunnel)return publicFunnel}catch(error){console.error('public White Label funnel failed',error);return new Response('Funnel temporarily unavailable.',{status:500,headers:{'content-type':'text/plain; charset=utf-8','cache-control':'no-store'}})}
 

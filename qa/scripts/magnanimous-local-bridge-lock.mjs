@@ -36,7 +36,53 @@ assert.equal(LOCAL_BRIDGE_POLICY.netwalk_scope_authorization_required,true);
 assert.equal(LOCAL_BRIDGE_ACTIONS.apply_patch.confirmation,true);
 assert.equal(LOCAL_BRIDGE_ACTIONS.git_commit.confirmation,true);
 assert.equal(LOCAL_BRIDGE_ACTIONS.git_create_branch.confirmation,true);
+assert(page.includes('Pocket TTS home voice'),'Local Bridge owner page must expose the local speech engine panel');
+assert(page.includes('runPocketTts(device'),'Local Bridge must queue only its approved Pocket TTS actions');
+assert(page.includes("action:'pocket_tts_status'")||page.includes("action,payload"),'Local Bridge must expose a read-only Pocket TTS status task');
+assert(page.includes('pocket_tts_generate'),'Local Bridge page must expose the Pocket TTS generator capability');
+assert(page.includes('CHECK CPU / POCKET TTS'),'Local Bridge must include a CPU and binary readiness check');
+assert(page.includes('GENERATE LOCAL WAV CLIP'),'Local Bridge must expose local WAV generation');
+assert(page.includes('D:\\\\MagnanimousData'),'Local Bridge must direct Windows model/cache output to the D data drive');
+assert(page.includes('AVX2'),'Local Bridge must disclose the Windows AVX2 requirement');
+assert(page.includes('Filipino or Cebuano'),'Local Bridge must disclose that current Pocket TTS lacks Filipino/Cebuano models');
+assert(page.includes('This feature creates a local WAV clip'),'Local Bridge must not claim continuous live PCM streaming is operational');
+
 assert.equal(LOCAL_BRIDGE_ACTIONS.health.auto,true);
+assert.equal(LOCAL_BRIDGE_ACTIONS.pocket_tts_status.auto,true);
+assert.equal(LOCAL_BRIDGE_ACTIONS.pocket_tts_status.confirmation,false);
+assert.equal(LOCAL_BRIDGE_ACTIONS.pocket_tts_generate.auto,false);
+assert.equal(LOCAL_BRIDGE_ACTIONS.pocket_tts_generate.confirmation,true);
+assert.equal(LOCAL_BRIDGE_ACTIONS.pocket_tts_generate.family,'local-audio');
+for(const needle of [
+ 'def _pocket_tts_root():',
+ 'Path("D:/MagnanimousData/PocketTTS")',
+ 'if str(root.drive).lower() == "c:":',
+ 'PF_AVX2_INSTRUCTIONS_AVAILABLE',
+ 'check(40)',
+ 'def action_pocket_tts_status(config, payload):',
+ 'def action_pocket_tts_generate(config, payload):',
+ 'MAGNANIMOUS_POCKET_TTS_HOME',
+ 'MAGNANIMOUS_POCKET_TTS_BIN',
+ '"HF_HOME": str(cache_dir)',
+ '"HF_HUB_CACHE": str(cache_dir / "hub")',
+ '"XDG_CACHE_HOME": str(cache_dir)',
+ 'shell=False',
+ 'timeout=120',
+ 'duration > 90',
+ 'usage.free < 1_500_000_000',
+ 'existing_audio_bytes >= 250_000_000',
+ '"OMP_NUM_THREADS": "2"',
+ '"MKL_NUM_THREADS": "2"',
+ '"OPENBLAS_NUM_THREADS": "2"',
+ 'Filipino and Cebuano are not currently supported',
+ 'file_stays_local',
+ 'cache_on_data_drive'
+]) assert(agent.includes(needle),'Pocket TTS local safety contract missing: '+needle);
+assert(agent.includes('"pocket_tts_status": action_pocket_tts_status'));
+assert(agent.includes('"pocket_tts_generate": action_pocket_tts_generate'));
+assert(runtime.includes("pocket_tts_status:{risk:'low',auto:true,confirmation:false,family:'local-audio'}"));
+assert(runtime.includes("pocket_tts_generate:{risk:'medium',auto:false,confirmation:true,family:'local-audio'}"));
+
 assert.equal(LOCAL_BRIDGE_ACTIONS.system_info.auto,true);
 assert(!Object.hasOwn(LOCAL_BRIDGE_ACTIONS,'shell'));
 assert(!Object.hasOwn(LOCAL_BRIDGE_ACTIONS,'process_run'));

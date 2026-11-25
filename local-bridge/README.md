@@ -133,3 +133,17 @@ The Local Bridge can use an installed rclone-compatible engine as replaceable in
 Safe read capabilities include remote discovery, quota/about, bounded listing, size, and integrity checks. Copy, mkdir, sync, move, two-way sync, and public-link creation remain confirmation-gated because they mutate external storage or sharing state. Remote references are limited to locally configured remotes; arbitrary backend definitions, credentials, raw command flags, and URLs are rejected.
 
 The optional rclone engine is open-source software licensed under the MIT License (upstream: `rclone/rclone`). Magnanimous does not claim ownership of rclone; it can be replaced by another compatible storage engine without changing Magnanimous identity or memory.
+
+## Local voice generation (experimental)
+
+The Local Bridge includes two narrowly scoped Pocket TTS actions:
+
+- `pocket_tts_status` is read-only and can run automatically. It checks whether the approved local binary exists, whether the current CPU reports the required instruction set, and where model cache/output will be stored.
+- `pocket_tts_generate` requires explicit confirmation. It accepts only bounded text, a fixed allowlist of built-in voice names and six supported languages, writes a WAV clip under the configured data-drive directory, and never accepts arbitrary executable paths or shell arguments from the browser.
+
+On Windows the default data root is `D:\MagnanimousData\PocketTTS`; the C: drive is explicitly rejected. The current v4.0.1 x86-64 release requires AVX2. If the CPU check fails, generation stops before launching the binary. Do not install an AVX2 binary on a CPU that does not support it. The latest release asset list does not currently include the older `-v2` Windows archive mentioned in some README text.
+
+These actions are a bounded clip generator, not a real-time live audio stream. They do not yet feed the TikTok LIVE page, OBS, or a TalkingHead/Simli avatar. Continuous PCM streaming, browser audio scheduling, and the voice-to-avatar connection remain separate work.
+
+Pocket TTS supports English, French, German, Portuguese, Italian and Spanish. It does not currently support Filipino/Tagalog or Cebuano. The LIVE host documents separate experimental MIT-licensed SpeechT5 models for those languages; those are not connected to this bridge.
+
