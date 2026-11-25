@@ -32,6 +32,8 @@ import { handleMagnanimousRuntimeControl } from './runtime-control.js';
 import { handleMagnanimousReelsProxy } from './reels-proxy.js';
 import { unauthenticatedTelecomRead, telecomReadProxyTimeoutMs, readTelecomProxyBody } from './magnanimous-telecom-edge-guard.js';
 import { standaloneApiReady } from './magnanimous-standalone-health-gate.js';
+import { handleLiveBridgeRelay, MagnanimousLiveBridgeRoom } from './live-bridge-relay.js';
+export { MagnanimousLiveBridgeRoom };
 
 const CANONICAL_HOST='iammagnanimousway.com';
 const WWW_HOST='www.iammagnanimousway.com';
@@ -364,6 +366,18 @@ export default {
       }
 
       const policyUrl=new URL(policyRequest.url);
+      if(policyUrl.pathname.startsWith('/api/live-bridge/')){
+        const bridgeUser=await currentUser(policyRequest,env).catch(()=>null);
+        const bridgeResponse=await handleLiveBridgeRelay(policyRequest,env,bridgeUser);
+        if(bridgeResponse){
+          // A 101 upgrade must pass through untouched; JSON responses still receive
+          // the normal assistant-action, carrier and platform security postflight.
+          if(bridgeResponse.status===101)return finalizeResponse(request,bridgeResponse);
+          const assistantCompleted=await completeAssistantActionPolicy(assistantContext,bridgeResponse,env);
+          const carrierCompleted=await completeCarrierWebhook(carrierContext,assistantCompleted,env);
+          return finalizeResponse(request,await securityPostflight(policyRequest,carrierCompleted,env));
+        }
+      }
       if(policyUrl.pathname.startsWith('/api/magnanimous/tool-foundry')){
         const toolFoundryResponse=await handleMagnanimousToolFoundry(policyRequest,env);
         if(toolFoundryResponse){
