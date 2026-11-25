@@ -56,7 +56,11 @@ test('enforces six autonomous actions per minute and idempotently rejects unknow
   for (let i = 0; i < 6; i++) reservations.push(control.authorize('host_speech').reservationId);
   assert.equal(control.authorize('host_speech').status, 'rate_limited');
   assert.equal(control.complete('missing', 'succeeded').status, 'unknown_or_expired_receipt');
-  now += 60_001;
+  now += 29_000;
+  assert.equal(control.heartbeat().ok, true);
+  now += 29_000;
+  assert.equal(control.heartbeat().ok, true);
+  now += 2_001;
   assert.equal(control.authorize('host_speech').allowed, true);
 });
 
