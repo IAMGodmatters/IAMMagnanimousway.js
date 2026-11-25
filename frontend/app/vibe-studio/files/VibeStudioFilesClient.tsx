@@ -208,7 +208,7 @@ export default function VibeStudioFilesClient(){
   if(!project||!token){setError('Select a project first.');return;}
   const html=selectedPath==='index.html'?content:project.html;
   const currentFiles=files.map(file=>file.path===selectedPath?{...file,content}:file);
-  const hasProjectScripts=/<script\\b/i.test(html)||currentFiles.some(file=>file.path.toLowerCase().endsWith('.js')&&file.content.trim().length>0);
+  const hasProjectScripts=/<script\b/i.test(html)||currentFiles.some(file=>file.path.toLowerCase().endsWith('.js')&&file.content.trim().length>0);
   if(hasProjectScripts&&!window.confirm('This preview will run JavaScript from the project. The iframe has an opaque origin and cannot read the main app DOM, cookies or storage; its content policy blocks fetch, XHR, WebSocket and remote assets. Links or scripts can still navigate the preview frame and create navigation requests. Continue only if you trust every project file. Continue?')){
    setNotice('Preview cancelled. Project JavaScript was not executed.');
    return;
