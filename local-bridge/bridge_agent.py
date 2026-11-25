@@ -7,6 +7,7 @@ No inbound listener. No generic remote shell. Secrets remain on the local machin
 from __future__ import annotations
 
 import argparse
+import getpass
 import base64
 import ipaddress
 import json
@@ -957,6 +958,458 @@ def _detect_ncs2(config):
     return value
 
 
+
+
+# ---------------------------------------------------------------------------
+# OBS Studio local WebSocket adapter (Windows DPAPI; IPv4 loopback only)
+# ---------------------------------------------------------------------------
+
+_OBS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+_OBS_MAX_FRAME = 2_000_000
+_OBS_MEDIA_KINDS = {"ffmpeg_source", "vlc_source"}
+
+
+class _ObsWebSocket:
+    """Small RFC 6455 client restricted by its caller to OBS on 127.0.0.1."""
+
+    def __init__(self, port: int, password: str):
+        import hashlib
+        import struct
+        self._hashlib = hashlib
+        self._struct = struct
+        self._buffer = bytearray()
+        self._sock = socket.create_connection(("127.0.0.1", port), timeout=3.0)
+        self._sock.settimeout(5.0)
+        try:
+            self._handshake(port)
+            hello = self._recv_json()
+            if hello.get("op") != 0 or not isinstance(hello.get("d"), dict):
+                raise RuntimeError("OBS WebSocket did not send a valid Hello message.")
+            details = hello["d"]
+            auth = details.get("authentication")
+            if not isinstance(auth, dict) or not auth.get("salt") or not auth.get("challenge"):
+                raise RuntimeError("OBS WebSocket password authentication is required. Enable authentication in OBS → Tools → WebSocket Server Settings.")
+            secret = self._obs_auth(password, str(auth["salt"]), str(auth["challenge"]))
+            self._send_json({"op": 1, "d": {
+                "rpcVersion": int(details.get("rpcVersion") or 1),
+                "eventSubscriptions": 0,
+                "authentication": secret,
+            }})
+            identified = False
+            for _ in range(12):
+                message = self._recv_json()
+                if message.get("op") == 2:
+                    identified = True
+                    break
+                if message.get("op") == 9:
+                    raise RuntimeError("OBS WebSocket rejected the local authentication request.")
+            if not identified:
+                raise RuntimeError("OBS WebSocket did not confirm authentication.")
+        except Exception:
+            self.close()
+            raise
+
+    @staticmethod
+    def _obs_auth(password: str, salt: str, challenge: str) -> str:
+        import base64
+        import hashlib
+        secret = base64.b64encode(hashlib.sha256((password + salt).encode("utf-8")).digest()).decode("ascii")
+        return base64.b64encode(hashlib.sha256((secret + challenge).encode("utf-8")).digest()).decode("ascii")
+
+    def _recv_exact(self, count: int) -> bytes:
+        while len(self._buffer) < count:
+            part = self._sock.recv(min(65536, count - len(self._buffer)))
+            if not part:
+                raise RuntimeError("OBS WebSocket closed the local connection.")
+            self._buffer.extend(part)
+        out = bytes(self._buffer[:count])
+        del self._buffer[:count]
+        return out
+
+    def _handshake(self, port: int) -> None:
+        import base64
+        import hashlib
+        key = base64.b64encode(os.urandom(16)).decode("ascii")
+        request = (
+            "GET / HTTP/1.1\r\n"
+            f"Host: 127.0.0.1:{port}\r\n"
+            "Upgrade: websocket\r\n"
+            "Connection: Upgrade\r\n"
+            f"Sec-WebSocket-Key: {key}\r\n"
+            "Sec-WebSocket-Version: 13\r\n"
+            "Origin: http://127.0.0.1\r\n\r\n"
+        ).encode("ascii")
+        self._sock.sendall(request)
+        response = bytearray()
+        marker = b"\r\n\r\n"
+        while marker not in response:
+            chunk = self._sock.recv(4096)
+            if not chunk:
+                raise RuntimeError("OBS WebSocket closed during its HTTP upgrade handshake.")
+            response.extend(chunk)
+            if len(response) > 16384:
+                raise RuntimeError("OBS WebSocket handshake headers exceeded the safety limit.")
+        header, remainder = bytes(response).split(marker, 1)
+        self._buffer.extend(remainder)
+        lines = header.decode("iso-8859-1").split("\r\n")
+        if not lines or " 101 " not in (" " + lines[0] + " "):
+            raise RuntimeError("OBS WebSocket refused the local upgrade request.")
+        headers = {}
+        for line in lines[1:]:
+            name, separator, value = line.partition(":")
+            if separator:
+                headers[name.strip().lower()] = value.strip()
+        connection = {part.strip().lower() for part in headers.get("connection", "").split(",")}
+        expected = base64.b64encode(hashlib.sha1((key + _OBS_GUID).encode("ascii")).digest()).decode("ascii")
+        if headers.get("upgrade", "").lower() != "websocket" or "upgrade" not in connection or headers.get("sec-websocket-accept") != expected:
+            raise RuntimeError("OBS WebSocket handshake validation failed.")
+
+    def _send_frame(self, opcode: int, payload: bytes) -> None:
+        import os
+        if len(payload) > _OBS_MAX_FRAME:
+            raise RuntimeError("OBS WebSocket message exceeded the local size limit.")
+        first = bytes([0x80 | (opcode & 0x0F)])
+        mask = os.urandom(4)
+        size = len(payload)
+        if size < 126:
+            header = first + bytes([0x80 | size])
+        elif size < 65536:
+            header = first + bytes([0x80 | 126]) + self._struct.pack("!H", size)
+        else:
+            header = first + bytes([0x80 | 127]) + self._struct.pack("!Q", size)
+        masked = bytes(value ^ mask[index & 3] for index, value in enumerate(payload))
+        self._sock.sendall(header + mask + masked)
+
+    def _read_frame(self):
+        first, second = self._recv_exact(2)
+        if first & 0x70:
+            raise RuntimeError("OBS WebSocket sent an unsupported reserved frame.")
+        fin = bool(first & 0x80)
+        opcode = first & 0x0F
+        masked = bool(second & 0x80)
+        size = second & 0x7F
+        if size == 126:
+            size = self._struct.unpack("!H", self._recv_exact(2))[0]
+        elif size == 127:
+            size = self._struct.unpack("!Q", self._recv_exact(8))[0]
+        if size > _OBS_MAX_FRAME:
+            raise RuntimeError("OBS WebSocket frame exceeded the local size limit.")
+        mask = self._recv_exact(4) if masked else b""
+        payload = self._recv_exact(size)
+        if masked:
+            payload = bytes(value ^ mask[index & 3] for index, value in enumerate(payload))
+        return fin, opcode, payload
+
+    def _recv_message(self) -> bytes:
+        fragments = bytearray()
+        fragmented = False
+        for _ in range(64):
+            fin, opcode, payload = self._read_frame()
+            if opcode == 8:
+                raise RuntimeError("OBS WebSocket closed the local connection.")
+            if opcode == 9:
+                self._send_frame(10, payload)
+                continue
+            if opcode == 10:
+                continue
+            if opcode == 1:
+                if fragmented:
+                    raise RuntimeError("OBS WebSocket sent an invalid nested text frame.")
+                if fin:
+                    return payload
+                fragments.extend(payload)
+                fragmented = True
+                continue
+            if opcode == 0 and fragmented:
+                fragments.extend(payload)
+                if len(fragments) > _OBS_MAX_FRAME:
+                    raise RuntimeError("OBS WebSocket fragmented message exceeded the local size limit.")
+                if fin:
+                    return bytes(fragments)
+                continue
+            raise RuntimeError("OBS WebSocket sent an unsupported message type.")
+        raise RuntimeError("OBS WebSocket sent too many control or continuation frames.")
+
+    def _recv_json(self):
+        try:
+            value = json.loads(self._recv_message().decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise RuntimeError("OBS WebSocket sent invalid JSON.") from exc
+        if not isinstance(value, dict):
+            raise RuntimeError("OBS WebSocket message must be a JSON object.")
+        return value
+
+    def _send_json(self, value: dict) -> None:
+        self._send_frame(1, json.dumps(value, separators=(",", ":")).encode("utf-8"))
+
+    def request(self, request_type: str, request_data: dict | None = None) -> dict:
+        request_id = "magnanimous-" + os.urandom(12).hex()
+        body = {"requestType": request_type, "requestId": request_id}
+        if request_data is not None:
+            body["requestData"] = request_data
+        self._send_json({"op": 6, "d": body})
+        for _ in range(64):
+            message = self._recv_json()
+            if message.get("op") != 7:
+                continue
+            details = message.get("d") or {}
+            if details.get("requestId") != request_id:
+                continue
+            status = details.get("requestStatus") or {}
+            if status.get("result") is not True:
+                code = status.get("code", "unknown")
+                comment = str(status.get("comment") or "OBS rejected the request.")[:240]
+                raise RuntimeError(f"OBS {request_type} failed ({code}): {comment}")
+            data = details.get("responseData") or {}
+            if not isinstance(data, dict):
+                raise RuntimeError("OBS response data was not an object.")
+            return data
+        raise RuntimeError(f"OBS did not answer the {request_type} request.")
+
+    def close(self) -> None:
+        try:
+            if getattr(self, "_sock", None):
+                try:
+                    self._send_frame(8, self._struct.pack("!H", 1000))
+                except Exception:
+                    pass
+                self._sock.close()
+        except Exception:
+            pass
+
+
+def _obs_dpapi_protect(secret: str) -> str:
+    if os.name != "nt":
+        raise RuntimeError("OBS password storage currently requires Windows DPAPI. Other OS key-store adapters are not enabled yet.")
+    import ctypes
+    from ctypes import wintypes
+
+    class DATA_BLOB(ctypes.Structure):
+        _fields_ = [("cbData", wintypes.DWORD), ("pbData", ctypes.POINTER(ctypes.c_ubyte))]
+
+    raw = secret.encode("utf-8")
+    data_buffer = ctypes.create_string_buffer(raw)
+    entropy_raw = b"Magnanimous OBS local adapter v1"
+    entropy_buffer = ctypes.create_string_buffer(entropy_raw)
+    incoming = DATA_BLOB(len(raw), ctypes.cast(data_buffer, ctypes.POINTER(ctypes.c_ubyte)))
+    entropy = DATA_BLOB(len(entropy_raw), ctypes.cast(entropy_buffer, ctypes.POINTER(ctypes.c_ubyte)))
+    outgoing = DATA_BLOB()
+    crypt32 = ctypes.WinDLL("Crypt32", use_last_error=True)
+    kernel32 = ctypes.WinDLL("Kernel32", use_last_error=True)
+    crypt32.CryptProtectData.argtypes = [ctypes.POINTER(DATA_BLOB), wintypes.LPCWSTR, ctypes.POINTER(DATA_BLOB), ctypes.c_void_p, ctypes.c_void_p, wintypes.DWORD, ctypes.POINTER(DATA_BLOB)]
+    crypt32.CryptProtectData.restype = wintypes.BOOL
+    kernel32.LocalFree.argtypes = [ctypes.c_void_p]
+    kernel32.LocalFree.restype = ctypes.c_void_p
+    if not crypt32.CryptProtectData(ctypes.byref(incoming), "Magnanimous OBS credential", ctypes.byref(entropy), None, None, 0x1, ctypes.byref(outgoing)):
+        raise ctypes.WinError(ctypes.get_last_error())
+    try:
+        return base64.b64encode(ctypes.string_at(outgoing.pbData, outgoing.cbData)).decode("ascii")
+    finally:
+        kernel32.LocalFree(outgoing.pbData)
+
+
+def _obs_dpapi_unprotect(ciphertext_b64: str) -> str:
+    if os.name != "nt":
+        raise RuntimeError("OBS password is protected with Windows DPAPI and can only be used on this Windows user profile.")
+    import ctypes
+    from ctypes import wintypes
+
+    class DATA_BLOB(ctypes.Structure):
+        _fields_ = [("cbData", wintypes.DWORD), ("pbData", ctypes.POINTER(ctypes.c_ubyte))]
+
+    encrypted = base64.b64decode(ciphertext_b64, validate=True)
+    if not encrypted or len(encrypted) > 8192:
+        raise RuntimeError("Stored OBS credential blob is invalid.")
+    encrypted_buffer = ctypes.create_string_buffer(encrypted)
+    entropy_raw = b"Magnanimous OBS local adapter v1"
+    entropy_buffer = ctypes.create_string_buffer(entropy_raw)
+    incoming = DATA_BLOB(len(encrypted), ctypes.cast(encrypted_buffer, ctypes.POINTER(ctypes.c_ubyte)))
+    entropy = DATA_BLOB(len(entropy_raw), ctypes.cast(entropy_buffer, ctypes.POINTER(ctypes.c_ubyte)))
+    outgoing = DATA_BLOB()
+    description = wintypes.LPWSTR()
+    crypt32 = ctypes.WinDLL("Crypt32", use_last_error=True)
+    kernel32 = ctypes.WinDLL("Kernel32", use_last_error=True)
+    crypt32.CryptUnprotectData.argtypes = [ctypes.POINTER(DATA_BLOB), ctypes.POINTER(wintypes.LPWSTR), ctypes.POINTER(DATA_BLOB), ctypes.c_void_p, ctypes.c_void_p, wintypes.DWORD, ctypes.POINTER(DATA_BLOB)]
+    crypt32.CryptUnprotectData.restype = wintypes.BOOL
+    kernel32.LocalFree.argtypes = [ctypes.c_void_p]
+    kernel32.LocalFree.restype = ctypes.c_void_p
+    if not crypt32.CryptUnprotectData(ctypes.byref(incoming), ctypes.byref(description), ctypes.byref(entropy), None, None, 0x1, ctypes.byref(outgoing)):
+        raise ctypes.WinError(ctypes.get_last_error())
+    try:
+        return ctypes.string_at(outgoing.pbData, outgoing.cbData).decode("utf-8")
+    finally:
+        kernel32.LocalFree(outgoing.pbData)
+        if description:
+            kernel32.LocalFree(description)
+
+
+def _obs_configured(config) -> bool:
+    value = config.get("obs_bridge") or {}
+    try:
+        port = int(value.get("port"))
+        blob = str(value.get("password_dpapi") or "")
+        host = str(value.get("host") or "")
+        base64.b64decode(blob, validate=True)
+        return os.name == "nt" and host == "127.0.0.1" and 1024 <= port <= 65535 and bool(blob)
+    except Exception:
+        return False
+
+
+def _obs_connect(config):
+    value = config.get("obs_bridge") or {}
+    if not _obs_configured(config):
+        raise RuntimeError("OBS is not configured on this paired computer. Run: bridge_agent.py obs-configure")
+    password = _obs_dpapi_unprotect(str(value["password_dpapi"]))
+    return _ObsWebSocket(int(value["port"]), password)
+
+
+def action_obs_status(config, payload):
+    with _obs_connect(config) as obs:
+        version = obs.request("GetVersion")
+        current = obs.request("GetCurrentProgramScene")
+        return {
+            "ok": True,
+            "connected": True,
+            "transport": "ws://127.0.0.1",
+            "obs_version": str(version.get("obsVersion") or "")[:60],
+            "websocket_version": str(version.get("obsWebSocketVersion") or "")[:60],
+            "current_scene": str(current.get("currentProgramSceneName") or "")[:80],
+            "password_storage": "Windows DPAPI; local user profile only",
+        }
+
+
+def action_obs_scene_list(config, payload):
+    with _obs_connect(config) as obs:
+        result = obs.request("GetSceneList")
+        current = str(result.get("currentProgramSceneName") or "")[:80]
+        allowed = set((config.get("obs_bridge") or {}).get("approved_scenes") or [])
+        scenes = []
+        for item in result.get("scenes") or []:
+            name = str(item.get("sceneName") or "")[:80]
+            if name:
+                scenes.append({"name": name, "current": name == current, "approved_for_remote_switch": name in allowed})
+        return {"ok": True, "current_scene": current, "scenes": scenes[:100]}
+
+
+def action_obs_output_status(config, payload):
+    with _obs_connect(config) as obs:
+        streaming = obs.request("GetStreamStatus")
+        recording = obs.request("GetRecordStatus")
+        return {
+            "ok": True,
+            "streaming": bool(streaming.get("outputActive")),
+            "stream_reconnecting": bool(streaming.get("outputReconnecting")),
+            "recording": bool(recording.get("outputActive")),
+            "recording_paused": bool(recording.get("outputPaused")),
+        }
+
+
+def action_obs_scene_set(config, payload):
+    scene_name = str(payload.get("sceneName") or "").strip()
+    approved = set((config.get("obs_bridge") or {}).get("approved_scenes") or [])
+    if not scene_name or scene_name not in approved:
+        raise RuntimeError("Scene is not on the local owner's approved OBS scene allowlist.")
+    with _obs_connect(config) as obs:
+        available = {str(item.get("sceneName") or "") for item in obs.request("GetSceneList").get("scenes") or []}
+        if scene_name not in available:
+            raise RuntimeError("The approved OBS scene no longer exists. Reconfigure the local scene allowlist.")
+        obs.request("SetCurrentProgramScene", {"sceneName": scene_name})
+        current = obs.request("GetCurrentProgramScene").get("currentProgramSceneName")
+        if current != scene_name:
+            raise RuntimeError("OBS did not confirm the requested program scene.")
+        return {"ok": True, "scene": scene_name, "verified": True}
+
+
+def action_obs_audio_cue(config, payload):
+    cue_id = str(payload.get("cueId") or "").strip()
+    allowed = set((config.get("obs_bridge") or {}).get("approved_audio_cues") or [])
+    if not cue_id or cue_id not in allowed:
+        raise RuntimeError("Audio cue is not on the local owner's approved OBS media-input allowlist.")
+    with _obs_connect(config) as obs:
+        inputs = obs.request("GetInputList").get("inputs") or []
+        selected = next((row for row in inputs if row.get("inputName") == cue_id and row.get("inputKind") in _OBS_MEDIA_KINDS), None)
+        if not selected:
+            raise RuntimeError("The approved OBS audio cue is no longer a supported local media input.")
+        obs.request("TriggerMediaInputAction", {
+            "inputName": cue_id,
+            "mediaAction": "OBS_WEBSOCKET_MEDIA_INPUT_ACTION_RESTART",
+        })
+        status = obs.request("GetMediaInputStatus", {"inputName": cue_id})
+        return {"ok": True, "cue_id": cue_id, "state": str(status.get(" mediaState") or status.get("mediaState") or "")[:60]}
+
+
+def configure_obs(args):
+    if os.name != "nt":
+        raise RuntimeError("This first OBS credential adapter uses Windows DPAPI. macOS/Linux key-store adapters are not enabled.")
+    config = _load_config()
+    port = int(args.port)
+    if port < 1024 or port > 65535:
+        raise RuntimeError("OBS WebSocket port must be between 1024 and 65535.")
+    password = getpass.getpass("Enter the OBS WebSocket password (input is hidden; it will not be sent to Magnanimous): ")
+    if not password or len(password) > 512:
+        raise RuntimeError("OBS WebSocket password must contain 1–512 characters.")
+    draft = {
+        "host": "127.0.0.1",
+        "port": port,
+        "password_dpapi": _obs_dpapi_protect(password),
+        "approved_scenes": [],
+        "approved_audio_cues": [],
+    }
+    with _ObsWebSocket(port, password) as obs:
+        version = obs.request("GetVersion")
+        scene_rows = obs.request("GetSceneList").get("scenes") or []
+        input_rows = obs.request("GetInputList").get("inputs") or []
+    scenes = sorted({str(row.get("sceneName") or "") for row in scene_rows if str(row.get("sceneName") or "")})
+    media = sorted({str(row.get("inputName") or "") for row in input_rows if row.get("inputKind") in _OBS_MEDIA_KINDS and str(row.get("inputName") or "")})
+    print("Authenticated OBS version:", str(version.get("obsVersion") or "unknown")[:60])
+    print("Available scenes:", ", ".join(scenes[:100]) or "(none)")
+    raw_scenes = input("Exact scene names Magnanimous may switch to (comma-separated; blank disables scene switching): ").strip()
+    chosen_scenes = [name.strip() for name in raw_scenes.split(",") if name.strip()]
+    if any(name not in scenes for name in chosen_scenes):
+        raise RuntimeError("A scene name was not returned by OBS. No configuration was saved.")
+    print("Supported OBS media inputs:", ", ".join(media[:100]) or "(none)")
+    raw_media = input("Exact media inputs allowed as audio cues (comma-separated; blank disables cues): ").strip()
+    chosen_media = [name.strip() for name in raw_media.split(",") if name.strip()]
+    if any(name not in media for name in chosen_media):
+        raise RuntimeError("A media input name was not returned by OBS. No configuration was saved.")
+    draft["approved_scenes"] = chosen_scenes[:50]
+    draft["approved_audio_cues"] = chosen_media[:50]
+    config["obs_bridge"] = draft
+    _save_config(config)
+    print(json.dumps({
+        "configured": True,
+        "host": "127.0.0.1",
+        "port": port,
+        "obs_version": str(version.get("obsVersion") or "unknown")[:60],
+        "approved_scene_count": len(draft["approved_scenes"]),
+        "approved_audio_cue_count": len(draft["approved_audio_cues"]),
+        "password_storage": "Windows DPAPI",
+        "password_printed_or_uploaded": False,
+    }, indent=2))
+
+
+def forget_obs(args):
+    config = _load_config()
+    if "obs_bridge" not in config:
+        print("No OBS connection is stored on this computer.")
+        return
+    confirm = input("Type FORGET OBS to remove the locally protected OBS credential and allowlists: ").strip()
+    if confirm != "FORGET OBS":
+        print("No change made.")
+        return
+    del config["obs_bridge"]
+    _save_config(config)
+    print("Local OBS configuration removed. The OBS WebSocket password was not sent to Magnanimous.")
+
+
+def _obs_config_counts(config):
+    value = config.get("obs_bridge") or {}
+    return {
+        "configured": _obs_configured(config),
+        "approved_scene_count": len(value.get("approved_scenes") or []),
+        "approved_audio_cue_count": len(value.get("approved_audio_cues") or []),
+    }
+
 def capabilities(config):
     caps = set(BASE_CAPS)
     if shutil.which("git"):
@@ -1001,6 +1454,12 @@ def capabilities(config):
             caps.add("ncs2_face_detect")
         if ncs2["text_model"].is_file():
             caps.add("ncs2_text_regions")
+    if _obs_configured(config):
+        caps.update({"obs_status", "obs_scene_list", "obs_output_status"})
+        if (config.get("obs_bridge") or {}).get("approved_scenes"):
+            caps.add("obs_scene_set")
+        if (config.get("obs_bridge") or {}).get("approved_audio_cues"):
+            caps.add("obs_audio_cue")
     if shutil.which("ssh"):
         caps.update({"ssh_profile_list","ssh_read","ssh_command"})
     try:
@@ -2053,6 +2512,11 @@ HANDLERS = {
     "workspace_list": action_workspace_list,
     "read_file": action_read_file,
     "search_text": action_search_text,
+    "obs_status": action_obs_status,
+    "obs_scene_list": action_obs_scene_list,
+    "obs_output_status": action_obs_output_status,
+    "obs_scene_set": action_obs_scene_set,
+    "obs_audio_cue": action_obs_audio_cue,
     "desktop_tools_status": action_desktop_tools_status,
     "media_probe": action_media_probe,
     "media_catalog": action_media_catalog,
@@ -2212,6 +2676,7 @@ def status_cmd(args):
         "native_browser_profiles": str(BROWSER_DIR),
         "capabilities": capabilities(config),
         "token_present": bool(config.get("token")),
+        "obs": _obs_config_counts(config),
     }, indent=2))
 
 
@@ -2230,6 +2695,11 @@ def main():
     r.set_defaults(func=run_loop)
     s = sub.add_parser("status", help="Show local configuration without printing the bridge token.")
     s.set_defaults(func=status_cmd)
+    o = sub.add_parser("obs-configure", help="Configure an authenticated, loopback-only OBS WebSocket connection on this Windows computer.")
+    o.add_argument("--port", type=int, default=4455)
+    o.set_defaults(func=configure_obs)
+    of = sub.add_parser("obs-forget", help="Remove the locally protected OBS WebSocket credential and allowlists.")
+    of.set_defaults(func=forget_obs)
     args = parser.parse_args()
     try:
         args.func(args)
