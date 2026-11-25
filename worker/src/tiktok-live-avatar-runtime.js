@@ -38,7 +38,7 @@ async function usage(env,tenantId,month){
   "UPDATE tiktok_live_avatar_sessions SET state='expired',updated_at=? WHERE tenant_id=? AND usage_month=? AND state IN ('pending','issued') AND updated_at<?"
  ).bind(stamp,tenantId,month,stamp-MAX_SESSION_SECONDS-MAX_IDLE_SECONDS-30).run();
  const row=await env.DB.prepare(
-  "SELECT COUNT(*) AS issued FROM tiktok_live_avatar_sessions WHERE tenant_id=? AND usage_month=? AND state IN ('pending','issued','ended','expired')"
+  "SELECT COUNT(*) AS issued FROM tiktok_live_avatar_sessions WHERE tenant_id=? AND usage_month=? AND state IN ('pending','issued','ended','expired','failed')"
  ).bind(tenantId,month).first();
  const used=Number(row?.issued||0);
  return{
