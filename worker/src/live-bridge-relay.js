@@ -46,6 +46,18 @@ export class MagnanimousLiveBridgeRoom {
  constructor(state,env){this.state=state;this.env=env;}
  async fetch(request){
   const url=new URL(request.url);
+
+  if(url.pathname==='/internal/revoke'&&request.method==='POST'){
+   const pair=await this.state.storage.get('pair');
+   if(!pair)return json({ok:true,revoked:false});
+   let body={};try{body=await request.json();}catch{return json({detail:'Invalid revoke request.'},400);}
+   if(body.tenantId!==pair.tenantId||body.userId!==pair.userId)return json({detail:'This bridge pair belongs to another account.'},403);
+   await this.state.storage.delete('pair');
+   for(const socket of this.state.getWebSockets()){
+    try{socket.send(JSON.stringify({kind:'error',code:'PAIRING_REVOKED',message:'The account owner revoked this bridge pairing.'}));socket.close(4003,'Pair revoked');}catch{}
+   }
+   return json({ok:true,revoked:true});
+  }
   if(url.pathname==='/internal/create'&&request.method==='POST'){
    const body=await request.json().catch(()=>null);
    if(!body||typeof body.pairId!=='string'||typeof body.tenantId!=='string'||typeof body.userId!=='string'||typeof body.browserHash!=='string'||typeof body.companionHash!=='string'||!Number.isFinite(body.pairExpiresAt)||!Array.isArray(body.allowedProviders))return json({detail:'Invalid bridge room initialization.'},400);
@@ -155,6 +167,23 @@ export class MagnanimousLiveBridgeRoom {
 
 export async function handleLiveBridgeRelay(request,env,user=null){
  const url=new URL(request.url);
+
+ if(url.pathname==='/api/live-bridge/revoke'&&request.method==='POST'){
+  if(request.headers.get('Origin')!==CANONICAL_ORIGIN)return json({detail:'A same-origin browser request is required to revoke a bridge pair.'},403);
+  const fetchSite=request.headers.get('Sec-Fetch-Site');
+  if(fetchSite&&fetchSite!=='same-origin')return json({detail:'Cross-site revoke requests are not allowed.'},403);
+  const user=await currentUser(request,env);
+  if(!user?.id||!user?.tenant_id)return json({detail:'Sign in to revoke a live bridge.'},401);
+  if(!env.LIVE_BRIDGE_ROOMS||!env.LIVE_BRIDGE_PAIR_LIMITER?.limit)return json({detail:'The online bridge service is not configured on this deployment.'},503);
+  const rate=await env.LIVE_BRIDGE_PAIR_LIMITER.limit({key:String(user.tenant_id)+':'+String(user.id)});
+  if(!rate?.success)return json({detail:'Too many pairing requests. Wait one minute before trying again.'},429);
+  let body={};try{body=await request.json();}catch{return json({detail:'Invalid revoke request.'},400);}
+  const pairId=String(body.pairId||'');
+  if(!/^[0-9a-f-]{36}$/i.test(pairId))return json({detail:'The bridge pair identifier is invalid.'},400);
+  const stub=env.LIVE_BRIDGE_ROOMS.get(env.LIVE_BRIDGE_ROOMS.idFromName(pairId));
+  const result=await stub.fetch(new Request('https://bridge.internal/internal/revoke',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({tenantId:user.tenant_id,userId:user.id})}));
+  return new Response(result.body,{status:result.status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
+ }
  if(url.pathname==='/api/live-bridge/pair'&&request.method==='POST'){
   if(request.headers.get('Origin')!==CANONICAL_ORIGIN)return json({detail:'A same-origin browser request is required to create a bridge pair.'},403);
   const fetchSite=request.headers.get('Sec-Fetch-Site');
