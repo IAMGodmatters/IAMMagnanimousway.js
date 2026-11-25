@@ -27,6 +27,8 @@ fs.copyFileSync(path.join(SOURCE,'game-event-integration.mjs'),path.join(target,
 for(const file of ['index.html','app.js','styles.css','avatar.html','avatar.js','avatar.css'])fs.copyFileSync(path.join(SOURCE,'app',file),path.join(target,'app',file));
 const appSyntax=spawnSync(process.execPath,['--check',path.join(target,'app','app.js')],{encoding:'utf8'});
 if(appSyntax.status!==0){console.error(appSyntax.stderr||'');throw new Error('Portable creator browser script syntax check failed.');}
+const avatarSyntax=spawnSync(process.execPath,['--check',path.join(target,'app','avatar.js')],{encoding:'utf8'});
+if(avatarSyntax.status!==0){console.error(avatarSyntax.stderr||'');throw new Error('Portable OBS avatar script syntax check failed.');}
 
 
 function freePort(){
