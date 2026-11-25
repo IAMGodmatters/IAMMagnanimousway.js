@@ -169,7 +169,7 @@ jobs:
 
       - name: Upload responsive visual proof
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mobile-production-visual-proof-${{ github.run_id }}
           path: mobile-visual-proof/
