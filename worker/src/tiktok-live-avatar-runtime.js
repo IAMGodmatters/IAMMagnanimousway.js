@@ -118,7 +118,6 @@ export async function handleTikTokLiveAvatar(request,env){
    const apiKey=String(env.SIMLI_API_KEY);
    session=await providerRequest(SIMLI_SESSION_URL,apiKey,{body:{
     faceId:String(env.SIMLI_FACE_ID),
-    apiVersion:'v2',
     handleSilence:false,
     maxSessionLength:MAX_SESSION_SECONDS,
     maxIdleTime:MAX_IDLE_SECONDS,
