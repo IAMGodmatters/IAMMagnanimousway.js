@@ -9,6 +9,10 @@ type CommandAction = 'scene.set' | 'overlay.show' | 'overlay.hide' | 'audio.cue'
 export default function LiveEventBridgePage() {
   const [endpoint,setEndpoint]=useState('');
   const [pairingToken,setPairingToken]=useState('');
+  const [companionToken,setCompanionToken]=useState('');
+  const [pairId,setPairId]=useState('');
+  const [revokeBusy,setRevokeBusy]=useState(false);
+  const [pairBusy,setPairBusy]=useState(false);
   const [status,setStatus]=useState<LiveBridgeStatus>('disconnected');
   const [events,setEvents]=useState<LiveEvent[]>([]);
   const [error,setError]=useState('');
@@ -17,40 +21,113 @@ export default function LiveEventBridgePage() {
   const [target,setTarget]=useState('');
   const [speech,setSpeech]=useState('');
   const clientRef=useRef<ReturnType<typeof createLiveBridgeClient>|null>(null);
+  const hostChannelRef=useRef<BroadcastChannel|null>(null);
+  const statusRef=useRef<LiveBridgeStatus>(status);
 
-  useEffect(()=>()=>{clientRef.current?.disconnect();clientRef.current=null;},[]);
+  useEffect(()=>{
+    if(typeof BroadcastChannel!=='function')return;
+    const channel=new BroadcastChannel('magnanimous-live-host-bridge-v1');
+    hostChannelRef.current=channel;
+    channel.addEventListener('message',event=>{
+      const data=event.data;
+      if(!data||typeof data!=='object')return;
+      if(data.type==='bridge.status.request'){channel.postMessage({type:'bridge.status',connected:statusRef.current==='connected'});return;}
+      if(data.type!=='host.speak'||typeof data.text!=='string')return;
+      const text=data.text.replace(/[\\u0000-\\u001f\\u007f]/g,' ').trim().slice(0,500);
+      if(!text)return;
+      const commandId=globalThis.crypto?.randomUUID?.()||String(Date.now());
+      const sent=clientRef.current?.sendCommand({commandId,action:'host.speak',text})||false;
+      channel.postMessage({type:'host.speak.result',ok:sent});
+    });
+    return ()=>{
+      channel.close();hostChannelRef.current=null;
+      clientRef.current?.disconnect();clientRef.current=null;
+    };
+  },[]);
+
+  useEffect(()=>{
+    statusRef.current=status;
+    hostChannelRef.current?.postMessage({type:'bridge.status',connected:status==='connected'});
+  },[status]);
+
+  function startClient(targetEndpoint:string,targetToken:string) {
+    clientRef.current?.disconnect();
+    const client=createLiveBridgeClient(targetEndpoint,targetToken,{
+      onStatus:setStatus,
+      onEvent:event=>{setEvents(current=>[event,...current.filter(item=>item.eventId!==event.eventId)].slice(0,50));hostChannelRef.current?.postMessage({type:'live.event',event});},
+      onError:setError,
+    });
+    clientRef.current=client;
+  }
 
   function connect() {
     setError('');setNotice('');
     try {
-      clientRef.current?.disconnect();
-      const client=createLiveBridgeClient(endpoint,pairingToken,{
-        onStatus:setStatus,
-        onEvent:event=>setEvents(current=>[event,...current.filter(item=>item.eventId!==event.eventId)].slice(0,50)),
-        onError:setError,
-      });
-      clientRef.current=client;
+      startClient(endpoint,pairingToken);
       setPairingToken('');
-      setNotice('Connection requested. Wait for the companion to authenticate and report READY.');
+      setNotice('Connection requested. Wait for the local companion to authenticate and report READY.');
     } catch (cause) {
       setStatus('error');
       setError(cause instanceof Error?cause.message:'The bridge could not be started.');
     }
   }
 
+  async function createPair() {
+    setPairBusy(true);setError('');setNotice('');
+    try {
+      const response=await fetch('/api/live-bridge/pair',{method:'POST',headers:{'content-type':'application/json'},body:'{}',cache:'no-store'});
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(data.detail||'Sign in to Magnanimous before creating a bridge pair.');
+      if(pairId){await revokePairId(pairId);setPairId('');}
+      setPairId(data.pairId);
+      setEndpoint(data.endpoint);
+      setPairingToken('');
+      setCompanionToken(data.companionToken);
+      startClient(data.endpoint,data.browserToken);
+      setNotice('Browser side connected. Copy the companion token into Magnanimous Portable Creator within ten minutes.');
+    } catch(cause) {
+      setStatus('error');
+      setError(cause instanceof Error?cause.message:'A secure pairing could not be created.');
+    } finally {setPairBusy(false);}
+  }
+
+  async function copyCompanionToken() {
+    if(!companionToken)return;
+    try {await navigator.clipboard.writeText(companionToken);setNotice('Companion token copied. Paste it only into your local Magnanimous Portable Creator.');}
+    catch {setError('Clipboard access was unavailable. Select and copy the companion token manually.');}
+  }
+
+  async function revokePairId(id:string) {
+    const response=await fetch('/api/live-bridge/revoke',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({pairId:id}),cache:'no-store'});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok)throw new Error(data.detail||'The existing pairing could not be revoked. No new pair was created.');
+  }
+
+  async function revokePair() {
+    if(!pairId)return;
+    setRevokeBusy(true);setError('');setNotice('');
+    try {
+      await revokePairId(pairId);
+      clientRef.current?.disconnect();clientRef.current=null;
+      setPairId('');setPairingToken('');setCompanionToken('');setEndpoint('');
+      setStatus('disconnected');
+      setNotice('Pairing revoked. The local companion has lost access and must be paired again.');
+    } catch(cause) {
+      setError(cause instanceof Error?cause.message:'The pairing could not be revoked. Retry before creating another pair.');
+    } finally {setRevokeBusy(false);}
+  }
+
   function disconnect() {
     clientRef.current?.disconnect();
     clientRef.current=null;
     setStatus('disconnected');
-    setNotice('Disconnected from the companion.');
+    setNotice('Browser connection disconnected. Use Revoke pairing to stop the local companion and invalidate both tokens.');
   }
 
   function sendCommand() {
+    if(action!=='scene.set'&&action!=='host.speak'){setNotice('Overlay and audio-cue commands are not enabled yet. No command was sent.');return;}
     const commandId=globalThis.crypto?.randomUUID?.()||String(Date.now());
-    const payload=action==='scene.set'?{sceneName:target}
-      :action==='overlay.show'||action==='overlay.hide'?{overlayId:target}
-      :action==='audio.cue'?{cueId:target}
-      :{text:speech};
+    const payload=action==='scene.set'?{sceneName:target}:{text:speech};
     const sent=clientRef.current?.sendCommand({commandId,action,...payload})||false;
     setNotice(sent?'Command sent to the companion. Execution is not confirmed until the companion returns an acknowledgement.':'No command sent. Confirm that the companion is connected and that the command fields are valid.');
   }
@@ -61,7 +138,7 @@ export default function LiveEventBridgePage() {
   return (
     <main className="bridgePage">
       <header className="topbar">
-        <a href="/tiktok-live">← AI Host</a>
+        <a href="/live-studio">← Live Studio</a>
         <span>I AM MAGNANIMOUS WAY™</span>
         <a href="/social-hub">Social Hub →</a>
       </header>
@@ -71,22 +148,29 @@ export default function LiveEventBridgePage() {
         <p>One safe event language for your live audience, OBS scenes, browser sources and supported games. Magnanimous stays the brain; each platform or app is a replaceable connection.</p>
       </section>
       <section className="boundary">
-        <b>Implementation status: bridge client and protocol foundation added; companion server and platform adapters are not deployed yet.</b>
-        <p>This screen becomes operational when a compatible Magnanimous Companion is installed and paired. Do not enter TikTok, Google, Twitch, OBS or game-account passwords here. Use only a short-lived pairing token issued by the companion. Until the companion is available, the existing AI Host's manual comment workflow remains usable.</p>
+        <b>Implementation status: online relay pairing and the local companion connection path are being brought online in stages. Provider account adapters and public broadcasting are not yet connected.</b>
+        <p>Create a secure pair here, then paste the separate companion token into Magnanimous Portable Creator on the computer running OBS. Do not enter TikTok, Google, Meta, Twitch, Zoom, OBS or game-account passwords here. These temporary pairing credentials are held in memory and are not saved in browser storage.</p>
       </section>
       <section className="panel">
         <div className="panelHead"><div><small>01 • PAIR YOUR COMPANION</small><h2>Secure connection</h2></div><span className={connected?'online':'offline'}>{status.toUpperCase()}</span></div>
-        <label>Companion WebSocket address
-          <input value={endpoint} onChange={e=>setEndpoint(e.target.value)} placeholder="wss://your-approved-companion.example/events" autoComplete="off" />
+        <button onClick={createPair} disabled={pairBusy}>{pairBusy?'Creating secure pair…':'Create secure pair'}</button>
+        <p className="hint">Sign in to your Magnanimous account first. A pair is valid for ten minutes and the connected session lasts up to twelve hours.</p>
+        <label>Magnanimous secure WebSocket address
+          <input value={endpoint} onChange={e=>setEndpoint(e.target.value)} placeholder="wss://iammagnanimousway.com/api/live-bridge/ws/00000000-0000-4000-8000-000000000000" autoComplete="off" />
         </label>
-        <label>One-time pairing token
-          <input value={pairingToken} onChange={e=>setPairingToken(e.target.value)} type="password" placeholder="Paste the companion's temporary pairing token" autoComplete="new-password" />
+        <label>Browser pairing token (optional manual entry)
+          <input value={pairingToken} onChange={e=>setPairingToken(e.target.value)} type="password" placeholder="Use Create secure pair above or paste a browser token" autoComplete="new-password" />
         </label>
+        {companionToken&&<label>Companion token — paste into the local USB Creator
+          <input value={companionToken} readOnly type="password" autoComplete="off" />
+          <button className="secondary" onClick={copyCompanionToken}>Copy companion token</button>
+        </label>}
         <div className="actions">
           <button onClick={connect} disabled={!endpoint.trim()||pairingToken.trim().length<16}>Connect companion</button>
-          <button className="secondary" onClick={disconnect} disabled={status==='disconnected'}>Disconnect</button>
+          <button className="secondary" onClick={disconnect} disabled={status==='disconnected'}>Disconnect browser</button>
+          <button className="secondary" onClick={revokePair} disabled={!pairId||revokeBusy}>{revokeBusy?'Revoking…':'Revoke pairing'}</button>
         </div>
-        <p className="hint">Remote connections require WSS. Plain WS is accepted only for localhost / 127.0.0.1. Pairing tokens stay in memory and are never saved in browser storage or placed in the URL.</p>
+        <p className="hint">Remote connections require WSS. The browser and local companion use different temporary tokens. Tokens stay in memory and are never saved in browser storage or placed in the URL.</p>
       </section>
       <section className="grid">
         <div className="panel">
@@ -106,9 +190,9 @@ export default function LiveEventBridgePage() {
           <label>Action
             <select value={action} onChange={e=>setAction(e.target.value as CommandAction)}>
               <option value="scene.set">Switch OBS scene</option>
-              <option value="overlay.show">Show overlay</option>
-              <option value="overlay.hide">Hide overlay</option>
-              <option value="audio.cue">Play approved audio cue</option>
+              <option value="overlay.show" disabled>Show overlay (not available yet)</option>
+              <option value="overlay.hide" disabled>Hide overlay (not available yet)</option>
+              <option value="audio.cue" disabled>Play audio cue (not available yet)</option>
               <option value="host.speak">Ask host to speak</option>
             </select>
           </label>
@@ -117,8 +201,8 @@ export default function LiveEventBridgePage() {
           </label>:<label>Words for the AI host
             <textarea value={speech} onChange={e=>setSpeech(e.target.value)} rows={4} maxLength={500} placeholder="Write what Magnanimous should say…" />
           </label>}
-          <button onClick={sendCommand} disabled={!connected||(needsTarget?!target.trim():!speech.trim())}>Send approved command</button>
-          <p className="hint">The bridge allows only scene selection, overlay visibility, approved audio cues and host speech. It cannot start or stop broadcasts, manage accounts, moderate viewers, spend money, run shell commands or execute arbitrary code.</p>
+          <button onClick={sendCommand} disabled={!connected||(action!=='scene.set'&&action!=='host.speak')||(needsTarget?!target.trim():!speech.trim())}>Send approved command</button>
+          <p className="hint">Currently supported: OBS scene changes and AI host speech after local operator approval. Overlay and audio-cue commands are disabled until their local engines are implemented and verified. The bridge cannot start or stop broadcasts, manage accounts, moderate viewers, spend money, run shell commands or execute arbitrary code.</p>
         </div>
       </section>
       {(error||notice)&&<div className={error?'error':'notice'} role="status">{error||notice}</div>}

@@ -11,10 +11,15 @@ permissions:
 
 jobs:
   verify:
+    name: private-repo-readiness-lock
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node qa/scripts/private-repo-readiness-lock.mjs
+      - name: Verify private source visibility and distribution readiness
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node qa/scripts/private-repo-readiness-lock.mjs

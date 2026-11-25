@@ -14,6 +14,7 @@ permissions:
 
 jobs:
   verify:
+    name: proprietary-security-invariants-lock
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -21,4 +22,7 @@ jobs:
         with:
           node-version: 24
       - name: Enforce permanent proprietary security invariants
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: node qa/scripts/proprietary-security-invariants-lock.mjs

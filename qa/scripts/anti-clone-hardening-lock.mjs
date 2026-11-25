@@ -9,6 +9,7 @@ const license=read('LICENSE');
 const provenance=read('frontend/public/.well-known/magnanimous-provenance.txt');
 const staticHeaders=read('frontend/public/_headers');
 const permanentGuard=read('.github/workflows/proprietary-security-invariants-lock.yml');
+const codeOwners=read('.github/CODEOWNERS');
 
 function explicitlyFalse(config,property){
   const pattern=new RegExp(`(?:^|[,{\\n\\r]\\s*)${property.replace(/[.*+?^${}()|[\\]\\]/g,'\\$&')}\\s*:\\s*false\\b`,'m');
@@ -20,6 +21,7 @@ for(const [name,config] of [['next.config.js',js],['next.config.ts',ts]]){
   must(explicitlyFalse(config,'poweredByHeader'),`${name} must keep framework identification headers explicitly disabled.`);
 }
 
+must(codeOwners.split(/\r?\n/).some(line=>line.trim()==='* @IAMGodmatters'),'All proprietary repository paths must have the platform owner recorded as code owner.');
 must(/PROPRIETARY LICENSE/i.test(license),'Proprietary license heading is missing.');
 must(/All rights reserved/i.test(license),'All-rights-reserved notice is missing.');
 must(/No permission is granted to copy/i.test(license),'Explicit no-copy grant is missing.');

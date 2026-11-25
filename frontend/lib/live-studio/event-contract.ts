@@ -1,4 +1,4 @@
-export const LIVE_PROVIDERS = ['manual', 'tiktok', 'youtube', 'twitch', 'obs', 'game', 'browser'] as const;
+export const LIVE_PROVIDERS = ['manual', 'tiktok', 'facebook', 'youtube', 'twitch', 'zoom', 'obs', 'game', 'browser'] as const;
 export type LiveProvider = typeof LIVE_PROVIDERS[number];
 export const LIVE_EVENT_TYPES = ['chat.message','chat.deleted','audience.follow','audience.subscription','audience.gift','audience.poll_vote','game.event','obs.scene_changed','system.notice'] as const;
 export type LiveEventType = typeof LIVE_EVENT_TYPES[number];

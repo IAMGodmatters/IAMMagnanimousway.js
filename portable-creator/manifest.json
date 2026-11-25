@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "product": "Magnanimous Portable Creator",
   "identity": "Magnanimous AI",
-  "mode": "offline-first",
+  "mode": "offline-first-dual-mode",
   "networkPolicy": {
     "localHost": "127.0.0.1",
     "creatorHostPort": 3219,
@@ -10,7 +10,16 @@
     "localModelPort": 9931,
     "noAutomaticDownloads": true,
     "noTelemetry": true,
-    "broadcastRequiresNetwork": true
+    "broadcastRequiresNetwork": true,
+    "onlineRelay": {
+      "enabled": true,
+      "endpoint": "https://iammagnanimousway.com/api/live-bridge",
+      "transport": "wss",
+      "pairingTokenTtlSeconds": 600,
+      "sessionTtlSeconds": 43200,
+      "tokenStorage": "memory-only",
+      "providerCredentialsCollected": false
+    }
   },
   "paths": {
     "data": "data",
@@ -36,9 +45,14 @@
     "offlineLocalChat": "requires a compatible local model",
     "encryptedProjectVault": true,
     "portableObsScenes": "requires OBS portable files and portable media paths",
-    "onlineBroadcast": "requires a network connection and authorized platform account",
+    "onlineBroadcast": "requires a network connection and authorized platform account; public broadcast adapters are not yet implemented in the portable companion",
     "zoomMeeting": "requires a network connection; OBS virtual camera or Zoom Video SDK integration",
     "automaticTiktokLiveChat": "not enabled without an approved and documented integration",
-    "localObsControl": "Implemented as an optional authenticated loopback OBS WebSocket adapter; requires OBS Studio with WebSocket Server enabled and hardware verification"
+    "localObsControl": "Implemented as an optional authenticated loopback OBS WebSocket adapter; requires OBS Studio with WebSocket Server enabled and hardware verification",
+    "onlineCompanion": "requires authenticated Magnanimous account, deployed relay and Node.js 22+",
+    "localGameAppEvents": "supports authenticated loopback game.event intake from trusted HTTP-capable local automation tools; native game adapters are not included",
+    "remoteCommandApproval": "local approval required; OBS scene.set only is executable",
+    "encryptedEventJournal": "AES-256-GCM with a subkey derived from the unlocked workspace key; bounded to 8 MiB with atomic compaction",
+    "eventRecovery": "requires workspace unlock; locking clears in-memory queue and disconnects online bridge; legacy plaintext journal is migrated on successful unlock"
   }
 }

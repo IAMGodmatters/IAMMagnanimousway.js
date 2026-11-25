@@ -15,7 +15,7 @@ permissions:
 
 concurrency:
   group: full-platform-qa-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
   QA_BASE_URL: https://iammagnanimousway.com
@@ -47,15 +47,21 @@ jobs:
       - name: Run deterministic native unit and integration tests
         run: node qa/scripts/run-native-regression-tests.mjs
 
+      - name: Test online live bridge relay contracts
+        run: node --test worker/src/live-bridge-relay.test.mjs
+
       - name: Test portable creator event director and local host
         run: |
-          node --test portable-creator/live-event-runtime.test.mjs
+          node --test portable-creator/live-event-runtime.test.mjs portable-creator/live-event-journal.test.mjs
           node qa/scripts/portable-creator-runtime-test.mjs
 
       - name: Lock standalone AI, platform, and Shopify boundaries
         run: node qa/scripts/product-contract-locks.mjs
 
       - name: Verify 13-layer offline security-review evidence
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: node qa/scripts/security-procurement-evidence.mjs
 
       - name: Inventory 13 production engineering domains without live probes

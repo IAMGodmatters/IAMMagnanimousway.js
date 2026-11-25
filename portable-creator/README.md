@@ -1,6 +1,6 @@
 # Magnanimous Portable Creator
 
-A Windows-first, offline-first creator workspace designed to live on an external USB SSD. Magnanimous AI remains the product identity; local executables and model runtimes are replaceable execution tools.
+A Windows-first, offline-first creator workspace with an optional secure online companion connection, designed to live on an external USB SSD. Magnanimous AI remains the product identity; local executables, cloud relays and model runtimes are replaceable execution tools.
 
 ## What this first slice does
 
@@ -8,11 +8,12 @@ A Windows-first, offline-first creator workspace designed to live on an external
 - Uses a local GGUF model through a loopback-only `llama-server` when a model and runtime are installed.
 - Creates scripts, lessons, livestream rundowns, storyboards and creative outlines without sending prompts to a cloud API.
 - Stores saved projects in an AES-256-GCM encrypted vault on the removable drive. The passphrase is not stored by the app; the key is held in memory only while the vault is unlocked.
-- Does not download binaries or models, enable telemetry, open a LAN listener, run shell commands from the browser, or connect to external providers.
+- Does not download binaries or models, enable telemetry, open a LAN listener, run shell commands from the browser, or collect social-platform credentials. When online, it can make one outbound WSS connection to the official Magnanimous live-bridge relay; direct provider adapters remain separate and permission-gated.
 - Can optionally start a portable OBS installation. The local creator includes an authenticated OBS WebSocket v5 control adapter for scene listing, scene switching and recording start/stop. OBS must already be installed/running with its WebSocket server enabled; this adapter does not install OBS or drivers.
 - OBS pairing is restricted to `127.0.0.1:4455`. The password is sent only to the local host for the OBS challenge handshake, is not stored in the vault or browser storage, and is not forwarded to any cloud service. Scene switching and recording require explicit operator clicks.
+- The online companion uses a separate temporary pairing token to connect to the Magnanimous WSS relay. The token is held in process memory only. Incoming remote production commands appear in a local approval queue. The local companion supports an approved OBS scene change and a `host.speak` request; speech is handed to the local AI-host panel and spoken only after approval on this computer.
 
-This is a working local creator foundation, not yet the finished cross-platform USB broadcast appliance. The first Windows build requires compatible runtime binaries and an optional, separately licensed model to be placed in the documented folders.
+This is a working offline creator foundation with an online relay connection path, not yet the finished cross-platform USB broadcast appliance or a completed social livestream integration. The first Windows build requires compatible runtime binaries and an optional, separately licensed model to be placed in the documented folders.
 
 ## Windows folder layout
 
@@ -52,6 +53,30 @@ Magnanimous-Portable/
 
 To open the optional portable OBS folder, start the launcher with `-LaunchOBS`. The application itself does not install device drivers or elevate privileges.
 
+
+## Secure online companion connection
+
+1. Sign in to the online Magnanimous platform and open **LIVE Event Bridge**.
+2. Choose **Create secure pair**. The online service issues separate browser and companion tokens; the initial pairing window is ten minutes.
+3. Unlock the encrypted workspace, then copy the companion token into the local Portable Creator's **Connect to Magnanimous Live Studio** panel, together with the secure WSS address.
+4. The local process connects outbound to `wss://iammagnanimousway.com`. It does not open a LAN port or expose OBS.
+5. Incoming normalized audience/game events are encrypted with a subkey derived from the workspace key before they are written to the local recovery journal. Remote production commands are placed in a local approval queue. A scene change requires OBS to be connected and a second approval on the local computer.
+6. Locking the workspace disconnects the bridge and clears the in-memory event queue; unacknowledged events remain encrypted on USB and are restored after the next unlock. Disconnect locally or revoke/expire the pairing. Tokens are not written to disk and are cleared when the local process exits.
+
+### Use the online AI host with the local USB avatar
+
+1. Keep LIVE Event Bridge open in one browser tab and open AI Host (/tiktok-live) in another tab on the same official Magnanimous origin.
+2. Create the secure pair in LIVE Event Bridge and paste only the companion token into the F-drive Creator. The browser token stays inside the bridge tab; it is never copied into the AI Host tab or browser storage.
+3. When the local companion reports connected, the AI Host can receive normalized audience/game events from the bridge tab. Each event is shown for creator review; it is not automatically answered or spoken.
+4. Enable “Send AI replies to the paired F-drive host for local approval” when you want the local avatar/voice to deliver the online AI Host's answer. The bridge forwards only a bounded host.speak request; the F-drive Creator displays it for a second, local approval before speech.
+5. If the browser tab is closed, the bridge disconnects or the pair expires, the AI Host reports that the companion is unavailable. The AI Host can still generate and speak in the browser when its online AI service is reachable.
+
+The two tabs use a same-origin in-memory BroadcastChannel only for normalized event context, bridge status and bounded speech requests. It does not carry pairing tokens, credentials, provider passwords or OBS passwords.
+
+The relay is a transport, not a social-platform adapter. New pairs authorize only local/manual, OBS, game and browser events. TikTok, Facebook, YouTube, Twitch and Zoom are schema-supported but explicitly denied until a separate official account adapter is authorized. This connection does not itself fetch platform chat, start a broadcast or transmit audio/video. Those require separate official account authorization and provider adapters. The local companion supports only two remote actions: locally approved OBS scene selection and locally approved `host.speak` requests. Host speech is played through the selected device/browser voice; it is not a cloud voice service. Overlay and audio-cue execution remain disabled until their local engines are implemented. Game events can be normalized and turned into review cues, but live game-specific adapters are not connected by this slice.
+
+The cloud relay implementation is in draft PR #1017 and is not deployed. The local connection path becomes usable only after that PR passes CI, the Durable Object namespace is provisioned safely, and the production deployment gate is cleared. Do not paste provider passwords, cookies, OAuth tokens or OBS passwords into the pairing fields.
+
 ## Local OBS control
 
 1. Start OBS Studio on the same computer.
@@ -61,23 +86,37 @@ To open the optional portable OBS folder, start the launcher with `-LaunchOBS`. 
 
 This control path is local production only. It does not start a public livestream, connect a social account, or join Zoom. A real OBS hardware smoke test remains required before describing it as operational on a particular computer.
 
+## Local AI host avatar and voice routing
+
+The OBS panel can add the disclosed transparent 2-D Magnanimous host avatar as a Browser Source at the local `/avatar.html` route. It is an illustrated 2-D avatar, not a full 3-D or motion-captured character.
+
+The host panel sends reviewed captions and speaking/stop state to the local `/api/avatar/state` endpoint. The OBS Browser Source receives those events through a loopback Server-Sent Events stream at `/api/avatar/events`. This works across separate browser processes (for example, Opera for the control panel and OBS's embedded browser) without relying on a shared browser profile or BroadcastChannel. The stream is local-only, same-origin, limited to eight clients, and changes to a locked state when the encrypted workspace is locked.
+
+Voice playback uses the selected computer/browser speech engine. In OBS, enable Desktop Audio or add an Audio Output Capture source for the same output device, speak a test line, and confirm the OBS audio meter moves. If the meter does not move, the voice will not be present in the recording or stream; select the correct output device and test again.
+
+The Creator does not press TikTok's Go Live button or claim a social account is connected. Start the public broadcast yourself in TikTok LIVE Studio or another official app after checking the avatar, voice, audio meter, media rights and account eligibility.
+
 ## Local live-event runtime
 
-The portable host now exposes a bounded, loopback-only event intake for future authorized platform and game adapters:
+Accepted events and acknowledgements are encrypted with AES-256-GCM in a bounded, fsynced JSONL recovery journal. The encryption subkey is derived from the unlocked workspace key and is never written to disk. Startup replays only unacknowledged events without writing duplicate records; legacy plaintext journal records are migrated on first successful unlock. Atomic compaction retains pending events and recent deduplication IDs. If the journal reaches its configured size limit or cannot be verified, new event intake stops rather than silently dropping or overwriting recovery data.
 
-- `GET /api/live/events/status` reports queue depth, capacity and deduplication state.
+The portable host exposes a bounded, loopback-only event intake and encrypted recovery journal for local events and future authorized adapters:
+
+- `GET /api/live/events/status` reports queue depth, capacity, deduplication state and journal health.
 - `POST /api/live/events/ingest` accepts a protocol-version-1 event in a JSON `event` field.
-- `POST /api/live/events/consume` returns a bounded batch (1–50 events) for the local operator/host runtime.
+- `POST /api/live/events/consume` claims a bounded batch (1–50 events) under an expiring delivery lease.
+- `POST /api/live/events/ack` acknowledges exact provider-scoped event keys only after the local UI has rendered the batch successfully.
 
-Browser intake accepts operator-entered `manual` events only; provider-labelled events must arrive through a future authenticated local companion adapter. The runtime validates provider, event type, event ID and timestamp; removes control characters; bounds viewer text and tags; strips credential-like tag names; deduplicates provider event IDs; applies a per-provider rate limit; and returns backpressure when the queue is full. It does not silently discard already accepted events.
+Browser intake accepts operator-entered `manual` events only; provider-labelled events must arrive through the authenticated local companion and an explicitly authorized provider adapter. The runtime validates provider, event type, event ID and timestamp; removes control characters; bounds viewer text and tags; strips credential-like tag names; deduplicates provider event IDs; applies a per-provider rate limit; and returns backpressure when the queue is full.
 
-Queue and deduplication state are transient in memory and are cleared when the host exits. They are not a substitute for durable project storage. The endpoints are a local event-processing foundation only: no TikTok, Facebook, YouTube, Twitch or game adapter is connected by this change. Public broadcasting, account control, moderation and payments are not exposed.
+Accepted events are encrypted with AES-256-GCM using a key derived from the unlocked workspace key. Viewer names and chat text are never written as plaintext. The encryption key is derived in memory, wiped when the workspace locks, and never stored beside the journal. Unlock the encrypted workspace to recover events after a restart; an incorrect passphrase cannot rewrite or destroy the existing journal.
 
-The portable UI includes an operator-controlled event review panel to pull and inspect a bounded batch. Browser intake accepts manual events only; it cannot impersonate a TikTok, Facebook, YouTube, Twitch or game adapter. The portable runtime QA suite copies this module into an isolated temporary host and exercises event ingestion, duplicate rejection, spoofed-provider rejection and bounded consumption. Unit tests cover validation, sanitization, rate limits, queue backpressure and cleanup.
+Delivery claims use short-lived leases. The UI acknowledges a batch only after rendering it; if the application closes before acknowledgement, events remain pending and become available again after restart or lease expiry. Acknowledgements are idempotent and provider-scoped. The journal uses bounded storage, atomic compaction, fsync, legacy plaintext migration and fail-closed recovery when a complete record cannot be authenticated. If storage fails, new intake pauses and returns an explicit storage error rather than pretending an event was saved.
 
+The endpoints are a local event-processing foundation: OBS state and a generic authenticated local game/app event source are supported, but no native TikTok, Facebook, YouTube, Twitch, Zoom or game-SDK adapter is connected. Public broadcasting, account control, moderation and payments are not exposed.
 ## Broadcast and Zoom boundaries
 
-Offline mode can prepare the show, assets, script, overlays and avatar plan. It cannot transmit to TikTok, Facebook, YouTube, Twitch or Zoom without a network connection. The online LIVE Studio uses the provider-neutral event bridge and separate authorized adapters.
+Offline mode can prepare the show, assets, script, overlays and local avatar scene. It cannot transmit to TikTok, Facebook, YouTube, Twitch or Zoom without a network connection. The online LIVE Studio uses the provider-neutral event bridge and separate authorized adapters.
 
 For an existing Zoom desktop meeting, the practical bridge is OBS Virtual Camera plus an audio input selected in Zoom. On Windows, OBS documents a one-time administrator step to install the virtual-camera driver; this launcher deliberately does not install it. A native Zoom Video SDK integration is a separate, credentialed application path.
 
@@ -89,7 +128,7 @@ OBS Portable Mode keeps OBS configuration beside the application on Windows, but
 
 ## Security and privacy
 
-- Host binds only to IPv4 loopback `127.0.0.1`; it is not available to other devices on Wi-Fi.
+- Host binds only to IPv4 loopback `127.0.0.1`; it is not available to other devices on Wi-Fi. Its only online bridge traffic is an outbound TLS WebSocket to the official Magnanimous relay.
 - Only same-origin browser requests are accepted for state changes.
 - The local model target is fixed to `127.0.0.1:9931`; browser inputs cannot choose a URL or issue shell commands.
 - The encrypted vault uses scrypt key derivation and AES-256-GCM authenticated encryption. It is locked when the local host exits.
@@ -110,4 +149,23 @@ This repository does not bundle third-party binaries or model weights. The packa
 6. Add end-to-end USB removal/reinsertion, drive-letter change, disk-full, passphrase recovery, crash recovery and cross-device portability tests.
 
 Do not treat a successful local build as proof that every device, camera, game, driver or streaming account is compatible.
-\n## Magnanimous show director\n\nThe local show director turns validated audience and game events into bounded review cues (welcome, reply prompt, game commentary, poll update, thank-you and production notes). It never speaks, changes OBS scenes, posts, moderates, spends money or controls a game. Every cue is marked `requiresOperatorApproval: true` and `action: review-only`; viewer text is not copied into instruction prompts. Cues expire after 45 seconds by default and are generated only for the events the operator pulls from the local queue.\n\n## Cross-device reality\n\nA USB SSD can carry the Magnanimous workspace, models, media and Windows OBS Portable files, but it cannot make one binary or one OBS profile work unchanged on every operating system. OBS Portable Mode is Windows-only and its media references need relative/common paths. The launcher must detect the OS/architecture, use the matching native runtime, and keep project files portable. Public streaming and Zoom meetings still need network access.\n
+\n## Magnanimous show director\n\nThe local show director turns validated audience and game events into bounded review cues (welcome, reply prompt, game commentary, poll update, thank-you and production notes). Cues are review-only; they never directly control a game, post, moderate, spend money or trigger a scene change. A separate `host.speak` command can send a short line to the local AI-host panel, but the operator must approve it locally before the selected device voice speaks. Viewer text is untrusted content, not an instruction to the AI. Cues expire after 45 seconds by default and are generated only for events the operator pulls from the local queue.\n\n## Cross-device reality\n\nA USB SSD can carry the Magnanimous workspace, models, media and Windows OBS Portable files, but it cannot make one binary or one OBS profile work unchanged on every operating system. OBS Portable Mode is Windows-only and its media references need relative/common paths. The launcher must detect the OS/architecture, use the matching native runtime, and keep project files portable. Public streaming and Zoom meetings still need network access.\n
+
+## Connect a trusted game or local app
+
+After unlocking the encrypted workspace, reveal the temporary **game event token** in the local Creator. A trusted local Node.js game/app integration can use `game-event-client.mjs`:
+
+```js
+import { sendLocalGameEvent } from './game-event-client.mjs';
+
+await sendLocalGameEvent({
+  token: process.env.MAGNANIMOUS_GAME_TOKEN,
+  gameName: 'Your game or app',
+  actorName: 'Game event',
+  text: 'A round has started. Ask the audience to predict the winner.'
+});
+```
+
+Keep the token in the local process environment or a protected secret store; never commit it, put it in a public game script, or send it to a browser overlay. The helper has a fixed `127.0.0.1` destination and will not forward the bearer token to an arbitrary URL. The Creator validates, deduplicates, rate-limits and encrypts events before they enter the local show queue. When the online bridge is connected, approved event types can be relayed to the web host. The AI host sees an event only after the operator pulls it into the show director.
+
+This is an event-integration contract, not a universal plug-in for every game. A specific game still needs a permitted API, plugin, webhook or operator cue. It does not read process memory, inject input, bypass anti-cheat or control gameplay. The online browser host currently supports operator-entered game moments; automatic game telemetry from every title is not connected yet.
