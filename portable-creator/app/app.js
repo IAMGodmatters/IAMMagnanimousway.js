@@ -23,8 +23,8 @@ function updateControls(){
  $('obsStopRecordButton').disabled=!state.obsConnected||!state.obsRecording;
  $('livePullButton').disabled=false;
  $('liveSendButton').disabled=!$('liveTestText').value.trim();
- $('bridgeConnectButton').disabled=state.bridgeConnected;
- $('bridgeDisconnectButton').disabled=!state.bridgeConnected;
+ $('bridgeConnectButton').disabled=state.bridgeConnected||state.bridgeStatus==='connecting';
+ $('bridgeDisconnectButton').disabled=state.bridgeStatus==='disconnected';
 }
 function updateGenerationStatus(){
  $('modelStatus').textContent=state.modelReady?'Local AI ready: '+state.modelName:'Offline draft builder ready • Local AI not installed';
