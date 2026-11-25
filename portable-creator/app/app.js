@@ -144,7 +144,8 @@ async function setObsRecording(start){
  }catch(error){message('obsMessage',error.message,'error');}
  updateControls();
 }
-function renderLiveEvents(events){
+function renderLiveEvents(events,cues=[]){
+ const cueByEvent=new Map(cues.map(cue=>[cue.eventId,cue]));
  const list=$('liveEventList');list.replaceChildren();
  if(!events.length){const empty=document.createElement('p');empty.className='muted';empty.textContent='No events in this batch. Connect an authorized provider adapter later, or send a local test event.';list.append(empty);return;}
  for(const event of events){
@@ -152,7 +153,10 @@ function renderLiveEvents(events){
   const meta=document.createElement('strong');meta.textContent=event.provider+' · '+event.type;
   const actor=document.createElement('small');actor.textContent=event.actorName||event.actorId||'Viewer';
   const body=document.createElement('p');body.textContent=event.text||'(No message text)';
-  item.append(meta,actor,body);list.append(item);
+  item.append(meta,actor,body);
+  const cue=cueByEvent.get(event.eventId);
+  if(cue){const review=document.createElement('small');review.textContent='MAGNANIMOUS SUGGESTION · '+cue.title+' · '+cue.prompt+' · OPERATOR APPROVAL REQUIRED';review.className='director-cue';item.append(review);}
+  list.append(item);
  }
 }
 async function refreshLiveQueue(){
@@ -170,7 +174,7 @@ async function sendLocalEvent(){
 }
 async function pullLiveEvents(){
  $('livePullButton').disabled=true;
- try{const data=await api('/api/live/events/consume',{method:'POST',body:JSON.stringify({limit:20})});renderLiveEvents(data.events||[]);$('liveQueueStatus').textContent=data.queued+' queued · '+data.capacity+' capacity';message('liveEventMessage',(data.events||[]).length+' event(s) pulled from the local queue.','success');}
+ try{const data=await api('/api/live/events/consume',{method:'POST',body:JSON.stringify({limit:20})});renderLiveEvents(data.events||[],data.reviewCues||[]);$('liveQueueStatus').textContent=data.queued+' queued · '+data.capacity+' capacity';message('liveEventMessage',(data.events||[]).length+' event(s) pulled from the local queue.','success');}
  catch(error){message('liveEventMessage',error.message,'error');}
  finally{$('livePullButton').disabled=false;await refreshLiveQueue();}
 }
