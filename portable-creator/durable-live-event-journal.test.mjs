@@ -92,3 +92,16 @@ test('rejects partial acknowledgements without removing any event', t => {
   assert.equal(journal.status().queued, 2);
   assert.equal(journal.acknowledge(delivery.deliveryId, delivery.eventKeys).acknowledged, 2);
 });
+
+test('compaction preserves active in-process delivery leases', t => {
+  const f = fixture(t);
+  const journal = f.create();
+  journal.ingest(makeEvent('compact-1'));
+  journal.ingest(makeEvent('compact-2'));
+  const delivery = journal.claim(2);
+  assert.equal(delivery.events.length, 2);
+  fs.appendFileSync(f.filePath, 'x'.repeat(8 * 1024 * 1024 + 1));
+  assert.equal(journal.ingest(makeEvent('compact-3')).status, 'accepted');
+  const next = journal.claim(2);
+  assert.deepEqual(next.events.map(event => event.eventId), ['compact-3']);
+});
