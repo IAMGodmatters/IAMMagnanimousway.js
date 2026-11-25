@@ -50,6 +50,8 @@ export default function TikTokLiveHost() {
   const [streamerBotPassword, setStreamerBotPassword] = useState('');
   const [streamerBotStatus, setStreamerBotStatus] = useState('DISCONNECTED');
   const [streamerBotEvents, setStreamerBotEvents] = useState<Array<{ id: string; source: string; type: string; summary: string; timestamp: string }>>([]);
+  const [approvedStreamerActions, setApprovedStreamerActions] = useState<ApprovedAction[]>([]);
+  const [actionRunStatus, setActionRunStatus] = useState('No local action executed');
   const streamerBotSocket = useRef<WebSocket | null>(null);
   const [liveFormat, setLiveFormat] = useState('Gaming & play-along');
   const [liveEventInput, setLiveEventInput] = useState('');
@@ -208,6 +210,18 @@ export default function TikTokLiveHost() {
     setStreamerBotPassword('');
   }
 
+  function runApprovedStreamerAction(action: ApprovedAction) {
+    const socket = streamerBotSocket.current;
+    if (!socket || socket.readyState !== WebSocket.OPEN || !action.id) {
+      setNotice('Reconnect to the authenticated local Streamer.bot event bus before running an action.');
+      return;
+    }
+    if (!window.confirm(`Run this locally configured Streamer.bot action?\\n\\n${action.name}\\n\\nReview its sub-actions in Streamer.bot first. Magnanimous will not run viewer-supplied commands.`)) return;
+    const requestId = `magnanimous-action-${Date.now()}`;
+    setActionRunStatus(`REQUESTED: ${action.name}`);
+    socket.send(JSON.stringify({ request: 'DoAction', id: requestId, action: { id: action.id } }));
+  }
+
   async function connectStreamerBot() {
     if (streamerBotSocket.current && streamerBotSocket.current.readyState < WebSocket.CLOSING) {
       setNotice('A Streamer.bot connection is already active or opening. Disconnect it before reconnecting.');
@@ -228,6 +242,8 @@ export default function TikTokLiveHost() {
 
     setNotice('');
     setStreamerBotEvents([]);
+    setApprovedStreamerActions([]);
+    setActionRunStatus('No local action executed');
     setStreamerBotStatus('CONNECTING TO LOCAL EVENT BUS');
     let socket: WebSocket;
     try {
@@ -288,8 +304,27 @@ export default function TikTokLiveHost() {
           return;
         }
         authenticated = true;
-        if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ request: 'GetEvents', id: 'magnanimous-get-events' }));
-        setStreamerBotStatus('AUTHENTICATED • READING EVENT CATALOG');
+        if (socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ request: 'GetEvents', id: 'magnanimous-get-events' }));
+          socket.send(JSON.stringify({ request: 'GetActions', id: 'magnanimous-get-actions' }));
+        }
+        setStreamerBotStatus('AUTHENTICATED • READING EVENT AND ACTION CATALOGS');
+        return;
+      }
+
+      if (packet?.id === 'magnanimous-get-actions' && authenticated) {
+        const actions = Array.isArray(packet.actions) ? packet.actions : [];
+        const approved = actions
+          .filter((action: any) => action?.enabled === true && typeof action?.id === 'string'
+            && typeof action?.name === 'string' && action.name.startsWith('Magnanimous Approved - '))
+          .map((action: any) => ({ id: String(action.id), name: String(action.name).slice(0, 100) }))
+          .slice(0, 20);
+        setApprovedStreamerActions(approved);
+        return;
+      }
+
+      if (packet?.id?.startsWith?.('magnanimous-action-') && authenticated) {
+        setActionRunStatus(packet.status === 'ok' ? 'LOCAL ACTION CONFIRMED BY STREAMER.BOT' : 'LOCAL ACTION FAILED — CHECK STREAMER.BOT');
         return;
       }
 
@@ -520,6 +555,12 @@ export default function TikTokLiveHost() {
               <span className={streamerBotStatus.startsWith('LIVE') ? 'eventState on' : 'eventState'}>{streamerBotStatus}</span>
             </div>
             <p className="directorNote">In Streamer.bot: Servers/Clients → WebSocket Server; bind to 127.0.0.1, enable Authentication and Enforce, set a password, and keep the port off the public Internet. The password is used only for the local challenge and is not saved, sent to Magnanimous, or stored in Cloudflare. Chrome may ask for Local Network or Loopback access before the socket opens; approve that browser permission for this site. If you blocked it earlier, change this site's Local Network/Loopback permission in browser site settings.</p>
+            <div className="eventFeed">
+              <div className="eventFeedHead"><b>Operator-approved local actions</b><span>{approvedStreamerActions.length} available</span></div>
+              <p className="directorNote">Create these actions yourself in Streamer.bot and name each one exactly with the prefix “Magnanimous Approved - ”. Review every sub-action in Streamer.bot. Magnanimous only lists enabled, prefixed actions and requires a separate confirmation before it sends DoAction. Viewer comments and AI-generated text can never call this function.</p>
+              <p className="directorNote">{actionRunStatus}</p>
+              {approvedStreamerActions.length === 0 ? <p className="directorNote">No approved actions found. You can still use the event feed without enabling actions.</p> : approvedStreamerActions.map(action => <article key={action.id}><b>{action.name}</b><button type="button" className="secondary" onClick={() => runApprovedStreamerAction(action)}>REVIEW &amp; RUN LOCALLY</button></article>)}
+            </div>
             <div className="eventFeed">
               <div className="eventFeedHead"><b>Recent local app/game events</b><button type="button" onClick={() => setStreamerBotEvents([])}>Clear events</button></div>
               {streamerBotEvents.length === 0 ? <p className="directorNote">No local events received yet. Connect Streamer.bot, start an approved game/app or test trigger, and events will appear here.</p> : streamerBotEvents.map(item => <article key={item.id}><small>{item.source} • {item.type}</small><p>{item.summary}</p><button type="button" className="secondary" onClick={() => useStreamerBotEvent(item)}>USE FOR LIVE REACTION</button></article>)}
