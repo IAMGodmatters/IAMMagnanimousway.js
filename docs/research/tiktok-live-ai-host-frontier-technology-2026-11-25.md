@@ -67,7 +67,7 @@ For ministry and educational LIVE sessions, keep the AI identity clearly disclos
 ## What this update implements
 
 - Adds a visible, dated technology/acquisition comparison inside the TikTok LIVE Host page.
-- Adds a working browser-side Streamer.bot connector: validates loopback/private-LAN WebSocket targets, requires the local authentication challenge, discovers the event catalog, subscribes to supported categories, and retains only a bounded feed of sanitized event summaries in the page. The password is not persisted or sent to Magnanimous; incoming events are not automatically spoken or used to execute actions.
+- Adds a working browser-side Streamer.bot connector: validates loopback/private-LAN WebSocket targets, requires the local authentication challenge, discovers the event catalog, subscribes to supported categories, and retains only a bounded feed of sanitized event summaries in the page. The password is not persisted or sent to Magnanimous; incoming events are not automatically spoken or used to execute actions. Browser local-network permission remains user-controlled and is not bypassed.
 - Adds a Magnanimous Creative Director: an operator-approved event can be sent to the brain for a live reaction and an audience interaction idea; a separate control creates a 10-minute show rundown with timed beats and a quiet-chat fallback. Both use the existing Magnanimous chat/knowledge path with `use_tools:false`.
 - Identifies Simli as the best low-cost modular avatar renderer for Magnanimous because it receives a separate speech-audio stream and leaves the intelligence layer outside the avatar service.
 - Adds Tavus CVI as a higher-end alternative, with BYO LLM/audio support and explicit free-tier, paid-tier, and overage costs.
@@ -143,6 +143,8 @@ The avatar should not be the product's only capability. The stronger pattern is 
 - Streamer.bot WebSocket API and event catalog: https://docs.streamer.bot/api/websocket ; https://docs.streamer.bot/api/websocket/events
 - Streamer.bot secure WebSocket configuration: https://docs.streamer.bot/api/websocket/guide/configuration
 - Streamer.bot authentication challenge: https://docs.streamer.bot/api/websocket/guide/authentication
+- Chrome Local Network Access restrictions and WebSocket permission prompt: https://developer.chrome.com/blog/local-network-access
+- Chrome Local Network Access WebSocket guidance: https://developer.chrome.google.cn/docs/modern-web-guidance/guides/security/local-network-access?hl=en
 - Streamer.bot Subscribe/GetEvents request reference: https://docs.streamer.bot/api/websocket/requests
 - VTube Studio public API (model, hotkeys, expressions, local WebSocket): https://github.com/DenchiSoft/VTubeStudio
 - VTube Studio hotkey action reference: https://github.com/DenchiSoft/VTubeStudio/blob/master/Files/HotkeyAction.cs
