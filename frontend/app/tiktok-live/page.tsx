@@ -219,11 +219,12 @@ export default function TikTokLiveHost() {
             <h2 id="frontier-title">The newest live-host technology you can acquire</h2>
             <p>Magnanimous remains the brain. These are optional voice, avatar, and broadcast tools underneath it. Nothing below is activated, billed, or connected to your accounts automatically.</p>
           </div>
-          <div className="techGrid">\n            <article className="techCard recommended">
+          <div className="techGrid">
+            <article className="techCard recommended">
               <span className="techTag">BEST LOW-COST REAL AVATAR FIT</span>
               <h3>Simli Trinity-2 + Magnanimous</h3>
               <p>Simli turns approved speech audio into a real-time animated avatar stream. Keep Magnanimous as the brain and choose the speech engine separately. Its current pricing page lists 50 free minutes/month; paid plans start at $10/month for 1,000 minutes, with published usage rates from $0.01/min on Hobby and lower at larger tiers.</p>
-              <p className="techNote">The browser SDK accepts an audio MediaStreamTrack or audio element and returns avatar video/audio over WebRTC. The provider's README says API keys stay on the server; the browser receives only a short-lived session token. A separate TTS audio stream is still required—browser speech synthesis alone is not a drop-in audio track.</p>
+              <p className="techNote">The browser SDK accepts an audio MediaStreamTrack or audio element and returns avatar video/audio over WebRTC. Simli advertises video response as low as about 150 ms after speech audio is sent. API keys stay on the server; the browser receives only a short-lived session token. A separate TTS audio stream is still required—browser speech synthesis alone is not a drop-in audio track.</p>
               <div className="techLinks"><a href="https://www.simli.com/" target="_blank" rel="noreferrer">Official product and pricing</a><a href="https://github.com/simliai/simli-client" target="_blank" rel="noreferrer">Official WebRTC SDK</a><a href="https://www.npmjs.com/package/simli-client" target="_blank" rel="noreferrer">SDK and server-token guide</a></div>
               <b className="techStatus">BEST NEXT AVATAR ADAPTER • NOT CONNECTED</b>
             </article>
@@ -258,6 +259,14 @@ export default function TikTokLiveHost() {
               <p className="techNote">Current homepage pricing: Starter $19/month (150 credits, up to 5-minute sessions); Essential $99/month (1,000 credits, up to 20-minute sessions); Business $475/month (5,000 credits, up to 60-minute sessions). One credit is 30 seconds in Full mode or one minute in Lite mode. These are short sessions with a credit budget—not an uninterrupted all-day host.</p>
               <div className="techLinks"><a href="https://www.liveavatar.com/" target="_blank" rel="noreferrer">Current official plans and limits</a><a href="https://help.heygen.com/en/articles/12758866-liveavatar-faq" target="_blank" rel="noreferrer">Credit calculation FAQ</a><a href="https://help.heygen.com/en/articles/12758516-introducing-liveavatar" target="_blank" rel="noreferrer">Plan details in Help Center</a></div>
               <b className="techStatus">FREE TEST AVAILABLE • NOT CONNECTED</b>
+            </article>
+            <article className="techCard">
+              <span className="techTag">PREMIUM PHOTOREAL CONVERSATIONAL VIDEO</span>
+              <h3>Tavus CVI + Bring Your Own LLM/Audio</h3>
+              <p>Phoenix-4 renders a responsive, full-face conversational avatar. Tavus supports a bring-your-own-LLM and bring-your-own-audio path, allowing Magnanimous to retain the intelligence layer while Tavus renders the visual presence.</p>
+              <p className="techNote">Developer Basic: free 25 conversational-video minutes/month. Starter: $59/month with 100 included minutes and 3 concurrent streams. Official overage is $0.37/minute on Basic and $0.32/minute on Starter; there is no automatic overage cap. Each conversation has a 30-second minimum. Magnanimous would need a hard stop and spend cap before any paid use.</p>
+              <div className="techLinks"><a href="https://www.tavus.io/cvi" target="_blank" rel="noreferrer">CVI and BYO architecture</a><a href="https://www.tavus.io/pricing" target="_blank" rel="noreferrer">Official developer pricing</a><a href="https://docs.tavus.io/" target="_blank" rel="noreferrer">Developer docs</a></div>
+              <b className="techStatus">PREMIUM OPTION • NOT CONNECTED</b>
             </article>
             <article className="techCard">
               <span className="techTag">FREE BROADCAST CONTROL</span>
