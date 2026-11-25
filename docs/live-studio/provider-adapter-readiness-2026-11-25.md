@@ -11,9 +11,9 @@ This system is for faceless creators, teachers, streamers, gamers, ministries, c
 ### YouTube Live
 
 Official references:
-- Live chat streaming: https://developers.google.com/youtube/v3/live/docs/liveChatMessages/streamList
-- Live chat list: https://developers.google.com/youtube/v3/live/docs/liveChatMessages/list
-- Authorization: https://developers.google.com/youtube/v3/live/docs/liveStreamingApi
+- Live chat streaming: https://developers.google.com/youtube/data/live/reference/rest/v3/liveChatMessages/streamList
+- Live chat list: https://developers.google.com/youtube/data/live/reference/rest/v3/liveChatMessages/list
+- Authorization: https://developers.google.com/youtube/data/live/authentication
 
 Facts:
 - `liveChatMessages.streamList` is the server-streaming, low-latency option and sends recent history followed by new messages.
