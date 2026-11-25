@@ -87,7 +87,12 @@ export const LOCAL_BRIDGE_ACTIONS=Object.freeze({
  netwalk_report:{risk:'low',auto:false,confirmation:false,family:'netwalk'},
  apply_patch:{risk:'high',auto:false,confirmation:true,family:'files'},
  git_create_branch:{risk:'medium',auto:false,confirmation:true,family:'git'},
- git_commit:{risk:'high',auto:false,confirmation:true,family:'git'}
+ git_commit:{risk:'high',auto:false,confirmation:true,family:'git'},
+ obs_status:{risk:'low',auto:true,confirmation:false,family:'obs-local'},
+ obs_scene_list:{risk:'low',auto:true,confirmation:false,family:'obs-local'},
+ obs_output_status:{risk:'low',auto:true,confirmation:false,family:'obs-local'},
+ obs_scene_set:{risk:'medium',auto:false,confirmation:true,family:'obs-local'},
+ obs_audio_cue:{risk:'medium',auto:false,confirmation:true,family:'obs-local'}
 });
 
 export const LOCAL_BRIDGE_POLICY=Object.freeze({
@@ -103,6 +108,10 @@ export const LOCAL_BRIDGE_POLICY=Object.freeze({
  browser_proxy_credentials_local_only:true,
  ssh_credentials_local_only:true,
  ssh_exact_command_only:true,
+ obs_password_storage:'windows-dpapi-local-only',
+ obs_host_policy:'127.0.0.1-only',
+ obs_inbound_listener_required:false,
+ obs_remote_password_transport:false,
  ssh_interactive_shell_exposed:false,
  native_webhooks_https_only:true,
  arbitrary_process_execution:false,
@@ -193,6 +202,20 @@ function validateTask(action,payload){
   if(['storage_mkdir','storage_link'].includes(action)&&!safeRef(body.path))throw new Error(action+' requires a configured remote:path reference.');
   if(action==='storage_list'){
    const depth=Number(body.max_depth??2);if(!Number.isInteger(depth)||depth<1||depth>20)throw new Error('storage_list max_depth must be an integer from 1 to 20.');
+  }
+ }
+ if(action.startsWith('obs_')){
+  const forbidden=['host','url','endpoint','port','password','token','secret','credential','websocket_url'];
+  for(const key of forbidden)if(Object.prototype.hasOwnProperty.call(body,key))throw new Error('OBS endpoint and credentials are configured only on the owner computer.');
+  const allowed=action==='obs_scene_set'?['sceneName']:action==='obs_audio_cue'?['cueId']:[];
+  for(const key of Object.keys(body))if(!allowed.includes(key))throw new Error('Unsupported OBS task field: '+key);
+  if(action==='obs_scene_set'){
+   const sceneName=clip(body.sceneName,80);
+   if(!sceneName||/[\\u0000-\\u001f\\u007f]/.test(sceneName))throw new Error('obs_scene_set requires a valid sceneName.');
+  }
+  if(action==='obs_audio_cue'){
+   const cueId=clip(body.cueId,80);
+   if(!cueId||/[\\u0000-\\u001f\\u007f]/.test(cueId))throw new Error('obs_audio_cue requires a valid cueId.');
   }
  }
  if(action==='web_fetch'){
