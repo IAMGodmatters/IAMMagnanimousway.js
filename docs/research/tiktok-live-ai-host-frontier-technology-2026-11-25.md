@@ -135,7 +135,7 @@ Primary Cloudflare references:
 - Simli Compose session-token API v2: https://docs.simli.com/api-reference/compose-session-token
 - Simli Compose ICE API: https://docs.simli.com/api-reference/get-ice-servers
 - Simli JavaScript WebRTC SDK (16 kHz PCM16 audio input): https://docs.simli.com/api-reference/simli-client
-- Simli official JavaScript SDK and current LiveKit Compose-token contract: https://github.com/simliai/simli-client
+- Simli official JavaScript SDK and WebRTC P2P client: https://github.com/simliai/simli-client
 - Simli WebRTC client package: https://www.npmjs.com/package/simli-client
 - Tavus CVI modular architecture and BYO LLM/audio: https://www.tavus.io/cvi
 - Tavus developer plans and minute overage: https://www.tavus.io/pricing
