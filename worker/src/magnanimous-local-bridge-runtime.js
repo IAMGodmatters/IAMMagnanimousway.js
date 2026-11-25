@@ -16,6 +16,8 @@ export const LOCAL_BRIDGE_ACTIONS=Object.freeze({
  read_file:{risk:'low',auto:true,confirmation:false,family:'files'},
  search_text:{risk:'low',auto:true,confirmation:false,family:'files'},
  desktop_tools_status:{risk:'low',auto:true,confirmation:false,family:'approved-local-tools'},
+ pocket_tts_status:{risk:'low',auto:true,confirmation:false,family:'local-audio'},
+ pocket_tts_generate:{risk:'medium',auto:false,confirmation:true,family:'local-audio'},
  media_probe:{risk:'low',auto:true,confirmation:false,family:'approved-local-media'},
  media_catalog:{risk:'low',auto:true,confirmation:false,family:'approved-local-media'},
  media_transcode_mp4:{risk:'medium',auto:false,confirmation:true,family:'approved-local-media'},
