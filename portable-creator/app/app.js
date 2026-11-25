@@ -146,6 +146,21 @@ async function setObsRecording(start){
  }catch(error){message('obsMessage',error.message,'error');}
  updateControls();
 }
+function loadHostVoices(){
+ const select=$('hostVoiceSelect');
+ if(!select)return;
+ const current=select.value;
+ select.replaceChildren();
+ const fallback=document.createElement('option');fallback.value='';fallback.textContent='System default voice';select.append(fallback);
+ if(!('speechSynthesis' in window)){ $('hostVoiceStatus').textContent='Device speech is unavailable';$('hostVoiceStatus').className='status warning';return; }
+ const voices=window.speechSynthesis.getVoices();
+ for(const voice of voices){
+  const option=document.createElement('option');option.value=voice.name;option.textContent=voice.name+' · '+voice.lang;select.append(option);
+ }
+ if(voices.some(voice=>voice.name===current))select.value=current;
+ $('hostVoiceStatus').textContent=voices.length+' device voice(s) available';
+ $('hostVoiceStatus').className=voices.length?'status ready':'status warning';
+}
 function hostEventSummary(event){
  if(!event)return 'No audience or game event has been selected yet.';
  const actor=String(event.actorName||'Viewer').replace(/[<>\u0000-\u001f]/g,'').slice(0,48);
@@ -204,14 +219,16 @@ function speakHostLine(){
  window.speechSynthesis.cancel();
  const utterance=new SpeechSynthesisUtterance(text);
  utterance.rate=1;utterance.pitch=1;utterance.volume=1;
- utterance.onstart=()=>{$('hostStageStatus').textContent='Speaking';$('hostVoiceStatus').textContent='Device voice active';$('hostVoiceStatus').className='status ready';};
- utterance.onend=()=>{$('hostStageStatus').textContent='Ready for the next line';};
- utterance.onerror=()=>{$('hostStageStatus').textContent='Voice playback stopped';message('hostMessage','The device voice could not complete playback.','warning');};
+ const selectedVoice=$('hostVoiceSelect').value;
+ if(selectedVoice){const voice=window.speechSynthesis.getVoices().find(item=>item.name===selectedVoice);if(voice)utterance.voice=voice;}
+ utterance.onstart=()=>{$('hostStageStatus').textContent='Speaking';$('hostVoiceStatus').textContent='Device voice active';$('hostVoiceStatus').className='status ready';$('hostAvatar').classList.add('host-speaking');};
+ utterance.onend=()=>{$('hostStageStatus').textContent='Ready for the next line';$('hostAvatar').classList.remove('host-speaking');};
+ utterance.onerror=()=>{$('hostStageStatus').textContent='Voice playback stopped';$('hostAvatar').classList.remove('host-speaking');message('hostMessage','The device voice could not complete playback.','warning');};
  window.speechSynthesis.speak(utterance);
 }
 function stopHostVoice(){
  if('speechSynthesis' in window)window.speechSynthesis.cancel();
- $('hostStageStatus').textContent='Voice stopped';
+ $('hostStageStatus').textContent='Voice stopped';$('hostAvatar').classList.remove('host-speaking');
 }
 function addHostLineToNotes(){
  const line=$('hostLine').value.trim();
@@ -402,6 +419,8 @@ $('obsSwitchButton').addEventListener('click',switchObsScene);
 $('obsStartRecordButton').addEventListener('click',()=>setObsRecording(true));
 $('obsStopRecordButton').addEventListener('click',()=>setObsRecording(false));
 $('livePullButton').addEventListener('click',pullLiveEvents);
+loadHostVoices();
+if('speechSynthesis' in window)window.speechSynthesis.onvoiceschanged=loadHostVoices;
 $('hostGenerateButton').addEventListener('click',generateHostLine);
 $('hostUseScriptButton').addEventListener('click',useNextHostScriptSection);
 $('hostSpeakButton').addEventListener('click',speakHostLine);
