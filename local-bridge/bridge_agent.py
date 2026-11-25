@@ -2184,10 +2184,18 @@ def action_pocket_tts_generate(config, payload):
     }
     if voice not in allowed_voices:
         raise RuntimeError("Voice must be selected from the built-in Pocket TTS voice list. Unapproved voice URLs and paths are blocked.")
+    usage = shutil.disk_usage(root)
+    if usage.free < 1_500_000_000:
+        raise RuntimeError("Pocket TTS needs at least 1.5 GB free on the selected data drive before loading or downloading its model.")
     output_dir = root / "output"
     cache_dir = root / "cache"
     output_dir.mkdir(parents=True, exist_ok=True)
     cache_dir.mkdir(parents=True, exist_ok=True)
+    existing_audio_bytes = sum(
+        item.stat().st_size for item in output_dir.glob("magnanimous-*.wav") if item.is_file()
+    )
+    if existing_audio_bytes >= 250_000_000:
+        raise RuntimeError("Pocket TTS output reached its 250 MB local clip budget. Archive or remove old Magnanimous clips from the D: output folder before generating more.")
     output = output_dir / f"magnanimous-{int(time.time())}-{os.urandom(4).hex()}.wav"
     env = os.environ.copy()
     env.update({
@@ -2195,6 +2203,9 @@ def action_pocket_tts_generate(config, payload):
         "HF_HUB_CACHE": str(cache_dir / "hub"),
         "HUGGINGFACE_HUB_CACHE": str(cache_dir / "hub"),
         "XDG_CACHE_HOME": str(cache_dir),
+        "OMP_NUM_THREADS": "2",
+        "MKL_NUM_THREADS": "2",
+        "OPENBLAS_NUM_THREADS": "2",
     })
     argv = [
         str(executable), "generate", "--text", text, "--voice", voice,
