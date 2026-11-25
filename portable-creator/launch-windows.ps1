@@ -28,18 +28,34 @@ foreach ($dir in @($Data,$Logs,$Cache,$env:HF_HOME,$env:TRANSFORMERS_CACHE,$env:
 if (-not (Test-Path $HostScript)) { throw 'The portable host file is missing. Restore the complete Magnanimous Portable Creator folder.' }
 
 $Node = $null
+$nodeVersion = ''
 if (Test-Path $NodePortable) {
-  $Node = $NodePortable
-} else {
-  $systemNode = Get-Command node.exe -ErrorAction SilentlyContinue
-  if ($systemNode) { $Node = $systemNode.Source }
+  try {
+    $portableVersion = (& $NodePortable --version 2>&1 | Out-String).Trim()
+    if ($LASTEXITCODE -eq 0 -and $portableVersion -match '^v(2[024-9]|[3-9][0-9])\.') {
+      $Node = $NodePortable
+      $nodeVersion = $portableVersion
+    } else {
+      Write-Warning "The USB-bundled Node.js runtime is not usable or is too old ($portableVersion). Checking an installed Node.js runtime instead."
+    }
+  } catch {
+    Write-Warning 'The USB-bundled Node.js runtime could not be executed. Checking an installed Node.js runtime instead.'
+  }
 }
 if (-not $Node) {
-  throw 'Node.js is missing. Place the reviewed Windows Node.js runtime at runtime\node\node.exe. The launcher will not download software.'
+  $systemNode = Get-Command node.exe -ErrorAction SilentlyContinue
+  if ($systemNode) {
+    try {
+      $systemVersion = (& $systemNode.Source --version 2>&1 | Out-String).Trim()
+      if ($LASTEXITCODE -eq 0 -and $systemVersion -match '^v(2[024-9]|[3-9][0-9])\.') {
+        $Node = $systemNode.Source
+        $nodeVersion = $systemVersion
+      }
+    } catch {}
+  }
 }
-$nodeVersion = (& $Node --version).Trim()
-if ($nodeVersion -notmatch '^v(2[024-9]|[3-9][0-9])\.') {
-  throw "Node.js 20 or newer is required. Detected: $nodeVersion"
+if (-not $Node) {
+  throw 'A usable Node.js 20+ runtime is missing. Place a reviewed Windows Node.js runtime at runtime\node\node.exe or install Node.js 20+ on this computer. The launcher will not download software.'
 }
 
 $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback,9931)
