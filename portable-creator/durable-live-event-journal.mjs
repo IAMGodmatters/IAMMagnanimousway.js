@@ -21,7 +21,6 @@ export class DurableLiveEventJournal {
     this.validator = new LiveEventRuntime({ maxQueue: this.maxPending, maxSeen: MAX_SEEN, now });
     this.pending = new Map();
     this.seen = new Map();
-    this.acked = new Set();
     this.leases = new Map();
     this.storageFailed = false;
     this.recovery = { malformedLines: 0, truncatedTail: false };
@@ -72,7 +71,6 @@ export class DurableLiveEventJournal {
         this.pending.set(key, record.event);
       } else if (record.op === 'ack' && typeof record.key === 'string') {
         this.pending.delete(record.key);
-        this.acked.add(record.key);
       }
     }
     if (this.pending.size > this.maxPending) {
@@ -164,7 +162,6 @@ export class DurableLiveEventJournal {
       this._append({ op: 'ack', key, deliveryId, at: now });
       this.pending.delete(key);
       this.leases.delete(key);
-      this.acked.add(key);
     }
     return { status: 'acknowledged', acknowledged: keys.length, queued: this.pending.size };
   }
