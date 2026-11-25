@@ -84,7 +84,7 @@ function send(res,status,data,type){
 function json(res,status,data){send(res,status,data,'application/json; charset=utf-8');}
 function broadcastAvatarState(state){
  const payload=JSON.stringify(state);
- const frame='data: '+payload+'\\n\\n';
+ const frame='data: '+payload+'\n\n';
  for(const client of avatarClients){
   if(client.destroyed||client.writableEnded){avatarClients.delete(client);continue;}
   try{client.write(frame);}catch{avatarClients.delete(client);}
@@ -240,7 +240,7 @@ async function handleApi(req,res,url){
   res.setHeader('connection','keep-alive');
   res.setHeader('x-accel-buffering','no');
   res.statusCode=200;
-  res.write('data: '+JSON.stringify({type:vaultKey?'ready':'locked'})+'\\n\\n');
+  res.write('data: '+JSON.stringify({type:vaultKey?'ready':'locked'})+'\n\n');
   avatarClients.add(res);
   res.on('close',()=>avatarClients.delete(res));
   return;
@@ -249,7 +249,7 @@ async function handleApi(req,res,url){
   if(!vaultKey)return json(res,423,{detail:'Unlock the encrypted workspace before sending host state to the OBS avatar.'});
   const body=await readJson(req);
   if(body.type==='line'&&typeof body.text==='string'){
-   const text=body.text.replace(/[\\u0000-\\u001f\\u007f]/g,' ').trim().slice(0,240);
+   const text=body.text.replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,240);
    if(!text)return json(res,400,{detail:'A non-empty host line is required.'});
    broadcastAvatarState({type:'line',text});
    return json(res,200,{ok:true});
