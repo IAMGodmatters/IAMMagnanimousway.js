@@ -61,7 +61,7 @@ const checks=[
 ];
 checks.push(
  ['OBS client uses a fixed loopback address and port',read('portable-creator/obs-client.mjs').includes("const LOOPBACK_HOST='127.0.0.1'")&&read('portable-creator/obs-client.mjs').includes('DEFAULT_PORT=4455')],
- ['OBS WebSocket challenge authentication follows the salted SHA-256 handshake',read('portable-creator/obs-client.mjs').includes('sha256(password+salt)')&&read('portable-creator/obs-client.mjs').includes('sha256(secret+challenge)')],
+ ['OBS WebSocket challenge authentication follows the salted SHA-256 handshake',read('portable-creator/obs-client.mjs').includes('sha256(password+salt)')&&read('portable-creator/obs-client.mjs').includes('sha256(secret+challenge)')],\n ['OBS subscribes only to scene and output state events and forwards them to the durable review queue',read('portable-creator/obs-client.mjs').includes('eventSubscriptions:68')&&read('portable-creator/obs-client.mjs').includes('packet.op===5')&&host.includes("provider:'obs'")&&host.includes("type='obs.scene_changed'" )],
  ['OBS password is not written to disk or browser storage',!/(localStorage|sessionStorage|writeFileSync).*obsPassword/i.test(host+app)],
  ['OBS host routes require the existing same-origin mutation guard',host.includes("url.pathname==='/api/obs/connect'")&&host.includes("url.pathname==='/api/obs/scene'")&&host.includes("url.pathname==='/api/obs/recording/start'")&&host.includes("allowedRequest(req,req.method!=='GET'")],
  ['OBS scene changes are validated against the current scene list',read('portable-creator/obs-client.mjs').includes('That scene is not in the current OBS scene list.')&&read('portable-creator/obs-client.mjs').includes("this.request('SetCurrentProgramScene'")],
