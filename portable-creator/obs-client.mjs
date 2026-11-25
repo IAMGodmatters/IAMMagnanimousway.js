@@ -34,6 +34,7 @@ export class ObsWebSocketClient {
  async connect(password=''){
   if(this.connected)return {connected:true,rpcVersion:this.rpcVersion};
   if(typeof password!=='string'||password.length>512)throw new Error('OBS password is invalid.');
+  let secret=password;
   const socket=new this.WebSocketImpl('ws://'+LOOPBACK_HOST+':'+this.port);
   this.socket=socket;
   return await new Promise((resolve,reject)=>{
@@ -56,9 +57,10 @@ export class ObsWebSocketClient {
      const hello=packet.d||{};
      const identify={rpcVersion:1};
      if(hello.authentication){
-      if(!password){finish(new Error('OBS requires its WebSocket password.'));return;}
-      identify.authentication=authentication(password,String(hello.authentication.salt||''),String(hello.authentication.challenge||''));
+      if(!secret){finish(new Error('OBS requires its WebSocket password.'));return;}
+      identify.authentication=authentication(secret,String(hello.authentication.salt||''),String(hello.authentication.challenge||''));
      }
+     secret='';
      try{socket.send(JSON.stringify({op:1,d:identify}));}
      catch{finish(new Error('Could not identify with OBS.')); }
      return;
