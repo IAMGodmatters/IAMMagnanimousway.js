@@ -1,6 +1,7 @@
 const $=id=>document.getElementById(id);
 const state={modelReady:false,vaultUnlocked:false,projects:[],obsConnected:false,obsRecording:false,autonomyActive:false};
 let autonomyTimer=null;
+let autonomyHeartbeatTimer=null;
 let autonomyTickBusy=false;
 let autonomySpeechBusy=false;
 let autonomyCancellingSpeech=false;
@@ -114,6 +115,7 @@ async function startLiveAutonomy(){
 }
 function stopAutonomyPolling(cancelSpeech=true){
  if(autonomyTimer){clearInterval(autonomyTimer);autonomyTimer=null;}
+ if(autonomyHeartbeatTimer){clearInterval(autonomyHeartbeatTimer);autonomyHeartbeatTimer=null;}
  autonomyTickBusy=false;
  if(cancelSpeech){autonomyCancellingSpeech=true;if(window.speechSynthesis)window.speechSynthesis.cancel();}
  autonomySpeechBusy=false;
@@ -166,10 +168,20 @@ async function runAutonomyCycle(){
   else if(!error.message.includes('still running'))message('liveAutonomyMessage',error.message,'error');
  }finally{autonomyTickBusy=false;}
 }
+async function sendAutonomyHeartbeat(){
+ if(!state.autonomyActive)return;
+ try{await api('/api/live/autonomy/heartbeat',{method:'POST',body:'{}'});}
+ catch(error){
+  if(error.message.includes('AI takeover is not active')){
+   state.autonomyActive=false;
+   stopAutonomyPolling(false);
+   await refreshAutonomyStatus();
+  }else message('liveAutonomyMessage','AI takeover connection needs attention: '+error.message,'error');
+ }
+}
 function startAutonomyPolling(){
- if(autonomyTimer)return;
- runAutonomyCycle();
- autonomyTimer=setInterval(runAutonomyCycle,1800);
+ if(!autonomyTimer){runAutonomyCycle();autonomyTimer=setInterval(runAutonomyCycle,1800);}
+ if(!autonomyHeartbeatTimer){autonomyHeartbeatTimer=setInterval(sendAutonomyHeartbeat,10000);}
 }
 
 function updateGenerationStatus(){
