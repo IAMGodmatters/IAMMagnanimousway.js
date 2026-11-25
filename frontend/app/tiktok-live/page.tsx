@@ -92,6 +92,7 @@ export default function TikTokLiveHost() {
       queuedCommentsRef.current = next;
       setQueuedComments(next);
     };
+    channel.postMessage({ kind: 'request-status' });
     return () => channel.close();
   }, []);
 
