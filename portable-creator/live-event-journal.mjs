@@ -100,8 +100,16 @@ export class LiveEventJournal{
   try{fs.renameSync(temporary,this.filePath);this.syncDirectory();}catch(error){try{fs.unlinkSync(temporary);}catch{}throw error;}
  }
  syncDirectory(){try{const fd=fs.openSync(path.dirname(this.filePath),'r');try{fs.fsyncSync(fd);}finally{fs.closeSync(fd);}}catch{/* Some filesystems, including Windows, do not expose directory fsync. */}}
+ repairTrailingPartial(){
+  if(!fs.existsSync(this.filePath))return;
+  const data=fs.readFileSync(this.filePath);
+  if(!data.length||data[data.length-1]===10)return;
+  const lastNewline=data.lastIndexOf(10),fd=fs.openSync(this.filePath,'r+');
+  try{fs.ftruncateSync(fd,lastNewline+1);fs.fsyncSync(fd);}finally{fs.closeSync(fd);}
+ }
  append(records){
   if(!Array.isArray(records)||records.length===0)return;
+  this.repairTrailingPartial();
   const lines=records.map(record=>this.encode(record));
   if(lines.some(line=>Buffer.byteLength(line,'utf8')>MAX_RECORD_BYTES))throw new Error('An event is too large for the recovery journal.');
   const payload=lines.join('\n')+'\n';
