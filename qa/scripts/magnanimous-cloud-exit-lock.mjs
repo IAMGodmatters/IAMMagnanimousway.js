@@ -144,7 +144,7 @@ const cloudflareOwnerUi=read('frontend/app/owner-cloudflare/page.tsx');
 must(cloudflareRuntime.includes("path==='/api/cloudflare/worker-analytics'"),'Read-only Worker analytics diagnostic route must exist.');
 must(cloudflareRuntime.includes('workersInvocationsAdaptive')&&cloudflareRuntime.includes('cpuTimeP99')&&cloudflareRuntime.includes("dimensions { datetime scriptName status }"),'Worker analytics query must return per-script CPU quantiles and status buckets.');
 must(cloudflareRuntime.includes('CLOUDFLARE_ANALYTICS_READ_TOKEN')&&cloudflareRuntime.includes('Account Analytics:Read'),'Worker analytics must use a dedicated optional read-only analytics token and explain the required permission.');
-must(/Math\.max\(1,Math\.min\(24,/.test(cloudflareRuntime),'Worker analytics query window must be clamped between 1 and 24 hours.');
+must(cloudflareRuntime.includes('WORKER_ANALYTICS_WINDOW_LIMITS={min:1,max:24}')&&cloudflareRuntime.includes('Math.min(WORKER_ANALYTICS_WINDOW_LIMITS.max'),'Worker analytics query window must be clamped between 1 and 24 hours.');
 must(cloudflareRuntime.includes('mutations_performed:false')&&cloudflareRuntime.includes('sampled_or_estimated:true'),'Worker analytics must disclose read-only mode and approximate/sampled data.');
 must(cloudflareRuntime.includes('exceededResources')&&cloudflareRuntime.includes('does not prove every row is a CPU-limit event'),'Worker analytics must not conflate 1102 CPU limits with 1027 request limits.');
 must(cloudflareOwnerUi.includes('/api/cloudflare/worker-analytics?hours=24')&&cloudflareOwnerUi.includes('Account Analytics:Read'),'Owner Cloudflare console must expose manual 24-hour Worker health analytics with permission disclosure.');
