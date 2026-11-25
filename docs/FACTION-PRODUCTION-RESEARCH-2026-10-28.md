@@ -82,3 +82,8 @@ These standards support the *method* for testing; citing them does not certify t
 - Facebook reel catalog completeness: **NOT VERIFIED**.
 
 The work is intentionally additive. Magnanimous AI remains the orchestrator; outside systems remain replaceable. No Shopify integration, payment activation, pricing, or visual homepage changes are included.
+
+
+## Follow-on Facebook video evidence
+
+A separate caption-based batch records twelve distinct public Faction video identifiers, with limitations clearly stated; it is not a complete archive or spoken transcript. See [FACTION-REEL-BATCH2-SOURCE-AUDIT-2026-10-28.md](FACTION-REEL-BATCH2-SOURCE-AUDIT-2026-10-28.md). The follow-on implementation narrows GitHub deployment token scope, disables persisted checkout credentials, and labels legacy integration permissions without silently changing customer behavior.

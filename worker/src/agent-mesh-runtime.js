@@ -161,10 +161,24 @@ async function connectedPlatformContext(env,tenantId){
    if(seen.has(row.provider))continue;
    seen.add(row.provider);
    const p=pmap.get(row.provider);
-   unique.push({provider:row.provider,name:row.display_name||row.provider,can_read:p?!!p.can_read:true,can_write:p?!!p.can_write:true,require_confirmation:p?!!p.require_confirmation:true});
+   unique.push(describeAgentIntegrationPermission(row,p));
   }
   return unique;
  }catch(_){return []}
+}
+
+// Preserve historical defaults while making their provenance explicit. A connected
+// account is not an independent grant for agent execution.
+export function describeAgentIntegrationPermission(connection,permission){
+ const explicit=Boolean(permission);
+ return{
+  provider:String(connection.provider||''),name:String(connection.display_name||connection.provider||''),
+  can_read:explicit?Boolean(permission.can_read):true,
+  can_write:explicit?Boolean(permission.can_write):true,
+  require_confirmation:explicit?Boolean(permission.require_confirmation):true,
+  permission_source:explicit?'explicit-owner-policy':'legacy-default-needs-review',
+  consequential_actions_require_separate_approval:true
+ };
 }
 
 async function nativeWorkspaceContext(env,tenantId){
@@ -218,7 +232,7 @@ async function teamMemory(env,tenantId,currentAgent){
 
 function integrationSummary(items){
  if(!items.length)return 'No external platform accounts are currently connected. Native I AM workspaces remain available.';
- return items.map(x=>`${x.provider}: read=${x.can_read?'yes':'no'}, write=${x.can_write?'yes':'no'}, confirmation=${x.require_confirmation?'required for writes':'permission-controlled'}`).join('; ');
+ return 'Connected accounts are an inventory, never an independent agent execution grant. Consequential writes require a separate user confirmation. '+items.map(x=>`${x.provider}: read=${x.can_read?'eligible':'disabled'}, write=${x.can_write?'eligible only after policy approval':'disabled'}, confirmation=${x.require_confirmation?'required for writes':'permission-controlled'}, policy=${x.permission_source||'not-recorded'}`).join('; ');
 }
 
 function nativeSummary(data){
