@@ -89,6 +89,66 @@ jobs:
           echo "No Worker configuration, deployment, plan, or billing setting was changed."
           echo "The exceededResources status combines resource-limit outcomes; correlate it with Worker logs/CPU profiles before attributing every event to CPU."
 
+      - name: Query read-only D1 daily row usage
+        env:
+          CLOUDFLARE_ANALYTICS_READ_TOKEN: ${{ secrets.CLOUDFLARE_ANALYTICS_READ_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$CLOUDFLARE_ANALYTICS_READ_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::notice::D1 analytics skipped: dedicated Account Analytics:Read token is not configured."
+            exit 0
+          fi
+          TODAY="$(date -u +%Y-%m-%d)"
+          QUERY='query D1ResourceDiagnosis($accountTag: string!, $start: Date!, $end: Date!) {
+            viewer {
+              accounts(filter: {accountTag: $accountTag}) {
+                d1AnalyticsAdaptiveGroups(
+                  limit: 10000
+                  filter: {date_geq: $start, date_leq: $end}
+                ) {
+                  dimensions { date databaseId }
+                  sum { rowsRead rowsWritten readQueries writeQueries }
+                }
+              }
+            }
+          }'
+          RESPONSE="$(curl --silent --show-error --fail-with-body https://api.cloudflare.com/client/v4/graphql \
+            -H "Authorization: Bearer $CLOUDFLARE_ANALYTICS_READ_TOKEN" \
+            -H 'Content-Type: application/json' \
+            --data "$(jq -n --arg query "$QUERY" --arg account "$CLOUDFLARE_ACCOUNT_ID" --arg today "$TODAY" '{query:$query,variables:{accountTag:$account,start:$today,end:$today}}')")"
+          if [ "$(echo "$RESPONSE" | jq -r '(.errors // []) | length')" -gt 0 ]; then
+            echo "$RESPONSE" | jq -r '.errors[] | "D1 Analytics error: " + (.message // "unknown")'
+            echo "::error::Cloudflare rejected the D1 analytics query. Verify Account Analytics:Read permission."
+            exit 1
+          fi
+          echo "$RESPONSE" | jq -e '.data.viewer.accounts[0].d1AnalyticsAdaptiveGroups' >/dev/null
+          echo "D1 account-wide usage for UTC day $TODAY (adaptive analytics estimates; not an exact live quota counter):"
+          echo "$RESPONSE" | jq -r '
+            .data.viewer.accounts[0].d1AnalyticsAdaptiveGroups
+            | group_by(.dimensions.databaseId)
+            | map({
+                database_id: (.[0].dimensions.databaseId // "unknown"),
+                rows_read_estimate: (map(.sum.rowsRead // 0) | add),
+                rows_written_estimate: (map(.sum.rowsWritten // 0) | add),
+                read_queries: (map(.sum.readQueries // 0) | add),
+                write_queries: (map(.sum.writeQueries // 0) | add)
+              })
+            | . as $dbs
+            | "ACCOUNT TOTAL rows_read≈\([$dbs[].rows_read_estimate] | add // 0) / 5000000 free-tier daily rows; rows_written≈\([$dbs[].rows_written_estimate] | add // 0) / 100000 free-tier daily rows"
+            , ($dbs[] | "DATABASE \(.database_id) rows_read≈\(.rows_read_estimate) rows_written≈\(.rows_written_estimate) read_queries≈\(.read_queries) write_queries≈\(.write_queries)")
+          '
+          READS="$(echo "$RESPONSE" | jq '[.data.viewer.accounts[0].d1AnalyticsAdaptiveGroups[].sum.rowsRead // 0] | add // 0')"
+          WRITES="$(echo "$RESPONSE" | jq '[.data.viewer.accounts[0].d1AnalyticsAdaptiveGroups[].sum.rowsWritten // 0] | add // 0')"
+          if [ "$WRITES" -ge 90000 ] || [ "$READS" -ge 4500000 ]; then
+            echo "::warning::D1 is at or above 90% of the documented Workers Free daily row quota. Avoid nonessential materialization/cleanup writes and inspect the top write queries."
+          elif [ "$WRITES" -ge 70000 ] || [ "$READS" -ge 3500000 ]; then
+            echo "::warning::D1 is at or above 70% of the documented Workers Free daily row quota. Review the highest-volume queries before the next deployment."
+          fi
+          echo "Quota values are documented limits; analytics are estimates and do not prove the remaining live quota."
+
+
       - name: Save diagnostic evidence
         if: always()
         run: |
