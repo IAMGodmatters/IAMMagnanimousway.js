@@ -77,11 +77,10 @@ export class LiveEventJournal{
   if(truncatedTail){
    const tail=source.slice(completeEnd+1);
    if(tail){
-    try{JSON.parse(tail);consumeLine(tail);}
-    catch(error){
-     if(String(error?.message||'').includes('could not be unlocked or verified')||String(error?.message||'').includes('unsupported record')||String(error?.message||'').includes('invalid record'))throw error;
-     // A syntactically incomplete final write is discarded; all complete authenticated records are retained.
-    }
+    let complete=true;
+    try{JSON.parse(tail);}catch{complete=false;}
+    if(complete)consumeLine(tail);
+    // A syntactically incomplete final write is discarded; all complete authenticated records are retained.
    }
   }
   if(legacyDetected||truncatedTail)this.rewriteEncrypted(records);
