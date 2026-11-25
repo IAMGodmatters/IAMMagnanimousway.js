@@ -1,6 +1,6 @@
 # Magnanimous Portable Creator
 
-A Windows-first, offline-first creator workspace designed to live on an external USB SSD. Magnanimous AI remains the product identity; local executables and model runtimes are replaceable execution tools.
+A Windows-first, offline-first creator workspace designed to live on an external USB SSD. Magnanimous AI remains the product identity; local executables and model runtimes are replaceable execution tools. For current official provider capabilities and authorization gates, see [the LIVE provider readiness research](../docs/live-studio/provider-adapter-readiness-2026-11-25.md).
 
 ## What this first slice does
 
