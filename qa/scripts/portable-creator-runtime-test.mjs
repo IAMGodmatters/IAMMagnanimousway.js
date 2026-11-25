@@ -20,6 +20,9 @@ fs.copyFileSync(path.join(SOURCE,'host.mjs'),path.join(target,'host.mjs'));
 fs.copyFileSync(path.join(SOURCE,'obs-client.mjs'),path.join(target,'obs-client.mjs'));
 fs.copyFileSync(path.join(SOURCE,'live-event-runtime.mjs'),path.join(target,'live-event-runtime.mjs'));
 for(const file of ['index.html','app.js','styles.css'])fs.copyFileSync(path.join(SOURCE,'app',file),path.join(target,'app',file));
+const appSyntax=spawnSync(process.execPath,['--check',path.join(target,'app','app.js')],{encoding:'utf8'});
+if(appSyntax.status!==0){console.error(appSyntax.stderr||'');throw new Error('Portable creator browser script syntax check failed.');}
+
 
 function freePort(){
  return new Promise((resolve,reject)=>{
@@ -52,6 +55,10 @@ try{
  assert.equal(home.status,200,'Local creator homepage should load.');
  assert.match(home.headers.get('content-security-policy')||'',/default-src 'self'/,'Homepage must enforce a local-only CSP.');
  assert.ok((await home.text()).includes('<title>Magnanimous Portable Creator</title>'),'Homepage title should identify the portable app.');
+ const homepage=await (await fetch(origin+'/')).text();
+ assert.ok(homepage.includes('id="livePullButton"'),'Audience/game event review control should be present.');
+ assert.ok(homepage.includes('id="liveEventList"'),'Audience/game event list should be present.');
+
  const css=await fetch(origin+'/styles.css');
  assert.equal(css.status,200,'Local stylesheet should load.');
  const health=await (await fetch(origin+'/api/health')).json();
