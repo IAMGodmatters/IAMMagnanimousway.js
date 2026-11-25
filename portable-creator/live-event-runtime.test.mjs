@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { LiveEventRuntime } from '../live-event-runtime.mjs';
+import { LiveEventRuntime } from './live-event-runtime.mjs';
 const event=(eventId,extra={})=>({protocolVersion:1,eventId,provider:'manual',type:'chat.message',occurredAt:new Date(1_700_000_000_000).toISOString(),text:'hello',...extra});
 test('accepts a valid event and returns normalized content',()=>{const q=new LiveEventRuntime({now:()=>1_700_000_000_000});const r=q.ingest(event('evt-1',{actorName:'Viewer'}));assert.equal(r.status,'accepted');assert.equal(q.consume()[0].actorName,'Viewer');});
 test('deduplicates repeated provider event IDs',()=>{const q=new LiveEventRuntime({now:()=>1_700_000_000_000});assert.equal(q.ingest(event('evt-1')).status,'accepted');assert.equal(q.ingest(event('evt-1')).status,'duplicate');});
