@@ -40,6 +40,8 @@ export default function TikTokLiveHost() {
   const [takeoverEndsAt, setTakeoverEndsAt] = useState<number | null>(null);
   const [takeoverSeconds, setTakeoverSeconds] = useState(0);
   const [queuedComments, setQueuedComments] = useState<Array<{ id: number; text: string }>>([]);
+  const [failedQueuedComment, setFailedQueuedComment] = useState<{ id: number; text: string } | null>(null);
+  const [takeoverPaused, setTakeoverPaused] = useState(false);
   const takeoverRef = useRef(false);
   const takeoverDeadlineRef = useRef<number | null>(null);
   const takeoverGreetingRef = useRef(false);
@@ -89,12 +91,35 @@ export default function TikTokLiveHost() {
     speak(welcomeText.trim());
   }
 
+function cleanLiveViewerText(value: string) {
+    return String(value || '')
+      .replace(/[\\u0000-\\u001f\\u007f]/g, ' ')
+      .replace(/\\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\b/gi, '[email removed]')
+      .replace(/(?:\\+?\\d[\\d\\s().-]{7,}\\d)/g, '[phone number removed]')
+      .replace(/https?:\\/\\/\\S+/gi, '[link removed]')
+      .replace(/\\b(?:password|passcode|api[ _-]?key|access token|secret)\\s*[:=]\\s*\\S+/gi, '[sensitive detail removed]')
+      .replace(/\\s+/g, ' ')
+      .trim()
+      .slice(0, 500);
+  }
+
+  function cleanLiveHostText(value: string) {
+    return String(value || '')
+      .replace(/[\\u0000-\\u001f\\u007f]/g, ' ')
+      .replace(/\\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\b/gi, '[email removed]')
+      .replace(/(?:\\+?\\d[\\d\\s().-]{7,}\\d)/g, '[phone number removed]')
+      .replace(/https?:\\/\\/\\S+/gi, '')
+      .replace(/\\s+/g, ' ')
+      .trim()
+      .slice(0, 700);
+  }
+
   async function processComment(comment: string, automatic = false) {
     if (automatic && takeoverDeadlineRef.current && Date.now() >= takeoverDeadlineRef.current) {
       stopTakeover('session_expired');
       return;
     }
-    const cleanComment = comment.trim();
+    const cleanComment = cleanLiveViewerText(comment);
     if (!cleanComment || busy) return;
     primeNaturalSpeech(true);
     setBusy(true);
@@ -128,7 +153,7 @@ export default function TikTokLiveHost() {
       const data = await read(response);
       if (!response.ok) throw new Error(data.detail || data.error || `Magnanimous AI request failed (${response.status}).`);
       if (data?.degraded === true || data?.code === 'AI_PROVIDER_POOL_DEGRADED') throw new Error('Magnanimous AI is temporarily unable to answer. Your viewer comment has been preserved; please try again.');
-      const answer = String(data.output || '').trim();
+      const answer = cleanLiveHostText(String(data.output || ''));
       if (!answer) throw new Error('Magnanimous AI returned an empty answer.');
       setHostReply(answer);
       setLines(items => [...items, { id: Date.now() + 1, role: 'host', text: answer }]);
@@ -139,14 +164,19 @@ export default function TikTokLiveHost() {
         setStatus(takeoverRef.current ? 'AI TAKEOVER ACTIVE · REPLY READY' : 'REPLY READY');
       }
     } catch (error: any) {
-      setLines(items => items.filter(line => line.id !== commentId));
-      if (!automatic || takeoverRef.current) {
+      if (!automatic) {
+        setLines(items => items.filter(line => line.id !== commentId));
         setViewerComment(cleanComment);
-        setNotice(error?.name === 'AbortError'
-          ? 'Magnanimous AI took too long. The comment has been restored; try again when ready.'
-          : error?.message || 'Magnanimous AI could not answer this comment.');
+      } else if (takeoverRef.current) {
+        setFailedQueuedComment({ id: commentId, text: cleanComment });
+        setTakeoverPaused(true);
       }
-      setStatus(takeoverRef.current ? 'AI TAKEOVER ACTIVE · WAITING' : 'PREVIEW READY');
+      if (!automatic || takeoverRef.current) {
+        setNotice(error?.name === 'AbortError'
+          ? 'Magnanimous AI took too long. The comment has been preserved; retry when ready.'
+          : error?.message || 'Magnanimous AI could not answer this comment. The automatic queue has paused.');
+      }
+      setStatus(takeoverRef.current ? 'AI TAKEOVER ACTIVE · QUEUE PAUSED' : 'PREVIEW READY');
     } finally {
       window.clearTimeout(timeout);
       if (takeoverAbortRef.current === controller) takeoverAbortRef.current = null;
@@ -183,6 +213,8 @@ export default function TikTokLiveHost() {
     setTakeoverActive(true);
     setTakeoverEndsAt(takeoverDeadlineRef.current);
     setTakeoverSeconds(takeoverDuration * 60);
+    setFailedQueuedComment(null);
+    setTakeoverPaused(false);
     setNotice('AI takeover is active. The host will speak the welcome and automatically process comments you add to the queue. TikTok chat is not being read automatically.');
     setStatus('AI TAKEOVER ACTIVE');
     welcome();
@@ -199,6 +231,8 @@ export default function TikTokLiveHost() {
     setTakeoverEndsAt(null);
     setTakeoverSeconds(0);
     setQueuedComments([]);
+    setFailedQueuedComment(null);
+    setTakeoverPaused(false);
     setTakeoverConsent(false);
     stopNaturalSpeech();
     setSpeaking(false);
@@ -208,8 +242,22 @@ export default function TikTokLiveHost() {
       : 'AI takeover stopped. Magnanimous has returned control to the operator.');
   }
 
+  function retryFailedQueuedComment() {
+    if (!failedQueuedComment || queuedComments.length >= 25) return;
+    setQueuedComments(items => [{ id: Date.now() + Math.floor(Math.random() * 1000), text: failedQueuedComment.text }, ...items]);
+    setFailedQueuedComment(null);
+    setTakeoverPaused(false);
+    setNotice('Retrying the preserved comment. The automatic queue will resume after the response.');
+  }
+
+  function skipFailedQueuedComment() {
+    setFailedQueuedComment(null);
+    setTakeoverPaused(false);
+    setNotice('The failed comment was skipped. Magnanimous will continue with the remaining queue.');
+  }
+
   useEffect(() => {
-    if (!takeoverActive || busy || speaking || takeoverGreetingRef.current || queuedComments.length === 0) return;
+    if (!takeoverActive || takeoverPaused || busy || speaking || takeoverGreetingRef.current || queuedComments.length === 0) return;
     const next = queuedComments[0];
     if (processingQueueId.current === next.id) return;
     processingQueueId.current = next.id;
@@ -217,7 +265,7 @@ export default function TikTokLiveHost() {
     void processComment(next.text, true).finally(() => {
       if (processingQueueId.current === next.id) processingQueueId.current = null;
     });
-  }, [takeoverActive, busy, speaking, queuedComments]);
+  }, [takeoverActive, takeoverPaused, busy, speaking, queuedComments]);
 
   useEffect(() => {
     if (!takeoverActive || !takeoverEndsAt) return;
@@ -302,10 +350,11 @@ export default function TikTokLiveHost() {
               </select>
             </label>
             <div className="takeoverActions">
-              <button type="button" className="primary" onClick={startTakeover} disabled={takeoverActive || !takeoverConsent || !autoSpeak}>Start AI takeover</button>
+              <button type="button" className="primary" onClick={startTakeover} disabled={takeoverActive || busy || speaking || !takeoverConsent || !autoSpeak}>Start AI takeover</button>
               <button type="button" className="stop" onClick={() => stopTakeover()} disabled={!takeoverActive}>STOP AI TAKEOVER</button>
             </div>
-            <small>{queuedComments.length} comment(s) waiting in the local queue. When takeover is off, each comment requires a separate operator action.</small>
+            <small>{queuedComments.length} comment(s) waiting in the local queue. The local queue is capped at 25 comments. When takeover is off, each comment requires a separate operator action.</small>
+            {failedQueuedComment && <div className="takeoverFailure" role="alert"><b>Automatic answer paused</b><p>The last comment could not be answered and has been preserved.</p><div><button type="button" className="secondary" onClick={retryFailedQueuedComment}>Retry comment</button><button type="button" className="quiet" onClick={skipFailedQueuedComment}>Skip and continue</button></div></div>}
             <p className="takeoverBoundary">TikTok does not provide a connected comment feed in this studio. You must still paste or type viewer comments here. AI takeover automatically answers and speaks queued comments; it does not start/end the broadcast, moderate viewers, send TikTok chat messages, spend money, or change account settings.</p>
           </section>
           <form onSubmit={answerComment}>
@@ -345,6 +394,7 @@ export default function TikTokLiveHost() {
         .portrait{position:relative;width:64%;aspect-ratio:1;border-radius:50%;overflow:hidden;border:2px solid rgba(229,196,109,.78);box-shadow:0 0 0 10px rgba(229,196,109,.07),0 0 60px rgba(60,196,225,.18);background:linear-gradient(140deg,#173b4c,#111b29);z-index:1}.portrait img{position:relative;z-index:2;width:100%;height:100%;object-fit:cover}.portraitFallback{position:absolute;inset:0;display:grid;place-items:center;font-size:100px;color:#e5c36d;font-family:Georgia,serif}.voiceHalo{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(255,255,255,.3);pointer-events:none;z-index:3}.speaking .voiceHalo{animation:halo .85s infinite alternate}@keyframes halo{to{inset:-8px;box-shadow:0 0 36px rgba(78,221,245,.5)}}
         .hostName{margin-top:28px;font-size:clamp(28px,4vw,43px);font-weight:900;letter-spacing:.12em;text-align:center;text-shadow:0 3px 18px #000}.hostRole{font-size:9px;letter-spacing:.24em;color:#d8bd79;margin-top:8px}.equalizer{height:50px;display:flex;align-items:center;justify-content:center;gap:4px;margin-top:28px}.equalizer i{display:block;width:4px;height:7px;border-radius:4px;background:linear-gradient(0deg,#d6ac57,#78e6f3);opacity:.9;transition:height .15s ease}.speaking .equalizer i{animation:bars .42s ease-in-out infinite alternate}@keyframes bars{to{transform:scaleY(.35)}}.disclosure{position:absolute;bottom:12%;font-size:8px;letter-spacing:.15em;color:#9fc5d1;text-align:center}.spokenReply{position:absolute;bottom:4%;left:8%;right:8%;font-size:9px;line-height:1.4;color:#c7dce3;text-align:center;max-height:8%;overflow:hidden;text-overflow:ellipsis}
         .stageActions{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:13px 0 5px}.primary,.secondary,.stop{border:0;border-radius:10px;padding:11px 13px;font-weight:800;font-size:11px;cursor:pointer}.primary{background:linear-gradient(110deg,#dcb75e,#8ee9f1);color:#07131b}.secondary{background:#123140;color:#c9f7ff;border:1px solid #2e6375}.stop{background:#311e25;color:#ffb9c2;border:1px solid #6c3944}.stageHint{color:#7893a2;font-size:10px;text-align:center;line-height:1.5}
+        .takeoverFailure{margin-top:9px;padding:10px;border:1px solid #805044;border-radius:9px;background:#291b1a;color:#f0d0bb}.takeoverFailure b{font-size:10px}.takeoverFailure p{font-size:9px;line-height:1.5}.takeoverFailure>div{display:flex;gap:7px;flex-wrap:wrap}.takeoverFailure button{font-size:9px;padding:8px 10px}
         .takeoverPanel{margin:10px 0 16px;padding:13px;border:1px solid #5a4a2b;border-radius:12px;background:linear-gradient(145deg,#1a1b18,#0a151d)}.takeoverTitle{display:flex;justify-content:space-between;gap:8px;align-items:center;color:#e6c577;font-size:10px;letter-spacing:.1em}.takeoverOn{color:#8cebb4}.takeoverOff{color:#9db0b8}.takeoverConsent{display:flex;gap:8px;align-items:flex-start;color:#d2e0e4;font-size:10px;line-height:1.5;margin:12px 0}.takeoverConsent input{accent-color:#e2c16b;margin-top:2px}.takeoverDuration{margin:8px 0}.takeoverActions{display:flex;flex-wrap:wrap;gap:8px;margin:9px 0}.takeoverActions button{flex:1}.takeoverActions .stop:disabled{opacity:.4}.takeoverPanel>small{display:block;color:#9bb0ba;font-size:9px}.takeoverBoundary{margin:9px 0 0;color:#b9cbd1;font-size:9px;line-height:1.55}
         .console{padding:18px}.consoleHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:17px}.consoleHead h2{font-size:22px;margin:6px 0 0}.safe{font-size:8px;color:#85e6b4;border:1px solid #326b54;border-radius:30px;padding:6px 8px}.field{display:block;color:#a7bdc8;font-size:10px;font-weight:700;margin:12px 0}.field select,.field textarea{display:block;width:100%;margin-top:7px;background:#050d13;color:#e9f8ff;border:1px solid #2b4b5b;border-radius:10px;padding:11px;font:inherit;font-size:12px;resize:vertical}.toggle{display:flex;align-items:center;gap:8px;color:#9eb3bd;font-size:10px;margin:10px 0}.toggle input{accent-color:#77dff1}.answerButton{width:100%;margin-top:7px}.primary:disabled{opacity:.45;cursor:not-allowed}.notice{background:#2a1d0e;color:#f1d59a;padding:10px;border:1px solid #6c5228;border-radius:9px;font-size:10px;line-height:1.5;margin-top:12px}.conversationHead{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #203b4b;margin-top:18px;padding-top:13px;color:#d4e7ee;font-size:11px}.conversationHead button{background:transparent;border:0;color:#79d9ea;font-size:9px;cursor:pointer}.conversation{max-height:380px;overflow:auto;margin-top:8px}.conversation article{padding:10px 12px;border-radius:10px;margin:7px 0}.conversation article.viewer{background:#112b39}.conversation article.host{background:#151a22;border:1px solid #3a4a51}.conversation article small{font-size:8px;letter-spacing:.13em;color:#80dfee}.conversation article p,.empty{font-size:11px;line-height:1.5;color:#d8e9ef;white-space:pre-wrap;margin:5px 0 0}.empty{color:#829ba8;padding:12px}
         .setup{max-width:1440px;margin:18px auto 0;background:#08121a;border:1px solid #203b4b;border-radius:18px;padding:21px}.setup h2{margin:5px 0 14px;font-size:24px}.setup ol{padding-left:20px;color:#a4b8c2;font-size:11px;line-height:1.65}.setup li{margin:7px 0;padding-left:4px}.setup li b{color:#e8cd84}.policy{background:#2b1b12;border:1px solid #714d2d;border-radius:10px;padding:13px;color:#f2d39a;font-size:11px;line-height:1.55;margin-top:14px}.footLinks{display:flex;flex-wrap:wrap;gap:16px;border-top:1px solid #203b4b;margin-top:16px;padding-top:14px}.footLinks a{color:#7adff1;text-decoration:none;font-size:10px}
