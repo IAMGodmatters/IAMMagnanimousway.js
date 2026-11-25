@@ -1,3 +1,4 @@
+const CANONICAL_ORIGIN='https://iammagnanimousway.com';
 const TOKEN_TTL_MS = 10 * 60 * 1000;
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const MAX_MESSAGE_BYTES = 16 * 1024;
@@ -50,7 +51,7 @@ export class MagnanimousLiveBridgeRoom {
    if(!body||typeof body.pairId!=='string'||typeof body.tenantId!=='string'||typeof body.userId!=='string'||typeof body.browserHash!=='string'||typeof body.companionHash!=='string'||!Number.isFinite(body.pairExpiresAt)||!Array.isArray(body.allowedProviders))return json({detail:'Invalid bridge room initialization.'},400);
    const existing=await this.state.storage.get('pair');
    if(existing)return json({detail:'This bridge room already exists.'},409);
-   await this.state.storage.put('pair',{pairId:body.pairId,tenantId:body.tenantId,userId:body.userId,browserHash:body.browserHash,companionHash:body.companionHash,allowedProviders:body.allowedProviders.filter(provider=>LOCAL_COMPANION_PROVIDERS.includes(provider)),pairExpiresAt:body.pairExpiresAt,sessionExpiresAt:0,createdAt:Date.now()});
+   await this.state.storage.put('pair',{pairId:body.pairId,tenantId:body.tenantId,userId:body.userId,browserHash:body.browserHash,companionHash:body.companionHash,expectedOrigin:body.expectedOrigin||CANONICAL_ORIGIN,allowedProviders:body.allowedProviders.filter(provider=>LOCAL_COMPANION_PROVIDERS.includes(provider)),pairExpiresAt:body.pairExpiresAt,sessionExpiresAt:0,createdAt:Date.now()});
    await this.state.storage.setAlarm(body.pairExpiresAt);
    return json({ok:true});
   }
@@ -62,7 +63,7 @@ export class MagnanimousLiveBridgeRoom {
    if(!pair||(Date.now()>pair.pairExpiresAt&&!pair.sessionExpiresAt)||(pair.sessionExpiresAt&&Date.now()>pair.sessionExpiresAt))return json({detail:'The pairing code or bridge session expired. Create a new bridge pair.'},410);
    if(this.state.getWebSockets().length>=4)return json({detail:'This bridge room has reached its connection safety limit.'},429);
    const origin=request.headers.get('Origin');
-   if(origin&&origin!==url.origin)return json({detail:'Cross-origin bridge connections are not allowed.'},403);
+   if(origin&&origin!==pair.expectedOrigin)return json({detail:'Cross-origin bridge connections are not allowed.'},403);
    const pairSocket=new WebSocketPair();
    const [client,server]=Object.values(pairSocket);
    this.state.acceptWebSocket(server);
@@ -83,6 +84,7 @@ export class MagnanimousLiveBridgeRoom {
    const supplied=await hash(envelope.token);
    const role=sameHex(supplied,pair.browserHash)?'browser':sameHex(supplied,pair.companionHash)?'companion':null;
    if(!role){ws.send(JSON.stringify({kind:'error',code:'AUTH_FAILED',message:'The companion pairing token is invalid.'}));ws.close(4001,'Invalid pairing token');return;}
+   if((role==='browser'&&attachment.origin!==attachment.expectedOrigin)||(role==='companion'&&attachment.origin!==null)){ws.send(JSON.stringify({kind:'error',code:'ORIGIN_ROLE_MISMATCH',message:'This pairing token was used from the wrong connection role.'}));ws.close(4003,'Pairing role mismatch');return;}
    if((role==='browser'&&attachment.origin!==attachment.expectedOrigin)||(role==='companion'&&attachment.origin!==null)){ws.send(JSON.stringify({kind:'error',code:'ORIGIN_ROLE_MISMATCH',message:'This pairing token can only be used by its assigned browser or local companion.'}));ws.close(4003,'Pairing origin mismatch');return;}
    const sessionExpiresAt=pair.sessionExpiresAt||Date.now()+SESSION_TTL_MS;
    if(Date.now()>sessionExpiresAt){ws.send(JSON.stringify({kind:'error',code:'PAIRING_REVOKED',message:'The bridge session expired. Create a new pair.'}));ws.close(4001,'Bridge session expired');return;}
@@ -154,6 +156,9 @@ export class MagnanimousLiveBridgeRoom {
 export async function handleLiveBridgeRelay(request,env,user=null){
  const url=new URL(request.url);
  if(url.pathname==='/api/live-bridge/pair'&&request.method==='POST'){
+  if(request.headers.get('Origin')!==CANONICAL_ORIGIN)return json({detail:'A same-origin browser request is required to create a bridge pair.'},403);
+  const fetchSite=request.headers.get('Sec-Fetch-Site');
+  if(fetchSite&&fetchSite!=='same-origin')return json({detail:'Cross-site pairing requests are not allowed.'},403);
   if(!user?.id||!user?.tenant_id)return json({detail:'Sign in to create a live bridge.'},401);
   const origin=request.headers.get('Origin');
   if(origin!==url.origin||url.origin!=='https://iammagnanimousway.com'||(request.headers.get('Sec-Fetch-Site')&&request.headers.get('Sec-Fetch-Site')!=='same-origin'))return json({detail:'Bridge pairing must be initiated from the signed-in Magnanimous website.'},403);
@@ -165,7 +170,7 @@ export async function handleLiveBridgeRelay(request,env,user=null){
   const pairExpiresAt=Date.now()+TOKEN_TTL_MS;
   const id=env.LIVE_BRIDGE_ROOMS.idFromName(pairId);
   const stub=env.LIVE_BRIDGE_ROOMS.get(id);
-  const created=await stub.fetch('https://bridge.internal/internal/create',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({pairId,tenantId:String(user.tenant_id),userId:String(user.id),browserHash:await hash(browserToken),companionHash:await hash(companionToken),allowedProviders:LOCAL_COMPANION_PROVIDERS,pairExpiresAt})});
+  const created=await stub.fetch('https://bridge.internal/internal/create',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({pairId,tenantId:String(user.tenant_id),userId:String(user.id),browserHash:await hash(browserToken),companionHash:await hash(companionToken),expectedOrigin:CANONICAL_ORIGIN,allowedProviders:LOCAL_COMPANION_PROVIDERS,pairExpiresAt})});
   if(!created.ok)return json({detail:'The secure bridge room could not be created.'},502);
   return json({ok:true,pairId,endpoint:url.origin.replace(/^https:/,'wss:')+'/api/live-bridge/ws/'+pairId,browserToken,companionToken,expiresAt:new Date(pairExpiresAt).toISOString(),sessionHours:12},201);
  }
