@@ -247,8 +247,8 @@ export default function TikTokLiveHost() {
               <span className="techTag">READY-MADE TALKING AVATAR</span>
               <h3>HeyGen LiveAvatar</h3>
               <p>Provides real-time facial animation and lip-sync through an API/SDK. The official free plan currently includes 10 credits per month, a watermark, one concurrent session, and a maximum two-minute session. Credits provide 30 seconds in Full mode or one minute in Lite mode.</p>
-              <p className="techNote">Useful for a short proof-of-concept. Its free session limit makes it unsuitable as the only host for an hours-long stream.</p>
-              <div className="techLinks"><a href="https://www.liveavatar.com/" target="_blank" rel="noreferrer">Free plan and plans</a><a href="https://help.heygen.com/en/articles/12758866-liveavatar-faq" target="_blank" rel="noreferrer">LiveAvatar FAQ</a></div>
+              <p className="techNote">Current homepage pricing: Starter $19/month (150 credits, up to 5-minute sessions); Essential $99/month (1,000 credits, up to 20-minute sessions); Business $475/month (5,000 credits, up to 60-minute sessions). One credit is 30 seconds in Full mode or one minute in Lite mode. These are short sessions with a credit budget—not an uninterrupted all-day host.</p>
+              <div className="techLinks"><a href="https://www.liveavatar.com/" target="_blank" rel="noreferrer">Current official plans and limits</a><a href="https://help.heygen.com/en/articles/12758866-liveavatar-faq" target="_blank" rel="noreferrer">Credit calculation FAQ</a><a href="https://help.heygen.com/en/articles/12758516-introducing-liveavatar" target="_blank" rel="noreferrer">Plan details in Help Center</a></div>
               <b className="techStatus">FREE TEST AVAILABLE • NOT CONNECTED</b>
             </article>
             <article className="techCard">
