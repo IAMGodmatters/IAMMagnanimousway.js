@@ -116,7 +116,7 @@ export default function LiveEventBridgePage() {
       </section>
       <section className="boundary">
         <b>Implementation status: online relay pairing and the local companion connection path are being brought online in stages. Provider account adapters and public broadcasting are not yet connected.</b>
-        <p>Create a secure pair here, then paste the separate companion token into Magnanimous Portable Creator on the computer running OBS. Do not enter TikTok, Google, Meta, Twitch, Zoom, OBS or game-account passwords here. These one-time pairing tokens are temporary and are not saved in browser storage.</p>
+        <p>Create a secure pair here, then paste the separate companion token into Magnanimous Portable Creator on the computer running OBS. Do not enter TikTok, Google, Meta, Twitch, Zoom, OBS or game-account passwords here. These temporary pairing credentials are held in memory and are not saved in browser storage.</p>
       </section>
       <section className="panel">
         <div className="panelHead"><div><small>01 • PAIR YOUR COMPANION</small><h2>Secure connection</h2></div><span className={connected?'online':'offline'}>{status.toUpperCase()}</span></div>
