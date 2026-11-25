@@ -45,7 +45,7 @@
     "offlineLocalChat": "requires a compatible local model",
     "encryptedProjectVault": true,
     "portableObsScenes": "requires OBS portable files and portable media paths",
-    "onlineBroadcast": "not implemented by the portable companion; requires separate authorized provider adapter and media output path",
+    "onlineBroadcast": "requires a network connection and authorized platform account; public broadcast adapters are not yet implemented in the portable companion",
     "zoomMeeting": "requires a network connection; OBS virtual camera or Zoom Video SDK integration",
     "automaticTiktokLiveChat": "not enabled without an approved and documented integration",
     "localObsControl": "Implemented as an optional authenticated loopback OBS WebSocket adapter; requires OBS Studio with WebSocket Server enabled and hardware verification",
