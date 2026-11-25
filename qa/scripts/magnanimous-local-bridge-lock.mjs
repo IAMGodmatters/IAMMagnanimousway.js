@@ -69,6 +69,11 @@ for(const needle of [
  'shell=False',
  'timeout=120',
  'duration > 90',
+ 'usage.free < 1_500_000_000',
+ 'existing_audio_bytes >= 250_000_000',
+ '"OMP_NUM_THREADS": "2"',
+ '"MKL_NUM_THREADS": "2"',
+ '"OPENBLAS_NUM_THREADS": "2"',
  'Filipino and Cebuano are not currently supported',
  'file_stays_local',
  'cache_on_data_drive'
