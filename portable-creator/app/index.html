@@ -88,6 +88,29 @@
         <div id="obsMessage" class="message" role="status"></div>
         <p class="muted">This controls local OBS scenes and recording only. It does not start a public livestream or connect TikTok, Facebook, YouTube or Zoom.</p>
       </article>
+      <article class="panel live-autonomy-panel">
+        <div class="panel-heading"><div><small>OWNER-CONTROLLED SHOW MODE</small><h2>Magnanimous AI takeover</h2></div><span class="spark">✦</span></div>
+        <p class="muted">When you enable takeover, Magnanimous can speak short AI-generated host lines and switch only the OBS scenes you approve below. It will stop automatically when this control surface disconnects or the session expires.</p>
+        <div class="status-row"><span id="liveAutonomyStatus" class="status">Manual mode · takeover off</span></div>
+        <label class="autonomy-check"><input id="liveAutonomyConsent" type="checkbox"> I authorize Magnanimous AI to run the selected show actions for this session.</label>
+        <label class="autonomy-check"><input id="liveAutonomySpeech" type="checkbox" checked> Speak AI-generated host responses using this device's available speech engine.</label>
+        <label class="autonomy-check"><input id="liveAutonomyScenes" type="checkbox"> Let Magnanimous switch between OBS scenes I explicitly approve.</label>
+        <div id="liveAutonomySceneMap" class="autonomy-scene-map" hidden>
+          <label for="autonomyChatScene">Viewer chat moment</label><select id="autonomyChatScene"><option value="">No automatic scene</option></select>
+          <label for="autonomyWelcomeScene">New viewer welcome</label><select id="autonomyWelcomeScene"><option value="">No automatic scene</option></select>
+          <label for="autonomyGameScene">Game event</label><select id="autonomyGameScene"><option value="">No automatic scene</option></select>
+          <label for="autonomyPollScene">Poll update</label><select id="autonomyPollScene"><option value="">No automatic scene</option></select>
+        </div>
+        <label for="liveAutonomyDuration">Maximum takeover session</label>
+        <select id="liveAutonomyDuration"><option value="10">10 minutes</option><option value="30" selected>30 minutes</option><option value="60">60 minutes</option></select>
+        <div class="actions">
+          <button id="liveAutonomyStart" class="primary" disabled>Start AI takeover</button>
+          <button id="liveAutonomyStop" class="quiet" disabled>STOP AI TAKEOVER</button>
+        </div>
+        <div id="liveAutonomyOutput" class="autonomy-output" aria-live="polite">Magnanimous is waiting for your authorization.</div>
+        <p class="muted">Safety boundary: this portable edition does not let AI ban or mute people, spend money, change account settings, start or end public broadcasts, or control game inputs. Provider chat and moderation actions remain disabled until a separately approved adapter and permission policy are connected. The speech engine is supplied by the device/browser; its offline and privacy behavior can vary.</p>
+        <div id="liveAutonomyMessage" class="message" role="status"></div>
+      </article>
       <article class="panel live-events-panel">
         <div class="panel-heading"><div><small>INTERACTIVE SHOW INPUT</small><h2>Audience & game events</h2></div><span class="spark">✦</span></div>
         <p class="muted">Review validated events delivered to this local creator. Nothing triggers a scene, game action, payment or moderation decision automatically.</p>
