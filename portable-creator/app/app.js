@@ -17,7 +17,8 @@ async function api(path,options={}){
  if(!response.ok){const error=new Error(data.detail||'The local operation failed.');error.status=response.status;throw error;}
  return data;
 }
-function publishHostAvatar(state){api('/api/avatar/state',{method:'POST',body:JSON.stringify(state)}).catch(()=>{});}
+let avatarPublishChain=Promise.resolve();
+function publishHostAvatar(state){avatarPublishChain=avatarPublishChain.then(()=>api('/api/avatar/state',{method:'POST',body:JSON.stringify(state)})).catch(()=>{});return avatarPublishChain;}
 
 function message(id,text,kind='info'){const el=$(id);el.textContent=text;el.className='message '+kind;}
 function updateControls(){
