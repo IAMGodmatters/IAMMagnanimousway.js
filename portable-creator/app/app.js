@@ -3,6 +3,7 @@ const generationRequests=new Set();
 function cancelGenerationRequests(){for(const controller of generationRequests)controller.abort();generationRequests.clear();}
 function clearSensitiveUi(){
  for(const id of ['passphrase','prompt','outputTitle','output','hostTopic','hostScript','hostLine','liveTestText','obsPassword','bridgeToken','gameIntegrationToken']){const element=$(id);if(element)element.value='';}
+ if($('gameIntegrationToken'))$('gameIntegrationToken').type='password';
  $('liveEventList').replaceChildren();
  for(const id of ['liveEventMessage','hostMessage','creatorMessage','bridgeMessage','obsMessage'])message(id,'');
  state.lastHostEvent=null;state.hostSectionIndex=0;
