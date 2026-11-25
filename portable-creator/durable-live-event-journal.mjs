@@ -154,9 +154,9 @@ export class DurableLiveEventJournal {
       const lease = this.leases.get(key);
       if (this.pending.has(key) && lease?.deliveryId === deliveryId && lease.expiresAt > now) keys.push(key);
     }
-    if (!keys.length) {
-      const alreadyAcked = [...requested].every(key => this.seen.has(key) && !this.pending.has(key));
-      return alreadyAcked ? { status: 'duplicate', acknowledged: 0 } : { status: 'not_leased', acknowledged: 0, detail: 'The delivery is unknown or its acknowledgement lease expired. Pull the events again.' };
+    if (keys.length !== requested.size) {
+      const alreadyAcked = keys.length === 0 && [...requested].every(key => this.seen.has(key) && !this.pending.has(key));
+      return alreadyAcked ? { status: 'duplicate', acknowledged: 0 } : { status: 'not_leased', acknowledged: 0, detail: 'Every event must belong to the active delivery lease. Pull the events again if the lease expired.' };
     }
     for (const key of keys) {
       this._append({ op: 'ack', key, deliveryId, at: now });
