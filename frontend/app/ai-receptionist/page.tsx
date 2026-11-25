@@ -14,6 +14,7 @@ type Agent = {
   twilio_voice: string;
   tavus_replica_id: string;
   tavus_persona_id: string;
+  handoff_phone: string;
   active: number;
 };
 
@@ -22,6 +23,7 @@ type Config = {
   ai_engine: boolean;
   twilio_configured: boolean;
   tavus_configured: boolean;
+  deepgram_voice_agent?: { ready: boolean; missing?: string[]; provider?: string; language?: string; limits?: { max_concurrent_calls: number; max_call_seconds: number; daily_minutes: number; monthly_minutes: number; tenant_max_concurrent_calls: number; tenant_daily_minutes: number; tenant_monthly_minutes: number } };
   full_business: boolean;
   platform_owner: boolean;
   inbound_twilio_webhook: string;
@@ -48,6 +50,8 @@ export default function AIReceptionist() {
   const [agentName, setAgentName] = useState('AI Receptionist');
   const [instructions, setInstructions] = useState('Be a helpful, concise AI receptionist. Answer questions, qualify the caller, organize next steps, and never pretend to be human.');
   const [agentOpening, setAgentOpening] = useState('Hello. This is an automated AI assistant with I AM Magnanimous Way. I am not a human. How may I help you today?');
+  const [handoffPhone, setHandoffPhone] = useState('');
+  const [handoffBusy, setHandoffBusy] = useState(false);
   const [browserVoices,setBrowserVoices]=useState<{id:string,label:string}[]>([]);
   const [preferredVoice,setPreferredVoice]=useState('');
   const [voiceSpeaking,setVoiceSpeaking]=useState(false);
@@ -130,6 +134,28 @@ export default function AIReceptionist() {
     }
   }
 
+  async function saveHandoff() {
+    if (!selected || handoffBusy) return;
+    const number = handoffPhone.trim();
+    if (number && !/^\+[1-9]\d{7,14}$/.test(number)) {
+      setMessage('Enter the human handoff number in international E.164 format, for example +639171234567.');
+      return;
+    }
+    setHandoffBusy(true);
+    setMessage('Saving this assistant’s human handoff number…');
+    try {
+      const response = await fetch(`${api}/api/voice-agent/agents/${encodeURIComponent(agentId)}`, {
+        method: 'PUT', headers: headers(true), body: JSON.stringify({ handoff_phone: number })
+      });
+      const data = await read(response);
+      if (!response.ok) throw new Error(data.detail || 'Unable to save the handoff number.');
+      setMessage(number ? 'Human handoff is saved for this assistant.' : 'Human handoff has been disabled for this assistant.');
+      await load(token);
+    } catch (error: any) {
+      setMessage(error?.message || 'Unable to save the handoff number.');
+    } finally { setHandoffBusy(false); }
+  }
+
   async function startAvatar() {
     if (busy) return;
     setBusy(true);
@@ -174,6 +200,7 @@ export default function AIReceptionist() {
   }
 
   const selected = agents.find(agent => agent.id === agentId);
+  useEffect(() => { setHandoffPhone(selected?.handoff_phone || ''); }, [selected?.id, selected?.handoff_phone]);
   // Platform ownership gives admin visibility, not a free pass around billing.
   const phoneReady = Boolean(config?.twilio_configured && config?.full_business);
   const videoReady = Boolean(config?.tavus_configured && config?.full_business);
@@ -210,13 +237,14 @@ export default function AIReceptionist() {
       <div><small>INCLUDED WITH YOUR PACKAGE</small><h2>Choose who should speak</h2><p>Reception, support, sales and scheduling voice profiles are added automatically at no extra setup charge. They are ready to configure; live phone calls still require a funded carrier and the appropriate entitlement.</p></div>
       <div>
         <select value={agentId} onChange={event => setAgentId(event.target.value)}>{agents.map(agent => <option key={agent.id} value={agent.id}>{agent.name}</option>)}</select>
-        {selected && <div className="selected"><b>{selected.name}</b><p>{selected.instructions || 'General-purpose AI assistant.'}</p><span>Greeting: “{selected.opening_message}”</span><div style={{marginTop:14,display:'flex',gap:8,flexWrap:'wrap'}}><button type="button" onClick={previewVoice} disabled={voiceSpeaking}>{voiceSpeaking?'Speaking…':'▶ Preview free browser voice'}</button>{voiceSpeaking&&<button type="button" onClick={()=>{stopNaturalSpeech();setVoiceSpeaking(false)}}>Stop</button>}</div><label htmlFor="voice-preference" style={{display:'block',marginTop:13}}>Voice quality · choose an installed natural voice</label><select id="voice-preference" value={preferredVoice} onChange={event=>{setPreferredVoice(event.target.value);setPreferredPersonaVoiceId(event.target.value);stopNaturalSpeech();setVoiceSpeaking(false)}}><option value="">Automatic best available</option>{browserVoices.map(voice=><option key={voice.id} value={voice.id}>{voice.label}</option>)}</select><p className="hint">Speech comes from your phone or computer. More natural voices may be available in your device's accessibility or spoken-content settings.</p></div>}
+        {selected && <div className="selected"><b>{selected.name}</b><p>{selected.instructions || 'General-purpose AI assistant.'}</p><span>Greeting: “{selected.opening_message}”</span><div style={{marginTop:14,display:'flex',gap:8,flexWrap:'wrap'}}><button type="button" onClick={previewVoice} disabled={voiceSpeaking}>{voiceSpeaking?'Speaking…':'▶ Preview free browser voice'}</button>{voiceSpeaking&&<button type="button" onClick={()=>{stopNaturalSpeech();setVoiceSpeaking(false)}}>Stop</button>}</div><label htmlFor="voice-preference" style={{display:'block',marginTop:13}}>Voice quality · choose an installed natural voice</label><select id="voice-preference" value={preferredVoice} onChange={event=>{setPreferredVoice(event.target.value);setPreferredPersonaVoiceId(event.target.value);stopNaturalSpeech();setVoiceSpeaking(false)}}><option value="">Automatic best available</option>{browserVoices.map(voice=><option key={voice.id} value={voice.id}>{voice.label}</option>)}</select><p className="hint">Speech comes from your phone or computer. More natural voices may be available in your device's accessibility or spoken-content settings.</p><label htmlFor="handoff-phone" style={{display:'block',marginTop:16}}>Human handoff number · optional</label><input id="handoff-phone" type="tel" value={handoffPhone} onChange={event=>setHandoffPhone(event.target.value)} placeholder="+639171234567"/><button type="button" onClick={saveHandoff} disabled={handoffBusy}>{handoffBusy?'Saving…':'Save human handoff number'}</button><p className="hint">During a call, the caller can press 0 to reach this number. Carrier charges apply only when a transfer is made. The number is private to this workspace assistant.</p></div>}
       </div>
     </section>
 
     <section className="actionGrid">
       <article className="panel" id="real-phone">
         <div className="panelHead"><div><small>REAL PHONE CALL</small><h2>Call a mobile phone or landline</h2></div><Pill ready={phoneReady} label={phoneReady?'READY':'OPTIONAL'} /></div>
+        {config?.deepgram_voice_agent && <div className="simpleExplain" style={{marginBottom:16}}><h3>{config.deepgram_voice_agent.ready?'Realtime voice is configured':'Realtime voice needs one secure provider key'}</h3><p>{config.deepgram_voice_agent.ready?'New phone calls can use live streaming speech with Magnanimous AI controlling the conversation.':'Your existing phone and browser calling remain available. The new natural streaming voice stays off until the Deepgram API key is added as a Worker secret.'}</p>{!config.deepgram_voice_agent.ready && <p className="hint">Missing: {(config.deepgram_voice_agent.missing||[]).join(', ')}</p>}{config.deepgram_voice_agent.limits && <p className="hint">Platform cap: {config.deepgram_voice_agent.limits.max_concurrent_calls} calls at once · {config.deepgram_voice_agent.limits.daily_minutes} minutes/day · {config.deepgram_voice_agent.limits.monthly_minutes} minutes/month. Workspace cap: {config.deepgram_voice_agent.limits.tenant_max_concurrent_calls} call at once · {config.deepgram_voice_agent.limits.tenant_daily_minutes} minutes/day · {config.deepgram_voice_agent.limits.tenant_monthly_minutes} minutes/month. Max {Math.round(config.deepgram_voice_agent.limits.max_call_seconds/60)} minutes/call. Twilio carrier fees are separate.</p>}</div>}
         {!phoneReady ? <div className="simpleExplain">
           <h3>This feature is not required to use I AM.</h3>
           <p>The free browser calling and talking AI agents still work. Real telephone calling becomes available when the platform phone service is connected and your workspace has access to Full Business.</p>
