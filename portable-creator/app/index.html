@@ -81,6 +81,10 @@
           <button id="obsSwitchButton" class="secondary" disabled>Switch scene</button>
         </div>
         <p id="obsCurrentScene" class="muted">Open OBS and enable its WebSocket server to connect.</p>
+        <label for="obsAvatarLayout">AI host avatar canvas</label>
+        <select id="obsAvatarLayout" disabled><option value="vertical">Vertical 1080 × 1920 (TikTok / Reels)</option><option value="landscape">Landscape 1920 × 1080 (YouTube / Zoom)</option></select>
+        <div class="actions"><button id="obsAvatarButton" class="secondary" disabled>Add AI host avatar to this scene</button></div>
+        <p class="muted">Adds a transparent local Browser Source. The avatar follows approved host speech and captions through a local-only channel. Capture this computer's audio in OBS to include the device voice.</p>
         <div class="actions">
           <button id="obsStartRecordButton" class="secondary" disabled>Start recording</button>
           <button id="obsStopRecordButton" class="quiet" disabled>Stop recording</button>
