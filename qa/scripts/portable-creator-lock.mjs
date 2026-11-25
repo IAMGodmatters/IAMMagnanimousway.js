@@ -23,6 +23,7 @@ assert(!/\b(?:innerHTML|outerHTML|insertAdjacentHTML|eval|Function)\b/.test(app)
 
 const creatorArchitecture=read('docs/live-studio/universal-creator-architecture.md');
 const onlineRelay=read('worker/src/live-bridge-relay.js');
+const bridgePage=read('frontend/app/tiktok-live/bridge/page.tsx');
 
 execFileSync(process.execPath,['--check',path.join(ROOT,'portable-creator/host.mjs')],{cwd:ROOT,stdio:'inherit'});
 execFileSync(process.execPath,['--check',path.join(ROOT,'portable-creator/app/app.js')],{cwd:ROOT,stdio:'inherit'});
@@ -101,6 +102,10 @@ checks.push(
  ['AI host offers device voice selection and visible speaking state',html.includes('id="hostVoiceSelect"')&&html.includes('id="hostAvatar"')&&app.includes('function loadHostVoices')&&app.includes('utterance.voice=voice')&&app.includes("classList.add('host-speaking')")],
  ['AI host dialogue is reviewed before speaking and does not execute platform commands',html.includes('Review and edit it before speaking')&&app.includes('Review and edit it before speaking.')&&!app.includes('speechSynthesis.speak(new SpeechSynthesisUtterance')],
  ['AI host can append reviewed dialogue to the encrypted creator draft',app.includes('function addHostLineToNotes')&&app.includes('Save it to keep the change in your encrypted workspace')],
+ ['online bridge can request AI host speech without exposing provider credentials',bridgePage.includes("action==='host.speak'")&&bridgePage.includes('Words for the AI host')&&bridgePage.includes('clientRef.current?.sendCommand')],
+ ['remote host speech is queued locally and cannot speak before operator approval',host.includes("value.action==='host.speak'")&&host.includes("command.action==='host.speak'")&&app.includes("result.action==='host.speak'")&&app.includes('speakHostLine()')&&host.includes("body.approved!==true")],
+ ['online host speech is spoken only through the selected local device voice',app.includes("const selectedVoice=$('hostVoiceSelect').value")&&app.includes('window.speechSynthesis.speak(utterance)')&&app.includes("$('hostLine').value=String(result.speechText).slice(0,500)")],
+
 );
  ['workspace lock clears private draft, host and viewer text from the browser UI',app.includes('function clearSensitiveUi()')&&app.includes("['passphrase','prompt','outputTitle','output','hostTopic','hostScript','hostLine','liveTestText','obsPassword','bridgeToken']")&&app.includes("state.lastHostEvent=null")&&app.includes("clearSensitiveUi();")],
  ['workspace lock stops speech, warns before discarding unsaved content and cancels local generation',app.includes('cancelGenerationRequests();stopHostVoice();')&&app.includes('window.confirm(\'Locking clears unsaved drafts')&&app.includes('generationRequests.add(controller)')&&app.includes('signal:controller.signal')],
