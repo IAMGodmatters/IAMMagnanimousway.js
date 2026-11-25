@@ -97,7 +97,7 @@ export class MagnanimousLiveBridgeRoom {
   if(Date.now()>attachment.sessionExpiresAt){ws.close(4001,'Bridge session expired');return;}
   const now=Date.now(),windowStartedAt=Number(attachment.windowStartedAt)||now;
   const windowCount=now-windowStartedAt>=60_000?0:Number(attachment.windowCount)||0;
-  const limit=attachment.role==='browser'?30:120;
+  const limit=attachment.role==='browser'?10:30;
   if(windowCount>=limit){ws.close(4429,'Bridge message rate limit reached');return;}
   ws.serializeAttachment({...attachment,windowStartedAt:windowCount===0?now:windowStartedAt,windowCount:windowCount+1});
   if(envelope?.kind==='ping'){ws.send(JSON.stringify({kind:'pong'}));return;}
