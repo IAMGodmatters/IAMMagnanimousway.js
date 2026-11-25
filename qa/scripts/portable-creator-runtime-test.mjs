@@ -72,7 +72,7 @@ try{
  assert.equal(health.model.ready,false,'Local generation must remain disabled when no runtime is installed.');
  const bridgeStatus=await (await fetch(origin+'/api/bridge/status')).json();
  assert.equal(bridgeStatus.status,'disconnected','Online bridge must start disconnected.');
- assert.equal((await post(origin+'/api/bridge/connect',origin,{endpoint:'https://attacker.example/socket',token:'A'.repeat(43)})).status,400,'Companion must reject non-WSS and non-Magnanimous endpoints.');
+ assert.equal((await post(origin+'/api/bridge/connect',origin,{endpoint:'https://attacker.example/socket',token:'A'.repeat(43)})).status,423,'A locked workspace must reject all online bridge attempts before validation or connection.');
  assert.equal((await post(origin+'/api/bridge/connect',origin,{endpoint:'wss://iammagnanimousway.com/api/live-bridge/ws/12345678-1234-1234-1234-123456789abc',token:'A'.repeat(43)})).status,423,'A valid bridge endpoint still requires the encrypted workspace to be unlocked.');
  assert.equal((await post(origin+'/api/bridge/command/review',origin,{commandId:'unknown',approved:true})).status,404,'Unknown remote commands must not execute.');
  const eventStatus=await (await fetch(origin+'/api/live/events/status')).json();
