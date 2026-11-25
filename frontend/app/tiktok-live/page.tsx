@@ -24,6 +24,15 @@ function authHeaders(): Record<string, string> {
 
 const WELCOME = 'Welcome, everyone. This is Magnanimous AI, an openly disclosed AI co-host. I am here to share useful information, answer your questions, and keep the conversation respectful. Add your question in the comments and the host operator will bring it into the conversation.';
 
+const RUNDOWN_SEGMENTS = [
+  { at: 0.08, title: 'Set the direction', cue: 'Introduce the session topic, explain what viewers will take away, and invite respectful participation.' },
+  { at: 0.24, title: 'Main teaching', cue: 'Teach three clear, useful points on the selected topic. Use examples and distinguish facts from opinions.' },
+  { at: 0.42, title: 'Audience participation', cue: 'Ask one open, simple question and invite viewers to share ideas without revealing private details.' },
+  { at: 0.60, title: 'Interactive round', cue: 'Run a short, friendly trivia or prediction round. Explain the rules and do not invent prizes.' },
+  { at: 0.78, title: 'Practical takeaway', cue: 'Give one practical example or step viewers can use. Keep it relevant and safe.' },
+  { at: 0.93, title: 'Recap and close', cue: 'Summarize the main points, thank the audience, invite a final question and explain how viewers can find the next session.' },
+] as const;
+
 export default function TikTokLiveHost() {
   const [topic, setTopic] = useState('Faith & Scripture');
   const [viewerComment, setViewerComment] = useState('');
@@ -37,6 +46,8 @@ export default function TikTokLiveHost() {
   const [welcomeText, setWelcomeText] = useState(WELCOME);
   const [takeoverConsent, setTakeoverConsent] = useState(false);
   const [takeoverActive, setTakeoverActive] = useState(false);
+  const [showRundownEnabled, setShowRundownEnabled] = useState(false);
+  const [activeRundownSegment, setActiveRundownSegment] = useState('');
   const [takeoverDuration, setTakeoverDuration] = useState(30);
   const [takeoverEndsAt, setTakeoverEndsAt] = useState<number | null>(null);
   const [takeoverSeconds, setTakeoverSeconds] = useState(0);
@@ -49,6 +60,8 @@ export default function TikTokLiveHost() {
   const [takeoverPaused, setTakeoverPaused] = useState(false);
   const takeoverRef = useRef(false);
   const takeoverDeadlineRef = useRef<number | null>(null);
+  const takeoverStartedAtRef = useRef<number | null>(null);
+  const nextRundownSegmentRef = useRef(0);
   const takeoverGreetingRef = useRef(false);
   const takeoverAbortRef = useRef<AbortController | null>(null);
   const processingQueueId = useRef<number | null>(null);
