@@ -79,12 +79,12 @@ export class MagnanimousLiveBridgeRoom {
   if(!attachment.authenticated){
    if(envelope?.kind!=='auth'||envelope.protocolVersion!==1||typeof envelope.token!=='string'||envelope.token.length<32||envelope.token.length>256){ws.close(4001,'Authentication required');return;}
    const pair=await this.state.storage.get('pair');
-   if(!pair||(Date.now()>pair.pairExpiresAt&&!pair.sessionExpiresAt)||(pair.sessionExpiresAt&&Date.now()>pair.sessionExpiresAt)){ws.close(4001,'Pairing expired');return;}
+   if(!pair||(Date.now()>pair.pairExpiresAt&&!pair.sessionExpiresAt)||(pair.sessionExpiresAt&&Date.now()>pair.sessionExpiresAt)){ws.send(JSON.stringify({kind:'error',code:'PAIRING_REVOKED',message:'The pairing code or bridge session expired. Create a new pair.'}));ws.close(4001,'Pairing expired');return;}
    const supplied=await hash(envelope.token);
    const role=sameHex(supplied,pair.browserHash)?'browser':sameHex(supplied,pair.companionHash)?'companion':null;
-   if(!role){ws.close(4001,'Invalid pairing token');return;}
+   if(!role){ws.send(JSON.stringify({kind:'error',code:'AUTH_FAILED',message:'The companion pairing token is invalid.'}));ws.close(4001,'Invalid pairing token');return;}
    const sessionExpiresAt=pair.sessionExpiresAt||Date.now()+SESSION_TTL_MS;
-   if(Date.now()>sessionExpiresAt){ws.close(4001,'Bridge session expired');return;}
+   if(Date.now()>sessionExpiresAt){ws.send(JSON.stringify({kind:'error',code:'PAIRING_REVOKED',message:'The bridge session expired. Create a new pair.'}));ws.close(4001,'Bridge session expired');return;}
    if(!pair.sessionExpiresAt){pair.sessionExpiresAt=sessionExpiresAt;await this.state.storage.put('pair',pair);await this.state.storage.setAlarm(sessionExpiresAt);}
    ws.serializeAttachment({...attachment,role,authenticated:true,allowedProviders:pair.allowedProviders||[],seen:[],sessionExpiresAt,windowStartedAt:Date.now(),windowCount:0});
    const existing=this.findRole(role,ws);
