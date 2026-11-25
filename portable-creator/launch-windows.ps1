@@ -75,16 +75,6 @@ if ($ModelServer -and (Test-Path $ModelServer) -and (Test-Path $ModelFile)) {
   Write-Host 'No local model bundle found. Workspace and encrypted project storage will still work; no model will be downloaded.'
 }
 
-if ($LaunchOBS) {
-  if (Test-Path $ObsExe) {
-    $portableMarker = Join-Path $ObsRoot 'portable_mode'
-    if (-not (Test-Path $portableMarker)) { New-Item -ItemType File -Path $portableMarker | Out-Null }
-    Start-Process -FilePath $ObsExe -ArgumentList '--portable' -WorkingDirectory $ObsRoot
-  } else {
-    Write-Warning 'OBS Portable files are not present. Add a reviewed Windows portable distribution to runtime\obs.'
-  }
-}
-
 $creatorListener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback,$Port)
 try { $creatorListener.Start(); $creatorListener.Stop() }
 catch {
@@ -145,7 +135,6 @@ try {
   if ($HostProcess -and -not $HostProcess.HasExited) {
     Stop-Process -Id $HostProcess.Id -Force -ErrorAction SilentlyContinue
   }
-} finally {
   if ($ModelProcess -and -not $ModelProcess.HasExited) {
     Stop-Process -Id $ModelProcess.Id -Force -ErrorAction SilentlyContinue
   }
