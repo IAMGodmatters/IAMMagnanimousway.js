@@ -33,6 +33,7 @@ test('persists accepted events and deduplication across process restart', t => {
   assert.equal(journal.acknowledge(delivery.deliveryId, delivery.eventKeys).status, 'duplicate');
   journal = f.create();
   assert.equal(journal.status().queued, 0);
+  assert.equal(journal.acknowledge(delivery.deliveryId, delivery.eventKeys).status, 'duplicate');
   assert.equal(journal.ingest(makeEvent('persist-1')).status, 'duplicate');
 });
 
@@ -78,4 +79,16 @@ test('applies durable queue backpressure instead of dropping pending events', t 
   assert.equal(journal.ingest(makeEvent('capacity-1')).status, 'accepted');
   assert.equal(journal.ingest(makeEvent('capacity-2')).status, 'queue_full');
   assert.equal(journal.status().queued, 1);
+});
+
+test('rejects partial acknowledgements without removing any event', t => {
+  const f = fixture(t);
+  const journal = f.create();
+  journal.ingest(makeEvent('partial-1'));
+  journal.ingest(makeEvent('partial-2'));
+  const delivery = journal.claim(2);
+  const partial = journal.acknowledge(delivery.deliveryId, [delivery.eventKeys[0], 'youtube:not-in-this-delivery']);
+  assert.equal(partial.status, 'not_leased');
+  assert.equal(journal.status().queued, 2);
+  assert.equal(journal.acknowledge(delivery.deliveryId, delivery.eventKeys).acknowledged, 2);
 });
