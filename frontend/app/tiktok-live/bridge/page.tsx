@@ -52,7 +52,7 @@ export default function LiveEventBridgePage() {
       const response=await fetch('/api/live-bridge/pair',{method:'POST',headers:{'content-type':'application/json'},body:'{}',cache:'no-store'});
       const data=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(data.detail||'Sign in to Magnanimous before creating a bridge pair.');
-      if(pairId)await revokePairId(pairId);
+      if(pairId){await revokePairId(pairId);setPairId('');}
       setPairId(data.pairId);
       setEndpoint(data.endpoint);
       setPairingToken('');
@@ -74,7 +74,7 @@ export default function LiveEventBridgePage() {
   async function revokePairId(id:string) {
     const response=await fetch('/api/live-bridge/revoke',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({pairId:id}),cache:'no-store'});
     const data=await response.json().catch(()=>({}));
-    if(!response.ok||data.revoked!==true)throw new Error(data.detail||'The existing pairing could not be revoked. No new pair was created.');
+    if(!response.ok)throw new Error(data.detail||'The existing pairing could not be revoked. No new pair was created.');
   }
 
   async function revokePair() {
