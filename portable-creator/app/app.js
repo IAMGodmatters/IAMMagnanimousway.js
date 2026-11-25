@@ -192,7 +192,8 @@ function hostEventSummary(event){
  const actor=String(event.actorName||'Viewer').replace(/[<>\u0000-\u001f]/g,'').slice(0,48);
  const text=String(event.text||'').replace(/[<>\u0000-\u001f]/g,'').slice(0,360);
  const type=String(event.type||'event').replace(/[^a-z._-]/gi,'').slice(0,48);
- return type+' from '+actor+': '+text;
+ const gameName=String(event.tags?.gameName||'').replace(/[<>\\u0000-\\u001f\\u007f]/g,'').slice(0,80);
+ return (gameName?'['+gameName+'] ':'')+type+' from '+actor+': '+text;
 }
 function hostFallbackLine(){
  const topic=$('hostTopic').value.trim()||'today’s live session';
