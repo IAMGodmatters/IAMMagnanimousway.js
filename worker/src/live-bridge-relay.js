@@ -52,13 +52,14 @@ export class MagnanimousLiveBridgeRoom {
    await this.state.storage.setAlarm(body.pairExpiresAt);
    return json({ok:true});
   }
-  if(url.pathname==='/connect'&&request.method==='GET'){
+  const socketMatch=url.pathname.match(/^\/api\/live-bridge\/ws\/([0-9a-f-]{36})$/i);
+  if(socketMatch&&request.method==='GET'){
+   if(socketMatch[1].toLowerCase()!==String((await this.state.storage.get('pair'))?.pairId||'').toLowerCase())return json({detail:'Bridge room not found.'},404);
    if(request.headers.get('Upgrade')?.toLowerCase()!=='websocket')return json({detail:'WebSocket upgrade required.'},426);
    const pair=await this.state.storage.get('pair');
    if(!pair||Date.now()>pair.pairExpiresAt)return json({detail:'The pairing code expired. Create a new bridge pair.'},410);
    const origin=request.headers.get('Origin');
-   const expectedOrigin=request.headers.get('x-bridge-origin')||url.origin;
-   if(origin&&origin!==expectedOrigin)return json({detail:'Cross-origin bridge connections are not allowed.'},403);
+   if(origin&&origin!==url.origin)return json({detail:'Cross-origin bridge connections are not allowed.'},403);
    const pairSocket=new WebSocketPair();
    const [client,server]=Object.values(pairSocket);
    this.state.acceptWebSocket(server);
@@ -153,9 +154,7 @@ export async function handleLiveBridgeRelay(request,env,user=null){
   if(url.protocol!=='https:')return json({detail:'Secure HTTPS/WSS is required.'},400);
   if(!env.LIVE_BRIDGE_ROOMS)return json({detail:'The online bridge service is not configured on this deployment.'},503);
   const id=env.LIVE_BRIDGE_ROOMS.idFromName(match[1]);
-  const headers=new Headers(request.headers);
-  headers.set('x-bridge-origin',url.origin);
-  return env.LIVE_BRIDGE_ROOMS.get(id).fetch(new Request('https://bridge.internal/connect',{method:'GET',headers}));
+  return env.LIVE_BRIDGE_ROOMS.get(id).fetch(request);
  }
  return null;
 }
