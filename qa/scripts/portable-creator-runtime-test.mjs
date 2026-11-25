@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import net from 'node:net';
+import http from 'node:http';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
@@ -88,7 +89,12 @@ try{
  assert.equal(noModel.status,503,'No cloud fallback is allowed when local model is absent.');
  const oversized=await fetch(origin+'/api/vault/unlock',{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify({passphrase:'x'.repeat(1100000)})});
  assert.equal(oversized.status,413,'Request bodies above the local limit should be rejected.');
- const wrongHost=await fetch(origin+'/api/health',{headers:{host:'localhost:'+port}});
+ const wrongHost=await new Promise((resolve,reject)=>{
+  const request=http.request({hostname:'127.0.0.1',port,path:'/api/health',method:'GET',headers:{host:'localhost:'+port}},response=>{
+   let body='';response.setEncoding('utf8');response.on('data',chunk=>body+=chunk);response.on('end',()=>resolve({status:response.statusCode,body}));
+  });
+  request.on('error',reject);request.end();
+ });
  assert.equal(wrongHost.status,403,'Host-header rebinding should be rejected.');
  console.log('PASS portable local host and UI');
  console.log('PASS local-only model fail-closed behavior');
