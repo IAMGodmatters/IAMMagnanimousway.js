@@ -101,10 +101,7 @@ export default function LiveEventBridgePage() {
   function sendCommand() {
     if(action!=='scene.set'&&action!=='host.speak'){setNotice('Overlay and audio-cue commands are not enabled yet. No command was sent.');return;}
     const commandId=globalThis.crypto?.randomUUID?.()||String(Date.now());
-    const payload=action==='scene.set'?{sceneName:target}
-      :action==='overlay.show'||action==='overlay.hide'?{overlayId:target}
-      :action==='audio.cue'?{cueId:target}
-      :{text:speech};
+    const payload=action==='scene.set'?{sceneName:target}:{text:speech};
     const sent=clientRef.current?.sendCommand({commandId,action,...payload})||false;
     setNotice(sent?'Command sent to the companion. Execution is not confirmed until the companion returns an acknowledgement.':'No command sent. Confirm that the companion is connected and that the command fields are valid.');
   }
