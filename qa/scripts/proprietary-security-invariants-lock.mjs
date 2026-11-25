@@ -129,6 +129,10 @@ for (const rel of distributionFiles) {
 }
 for (const name of approvedDistribution) assert(distributionFiles.includes(name), `Approved Local Bridge distribution file is missing: ${name}.`);
 
+const privateVoiceBootstrap = 'frontend/lib/tiktok-live/transformers-no-cache.mjs';
+assert(exists(privateVoiceBootstrap), 'The optional Transformers voice bootstrap must remain available in private frontend source.');
+assert(!exists('frontend/public/tiktok-live/transformers-no-cache.mjs'), 'The Transformers voice bootstrap must not be exposed as a public source file.');
+
 const dangerousPublicExtensions = new Set([
   '.map', '.pem', '.key', '.p12', '.pfx',
   '.py', '.ps1', '.sh', '.bash', '.zsh', '.bat', '.cmd',
