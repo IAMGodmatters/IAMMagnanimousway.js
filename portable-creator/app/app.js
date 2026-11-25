@@ -6,11 +6,11 @@ function clearSensitiveUi(){
  if($('gameIntegrationToken'))$('gameIntegrationToken').type='password';
  $('liveEventList').replaceChildren();
  for(const id of ['liveEventMessage','hostMessage','creatorMessage','bridgeMessage','obsMessage'])message(id,'');
- state.lastHostEvent=null;state.hostSectionIndex=0;
+ state.lastHostEvent=null;state.pendingLiveDelivery=null;state.hostSectionIndex=0;
  $('hostStageStatus').textContent='Workspace locked';
  $('hostVoiceStatus').textContent='Voice stopped';$('hostVoiceStatus').className='status warning';
 }
-const state={modelReady:false,vaultUnlocked:false,projects:[],obsConnected:false,obsRecording:false,bridgeConnected:false,bridgeStatus:'disconnected',bridgeJournalWarning:false,pendingBridgeCommands:[],lastHostEvent:null,hostSectionIndex:0};
+const state={modelReady:false,vaultUnlocked:false,projects:[],obsConnected:false,obsRecording:false,bridgeConnected:false,bridgeStatus:'disconnected',bridgeJournalWarning:false,pendingBridgeCommands:[],lastHostEvent:null,pendingLiveDelivery:null,hostSectionIndex:0};
 const hostBroadcast=typeof BroadcastChannel==='function'?new BroadcastChannel('magnanimous-host-v1'):null;
 async function api(path,options={}){
  const response=await fetch(path,{...options,cache:'no-store',headers:{'content-type':'application/json',...(options.headers||{})}});
@@ -289,6 +289,12 @@ function renderLiveEvents(events,cues=[]){
   if(cue){const review=document.createElement('small');review.textContent='MAGNANIMOUS SUGGESTION · '+cue.title+' · '+cue.prompt+' · OPERATOR APPROVAL REQUIRED';review.className='director-cue';item.append(review);}
   list.append(item);
  }
+ if(state.pendingLiveDelivery){
+  const actions=document.createElement('div');actions.className='actions';
+  const acknowledge=document.createElement('button');acknowledge.className='primary';acknowledge.type='button';acknowledge.textContent='I reviewed these events — acknowledge';
+  acknowledge.addEventListener('click',acknowledgeLiveEvents);
+  actions.append(acknowledge);list.append(actions);
+ }
 }
 async function refreshLiveQueue(){
  try{const data=await api('/api/live/events/status');$('liveQueueStatus').textContent=data.journalError?'Recovery journal verification failed':data.journalWarning?'Recovery journal needs compaction':data.recoveryLocked?'Unlock the encrypted workspace to recover saved events':!state.vaultUnlocked?'Unlock the encrypted workspace to use live events':data.queued+' queued · '+data.capacity+' capacity';$('liveQueueStatus').className='status '+(data.queued?'ready':'warning');}
@@ -374,22 +380,39 @@ async function sendLocalEvent(){
  finally{updateControls();}
 }
 async function pullLiveEvents(){
+ if(state.pendingLiveDelivery){message('liveEventMessage','Review or acknowledge the current event batch before pulling another.','warning');return;}
  $('livePullButton').disabled=true;
  try{
   const data=await api('/api/live/events/consume',{method:'POST',body:JSON.stringify({limit:20})});
   const events=data.events||[];
+  if(data.deliveryId&&events.length)state.pendingLiveDelivery={deliveryId:data.deliveryId,eventKeys:data.eventKeys||[]};
   renderLiveEvents(events,data.reviewCues||[]);
   if(events.length){
    state.lastHostEvent=events[events.length-1];
    $('hostStageStatus').textContent='New reviewed event available';
-  }
-  if(data.deliveryId&&events.length){
-   const receipt=await api('/api/live/events/ack',{method:'POST',body:JSON.stringify({deliveryId:data.deliveryId,eventKeys:data.eventKeys||[]})});
-   message('liveEventMessage',receipt.acknowledged+' event(s) safely received and acknowledged.','success');
+   message('liveEventMessage',events.length+' event(s) loaded. Review the messages and Magnanimous suggestions before acknowledging.','success');
   }else message('liveEventMessage','No unclaimed events are waiting.','info');
   $('liveQueueStatus').textContent=data.queued+' queued · '+data.capacity+' capacity';
  }catch(error){message('liveEventMessage',error.message,'error');}
- finally{$('livePullButton').disabled=false;await refreshLiveQueue();}
+ finally{$('livePullButton').disabled=Boolean(state.pendingLiveDelivery);await refreshLiveQueue();}
+}
+async function acknowledgeLiveEvents(){
+ const delivery=state.pendingLiveDelivery;
+ if(!delivery)return;
+ const button=$('liveEventList').querySelector('button');
+ if(button)button.disabled=true;
+ try{
+  const receipt=await api('/api/live/events/ack',{method:'POST',body:JSON.stringify(delivery)});
+  if(receipt.status!=='acknowledged'&&receipt.status!=='duplicate')throw new Error(receipt.detail||'The event batch was not acknowledged.');
+  state.pendingLiveDelivery=null;
+  $('livePullButton').disabled=false;
+  message('liveEventMessage',receipt.acknowledged+' event(s) acknowledged after operator review.','success');
+  const actions=$('liveEventList').querySelector('.actions');if(actions)actions.remove();
+  await refreshLiveQueue();
+ }catch(error){
+  if(button)button.disabled=false;
+  message('liveEventMessage',error.message,'error');
+ }
 }
 async function refresh(){
  try{
