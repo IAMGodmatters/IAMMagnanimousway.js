@@ -30,7 +30,7 @@ The sensible approach is a layered system:
 
 - **GPT-Live-1:** OpenAI's pricing page lists $0.05 per minute for voice sessions, billed by the second. One hour is approximately $3 before separately billed backend model or tool use. A four-hour session would be approximately $12 for the live-voice session line alone, assuming continuous usage.
 - **Gemini 3.8 Live:** Google's standard paid pricing lists audio input at $0.005/minute and audio output at $0.018/minute, with text and other modalities billed separately. The pricing page currently lists a free tier. It says free-tier content may be used to improve Google products; avoid sending personal, family, ministry-member, or private viewer information through that tier.
-- **HeyGen LiveAvatar:** The official site lists a free tier with 10 credits/month and a two-minute maximum session. Its paid plans start at $99/month for Essential and $475/month for Business on the page checked. One credit supplies 30 seconds in Full mode or one minute in Lite mode. These are vendor prices and can change.
+- **HeyGen LiveAvatar:** The current official homepage lists Free at $0 (10 credits/month, maximum two minutes per session, one concurrent session, watermark); Starter at $19/month (150 credits, maximum five minutes per session, up to five concurrent sessions); Essential at $99/month (1,000 credits, maximum 20 minutes per session, up to 20 concurrent sessions); and Business at $475/month (5,000 credits, maximum 60 minutes per session, up to 40 concurrent sessions). One credit buys 30 seconds in Full mode or one minute in Lite mode. This means even Business's stated 60-minute session ceiling is not proof of a continuous multi-hour broadcast; credit consumption is a separate limit. Prices and credit allowances may change.
 
 No paid provider is activated by this update. The UI identifies which choices are available to test, which are paid, and which remain unconnected.
 
@@ -78,8 +78,9 @@ For ministry and educational LIVE sessions, keep the AI identity clearly disclos
 - Google Gemini API pricing (checked 25 November 2026): https://ai.google.dev/gemini-api/docs/pricing
 - OpenAI, GPT-Live-1 API announcement (10 September 2026): https://openai.com/index/introducing-gpt-live-1-in-the-api/
 - OpenAI API pricing (checked 25 November 2026): https://platform.openai.com/pricing/
-- HeyGen LiveAvatar free and paid plans (checked 25 November 2026): https://www.liveavatar.com/
-- HeyGen LiveAvatar FAQ: https://help.heygen.com/en/articles/12758866-liveavatar-faq
+- HeyGen LiveAvatar current official plan/price table (checked 25 November 2026): https://www.liveavatar.com/
+- HeyGen LiveAvatar FAQ (credit calculation): https://help.heygen.com/en/articles/12758866-liveavatar-faq
+- HeyGen LiveAvatar official Help Center plan detail: https://help.heygen.com/en/articles/12758516-introducing-liveavatar
 - TikTok for Developers, API scopes reference: https://developers.tiktok.com/docs/en/tiktok-api-scopes
 - TikTok Shop Philippines, AI-Generated Content (AIGC): https://seller-ph.tiktok.com/university/essay?default_language=en&identity=1&knowledge_id=7188082378639105
 - TikTok Shop Philippines, Non-Interactive Content (updated 5 November 2026): https://seller-ph.tiktok.com/university/essay?from=policy&identity=1&knowledge_id=7654203686192897&role=1
