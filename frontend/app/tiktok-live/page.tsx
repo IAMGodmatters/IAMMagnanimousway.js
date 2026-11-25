@@ -219,7 +219,15 @@ export default function TikTokLiveHost() {
             <h2 id="frontier-title">The newest live-host technology you can acquire</h2>
             <p>Magnanimous remains the brain. These are optional voice, avatar, and broadcast tools underneath it. Nothing below is activated, billed, or connected to your accounts automatically.</p>
           </div>
-          <div className="techGrid">
+          <div className="techGrid">\n            <article className="techCard recommended">
+              <span className="techTag">BEST LOW-COST REAL AVATAR FIT</span>
+              <h3>Simli Trinity-2 + Magnanimous</h3>
+              <p>Simli turns approved speech audio into a real-time animated avatar stream. Keep Magnanimous as the brain and choose the speech engine separately. Its current pricing page lists 50 free minutes/month; paid plans start at $10/month for 1,000 minutes, with published usage rates from $0.01/min on Hobby and lower at larger tiers.</p>
+              <p className="techNote">The browser SDK accepts an audio MediaStreamTrack or audio element and returns avatar video/audio over WebRTC. The provider's README says API keys stay on the server; the browser receives only a short-lived session token. A separate TTS audio stream is still required—browser speech synthesis alone is not a drop-in audio track.</p>
+              <div className="techLinks"><a href="https://www.simli.com/" target="_blank" rel="noreferrer">Official product and pricing</a><a href="https://github.com/simliai/simli-client" target="_blank" rel="noreferrer">Official WebRTC SDK</a><a href="https://www.npmjs.com/package/simli-client" target="_blank" rel="noreferrer">SDK and server-token guide</a></div>
+              <b className="techStatus">BEST NEXT AVATAR ADAPTER • NOT CONNECTED</b>
+            </article>
+
             <article className="techCard recommended">
               <span className="techTag">RECOMMENDED NOW • NO NEW PROVIDER FEE</span>
               <h3>Magnanimous Native Host</h3>
@@ -228,18 +236,18 @@ export default function TikTokLiveHost() {
               <b className="techStatus">AVAILABLE IN THIS CONTROL ROOM</b>
             </article>
             <article className="techCard">
-              <span className="techTag">NEWEST VIDEO + VOICE MODEL</span>
+              <span className="techTag">LATEST INTEGRATED AUDIO + AVATAR STACK</span>
               <h3>Google Gemini 3.8 Live + Live Avatar</h3>
-              <p>Can produce synchronized audio, text, and expressive avatar video. Google’s model card says continuous avatar interaction is a few minutes, not hours, so use it for short demonstrations—not as the sole engine for a long TikTok broadcast.</p>
-              <p className="techNote">The API lists a free tier. Google says free-tier content may be used to improve its products; do not send private ministry, family, or viewer records through that tier.</p>
+              <p>A newer all-in-one real-time voice/video model with synchronized 24-FPS avatar video, affective dialogue, function calling, and multilingual switching. Google lists it as generally available through Gemini Enterprise. Custom avatars require enterprise allowlisting.</p>
+              <p className="techNote">Not the best default for Magnanimous because the Gemini model is also doing the conversation reasoning. Google documents 2-minute audio-video sessions without context compression and about 10-minute WebSocket connections; longer sessions require context compression and session resumption. Confirm region, quotas, and enterprise billing before a trial.</p>
               <div className="techLinks"><a href="https://deepmind.google/models/model-cards/gemini-3-8-audio/" target="_blank" rel="noreferrer">Model capabilities</a><a href="https://ai.google.dev/gemini-api/docs/pricing" target="_blank" rel="noreferrer">Official pricing</a></div>
               <b className="techStatus">AVAILABLE TO TEST • NOT CONNECTED</b>
             </article>
             <article className="techCard">
               <span className="techTag">MOST NATURAL LIVE VOICE</span>
-              <h3>OpenAI GPT-Live-1</h3>
+              <h3>OpenAI GPT-Live 1.1</h3>
               <p>Full-duplex voice can listen and speak at the same time, making interruptions and conversational turn-taking more natural. It is a voice engine, not a rendered avatar; it would pair with a separate visual host.</p>
-              <p className="techNote">Published API price: $0.05 per live-voice minute (about $3 per hour), plus any separate backend model or tool usage. That is not enabled by default.</p>
+              <p className="techNote">Published active voice rate: $0.05/minute, with $0.02/minute standby on paused WebRTC sessions; backend model/tool use is billed separately. It is a conversational voice engine, not the avatar renderer, and is not enabled by default.</p>
               <div className="techLinks"><a href="https://openai.com/index/introducing-gpt-live-1-in-the-api/" target="_blank" rel="noreferrer">API details</a><a href="https://platform.openai.com/pricing/" target="_blank" rel="noreferrer">Official pricing</a></div>
               <b className="techStatus">OPTIONAL PAID UPGRADE • NOT CONNECTED</b>
             </article>
@@ -259,9 +267,9 @@ export default function TikTokLiveHost() {
               <b className="techStatus">OPEN SOURCE • LOCAL CONTROL</b>
             </article>
           </div>
-          <div className="techDecision"><b>Best architecture for Magnanimous:</b> Magnanimous owns identity, memory, reasoning, moderation rules, and the final answer. Voice/avatar vendors only render the approved response. Start with the free native host; trial Gemini or HeyGen only for short demonstrations; consider GPT-Live only after a usage cap and funding source are configured.</div>
+          <div className="techDecision"><b>Best architecture for Magnanimous:</b> Magnanimous owns identity, memory, reasoning, moderation rules, and the final answer. Voice/avatar vendors only render the approved response. Keep native Magnanimous chat as the brain; trial Simli first as a low-cost avatar renderer once an approved TTS audio stream and server secret are ready. Tavus is the richer but materially more expensive alternate. Use Gemini Live only if its separate managed model is acceptable for the brain; keep GPT-Live voice sessions disabled until a usage cap and funding source are configured.</div>
         </section>
-        <div className="policy"><b>AI disclosure and TikTok Shop safety</b><p>TikTok Shop Philippines currently allows AI-generated content when it follows the Community Guidelines and Shop Content Policy. It prohibits AI visuals that misrepresent products, fake results, or invent sympathy/crisis stories. A separate TikTok Shop rule updated 5 November 2026 warns that static or looping scenes and recorded or computer-generated voices used instead of sustained real-time interaction can count as non-interactive content.</p><p>For shoppable LIVE sessions, do not rely on a synthetic voice and static avatar as the whole presentation. Keep a real human host present, actively respond to viewers in real time, and demonstrate the actual product accurately. For ministry or educational streams, keep the AI identity clearly disclosed and respond meaningfully to viewers. TikTok’s rules and account permissions can change; check the current in-app guidance before going live.</p><div className="techLinks"><a href="https://seller-ph.tiktok.com/university/essay?default_language=en&identity=1&knowledge_id=7188082378639105" target="_blank" rel="noreferrer">Philippines AIGC policy</a><a href="https://seller-ph.tiktok.com/university/essay?from=policy&identity=1&knowledge_id=7654203686192897&role=1" target="_blank" rel="noreferrer">Non-interactive LIVE policy</a></div></div>
+        <div className="policy"><b>Important: TikTok Shop LIVE does not allow AI-generated voiceovers</b><p>TikTok Shop Philippines permits AIGC in compliant content generally, but its separate Unoriginal Content creator guidance explicitly says not to use AI-generated audio or narration in livestreams. Its Non-Interactive Content policy also warns against static/looping scenes and streams without sustained, real-time verbal interaction. For any TikTok Shop LIVE, use a real human voice and active live interaction; do not use this synthetic-voice host as the narrator.</p><p>For non-Shop ministry or educational streams, TikTok’s general AI disclosure rules still apply to realistic AI audio/video. Keep the AI identity disclosed, have a real operator present, answer viewers meaningfully, and verify the current in-app rules and account eligibility before broadcasting.</p><div className="techLinks"><a href="https://seller-ph.tiktok.com/university/essay?knowledge_id=7654197957084929" target="_blank" rel="noreferrer">Philippines Unoriginal Content policy</a><a href="https://seller-ph.tiktok.com/university/essay?from=policy&identity=1&knowledge_id=7654203686192897&role=1" target="_blank" rel="noreferrer">Non-Interactive LIVE policy</a><a href="https://seller-ph.tiktok.com/university/essay?default_language=en&identity=1&knowledge_id=7188082378639105" target="_blank" rel="noreferrer">AIGC policy</a></div></div>
         <div className="footLinks"><a href="/ai-chat">Magnanimous AI Chat</a><a href="/video-agents">Video Agents</a><a href="/social-hub">Connect Social Accounts</a></div>
       </section>
 
