@@ -113,8 +113,8 @@ export async function handleTikTokLiveAvatar(request,env){
   let session;
   try{
    // The installed browser SDK is SimliClient's WebRTC P2P path. Its current
-   // backend-auth contract requires a short-lived Compose token plus ICE config.
-   // The account API key never leaves this Worker.
+   // Current LiveKit contract requires a short-lived Compose token only.
+   // P2P ICE is not used; the account API key never leaves this Worker.
    const apiKey=String(env.SIMLI_API_KEY);
    // Official simli-client 3.2.0 uses LiveKit by default. Its documented
    // /compose/token API takes a flat SimliSessionRequest; no P2P ICE lookup.
