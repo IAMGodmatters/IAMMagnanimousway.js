@@ -99,11 +99,16 @@ For ministry and educational LIVE sessions, keep the AI identity clearly disclos
 - OpenAI API pricing (checked 25 November 2026): https://platform.openai.com/pricing/
 - HeyGen LiveAvatar current official plan/price table (checked 25 November 2026): https://www.liveavatar.com/
 - HeyGen LiveAvatar FAQ (credit calculation): https://help.heygen.com/en/articles/12758866-liveavatar-faq
-- Kyutai Pocket TTS official source (CPU, streaming, seven languages, voice export): https://github.com/kyutai-labs/pocket-tts\n- Pocket TTS voice export and voice-consent workflow: https://github.com/kyutai-labs/pocket-tts/blob/main/docs/CLI%20Commands/export_voice.md\n- HeadTTS official source (MIT license, WebGPU/WASM, Kokoro audio/viseme output, English-only limits): https://github.com/met4citizen/HeadTTS
+- Kyutai Pocket TTS official source (CPU, streaming, seven languages, voice export): https://github.com/kyutai-labs/pocket-tts 
+- Pocket TTS voice export and voice-consent workflow: https://github.com/kyutai-labs/pocket-tts/blob/main/docs/CLI%20Commands/export_voice.md 
+- HeadTTS official source (MIT license, WebGPU/WASM, Kokoro audio/viseme output, English-only limits): https://github.com/met4citizen/HeadTTS
 - HeadTTS browser demo: https://met4citizen.github.io/HeadTTS/
 - Simli official pricing and plan limits: https://www.simli.com/pricing
 - Simli official Javascript SDK integration: https://docs.simli.com/api-reference/simli-client
-- Simli official JavaScript SDK and LiveKit transport usage: https://github.com/simliai/simli-client
+- Simli current API v2 migration guide (legacy endpoints renamed to /compose/token and /compose/ice; P2P and LiveKit transports documented): https://docs.simli.com/api-reference/api_migration_guide
+- Simli Compose session-token API v2: https://docs.simli.com/api-reference/compose-session-token
+- Simli Compose ICE API: https://docs.simli.com/api-reference/get-ice-servers
+- Simli JavaScript WebRTC SDK (16 kHz PCM16 audio input): https://docs.simli.com/api-reference/simli-client
 - Simli official backend authentication example: https://docs.simli.com/api-reference/backend-authentication
 - Simli official JavaScript SDK reference: https://docs.simli.com/api-reference/simli-client
 - Simli WebRTC client package: https://www.npmjs.com/package/simli-client
