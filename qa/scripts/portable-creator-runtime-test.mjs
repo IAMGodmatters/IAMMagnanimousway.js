@@ -53,12 +53,12 @@ function makeSseReader(reader){
  const decoder=new TextDecoder();let pending='';
  return{
   async next(){
-   while(!pending.includes('\\n\\n')){
+   while(!pending.includes('\n\n')){
     const {value,done}=await reader.read();
     if(done)throw new Error('Avatar event stream closed unexpectedly.');
     pending+=decoder.decode(value,{stream:true});
    }
-   const index=pending.indexOf('\\n\\n'),frame=pending.slice(0,index);
+   const index=pending.indexOf('\n\n'),frame=pending.slice(0,index);
    pending=pending.slice(index+2);return frame;
   },
   cancel(){return reader.cancel();}
@@ -77,7 +77,7 @@ try{
  assert.ok((await avatarPage.text()).includes("new EventSource('/api/avatar/events')"),'OBS avatar must use the local event stream, not browser-profile messaging.');
  const avatarStream=await fetch(origin+'/api/avatar/events');
  assert.equal(avatarStream.status,200,'Local avatar event stream should connect.');
- assert.match(avatarStream.headers.get('content-type')||'',/text\\/event-stream/);
+ assert.match(avatarStream.headers.get('content-type')||'',/text\/event-stream/);
  avatarReader=makeSseReader(avatarStream.body.getReader());
  assert.deepEqual(JSON.parse((await avatarReader.next()).slice(6)),{type:'locked'},'Avatar stream must start in the locked state.');
  const home=await fetch(origin+'/');
