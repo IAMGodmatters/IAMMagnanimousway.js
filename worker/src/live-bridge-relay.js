@@ -169,7 +169,6 @@ export async function handleLiveBridgeRelay(request,env,user=null){
   if(request.headers.get('Origin')!==CANONICAL_ORIGIN)return json({detail:'A same-origin browser request is required to revoke a bridge pair.'},403);
   const fetchSite=request.headers.get('Sec-Fetch-Site');
   if(fetchSite&&fetchSite!=='same-origin')return json({detail:'Cross-site revoke requests are not allowed.'},403);
-  const user=await currentUser(request,env);
   if(!user?.id||!user?.tenant_id)return json({detail:'Sign in to revoke a live bridge.'},401);
   if(!env.LIVE_BRIDGE_ROOMS||!env.LIVE_BRIDGE_PAIR_LIMITER?.limit)return json({detail:'The online bridge service is not configured on this deployment.'},503);
   const rate=await env.LIVE_BRIDGE_PAIR_LIMITER.limit({key:String(user.tenant_id)+':'+String(user.id)});
