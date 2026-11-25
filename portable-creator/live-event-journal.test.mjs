@@ -131,3 +131,24 @@ test('ignores a malformed trailing line while preserving earlier records',()=>{
  assert.equal(records[0].event.eventId,'valid');
  fs.rmSync(dir,{recursive:true,force:true});
 });
+
+test('repairs a partial failed append before accepting a later event',()=>{
+ const dir=temporary(),file=path.join(dir,'events.jsonl'),journal=journalFor(file);
+ const originalWrite=fs.writeSync;
+ let interrupted=false;
+ fs.writeSync=function(fd,data,...args){
+  if(!interrupted&&Buffer.isBuffer(data)){
+   interrupted=true;
+   originalWrite.call(this,fd,data,0,Math.min(12,data.length));
+   throw new Error('simulated interrupted USB write');
+  }
+  return originalWrite.call(this,fd,data,...args);
+ };
+ try{assert.throws(()=>journal.appendEvent(event('partial-failure')),/interrupted USB write/);}
+ finally{fs.writeSync=originalWrite;}
+ journal.appendEvent(event('after-repair'));
+ const records=journal.load();
+ assert.equal(records.length,1);
+ assert.equal(records[0].event.eventId,'after-repair');
+ fs.rmSync(dir,{recursive:true,force:true});
+});
