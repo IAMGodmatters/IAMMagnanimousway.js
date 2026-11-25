@@ -195,6 +195,7 @@ jobs:
           fi
 
       - name: Upload standalone release artifact
+        if: ${{ github.event.repository.private == true && github.event_name != 'pull_request' && vars.MAGNANIMOUS_RELEASE_ARTIFACTS_ENABLED == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: magnanimous-standalone-${{ env.MAGNANIMOUS_RELEASE_TAG }}
@@ -206,7 +207,7 @@ jobs:
 
 
   deploy-standalone:
-    if: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.MAGNANIMOUS_ENABLE_STANDALONE == 'true' }}
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && github.event.repository.private == true && vars.MAGNANIMOUS_RELEASE_ARTIFACTS_ENABLED == 'true' && vars.MAGNANIMOUS_ENABLE_STANDALONE == 'true' }}
     needs: build-verify-bundle
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -293,3 +294,31 @@ jobs:
           if [ -n "$artifact_id" ]; then
             gh api --method DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id"
           fi
+
+  cleanup-public-release-artifacts:
+    if: ${{ github.event.repository.private != true && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Remove downloadable release artifacts while source repository is public
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const artifacts = await github.paginate(github.rest.actions.listArtifactsForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+            const protectedNames = /^(magnanimous-standalone-|magnanimous-portable-creator-)/;
+            const targets = artifacts.filter(item => !item.expired && protectedNames.test(item.name));
+            for (const item of targets) {
+              await github.rest.actions.deleteArtifact({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                artifact_id: item.id
+              });
+              core.info('Deleted public release artifact: ' + item.name);
+            }
+            core.info('Removed ' + targets.length + ' public release artifact(s).');
