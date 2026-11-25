@@ -234,7 +234,7 @@ export default function TikTokLiveHost() {
               <span className="techTag">FREE LOCAL NEURAL VOICE • EXPERIMENTAL</span>
               <h3>HeadTTS + Kokoro 82M</h3>
               <p>An open-source, MIT-licensed browser TTS engine that can run locally through WebGPU or WASM. It produces PCM/WAV audio plus phoneme timing and viseme data for lip-sync. This is a promising no-per-minute-fee speech source for Magnanimous.</p>
-              <p className="techNote">The current model is English-only. Default audio is 24 kHz; Simli's documented PCM input is 16 kHz, so the integration needs a tested resampler. First model load uses memory, and the WASM fallback is much slower than WebGPU. Performance has not been tested on your computer.</p>
+              <p className="techNote">The current model is English-only. Default audio is 24 kHz; Simli's documented PCM16 input is 16 kHz, so the integration needs a tested resampler. First model load uses memory, and the WASM fallback is much slower than WebGPU. Performance has not been tested on your computer.</p>
               <div className="techLinks"><a href="https://github.com/DeepakWorld/HeadTTS" target="_blank" rel="noreferrer">Open-source project and docs</a><a href="https://met4citizen.github.io/HeadTTS/" target="_blank" rel="noreferrer">Browser demo</a><a href="https://www.npmjs.com/package/@met4citizen/headtts" target="_blank" rel="noreferrer">NPM package</a></div>
               <b className="techStatus">FREE LOCAL OPTION • NOT CONNECTED</b>
             </article>
