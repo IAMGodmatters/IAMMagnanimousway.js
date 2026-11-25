@@ -73,11 +73,13 @@ export class DurableLiveEventJournal {
         this.pending.delete(record.key);
       }
     }
+    let trimmed = false;
     if (this.pending.size > this.maxPending) {
       const keep = [...this.pending.entries()].slice(-this.maxPending);
       this.pending = new Map(keep);
+      trimmed = true;
     }
-    if (this.recovery.truncatedTail || this.recovery.malformedLines) this._compact();
+    if (trimmed || this.recovery.truncatedTail || this.recovery.malformedLines) this._compact();
   }
 
   _compact() {
