@@ -350,7 +350,7 @@ async function revealGameIntegrationToken(){
  if(!state.vaultUnlocked){message('liveEventMessage','Unlock the encrypted workspace first.','warning');return;}
  $('gameIntegrationTokenButton').disabled=true;
  try{
-  const data=await api('/api/integrations/game/token');
+  const data=await api('/api/integrations/game/token',{method:'POST',body:'{}'});
   $('gameIntegrationToken').value=String(data.token||'');
   $('gameIntegrationToken').type='text';
   message('liveEventMessage','Temporary local game token revealed. Copy it only into a trusted local integration. It is revoked when you lock or close this Creator.','success');
