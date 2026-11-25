@@ -90,44 +90,20 @@ This control path is local production only. It does not start a public livestrea
 
 Accepted events and acknowledgements are encrypted with AES-256-GCM in a bounded, fsynced JSONL recovery journal. The encryption subkey is derived from the unlocked workspace key and is never written to disk. Startup replays only unacknowledged events without writing duplicate records; legacy plaintext journal records are migrated on first successful unlock. Atomic compaction retains pending events and recent deduplication IDs. If the journal reaches its configured size limit or cannot be verified, new event intake stops rather than silently dropping or overwriting recovery data.
 
-The portable host now exposes a bounded, loopback-only event intake for future authorized platform and game adapters:
+The portable host exposes a bounded, loopback-only event intake and encrypted recovery journal for local events and future authorized adapters:
 
-- `GET /api/live/events/status` reports queue depth, capacity and deduplication state.
+- `GET /api/live/events/status` reports queue depth, capacity, deduplication state and journal health.
 - `POST /api/live/events/ingest` accepts a protocol-version-1 event in a JSON `event` field.
-- `POST /api/live/events/consume` returns a bounded batch (1–50 events) for the local operator/host runtime.
+- `POST /api/live/events/consume` claims a bounded batch (1–50 events) under an expiring delivery lease.
+- `POST /api/live/events/ack` acknowledges exact provider-scoped event keys only after the local UI has rendered the batch successfully.
 
-Browser intake accepts operator-entered `manual` events only; provider-labelled events must arrive through the local companion and an explicitly authorized provider adapter.
+Browser intake accepts operator-entered `manual` events only; provider-labelled events must arrive through the authenticated local companion and an explicitly authorized provider adapter. The runtime validates provider, event type, event ID and timestamp; removes control characters; bounds viewer text and tags; strips credential-like tag names; deduplicates provider event IDs; applies a per-provider rate limit; and returns backpressure when the queue is full.
 
-### Connect a local game or app event source
+Accepted events are encrypted with AES-256-GCM using a key derived from the unlocked workspace key. Viewer names and chat text are never written as plaintext. The encryption key is derived in memory, wiped when the workspace locks, and never stored beside the journal. Unlock the encrypted workspace to recover events after a restart; an incorrect passphrase cannot rewrite or destroy the existing journal.
 
-The Creator now exposes a narrow, authenticated local event endpoint for trusted desktop automation tools that can send HTTP requests. This is a generic adapter seam; it does not claim to include a native plugin for every game.
+Delivery claims use short-lived leases. The UI acknowledges a batch only after rendering it; if the application closes before acknowledgement, events remain pending and become available again after restart or lease expiry. Acknowledgements are idempotent and provider-scoped. The journal uses bounded storage, atomic compaction, fsync, legacy plaintext migration and fail-closed recovery when a complete record cannot be authenticated. If storage fails, new intake pauses and returns an explicit storage error rather than pretending an event was saved.
 
-1. Unlock the encrypted workspace.
-2. In **Audience & game events**, reveal the temporary local integration token. Copy it into the trusted local automation tool's secret/credential field.
-3. Configure that tool to send an HTTP POST to `http://127.0.0.1:3219/api/integrations/game/event` with an `Authorization: Bearer <token>` header and JSON content type.
-4. Send this event shape, replacing the example values and using a unique `eventId` for every event:
-
-```json
-{
-  "event": {
-    "protocolVersion": 1,
-    "eventId": "game-round-0001",
-    "occurredAt": "2026-11-25T12:00:00.000Z",
-    "gameName": "Your game",
-    "actorName": "Game event",
-    "text": "Round one has started"
-  }
-}
-```
-
-The local host accepts only bounded `game.event` records, validates the token with a constant-time comparison, writes accepted events to the encrypted USB journal before acknowledging them, and forwards them to the online relay only when the paired bridge is connected. The token is generated in memory and revoked when the workspace is locked or the process exits. The endpoint listens only on loopback; it is not a public webhook.
-
-This lets a trusted local app or automation tool report an event without giving Magnanimous permission to control the game. It does not capture the game screen, read arbitrary game memory, bypass anti-cheat, automate gameplay or connect a named automation product until that product's own adapter is separately tested. TikTok, Facebook, YouTube, Twitch and Zoom are not authorized by the initial bridge pair. The runtime validates provider, event type, event ID and timestamp; removes control characters; bounds viewer text and tags; strips credential-like tag names; deduplicates provider event IDs; applies a per-provider rate limit; and returns backpressure when the queue is full. It does not silently discard already accepted events.
-
-Queue and deduplication state are transient in memory and are cleared when the host exits. They are not a substitute for durable project storage. The endpoints are a local event-processing foundation only: no TikTok, Facebook, YouTube, Twitch or game adapter is connected by this change. Public broadcasting, account control, moderation and payments are not exposed.
-
-The portable UI includes an operator-controlled event review panel to pull and inspect a bounded batch. Browser intake accepts manual events only; it cannot impersonate a TikTok, Facebook, YouTube, Twitch or game adapter. The portable runtime QA suite copies this module into an isolated temporary host and exercises event ingestion, duplicate rejection, spoofed-provider rejection and bounded consumption. Unit tests cover validation, sanitization, rate limits, queue backpressure and cleanup.
-
+The endpoints are a local event-processing foundation only: no TikTok, Facebook, YouTube, Twitch or game platform adapter is connected by this change. Public broadcasting, account control, moderation and payments are not exposed.
 ## Broadcast and Zoom boundaries
 
 Offline mode can prepare the show, assets, script, overlays and avatar plan. It cannot transmit to TikTok, Facebook, YouTube, Twitch or Zoom without a network connection. The online LIVE Studio uses the provider-neutral event bridge and separate authorized adapters.
