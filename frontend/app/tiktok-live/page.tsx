@@ -510,7 +510,7 @@ export default function TikTokLiveHost() {
             <article className="techCard recommended">
               <span className="techTag">RECOMMENDED NOW • NO NEW PROVIDER FEE</span>
               <h3>Magnanimous Native Host</h3>
-              <p>Already connected to the Magnanimous chat brain, platform knowledge, browser speech, and your local OBS/TikTok LIVE Studio workflow.</p>
+              <p>Connected to the Magnanimous chat brain, platform knowledge, and browser speech. Add this page to OBS or TikTok LIVE Studio manually as a browser/window source; scene control and broadcast launch are not connected here.</p>
               <ul><li>Best fit for longer sessions on your existing computer.</li><li>Does not add a per-minute voice or avatar bill.</li><li>Viewer comments stay operator-controlled until TikTok grants an official supported route.</li></ul>
               <b className="techStatus">AVAILABLE IN THIS CONTROL ROOM</b>
             </article>
