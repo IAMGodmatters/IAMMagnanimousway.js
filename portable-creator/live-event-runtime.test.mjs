@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { LiveEventRuntime } from '../live-event-runtime.mjs';
+const event=(eventId,extra={})=>({protocolVersion:1,eventId,provider:'manual',type:'chat.message',occurredAt:new Date(1_700_000_000_000).toISOString(),text:'hello',...extra});
+test('accepts a valid event and returns normalized content',()=>{const q=new LiveEventRuntime({now:()=>1_700_000_000_000});const r=q.ingest(event('evt-1',{actorName:'Viewer'}));assert.equal(r.status,'accepted');assert.equal(q.consume()[0].actorName,'Viewer');});
+test('deduplicates repeated provider event IDs',()=>{const q=new LiveEventRuntime({now:()=>1_700_000_000_000});assert.equal(q.ingest(event('evt-1')).status,'accepted');assert.equal(q.ingest(event('evt-1')).status,'duplicate');});
+test('rejects malformed events and stale timestamps',()=>{const q=new LiveEventRuntime({now:()=>1_800_000_000_000});assert.equal(q.ingest(event('bad space')).status,'invalid');assert.equal(q.ingest(event('old')).status,'invalid');});
+test('strips sensitive tags and bounds viewer text',()=>{const q=new LiveEventRuntime({now:()=>1_700_000_000_000});q.ingest(event('evt-1',{text:'x'.repeat(700),tags:{password:'no',topic:'safe'}}));const e=q.consume()[0];assert.equal(e.text.length,500);assert.deepEqual(e.tags,{topic:'safe'});});
+test('applies per-provider rate limits',()=>{const q=new LiveEventRuntime({now:()=>1_700_000_000_000,rateLimitPerMinute:1});assert.equal(q.ingest(event('evt-1')).status,'accepted');assert.equal(q.ingest(event('evt-2')).status,'rate_limited');});
+test('applies queue backpressure without dropping accepted events',()=>{const q=new LiveEventRuntime({now:()=>1_700_000_000_000,maxQueue:1});assert.equal(q.ingest(event('evt-1')).status,'accepted');assert.equal(q.ingest(event('evt-2')).status,'queue_full');assert.equal(q.consume()[0].eventId,'evt-1');});
+test('consumes only the requested bounded batch',()=>{const q=new LiveEventRuntime({now:()=>1_700_000_000_000});for(let i=0;i<12;i++)q.ingest(event('evt-'+i));assert.equal(q.consume(4).length,4);assert.equal(q.status().queued,8);});
+test('clear releases transient event state',()=>{const q=new LiveEventRuntime({now:()=>1_700_000_000_000});q.ingest(event('evt-1'));q.clear();assert.deepEqual(q.status().queued,0);assert.equal(q.status().deduplicationEntries,0);});
