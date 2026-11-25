@@ -171,6 +171,26 @@ test('authenticated companion cannot spoof a platform event without adapter auth
 
 
 
+
+test('owner revoke endpoint is same-origin, tenant-scoped and invalidates the selected pair',async()=>{
+ let forwarded;
+ const env={
+  LIVE_BRIDGE_PAIR_LIMITER:{limit:async()=>({success:true})},
+  LIVE_BRIDGE_ROOMS:{
+   idFromName:id=>id,
+   get:id=>({fetch:async request=>{forwarded={id,body:await request.json()};return Response.json({ok:true,revoked:true});}})
+  }
+ };
+ const headers={Origin:'https://iammagnanimousway.com','Sec-Fetch-Site':'same-origin','content-type':'application/json'};
+ const response=await handleLiveBridgeRelay(new Request('https://iammagnanimousway.com/api/live-bridge/revoke',{method:'POST',headers,body:JSON.stringify({pairId:'12345678-1234-1234-1234-123456789abc'})}),env,{id:'user-1',tenant_id:'tenant-1'});
+ assert.equal(response.status,200);
+ assert.equal((await response.json()).revoked,true);
+ assert.equal(forwarded.id,'12345678-1234-1234-1234-123456789abc');
+ assert.deepEqual(forwarded.body,{tenantId:'tenant-1',userId:'user-1'});
+ const denied=await handleLiveBridgeRelay(new Request('https://iammagnanimousway.com/api/live-bridge/revoke',{method:'POST',headers:{...headers,Origin:'https://attacker.example'},body:JSON.stringify({pairId:'12345678-1234-1234-1234-123456789abc'})}),env,{id:'user-1',tenant_id:'tenant-1'});
+ assert.equal(denied.status,403);
+});
+
 test('revokes only the owner tenant pair and closes both sockets',async()=>{
  const pair={pairId:'room-1',tenantId:'tenant-1',userId:'user-1'};
  const values=new Map([['pair',pair]]);
