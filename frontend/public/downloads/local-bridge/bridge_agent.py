@@ -2612,7 +2612,17 @@ def execute(config, task):
 
 def pair(args):
     roots = [str(Path(p).expanduser().resolve()) for p in (args.root or [])]
+    previous = {}
+    if CONFIG_PATH.exists():
+        try:
+            previous = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            previous = {}
     config = {"server": args.server.rstrip("/"), "roots": roots, "netwalk_toolkit": args.netwalk_toolkit or ""}
+    # Keep device-local provider secrets and preferences when the owner re-pairs this device.
+    for key in ("obs_bridge",):
+        if isinstance(previous.get(key), dict):
+            config[key] = previous[key]
     payload = {
         "code": args.code,
         "name": args.name or socket.gethostname(),
