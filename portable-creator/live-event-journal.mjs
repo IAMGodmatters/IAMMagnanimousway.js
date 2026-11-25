@@ -77,6 +77,19 @@ export class LiveEventJournal{
   try{fs.writeSync(fd,payload,null,'utf8');fs.fsyncSync(fd);}finally{fs.closeSync(fd);}
   try{fs.renameSync(temporary,this.filePath);}catch(error){try{fs.unlinkSync(temporary);}catch{}throw error;}
  }
+ sizeBytes(){return fs.existsSync(this.filePath)?fs.statSync(this.filePath).size:0;}
+ needsCompaction(){return this.sizeBytes()>Math.floor(this.maxBytes*0.5);}
+ compact(events){
+  if(!Array.isArray(events))throw new TypeError('Compaction requires the remaining live-event queue.');
+  const records=events.map(event=>({kind:'event',event}));
+  const lines=records.map(record=>this.encode(record));
+  const payload=lines.join('\n')+(lines.length?'\n':'');
+  if(Buffer.byteLength(payload,'utf8')>this.maxBytes)throw new Error('The remaining event queue is larger than the recovery journal limit.');
+  const temporary=this.filePath+'.compact-'+crypto.randomBytes(6).toString('hex');
+  const fd=fs.openSync(temporary,'wx');
+  try{fs.writeSync(fd,payload,null,'utf8');fs.fsyncSync(fd);}finally{fs.closeSync(fd);}
+  try{fs.renameSync(temporary,this.filePath);}catch(error){try{fs.unlinkSync(temporary);}catch{}throw error;}
+ }
  append(records){
   if(!Array.isArray(records)||records.length===0)return;
   const lines=records.map(record=>this.encode(record));
