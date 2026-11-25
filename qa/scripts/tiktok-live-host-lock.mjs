@@ -11,6 +11,7 @@ const bridgeUi = fs.readFileSync(new URL('frontend/app/tiktok-live/bridge/page.t
 
 const checks = [
   ['host uses Magnanimous native chat transport', host.includes('postMagnanimousChat') && host.includes('${api}/api/chat')],
+  ['live host does not accept legacy Odin admin tokens', host.includes("localStorage.getItem('iam_account_token')") && !host.includes('odin_admin_token')],
   ['host retains Magnanimous knowledge context', host.includes('use_knowledge: true')],
   ['host does not grant autonomous tool execution from viewer comments', host.includes('use_tools: false')],
   ['host uses native browser speech', host.includes('speakTextNaturally') && host.includes('configurePersonaVoice')],
