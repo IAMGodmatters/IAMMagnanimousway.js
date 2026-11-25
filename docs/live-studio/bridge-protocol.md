@@ -41,7 +41,8 @@ The first online transport layer is implemented in `worker/src/live-bridge-relay
 
 - An authenticated Magnanimous account creates a bridge pair through `POST /api/live-bridge/pair`.
 - The server issues separate 256-bit browser and companion tokens. Only SHA-256 token hashes are stored in the room; the raw tokens are returned once and must remain in memory or be copied into the local companion's protected pairing screen.
-- The pairing endpoint is HTTPS/WSS only and is limited to five pair creations per minute per tenant/user using Cloudflare's native rate-limit binding. Tokens travel in the first WebSocket message body, never in a URL, query string, cookie or log.
+- The pairing endpoint is HTTPS/WSS only, requires the canonical same-origin browser Origin and rejects cross-site Fetch Metadata. It is limited to five pair creations per minute per tenant/user using Cloudflare's native rate-limit binding. Tokens travel in the first WebSocket message body, never in a URL, query string, cookie or log.
+- The browser token is accepted only from the canonical web Origin; the companion token is accepted only from a non-browser client with no Origin header. The two roles cannot be swapped between browser and local companion.
 - Each room binds one browser and one companion to the creating tenant/user. It validates provider/event schemas, rejects unsupported commands, bounds messages and deduplicates recent event IDs per companion connection.
 - Pairing codes expire after ten minutes; an authenticated bridge session expires after twelve hours. Reconnection is permitted only during that authenticated session.
 - The relay forwards only normalized events from the companion to the browser and the allowlisted scene/overlay/audio/host commands in the opposite direction. It does not expose broadcast start/stop, account management, moderation, shell access or arbitrary code execution.
