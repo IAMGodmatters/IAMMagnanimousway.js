@@ -24,7 +24,7 @@ fs.copyFileSync(path.join(SOURCE,'live-event-runtime.mjs'),path.join(target,'liv
 fs.copyFileSync(path.join(SOURCE,'live-event-journal.mjs'),path.join(target,'live-event-journal.mjs'));
 fs.copyFileSync(path.join(SOURCE,'live-show-director.mjs'),path.join(target,'live-show-director.mjs'));
 fs.copyFileSync(path.join(SOURCE,'game-event-integration.mjs'),path.join(target,'game-event-integration.mjs'));
-for(const file of ['index.html','app.js','styles.css'])fs.copyFileSync(path.join(SOURCE,'app',file),path.join(target,'app',file));
+for(const file of ['index.html','app.js','styles.css','avatar.html','avatar.js','avatar.css'])fs.copyFileSync(path.join(SOURCE,'app',file),path.join(target,'app',file));
 const appSyntax=spawnSync(process.execPath,['--check',path.join(target,'app','app.js')],{encoding:'utf8'});
 if(appSyntax.status!==0){console.error(appSyntax.stderr||'');throw new Error('Portable creator browser script syntax check failed.');}
 
@@ -49,13 +49,37 @@ async function waitFor(url,child){
 async function post(url,origin,body){
  return fetch(url,{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify(body)});
 }
+function makeSseReader(reader){
+ const decoder=new TextDecoder();let pending='';
+ return{
+  async next(){
+   while(!pending.includes('\\n\\n')){
+    const {value,done}=await reader.read();
+    if(done)throw new Error('Avatar event stream closed unexpectedly.');
+    pending+=decoder.decode(value,{stream:true});
+   }
+   const index=pending.indexOf('\\n\\n'),frame=pending.slice(0,index);
+   pending=pending.slice(index+2);return frame;
+  },
+  cancel(){return reader.cancel();}
+ };
+}
 const port=await freePort();
 const origin='http://127.0.0.1:'+port;
 const child=spawn(process.execPath,[path.join(target,'host.mjs'),'--root',target,'--port',String(port)],{cwd:target,env:{...process.env,MAGNANIMOUS_LOCAL_MODEL_ENABLED:'false'},stdio:['ignore','pipe','pipe']});
 let stderr='';
+let avatarReader=null;
 child.stderr.on('data',chunk=>{stderr+=chunk.toString();});
 try{
  await waitFor(origin,child);
+ const avatarPage=await fetch(origin+'/avatar.html');
+ assert.equal(avatarPage.status,200,'OBS avatar page should load from the local host.');
+ assert.ok((await avatarPage.text()).includes("new EventSource('/api/avatar/events')"),'OBS avatar must use the local event stream, not browser-profile messaging.');
+ const avatarStream=await fetch(origin+'/api/avatar/events');
+ assert.equal(avatarStream.status,200,'Local avatar event stream should connect.');
+ assert.match(avatarStream.headers.get('content-type')||'',/text\\/event-stream/);
+ avatarReader=makeSseReader(avatarStream.body.getReader());
+ assert.deepEqual(JSON.parse((await avatarReader.next()).slice(6)),{type:'locked'},'Avatar stream must start in the locked state.');
  const home=await fetch(origin+'/');
  assert.equal(home.status,200,'Local creator homepage should load.');
  assert.match(home.headers.get('content-security-policy')||'',/default-src 'self'/,'Homepage must enforce a local-only CSP.');
@@ -71,6 +95,8 @@ try{
  const health=await (await fetch(origin+'/api/health')).json();
  assert.equal(health.mode,'offline-portable');
  assert.equal(health.model.ready,false,'Local generation must remain disabled when no runtime is installed.');
+ assert.equal((await post(origin+'/api/avatar/state',origin,{type:'line',text:'blocked'})).status,423,'Avatar speech state must remain locked before workspace unlock.');
+ assert.equal((await post(origin+'/api/avatar/state','https://attacker.example',{type:'line',text:'blocked'})).status,403,'Cross-origin avatar state must be rejected.');
  const bridgeStatus=await (await fetch(origin+'/api/bridge/status')).json();
  assert.equal(bridgeStatus.status,'disconnected','Online bridge must start disconnected.');
  assert.equal((await post(origin+'/api/bridge/connect',origin,{endpoint:'https://attacker.example/socket',token:'A'.repeat(43)})).status,423,'A locked workspace must reject all online bridge attempts before validation or connection.');
@@ -96,6 +122,14 @@ try{
  assert.equal(created.status,200,'A new encrypted workspace should be created.');
  const createdData=await created.json();
  assert.equal(createdData.created,true);
+ assert.deepEqual(JSON.parse((await avatarReader.next()).slice(6)),{type:'ready'},'Unlocking the workspace must activate the local avatar stream.');
+ const avatarLine=await post(origin+'/api/avatar/state',origin,{type:'line',text:'Hello'+String.fromCharCode(0)+' avatar'});
+ assert.equal(avatarLine.status,200,'Unlocked host should publish a reviewed avatar line.');
+ assert.deepEqual(JSON.parse((await avatarReader.next()).slice(6)),{type:'line',text:'Hello avatar'},'Avatar stream must sanitize host text before broadcasting.');
+ assert.equal((await post(origin+'/api/avatar/state',origin,{type:'speaking'})).status,200);
+ assert.deepEqual(JSON.parse((await avatarReader.next()).slice(6)),{type:'speaking'});
+ assert.equal((await post(origin+'/api/avatar/state',origin,{type:'stopped'})).status,200);
+ assert.deepEqual(JSON.parse((await avatarReader.next()).slice(6)),{type:'stopped'});
  const tokenReveal=await post(origin+'/api/integrations/game/token',origin,{});
  assert.equal(tokenReveal.status,200,'Same-origin workspace owner should be able to reveal a temporary local game token.');
  const gameTokenData=await tokenReveal.json();
@@ -165,6 +199,7 @@ try{
  assert.equal(projects.projects[0].title,'Portable rehearsal');
  assert.equal(projects.projects[0].content,'Private project body that must be encrypted at rest.');
  assert.equal((await post(origin+'/api/vault/lock',origin,{})).status,200);
+ assert.deepEqual(JSON.parse((await avatarReader.next()).slice(6)),{type:'locked'},'Locking the workspace must stop and clear the OBS avatar stream.');
  assert.equal((await localGamePost(gameTokenData.token,gameEvent)).status,423,'Workspace lock must revoke game integration access.');
  assert.equal((await fetch(origin+'/api/projects')).status,423,'Locked vault must not expose saved projects.');
  const wrong=await post(origin+'/api/vault/unlock',origin,{passphrase:'a-different-long-passphrase'});
@@ -174,6 +209,7 @@ try{
  assert.equal((await fetch(origin+'/api/projects')).status,423,'Wrong passphrase must not restore access.');
  const unlocked=await post(origin+'/api/vault/unlock',origin,{passphrase});
  assert.equal(unlocked.status,200,'Correct passphrase should unlock saved workspace.');
+ assert.deepEqual(JSON.parse((await avatarReader.next()).slice(6)),{type:'ready'},'A later unlock should restore the avatar stream.');
  assert.equal((await localGamePost(gameTokenData.token,gameEvent)).status,401,'Old local game token must remain revoked after a later unlock.');
  const nextGameToken=await (await post(origin+'/api/integrations/game/token',origin,{})).json();
  assert.notEqual(nextGameToken.token,gameTokenData.token,'A fresh workspace unlock must issue a new game integration token.');
@@ -202,6 +238,7 @@ try{
  if(stderr.trim())console.error(stderr.slice(-4000));
  process.exitCode=1;
 }finally{
+ if(avatarReader)await avatarReader.cancel().catch(()=>{});
  child.kill('SIGTERM');
  await Promise.race([new Promise(resolve=>child.once('exit',resolve)),wait(1500)]);
  fs.rmSync(temp,{recursive:true,force:true});
