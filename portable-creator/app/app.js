@@ -1,5 +1,5 @@
 const $=id=>document.getElementById(id);
-const state={modelReady:false,vaultUnlocked:false,projects:[],obsConnected:false,obsRecording:false};
+const state={modelReady:false,vaultUnlocked:false,projects:[],obsConnected:false,obsRecording:false,bridgeConnected:false,bridgeStatus:'disconnected',pendingBridgeCommands:[]};
 async function api(path,options={}){
  const response=await fetch(path,{...options,cache:'no-store',headers:{'content-type':'application/json',...(options.headers||{})}});
  const data=await response.json().catch(()=>({detail:'The local service returned an invalid response.'}));
@@ -23,6 +23,8 @@ function updateControls(){
  $('obsStopRecordButton').disabled=!state.obsConnected||!state.obsRecording;
  $('livePullButton').disabled=false;
  $('liveSendButton').disabled=!$('liveTestText').value.trim();
+ $('bridgeConnectButton').disabled=state.bridgeConnected;
+ $('bridgeDisconnectButton').disabled=!state.bridgeConnected;
 }
 function updateGenerationStatus(){
  $('modelStatus').textContent=state.modelReady?'Local AI ready: '+state.modelName:'Offline draft builder ready • Local AI not installed';
@@ -163,6 +165,55 @@ async function refreshLiveQueue(){
  try{const data=await api('/api/live/events/status');$('liveQueueStatus').textContent=data.queued+' queued · '+data.capacity+' capacity';$('liveQueueStatus').className='status '+(data.queued?'ready':'');}
  catch(error){$('liveQueueStatus').textContent='Local event queue unavailable';}
 }
+function renderBridgeCommands(commands){
+ const list=$('bridgeCommandList');list.replaceChildren();
+ $('bridgeCommandCount').textContent=String(commands.length);
+ if(!commands.length){const empty=document.createElement('p');empty.className='muted';empty.textContent='No pending remote commands.';list.append(empty);return;}
+ for(const command of commands){
+  const item=document.createElement('article');item.className='live-event';
+  const title=document.createElement('strong');title.textContent='REMOTE REQUEST · '+command.action;
+  const detail=document.createElement('p');detail.textContent=command.sceneName?'Switch OBS scene to: '+command.sceneName:command.overlayId?'Overlay: '+command.overlayId:command.cueId?'Audio cue: '+command.cueId:command.text||'No command details';
+  const received=document.createElement('small');received.textContent='Received '+new Date(command.receivedAt).toLocaleTimeString()+' · Local approval required';
+  const actions=document.createElement('div');actions.className='actions';
+  const approve=document.createElement('button');approve.className='secondary';approve.textContent='Approve';approve.addEventListener('click',()=>reviewBridgeCommand(command.commandId,true));
+  const reject=document.createElement('button');reject.className='quiet';reject.textContent='Reject';reject.addEventListener('click',()=>reviewBridgeCommand(command.commandId,false));
+  actions.append(approve,reject);item.append(title,detail,received,actions);list.append(item);
+ }
+}
+async function refreshBridgeStatus(){
+ try{
+  const data=await api('/api/bridge/status');
+  state.bridgeConnected=Boolean(data.connected);state.bridgeStatus=String(data.status||'disconnected');state.pendingBridgeCommands=data.pendingCommands||[];
+  $('bridgeStatus').textContent=state.bridgeConnected?'Online bridge connected':state.bridgeStatus==='connecting'?'Waiting for online companion':'Online bridge '+state.bridgeStatus;
+  $('bridgeStatus').className='status '+(state.bridgeConnected?'ready':'warning');
+  if(data.error)message('bridgeMessage',data.error,'warning');
+  renderBridgeCommands(state.pendingBridgeCommands);updateControls();
+ }catch(error){$('bridgeStatus').textContent='Online bridge status unavailable';}
+}
+async function connectBridge(){
+ const endpoint=$('bridgeEndpoint').value.trim(),token=$('bridgeToken').value.trim();
+ if(!endpoint||!token){message('bridgeMessage','Paste the secure address and temporary companion token from the online bridge page.','error');return;}
+ $('bridgeConnectButton').disabled=true;
+ try{
+  const result=await api('/api/bridge/connect',{method:'POST',body:JSON.stringify({endpoint,token})});
+  $('bridgeToken').value='';
+  message('bridgeMessage','Connection requested. Keep this computer online until the bridge reports connected.','success');
+  await refreshBridgeStatus();
+ }catch(error){$('bridgeToken').value='';message('bridgeMessage',error.message,'error');}
+ finally{updateControls();}
+}
+async function disconnectBridge(){
+ try{await api('/api/bridge/disconnect',{method:'POST',body:'{}'});state.bridgeConnected=false;state.pendingBridgeCommands=[];renderBridgeCommands([]);message('bridgeMessage','Online bridge disconnected.','success');}
+ catch(error){message('bridgeMessage',error.message,'error');}
+ updateControls();
+}
+async function reviewBridgeCommand(commandId,approved){
+ try{
+  const result=await api('/api/bridge/command/review',{method:'POST',body:JSON.stringify({commandId,approved})});
+  message('bridgeMessage',approved?'Approved command completed locally'+(result.sceneName?' · '+result.sceneName:'')+'.':'Remote command rejected.','success');
+  await refreshBridgeStatus();await refreshObsStatus();
+ }catch(error){message('bridgeMessage',error.message,'error');}
+}
 async function sendLocalEvent(){
  const text=$('liveTestText').value.trim(),type=$('liveTestType').value;
  if(!text){message('liveEventMessage','Enter a short test event first.','error');return;}
@@ -189,6 +240,7 @@ async function refresh(){
   if(state.vaultUnlocked)await loadProjects();
   updateControls();
   await refreshObsStatus();
+  await refreshBridgeStatus();
  }catch(error){message('creatorMessage',error.message,'error');}
 }
 async function unlock(){
@@ -269,6 +321,8 @@ $('obsSwitchButton').addEventListener('click',switchObsScene);
 $('obsStartRecordButton').addEventListener('click',()=>setObsRecording(true));
 $('obsStopRecordButton').addEventListener('click',()=>setObsRecording(false));
 $('livePullButton').addEventListener('click',pullLiveEvents);
+$('bridgeConnectButton').addEventListener('click',connectBridge);
+$('bridgeDisconnectButton').addEventListener('click',disconnectBridge);
 $('liveSendButton').addEventListener('click',sendLocalEvent);
 $('liveTestText').addEventListener('input',updateControls);
 $('obsSceneSelect').addEventListener('change',updateControls);
@@ -281,3 +335,4 @@ $('output').addEventListener('input',updateControls);
 $('prompt').addEventListener('input',updateControls);
 refresh();
 refreshLiveQueue();
+setInterval(refreshBridgeStatus,5000);
