@@ -8,6 +8,7 @@ const MAX_MONTHLY_SESSIONS=20;
 const MAX_PENDING_AGE_SECONDS=180;
 const SIMLI_SESSION_URL='https://api.simli.ai/compose/token';
 const SIMLI_ICE_URL='https://api.simli.ai/compose/ice';
+const SIMLI_ICE_URL='https://api.simli.ai/compose/ice';
 
 function monthKey(date=new Date()){return date.toISOString().slice(0,7)}
 function now(){return Math.floor(Date.now()/1000)}
@@ -113,15 +114,14 @@ export async function handleTikTokLiveAvatar(request,env){
 
   let session;
   try{
-   // The official simli-client browser SDK uses WebRTC P2P. Simli's API
-   // migration guide maps the legacy session and ICE endpoints to API v2.
-   // Both requests remain server-side; only short-lived session/ICE data
-   // reaches the browser, never the provider API key.
+   // The installed browser SDK is SimliClient's WebRTC P2P path. Its current
+   // backend-auth contract requires a short-lived Compose token plus ICE config.
+   // The account API key never leaves this Worker.
    const apiKey=String(env.SIMLI_API_KEY);
    const ice=await providerRequest(SIMLI_ICE_URL,apiKey,{method:'GET'});
-   if(!ice.ok||!Array.isArray(ice.data)||ice.data.length===0){
+   if(!ice.ok||!Array.isArray(ice.data)||!ice.data.length){
     await env.DB.prepare("UPDATE tiktok_live_avatar_sessions SET state='failed',updated_at=? WHERE id=?").bind(now(),reservationId).run();
-    return json({code:'SIMLI_ICE_UNAVAILABLE',detail:'Simli did not return valid ICE server credentials. No avatar session was created.'},502);
+    return json({code:'SIMLI_ICE_UNAVAILABLE',detail:'Simli did not return temporary ICE server credentials. No avatar session was created.'},502);
    }
    session=await providerRequest(SIMLI_SESSION_URL,apiKey,{body:{
     faceId:String(env.SIMLI_FACE_ID),
@@ -130,6 +130,7 @@ export async function handleTikTokLiveAvatar(request,env){
     handleSilence:false,
     maxSessionLength:MAX_SESSION_SECONDS,
     maxIdleTime:MAX_IDLE_SECONDS,
+    startFrame:0,
     audioInputFormat:'pcm16'
    }});
    if(!session.ok||!session.data?.session_token){
@@ -141,12 +142,14 @@ export async function handleTikTokLiveAvatar(request,env){
    return json({
     provider:'simli',
     transport_mode:'webrtc-p2p',
-    ice_config:ice.data,
     session_token:session.data.session_token,
+    ice_config:ice.data,
     warnings:Array.isArray(session.data.warnings)?session.data.warnings:[],
     max_session_length_seconds:MAX_SESSION_SECONDS,
     max_idle_time_seconds:MAX_IDLE_SECONDS,
     reservation_id:reservationId,
+    audio_input_format:'pcm16',
+    audio_sample_rate_hz:16000,
     disclosure:'AI-generated avatar. Magnanimous AI controls the response; Simli renders the approved voice and face.'
    });
   }catch(error){
