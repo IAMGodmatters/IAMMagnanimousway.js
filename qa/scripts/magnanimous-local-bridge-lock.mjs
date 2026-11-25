@@ -37,6 +37,36 @@ assert.equal(LOCAL_BRIDGE_ACTIONS.apply_patch.confirmation,true);
 assert.equal(LOCAL_BRIDGE_ACTIONS.git_commit.confirmation,true);
 assert.equal(LOCAL_BRIDGE_ACTIONS.git_create_branch.confirmation,true);
 assert.equal(LOCAL_BRIDGE_ACTIONS.health.auto,true);
+assert.equal(LOCAL_BRIDGE_ACTIONS.pocket_tts_status.auto,true);
+assert.equal(LOCAL_BRIDGE_ACTIONS.pocket_tts_status.confirmation,false);
+assert.equal(LOCAL_BRIDGE_ACTIONS.pocket_tts_generate.auto,false);
+assert.equal(LOCAL_BRIDGE_ACTIONS.pocket_tts_generate.confirmation,true);
+assert.equal(LOCAL_BRIDGE_ACTIONS.pocket_tts_generate.family,'local-audio');
+for(const needle of [
+ 'def _pocket_tts_root():',
+ 'Path("D:/MagnanimousData/PocketTTS")',
+ 'if str(root.drive).lower() == "c:":',
+ 'PF_AVX2_INSTRUCTIONS_AVAILABLE',
+ 'check(40)',
+ 'def action_pocket_tts_status(config, payload):',
+ 'def action_pocket_tts_generate(config, payload):',
+ 'MAGNANIMOUS_POCKET_TTS_HOME',
+ 'MAGNANIMOUS_POCKET_TTS_BIN',
+ '"HF_HOME": str(cache_dir)',
+ '"HF_HUB_CACHE": str(cache_dir / "hub")',
+ '"XDG_CACHE_HOME": str(cache_dir)',
+ 'shell=False',
+ 'timeout=120',
+ 'duration > 90',
+ 'Filipino and Cebuano are not currently supported',
+ 'file_stays_local',
+ 'cache_on_data_drive'
+]) assert(agent.includes(needle),'Pocket TTS local safety contract missing: '+needle);
+assert(agent.includes('"pocket_tts_status": action_pocket_tts_status'));
+assert(agent.includes('"pocket_tts_generate": action_pocket_tts_generate'));
+assert(runtime.includes("pocket_tts_status:{risk:'low',auto:true,confirmation:false,family:'local-audio'}"));
+assert(runtime.includes("pocket_tts_generate:{risk:'medium',auto:false,confirmation:true,family:'local-audio'}"));
+
 assert.equal(LOCAL_BRIDGE_ACTIONS.system_info.auto,true);
 assert(!Object.hasOwn(LOCAL_BRIDGE_ACTIONS,'shell'));
 assert(!Object.hasOwn(LOCAL_BRIDGE_ACTIONS,'process_run'));
