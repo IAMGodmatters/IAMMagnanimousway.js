@@ -1,6 +1,6 @@
 # Magnanimous Portable Creator
 
-A Windows-first, offline-first creator workspace designed to live on an external USB SSD. Magnanimous AI remains the product identity; local executables and model runtimes are replaceable execution tools.
+A Windows-first, offline-first creator workspace with an optional secure online companion connection, designed to live on an external USB SSD. Magnanimous AI remains the product identity; local executables, cloud relays and model runtimes are replaceable execution tools.
 
 ## What this first slice does
 
@@ -8,11 +8,12 @@ A Windows-first, offline-first creator workspace designed to live on an external
 - Uses a local GGUF model through a loopback-only `llama-server` when a model and runtime are installed.
 - Creates scripts, lessons, livestream rundowns, storyboards and creative outlines without sending prompts to a cloud API.
 - Stores saved projects in an AES-256-GCM encrypted vault on the removable drive. The passphrase is not stored by the app; the key is held in memory only while the vault is unlocked.
-- Does not download binaries or models, enable telemetry, open a LAN listener, run shell commands from the browser, or connect to external providers.
+- Does not download binaries or models, enable telemetry, open a LAN listener, run shell commands from the browser, or collect social-platform credentials. When online, it can make one outbound WSS connection to the official Magnanimous live-bridge relay; direct provider adapters remain separate and permission-gated.
 - Can optionally start a portable OBS installation. The local creator includes an authenticated OBS WebSocket v5 control adapter for scene listing, scene switching and recording start/stop. OBS must already be installed/running with its WebSocket server enabled; this adapter does not install OBS or drivers.
 - OBS pairing is restricted to `127.0.0.1:4455`. The password is sent only to the local host for the OBS challenge handshake, is not stored in the vault or browser storage, and is not forwarded to any cloud service. Scene switching and recording require explicit operator clicks.
+- The online companion uses a separate temporary pairing token to connect to the Magnanimous WSS relay. The token is held in process memory only. Incoming remote production commands appear in a local approval queue; only a locally approved OBS scene change is currently executable.
 
-This is a working local creator foundation, not yet the finished cross-platform USB broadcast appliance. The first Windows build requires compatible runtime binaries and an optional, separately licensed model to be placed in the documented folders.
+This is a working offline creator foundation with an online relay connection path, not yet the finished cross-platform USB broadcast appliance or a completed social livestream integration. The first Windows build requires compatible runtime binaries and an optional, separately licensed model to be placed in the documented folders.
 
 ## Windows folder layout
 
@@ -52,6 +53,20 @@ Magnanimous-Portable/
 
 To open the optional portable OBS folder, start the launcher with `-LaunchOBS`. The application itself does not install device drivers or elevate privileges.
 
+
+## Secure online companion connection
+
+1. Sign in to the online Magnanimous platform and open **LIVE Event Bridge**.
+2. Choose **Create secure pair**. The online service issues separate browser and companion tokens; the initial pairing window is ten minutes.
+3. Copy the companion token into the local Portable Creator's **Connect to Magnanimous Live Studio** panel, together with the secure WSS address.
+4. The local process connects outbound to `wss://iammagnanimousway.com`. It does not open a LAN port or expose OBS.
+5. Incoming normalized audience/game events are written to the local recovery journal. Remote production commands are placed in a local approval queue. A scene change requires OBS to be connected and a second approval on the local computer.
+6. Disconnect locally or revoke/expire the pairing. Tokens are not written to disk and are cleared when the local process exits.
+
+The relay is a transport, not a social-platform adapter. This connection does not itself authorize TikTok, Facebook, YouTube, Twitch or Zoom, fetch platform chat, start a broadcast or transmit audio/video. Those require separate official account authorization and provider adapters. The local companion currently executes only approved OBS scene changes; overlay, audio-cue and host-speech commands are rejected until their local engines are implemented.
+
+The cloud relay implementation is in draft PR #1017 and is not deployed. The local connection path becomes usable only after that PR passes CI, the Durable Object namespace is provisioned safely, and the production deployment gate is cleared. Do not paste provider passwords, cookies, OAuth tokens or OBS passwords into the pairing fields.
+
 ## Local OBS control
 
 1. Start OBS Studio on the same computer.
@@ -62,6 +77,8 @@ To open the optional portable OBS folder, start the launcher with `-LaunchOBS`. 
 This control path is local production only. It does not start a public livestream, connect a social account, or join Zoom. A real OBS hardware smoke test remains required before describing it as operational on a particular computer.
 
 ## Local live-event runtime
+
+Accepted events and acknowledgements are stored in a bounded, fsynced JSONL recovery journal. Startup replays only unacknowledged events without writing duplicate records. If the journal reaches its configured size limit, new events are rejected rather than silently dropping recovery data; compaction/export remains a required follow-up before long-running production use.
 
 The portable host now exposes a bounded, loopback-only event intake for future authorized platform and game adapters:
 
@@ -89,7 +106,7 @@ OBS Portable Mode keeps OBS configuration beside the application on Windows, but
 
 ## Security and privacy
 
-- Host binds only to IPv4 loopback `127.0.0.1`; it is not available to other devices on Wi-Fi.
+- Host binds only to IPv4 loopback `127.0.0.1`; it is not available to other devices on Wi-Fi. Its only online bridge traffic is an outbound TLS WebSocket to the official Magnanimous relay.
 - Only same-origin browser requests are accepted for state changes.
 - The local model target is fixed to `127.0.0.1:9931`; browser inputs cannot choose a URL or issue shell commands.
 - The encrypted vault uses scrypt key derivation and AES-256-GCM authenticated encryption. It is locked when the local host exits.
