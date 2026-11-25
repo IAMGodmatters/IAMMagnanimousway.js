@@ -41,6 +41,8 @@ export default function TikTokLiveHost() {
   const [takeoverSeconds, setTakeoverSeconds] = useState(0);
   const [queuedComments, setQueuedComments] = useState<Array<{ id: number; text: string }>>([]);
   const takeoverRef = useRef(false);
+  const takeoverDeadlineRef = useRef<number | null>(null);
+  const takeoverGreetingRef = useRef(false);
   const takeoverAbortRef = useRef<AbortController | null>(null);
   const processingQueueId = useRef<number | null>(null);
 
@@ -57,21 +59,24 @@ export default function TikTokLiveHost() {
     if (!text.trim()) return;
     primeNaturalSpeech(true);
     setNotice('');
+    setSpeaking(true);
     const queued = speakTextNaturally(text, {
       configure: utterance => configurePersonaVoice(utterance, 'Magnanimous AI'),
       maxChunkChars: 190,
       interChunkDelayMs: 75,
       onStart: () => { setSpeaking(true); setStatus('HOST SPEAKING'); },
-      onEnd: () => { setSpeaking(false); setStatus(takeoverRef.current ? 'AI TAKEOVER ACTIVE · READY' : 'PREVIEW READY'); },
-      onError: () => { setSpeaking(false); setStatus(takeoverRef.current ? 'AI TAKEOVER ACTIVE · VOICE NEEDS ATTENTION' : 'VOICE NEEDS ATTENTION'); setNotice('The browser could not play the voice. Check the computer volume and browser audio permissions, then tap Speak again.'); },
+      onEnd: () => { takeoverGreetingRef.current = false; setSpeaking(false); setStatus(takeoverRef.current ? 'AI TAKEOVER ACTIVE · READY' : 'PREVIEW READY'); },
+      onError: () => { takeoverGreetingRef.current = false; setSpeaking(false); setStatus(takeoverRef.current ? 'AI TAKEOVER ACTIVE · VOICE NEEDS ATTENTION' : 'VOICE NEEDS ATTENTION'); setNotice('The browser could not play the voice. Check the computer volume and browser audio permissions, then tap Speak again.'); },
     });
     if (!queued) {
+      takeoverGreetingRef.current = false;
       setSpeaking(false);
       setNotice('This browser does not provide speech playback. Try the host on a desktop browser with audio enabled.');
     }
   }
 
   function stop() {
+    takeoverGreetingRef.current = false;
     stopNaturalSpeech();
     setSpeaking(false);
     setStatus('PREVIEW READY');
@@ -85,6 +90,10 @@ export default function TikTokLiveHost() {
   }
 
   async function processComment(comment: string, automatic = false) {
+    if (automatic && takeoverDeadlineRef.current && Date.now() >= takeoverDeadlineRef.current) {
+      stopTakeover('session_expired');
+      return;
+    }
     const cleanComment = comment.trim();
     if (!cleanComment || busy) return;
     primeNaturalSpeech(true);
@@ -149,7 +158,11 @@ export default function TikTokLiveHost() {
     event?.preventDefault();
     const comment = viewerComment.trim();
     if (!comment) return;
-    if (takeoverActive) {
+    if (takeoverRef.current) {
+      if (queuedComments.length >= 25) {
+        setNotice('The local queue is full (25 comments). Let Magnanimous finish a few answers before adding more.');
+        return;
+      }
       const item = { id: Date.now() + Math.floor(Math.random() * 1000), text: comment };
       setQueuedComments(items => [...items, item]);
       setViewerComment('');
@@ -165,8 +178,10 @@ export default function TikTokLiveHost() {
     if (!takeoverConsent || !autoSpeak || takeoverActive) return;
     primeNaturalSpeech(true);
     takeoverRef.current = true;
+    takeoverDeadlineRef.current = Date.now() + takeoverDuration * 60_000;
+    takeoverGreetingRef.current = true;
     setTakeoverActive(true);
-    setTakeoverEndsAt(Date.now() + takeoverDuration * 60_000);
+    setTakeoverEndsAt(takeoverDeadlineRef.current);
     setTakeoverSeconds(takeoverDuration * 60);
     setNotice('AI takeover is active. The host will speak the welcome and automatically process comments you add to the queue. TikTok chat is not being read automatically.');
     setStatus('AI TAKEOVER ACTIVE');
@@ -175,6 +190,8 @@ export default function TikTokLiveHost() {
 
   function stopTakeover(reason = 'operator_stop') {
     takeoverRef.current = false;
+    takeoverDeadlineRef.current = null;
+    takeoverGreetingRef.current = false;
     takeoverAbortRef.current?.abort();
     takeoverAbortRef.current = null;
     processingQueueId.current = null;
@@ -192,7 +209,7 @@ export default function TikTokLiveHost() {
   }
 
   useEffect(() => {
-    if (!takeoverActive || busy || queuedComments.length === 0) return;
+    if (!takeoverActive || busy || speaking || takeoverGreetingRef.current || queuedComments.length === 0) return;
     const next = queuedComments[0];
     if (processingQueueId.current === next.id) return;
     processingQueueId.current = next.id;
@@ -200,12 +217,13 @@ export default function TikTokLiveHost() {
     void processComment(next.text, true).finally(() => {
       if (processingQueueId.current === next.id) processingQueueId.current = null;
     });
-  }, [takeoverActive, busy, queuedComments]);
+  }, [takeoverActive, busy, speaking, queuedComments]);
 
   useEffect(() => {
     if (!takeoverActive || !takeoverEndsAt) return;
     const tick = () => {
       const remaining = Math.max(0, Math.ceil((takeoverEndsAt - Date.now()) / 1000));
+      if (Date.now() >= takeoverEndsAt) { stopTakeover('session_expired'); return; }
       setTakeoverSeconds(remaining);
       if (remaining <= 0) stopTakeover('session_expired');
     };
