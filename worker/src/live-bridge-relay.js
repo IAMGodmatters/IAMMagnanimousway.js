@@ -63,7 +63,7 @@ export class MagnanimousLiveBridgeRoom {
    if(!pair||(Date.now()>pair.pairExpiresAt&&!pair.sessionExpiresAt)||(pair.sessionExpiresAt&&Date.now()>pair.sessionExpiresAt))return json({detail:'The pairing code or bridge session expired. Create a new bridge pair.'},410);
    if(this.state.getWebSockets().length>=4)return json({detail:'This bridge room has reached its connection safety limit.'},429);
    const origin=request.headers.get('Origin');
-   if(origin&&origin!==pair.expectedOrigin)return json({detail:'Cross-origin bridge connections are not allowed.'},403);
+   if(origin&&(origin!==url.origin||origin!==pair.expectedOrigin))return json({detail:'Cross-origin bridge connections are not allowed.'},403);
    const pairSocket=new WebSocketPair();
    const [client,server]=Object.values(pairSocket);
    this.state.acceptWebSocket(server);
