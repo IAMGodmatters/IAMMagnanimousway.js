@@ -76,7 +76,7 @@ const WORKER_ANALYTICS_QUERY=`query WorkerResourceMetrics($accountTag: string, $
 }`;
 
 function workerAnalyticsToken(env){
- return String(env.CLOUDFLARE_ANALYTICS_READ_TOKEN||env.CLOUDFLARE_PLATFORM_API_TOKEN||'').trim();
+ return String(env.CLOUDFLARE_ANALYTICS_READ_TOKEN||'').trim();
 }
 
 async function readWorkerAnalytics(env,hoursValue='24'){
@@ -84,7 +84,7 @@ async function readWorkerAnalytics(env,hoursValue='24'){
  const auth=workerAnalyticsToken(env);
  const hours=Math.max(1,Math.min(24,Math.floor(Number(hoursValue)||24)));
  if(!accountTag)return json({code:'CLOUDFLARE_ACCOUNT_ID_REQUIRED',detail:'Set CLOUDFLARE_PLATFORM_ACCOUNT_ID before requesting Worker analytics.'},409);
- if(!auth)return json({code:'CLOUDFLARE_ANALYTICS_TOKEN_REQUIRED',detail:'No Cloudflare analytics token is configured. Add a read-only Worker secret with Account Analytics:Read permission; no mutation token is requested by this endpoint.'},503);
+ if(!auth)return json({code:'CLOUDFLARE_ANALYTICS_TOKEN_REQUIRED',detail:'The dedicated Cloudflare analytics secret is not configured. Add CLOUDFLARE_ANALYTICS_READ_TOKEN with Account Analytics:Read permission; the platform/deployment token is deliberately not reused.'},503);
  const end=new Date(),start=new Date(end.getTime()-hours*60*60*1000);
  try{
   const response=await fetch('https://api.cloudflare.com/client/v4/graphql',{
@@ -217,7 +217,7 @@ export async function handleMagnanimousCloudflare(request,env){
  const {denied,user}=await ownerContext(request,env);if(denied)return denied;
 
  if(request.method==='GET'&&(path==='/api/cloudflare'||path==='/api/cloudflare/overview'||path==='/api/cloudflare/capabilities')){
-  return json({...magnanimousCloudflareSummary(env),credential_names:['CLOUDFLARE_PLATFORM_API_TOKEN','CLOUDFLARE_PLATFORM_ACCOUNT_ID','CLOUDFLARE_PLATFORM_ZONE_ID'],credential_values_exposed:false});
+  return json({...magnanimousCloudflareSummary(env),credential_names:['CLOUDFLARE_PLATFORM_API_TOKEN','CLOUDFLARE_ANALYTICS_READ_TOKEN','CLOUDFLARE_PLATFORM_ACCOUNT_ID','CLOUDFLARE_PLATFORM_ZONE_ID'],credential_values_exposed:false});
  }
  if(request.method==='GET'&&path==='/api/cloudflare/mcp')return json({recommended:'https://mcp.cloudflare.com/mcp',servers:CLOUDFLARE_MANAGED_MCP_SERVERS,provider_tokens_exposed:false});
  if(request.method==='GET'&&path==='/api/cloudflare/skills')return json({skills:CLOUDFLARE_AGENT_SKILLS,source:'official Cloudflare Skills catalog',provider_internal_only:true});
