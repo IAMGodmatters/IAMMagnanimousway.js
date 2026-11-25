@@ -1,5 +1,8 @@
 const $=id=>document.getElementById(id);
-const state={modelReady:false,vaultUnlocked:false,projects:[],obsConnected:false,obsRecording:false};
+const state={modelReady:false,vaultUnlocked:false,projects:[],obsConnected:false,obsRecording:false,autonomyActive:false};
+let autonomyTimer=null;
+let autonomyTickBusy=false;
+let autonomySpeechBusy=false;
 async function api(path,options={}){
  const response=await fetch(path,{...options,cache:'no-store',headers:{'content-type':'application/json',...(options.headers||{})}});
  const data=await response.json().catch(()=>({detail:'The local service returned an invalid response.'}));
@@ -24,6 +27,144 @@ function updateControls(){
  $('livePullButton').disabled=false;
  $('liveSendButton').disabled=!$('liveTestText').value.trim();
 }
+function updateAutonomyControls(){
+ const selected=$('liveAutonomySpeech').checked||$('liveAutonomyScenes').checked;
+ $('liveAutonomyStart').disabled=state.autonomyActive||!$('liveAutonomyConsent').checked||!selected;
+ $('liveAutonomyStop').disabled=!state.autonomyActive;
+ $('liveAutonomySpeech').disabled=state.autonomyActive;
+ $('liveAutonomyScenes').disabled=state.autonomyActive;
+ $('liveAutonomyConsent').disabled=state.autonomyActive;
+ $('liveAutonomyDuration').disabled=state.autonomyActive;
+ ['autonomyChatScene','autonomyWelcomeScene','autonomyGameScene','autonomyPollScene'].forEach(id=>$(id).disabled=state.autonomyActive);
+}
+async function loadAutonomyScenes(){
+ try{
+  const data=await api('/api/obs/scenes');
+  const mapping=[['autonomyChatScene'],['autonomyWelcomeScene'],['autonomyGameScene'],['autonomyPollScene']];
+  for(const [id] of mapping){
+   const select=$(id),current=select.value;
+   select.replaceChildren(new Option('No automatic scene',''));
+   for(const scene of data.scenes||[])select.add(new Option(scene.sceneName,scene.sceneName));
+   if([...select.options].some(option=>option.value===current))select.value=current;
+  }
+  $('liveAutonomyMessage').textContent='Choose only the scenes that Magnanimous may switch to automatically.';
+ }catch(error){
+  $('liveAutonomyScenes').checked=false;
+  $('liveAutonomySceneMap').hidden=true;
+  message('liveAutonomyMessage',error.message,'error');
+ }
+ updateAutonomyControls();
+}
+async function refreshAutonomyStatus(){
+ try{
+  const data=await api('/api/live/autonomy/status');
+  state.autonomyActive=Boolean(data.enabled);
+  const status=$('liveAutonomyStatus');
+  status.textContent=state.autonomyActive
+   ?'AI TAKEOVER ACTIVE · Expires '+new Date(data.expiresAt).toLocaleTimeString()
+   :'Manual mode · takeover off';
+  status.className='status '+(state.autonomyActive?'warning':'');
+  updateAutonomyControls();
+  if(state.autonomyActive)startAutonomyPolling();
+  else stopAutonomyPolling(false);
+ }catch(error){
+  $('liveAutonomyStatus').textContent='Autonomy status unavailable';
+ }
+}
+async function startLiveAutonomy(){
+ const permissions=[];
+ if($('liveAutonomySpeech').checked)permissions.push('host_speech');
+ if($('liveAutonomyScenes').checked)permissions.push('obs_scene_switch');
+ if(!permissions.length){message('liveAutonomyMessage','Select at least one show ability first.','error');return;}
+ if(permissions.includes('host_speech')&&(!window.speechSynthesis||typeof SpeechSynthesisUtterance==='undefined')){
+  message('liveAutonomyMessage','This browser does not expose a speech engine. Turn off spoken responses or use a supported browser voice.','error');return;
+ }
+ const sceneMap={
+  chat:$('autonomyChatScene').value,
+  welcome:$('autonomyWelcomeScene').value,
+  game:$('autonomyGameScene').value,
+  poll:$('autonomyPollScene').value
+ };
+ $('liveAutonomyStart').disabled=true;
+ try{
+  const result=await api('/api/live/autonomy/enable',{method:'POST',body:JSON.stringify({
+   acknowledged:$('liveAutonomyConsent').checked,
+   permissions,
+   sceneMap,
+   durationMinutes:Number($('liveAutonomyDuration').value)
+  })});
+  state.autonomyActive=true;
+  $('liveAutonomyStatus').textContent='AI TAKEOVER ACTIVE · Expires '+new Date(result.session.expiresAt).toLocaleTimeString();
+  $('liveAutonomyStatus').className='status warning';
+  $('liveAutonomyOutput').textContent='Magnanimous is now running the abilities you selected. The STOP AI TAKEOVER control remains available.';
+  message('liveAutonomyMessage','Takeover enabled for this session. Only the selected permissions are active.','success');
+  updateAutonomyControls();
+  startAutonomyPolling();
+ }catch(error){
+  state.autonomyActive=false;
+  message('liveAutonomyMessage',error.message,'error');
+  updateAutonomyControls();
+ }
+}
+function stopAutonomyPolling(cancelSpeech=true){
+ if(autonomyTimer){clearInterval(autonomyTimer);autonomyTimer=null;}
+ autonomyTickBusy=false;
+ if(cancelSpeech&&window.speechSynthesis)window.speechSynthesis.cancel();
+ autonomySpeechBusy=false;
+}
+async function stopLiveAutonomy(reason='operator_stop'){
+ stopAutonomyPolling(true);
+ try{
+  await api('/api/live/autonomy/stop',{method:'POST',body:JSON.stringify({reason})});
+ }catch(error){
+  message('liveAutonomyMessage','Stop request could not be confirmed: '+error.message,'error');
+ }
+ state.autonomyActive=false;
+ $('liveAutonomyStatus').textContent='Manual mode · takeover stopped';
+ $('liveAutonomyStatus').className='status';
+ $('liveAutonomyOutput').textContent='Magnanimous has returned control to the operator.';
+ updateAutonomyControls();
+}
+async function recordAutonomySpeech(reservationId,outcome,detail='browser_speech_engine'){
+ try{await api('/api/live/autonomy/action-result',{method:'POST',body:JSON.stringify({reservationId,outcome,detail})});}
+ catch(error){message('liveAutonomyMessage','Speech receipt was not confirmed: '+error.message,'error');}
+}
+function speakAutonomyLine(speech,eventType){
+ if(!speech?.line||!speech?.reservationId)return;
+ $('liveAutonomyOutput').textContent='MAGNANIMOUS · '+eventType+'\n'+speech.line;
+ if(!window.speechSynthesis||typeof SpeechSynthesisUtterance==='undefined'){
+  recordAutonomySpeech(speech.reservationId,'unavailable','speech_engine_unavailable');
+  return;
+ }
+ autonomySpeechBusy=true;
+ const utterance=new SpeechSynthesisUtterance(speech.line);
+ utterance.rate=1;
+ utterance.pitch=1;
+ utterance.onend=()=>{autonomySpeechBusy=false;recordAutonomySpeech(speech.reservationId,'succeeded');};
+ utterance.onerror=()=>{autonomySpeechBusy=false;recordAutonomySpeech(speech.reservationId,'failed','speech_engine_error');};
+ window.speechSynthesis.speak(utterance);
+}
+async function runAutonomyCycle(){
+ if(!state.autonomyActive||autonomyTickBusy||autonomySpeechBusy)return;
+ autonomyTickBusy=true;
+ try{
+  const data=await api('/api/live/autonomy/next',{method:'POST',body:'{}'});
+  if(data.scene?.outcome==='succeeded')$('liveAutonomyOutput').textContent='Magnanimous changed OBS to the approved "'+data.scene.sceneName+'" scene.';
+  else if(data.scene?.outcome==='unavailable')$('liveAutonomyOutput').textContent='OBS scene change unavailable. Magnanimous will continue only with other enabled abilities.';
+  if(data.speech?.line)speakAutonomyLine(data.speech,data.event?.type||'show moment');
+  else if(data.idle)$('liveAutonomyOutput').textContent='AI takeover is active and waiting for the next audience or game event.';
+  if(data.autonomy?.enabled===false){state.autonomyActive=false;stopAutonomyPolling(false);await refreshAutonomyStatus();updateAutonomyControls();}
+ }catch(error){
+  if(error.message.includes('AI takeover is not active')){state.autonomyActive=false;stopAutonomyPolling(false);await refreshAutonomyStatus();}
+  else if(!error.message.includes('still running'))message('liveAutonomyMessage',error.message,'error');
+ }finally{autonomyTickBusy=false;}
+}
+function startAutonomyPolling(){
+ if(autonomyTimer)return;
+ runAutonomyCycle();
+ autonomyTimer=setInterval(runAutonomyCycle,1800);
+}
+
 function updateGenerationStatus(){
  $('modelStatus').textContent=state.modelReady?'Local AI ready: '+state.modelName:'Offline draft builder ready • Local AI not installed';
  $('modelStatus').className='status '+(state.modelReady?'ready':'warning');
@@ -123,6 +264,7 @@ async function connectObs(){
   state.obsConnected=Boolean(result.connected);
   message('obsMessage','Connected to OBS locally. Your password was not saved.','success');
   await refreshObsStatus();
+  await refreshAutonomyStatus();
   await refreshReviewReceipts();
  }catch(error){$('obsPassword').value='';message('obsMessage',error.message,'error');}
  finally{updateControls();}
@@ -222,7 +364,8 @@ async function sendLocalEvent(){
  if(!text){message('liveEventMessage','Enter a short test event first.','error');return;}
  $('liveSendButton').disabled=true;
  const event={protocolVersion:1,eventId:'manual-'+Date.now()+'-'+Math.random().toString(36).slice(2,8),provider:'manual',type,occurredAt:new Date().toISOString(),actorName:'Local test',text,tags:{source:'operator-test',category:type==='game.event'?'game':'audience'}};
- try{await api('/api/live/events/ingest',{method:'POST',body:JSON.stringify({event})});message('liveEventMessage','Local test event added to the queue. Pull it when ready.','success');await refreshLiveQueue();}
+ try{await api('/api/live/events/ingest',{method:'POST',body:JSON.stringify({event})});message('liveEventMessage','Local test event added to the queue. Pull it when ready.','success');await refreshLiveQueue();
+window.addEventListener('beforeunload',()=>{if(state.autonomyActive){stopAutonomyPolling(true);fetch('/api/live/autonomy/stop',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({reason:'control_surface_closed'}),keepalive:true}).catch(()=>{});}});}
  catch(error){message('liveEventMessage',error.message,'error');}
  finally{updateControls();}
 }
@@ -323,6 +466,11 @@ $('obsSwitchButton').addEventListener('click',switchObsScene);
 $('obsStartRecordButton').addEventListener('click',()=>setObsRecording(true));
 $('obsStopRecordButton').addEventListener('click',()=>setObsRecording(false));
 $('livePullButton').addEventListener('click',pullLiveEvents);
+$('liveAutonomyConsent').addEventListener('change',updateAutonomyControls);
+$('liveAutonomySpeech').addEventListener('change',updateAutonomyControls);
+$('liveAutonomyScenes').addEventListener('change',async()=>{const enabled=$('liveAutonomyScenes').checked;$('liveAutonomySceneMap').hidden=!enabled;if(enabled)await loadAutonomyScenes();else updateAutonomyControls();});
+$('liveAutonomyStart').addEventListener('click',startLiveAutonomy);
+$('liveAutonomyStop').addEventListener('click',()=>stopLiveAutonomy('operator_emergency_stop'));
 $('liveSendButton').addEventListener('click',sendLocalEvent);
 $('liveTestText').addEventListener('input',updateControls);
 $('obsSceneSelect').addEventListener('change',updateControls);
