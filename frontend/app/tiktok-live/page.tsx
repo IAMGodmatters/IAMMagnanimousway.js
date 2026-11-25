@@ -54,6 +54,7 @@ export default function TikTokLiveHost() {
   const [approvedStreamerActions, setApprovedStreamerActions] = useState<ApprovedAction[]>([]);
   const [actionRunStatus, setActionRunStatus] = useState('No local action executed');
   const streamerBotSocket = useRef<WebSocket | null>(null);
+  const localEventWindow = useRef<number[]>([]);
   const [liveFormat, setLiveFormat] = useState('Gaming & play-along');
   const [liveEventInput, setLiveEventInput] = useState('');
   const [creativePlan, setCreativePlan] = useState('');
@@ -386,6 +387,11 @@ export default function TikTokLiveHost() {
       }
 
       if (!subscribed || !packet?.event || typeof packet.event !== 'object') return;
+      const eventNow = Date.now();
+      const recentEventTimes = localEventWindow.current.filter(time => eventNow - time < 5000);
+      if (recentEventTimes.length >= 12) return;
+      recentEventTimes.push(eventNow);
+      localEventWindow.current = recentEventTimes;
       const source = String(packet.event.source || 'App').slice(0, 40);
       const type = String(packet.event.type || 'Event').slice(0, 60);
       const data = packet.data && typeof packet.data === 'object' ? packet.data : {};
@@ -394,7 +400,7 @@ export default function TikTokLiveHost() {
       for (const key of keys) {
         const value = (data as Record<string, unknown>)[key];
         if ((typeof value === 'string' || typeof value === 'number') && String(value).trim()) {
-          const clean = String(value).replace(/[\\u0000-\\u001f\\u007f]/g, ' ').replace(/\\s+/g, ' ').trim().slice(0, 180);
+          const clean = String(value).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').replace(/\b(api[_ -]?key|access[_ -]?token|refresh[_ -]?token|password|secret)\b\s*[:=]\s*[^\s,;]+/gi, '$1=[redacted]').trim().slice(0, 180);
           if (clean && !values.includes(clean)) values.push(clean);
         }
       }
@@ -711,7 +717,7 @@ export default function TikTokLiveHost() {
           <section className="interactiveLayer" aria-labelledby="interactive-title">
             <small>BEYOND A TALKING AVATAR</small>
             <h3 id="interactive-title">A live world the host can understand and participate in</h3>
-            <p>Connect events, not uncontrolled accounts. Every incoming event is normalized, filtered for spam and safety, assigned a confidence level, and passed to Magnanimous. Magnanimous decides whether to speak, animate, change a scene, launch a poll, or do nothing.</p>
+            <p>Connect events, not uncontrolled accounts. Today the bridge subscribes only to selected event categories, extracts a short allowlisted summary, redacts credential-like strings, limits bursts to 12 events per five seconds, and keeps only the latest 20 in page memory. The operator reviews an event before asking Magnanimous to react. Confidence scoring, richer moderation and policy-driven automatic reactions are the next layer—not claimed as live yet.</p>
             <div className="interactiveGrid">
               <div><b>Live communities</b><span>Twitch EventSub • YouTube Live Chat • Kick • Discord • supported Streamer.bot sources</span></div>
               <div><b>Streaming studio</b><span>OBS scenes • overlays • captions • sound cues • Stream Deck • local audio routing</span></div>
@@ -723,7 +729,7 @@ export default function TikTokLiveHost() {
             <p className="techNote">Game support is adapter-based, not a promise that every game exposes an API. Use official plug-ins, server events, documented mod SDKs, or user-authorized controller signals. Do not inject code, read protected game memory, bypass anti-cheat, or automate competitive play. For TikTok, use only the account-authorized LIVE workflow; the public creator-data scope is not a general-purpose live-chat permission.</p>
             <div className="techLinks"><a href="https://dev.twitch.tv/docs/eventsub/handling-websocket-events/" target="_blank" rel="noreferrer">Twitch EventSub WebSocket</a><a href="https://developers.google.com/youtube/data/live/reference/rest/v3/liveChatMessages/streamList" target="_blank" rel="noreferrer">YouTube low-latency chat stream</a><a href="https://docs.streamer.bot/" target="_blank" rel="noreferrer">Streamer.bot integrations</a></div>
           </section>
-          <div className="techDecision"><b>Best architecture for Magnanimous:</b> Magnanimous owns identity, memory, reasoning, moderation rules, and the final answer. Voice/avatar vendors only render the approved response. Keep native Magnanimous chat as the brain; benchmark HeadTTS locally as the free neural voice, then feed its resampled PCM audio into Simli as the low-cost avatar renderer once the server secret and avatar ID are ready. Tavus is the richer but materially more expensive alternate. Use Gemini Live only if its separate managed model is acceptable for the brain; keep GPT-Live voice sessions disabled until a usage cap and funding source are configured.</div>
+          <div className="techDecision"><b>Best architecture for Magnanimous:</b> Magnanimous owns identity, memory, reasoning, moderation rules, and the final answer. Voice/avatar vendors only render the approved response. Keep native Magnanimous chat as the brain. Preferred free-first path: benchmark Pocket TTS on the local computer, then render an original/CC0 GLB character with TalkingHead and HeadAudio. HeadTTS remains an alternate where phoneme/viseme timing is more important. For a photoreal avatar, Simli is the first optional provider trial under the 40-minute monthly reservation cap; Tavus is the higher-cost alternative. Gemini Live is a separate managed conversational model, so it is not the default brain for Magnanimous; GPT-Live remains disabled until a hard usage cap and funded budget exist.</div>
         </section>
         <div className="policy"><b>TikTok Shop LIVE: sustained real-time interaction is required</b><p>TikTok Shop Philippines' Non-Interactive Content policy identifies recorded or computer-generated voices used instead of sustained, real-time verbal interaction as a potential violation. TikTok Shop's AIGC policy permits AI-generated images, video and audio when they comply with the Community Guidelines and Shop Content Policy and carry the required AIGC label. The separate Unoriginal Content policy focuses on copied or repackaged material; it does not create a blanket ban on every AI avatar or every synthetic voice. For Shop LIVE, keep a real operator actively engaging with viewers, demonstrating the actual product and responding in real time. Do not run a passive AI voice loop or a static/looping avatar scene. Magnanimous can assist with research, planning, moderation and suggested replies, while the creator remains meaningfully present.</p><p>This is a TikTok Shop rule, not a blanket ban on every ordinary non-Shop LIVE. For faceless gaming, ministry, education, music and community streams, clearly disclose the AI host, apply TikTok's AI-generated label when realistic AI audio/video requires it, have a live operator or moderator present, engage meaningfully with viewers, and check the current account rules before broadcasting.</p><div className="techLinks"><a href="https://seller-ph.tiktok.com/university/essay?knowledge_id=7654197957084929" target="_blank" rel="noreferrer">Philippines Unoriginal Content policy</a><a href="https://seller-ph.tiktok.com/university/essay?default_language=en&knowledge_id=7654203686192897" target="_blank" rel="noreferrer">Non-Interactive LIVE policy</a><a href="https://seller-ph.tiktok.com/university/essay?default_language=en&identity=1&knowledge_id=7188082378639105" target="_blank" rel="noreferrer">AIGC policy</a></div></div>
         <div className="footLinks"><a href="/ai-chat">Magnanimous AI Chat</a><a href="/video-agents">Video Agents</a><a href="/social-hub">Connect Social Accounts</a></div>
