@@ -229,7 +229,7 @@ async function handleApi(req,res,url){
  }
  if(req.method==='POST'&&url.pathname==='/api/live/events/ack'){
   const body=await readJson(req);
-  const result=liveEvents.acknowledge(body.deliveryId,body.eventIds);
+  const result=liveEvents.acknowledge(body.deliveryId,body.eventKeys);
   if(result.status==='acknowledged'||result.status==='duplicate')return json(res,200,result);
   if(result.status==='not_leased')return json(res,409,result);
   return json(res,400,result);
