@@ -64,6 +64,8 @@ try{
  assert.equal(acceptedEvent.status,202,'Valid local live event should be accepted.');
  const duplicateEvent=await post(origin+'/api/live/events/ingest',origin,{event:liveEvent});
  assert.equal(duplicateEvent.status,200,'Repeated provider event should be deduplicated.');
+ const spoofedProvider=await post(origin+'/api/live/events/ingest',origin,{event:{...liveEvent,eventId:liveEvent.eventId+'-spoof',provider:'tiktok'}});
+ assert.equal(spoofedProvider.status,403,'Browser intake must not impersonate a platform adapter.');
  const consumedEvents=await post(origin+'/api/live/events/consume',origin,{limit:1});
  const consumedData=await consumedEvents.json();
  assert.equal(consumedData.events.length,1,'Operator consumer should receive one bounded event.');
