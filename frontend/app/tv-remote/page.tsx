@@ -13,7 +13,8 @@ function safeFavorite(input:string){
  try{
   const url=new URL(input.trim());
   if(url.protocol!=='https:'||url.username||url.password||url.href.length>1024)return null;
-  const host=url.hostname.toLowerCase();
+  // Match the TV receiver and relay: a final DNS dot does not make a LAN host public.
+  const host=url.hostname.toLowerCase().replace(/\.+$/,'');
   if(!host.includes('.')||host.endsWith('.local')||host.endsWith('.localhost')||host.endsWith('.internal')||host.includes(':')||/^\d+(?:\.\d+){3}$/.test(host))return null;
   for(const key of url.searchParams.keys())if(/token|passw|secret|auth|api_key|client_secret|^code$/i.test(key))return null;
   return url.href;
@@ -71,7 +72,7 @@ export default function TvRemote(){
    if(!response.ok)throw new Error(data.detail||'Unable to connect.');
    const connected:Pair={session_id:data.session_id,remote_token:data.remote_token,expires_at:data.expires_at};
    sessionStorage.setItem(STORAGE_KEY,JSON.stringify(connected));
-   setPair(connected);setMessage('Connected. Your TV is ready for remote commands.');
+   setPair(connected);setMessage('Pairing accepted. Keep the TV browser open and online to receive commands.');
   }catch(error){setMessage(error instanceof Error?error.message:'Connection failed.')}finally{setBusy(false)}
  }
 

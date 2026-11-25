@@ -116,3 +116,24 @@ test('phone disconnect distinguishes an expired remote from an unconfirmed write
  assert(source.includes("if(!response.ok||data.disconnected!==true)throw"),'other failed revocations retain pairing for retry');
  assert(!source.includes('}catch{}\\n  sessionStorage.removeItem(STORAGE_KEY)'),'network failure cannot silently clear pairing');
 });
+
+test('TV receiver fails closed when prior pairing revocation cannot be confirmed',()=>{
+ const java=readFileSync(new URL('../../android-tv-browser/app/src/main/java/com/iammagnanimousway/tv/MainActivity.java',import.meta.url),'utf8');
+ const newCode=java.slice(java.indexOf('private void createSession()'),java.indexOf('private void poll('));
+ assert(newCode.includes('if (!result.optBoolean("disconnected", false)) throw'),'HTTP success alone is not proof the old remote was revoked');
+ assert(newCode.includes('if (failure.status != 401) throw failure'),'only verified revocation or an already-invalid token permits replacement');
+ assert(newCode.indexOf('if (failure.status != 401) throw failure')<newCode.indexOf('request("POST", "/session", null'),'new credentials are not created before old revocation succeeds');
+ assert(newCode.includes('pairing.setText(previousLabel)'),'failed revocation retains the old pairing for retry');
+ assert(newCode.includes('sessionId = null;')&&newCode.includes('pairing.setText("No active pairing")'),'a failed new-code request does not resurrect a revoked pairing');
+ assert(java.includes('private static final class HttpFailure extends Exception'),'HTTP 401 must be distinguished from a service-write failure');
+});
+
+test('Android TV and phone favorites normalize trailing-dot local hosts like the relay',()=>{
+ const java=readFileSync(new URL('../../android-tv-browser/app/src/main/java/com/iammagnanimousway/tv/MainActivity.java',import.meta.url),'utf8');
+ const phone=readFileSync(new URL('../../frontend/app/tv-remote/page.tsx',import.meta.url),'utf8');
+ assert(java.includes('replaceFirst("\\\\.+$", "")'),'receiver must remove terminal DNS dots before applying LAN restrictions');
+ assert(phone.includes("replace(/\\.+$/,'')"),'phone must not save an address the secure relay rejects');
+ for(const url of ['https://printer.local./','https://router./','https://camera.internal./']){
+  assert.equal(validateTvCommand({action:'navigate',value:url}),null,'relay rejects '+url);
+ }
+});
