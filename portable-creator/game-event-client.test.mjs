@@ -11,13 +11,13 @@ test('sends a bounded game event only to the fixed loopback Creator endpoint',as
  assert.equal(request.init.method,'POST');
  assert.equal(request.init.headers.authorization,'Bearer '+token);
  const envelope=JSON.parse(request.init.body);
- const body=envelope.event;
+ const event=envelope.event;
  assert.deepEqual(Object.keys(envelope),['event']);
- assert.equal(body.protocolVersion,1);
- assert.equal(body.gameName,'Puzzle Quest');
- assert.equal(body.text,'Level completed');
- assert.equal(body.actorName,'Player One');
- assert.match(body.eventId,/^[0-9a-f-]{36}$/);
+ assert.equal(event.protocolVersion,1);
+ assert.equal(event.gameName,'Puzzle Quest');
+ assert.equal(event.text,'Level completed');
+ assert.equal(event.actorName,'Player One');
+ assert.match(event.eventId,/^[0-9a-f-]{36}$/);
  assert.deepEqual(result,{ok:true,status:'accepted'});
 });
 
@@ -41,8 +41,8 @@ test('sanitizes and bounds game metadata and rejects failed local responses',asy
  await sendLocalGameEvent({token,gameName:('<Game>'+String.fromCharCode(0)).repeat(30),actorName:'<Player>'+String.fromCharCode(0),text:'A'+String.fromCharCode(0)+' moment'},{fetchImpl:async(_url,init)=>{requestBody=init.body;return Response.json({ok:true});}});
  const payload=JSON.parse(requestBody);
  const event=payload.event;
- assert.ok(event&&typeof event==='object','The game client must send an event envelope.');
+ assert.ok(event&&typeof event==='object','The game client must send a wrapped event payload.');
  assert.ok(event.gameName.length<=80);
- assert.ok(!/[<>\\u0000-\\u001f]/.test(event.gameName+event.actorName+event.text));
+ assert.ok(!/[<>\u0000-\u001f]/.test(event.gameName+event.actorName+event.text));
  await assert.rejects(sendLocalGameEvent({token,text:'event'},{fetchImpl:async()=>Response.json({detail:'Workspace locked.'},{status:423})}),/Workspace locked/);
 });
