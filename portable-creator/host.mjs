@@ -277,6 +277,14 @@ async function handleApi(req,res,url){
   try{return json(res,200,{ok:true,...await obsClient.setProgramScene(String(body.sceneName||''))});}
   catch(error){return json(res,400,{detail:error.message||'Could not switch OBS scene.'});}
  }
+ if(req.method==='POST'&&url.pathname==='/api/obs/host-avatar'){
+  if(!obsClient?.connected)return json(res,409,{detail:'Connect to OBS locally before adding the AI host avatar.'});
+  const body=await readJson(req),layout=body.layout==='landscape'?'landscape':'vertical';
+  const width=layout==='landscape'?1920:1080,height=layout==='landscape'?1080:1920;
+  const avatarUrl='http://127.0.0.1:'+serverPort+'/avatar.html';
+  try{return json(res,200,{ok:true,...await obsClient.createHostAvatarSource({sceneName:String(body.sceneName||''),url:avatarUrl,width,height})});}
+  catch(error){return json(res,400,{detail:error.message||'OBS could not add the local AI host avatar.'});}
+ }
  if(req.method==='POST'&&url.pathname==='/api/obs/recording/start'){
   if(!obsClient?.connected)return json(res,409,{detail:'Connect to OBS first.'});
   try{await obsClient.startRecording();return json(res,200,{ok:true,recording:true});}
