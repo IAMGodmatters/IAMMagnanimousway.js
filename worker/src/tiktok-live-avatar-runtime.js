@@ -96,13 +96,11 @@ export async function handleTikTokLiveAvatar(request,env){
   let session;
   try{
    session=await providerPost(SIMLI_SESSION_URL,String(env.SIMLI_API_KEY),{
-    config:{
-     faceId:String(env.SIMLI_FACE_ID),
-     handleSilence:false,
-     maxSessionLength:MAX_SESSION_SECONDS,
-     maxIdleTime:MAX_IDLE_SECONDS,
-     audioInputFormat:'pcm16'
-    }
+    faceId:String(env.SIMLI_FACE_ID),
+    handleSilence:false,
+    maxSessionLength:MAX_SESSION_SECONDS,
+    maxIdleTime:MAX_IDLE_SECONDS,
+    audioInputFormat:'pcm16'
    });
    if(!session.ok||!session.data?.session_token){
     await env.DB.prepare("UPDATE tiktok_live_avatar_sessions SET state='failed',updated_at=? WHERE id=?").bind(now(),reservationId).run();
