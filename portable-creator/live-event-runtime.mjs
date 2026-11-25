@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 const PROVIDERS=new Set(['manual','tiktok','facebook','youtube','twitch','zoom','obs','game','browser']);
 const TYPES=new Set(['chat.message','chat.deleted','audience.follow','audience.subscription','audience.gift','audience.poll_vote','game.event','obs.scene_changed','system.notice']);
 const EVENT_ID=/^[A-Za-z0-9._:-]{1,160}$/;
@@ -20,8 +21,8 @@ function normalize(input,now){
  return event;
 }
 export class LiveEventRuntime{
- constructor({maxQueue=200,maxSeen=5000,rateLimitPerMinute=120,now=Date.now,onAccept=()=>{},onConsume=()=>{}}={}){
-  this.maxQueue=Math.max(1,Math.min(2000,maxQueue));this.maxSeen=Math.max(100,Math.min(20000,maxSeen));this.rateLimitPerMinute=Math.max(1,Math.min(1000,rateLimitPerMinute));this.now=now;this.onAccept=onAccept;this.onConsume=onConsume;this.queue=[];this.seen=new Map();this.windows=new Map();
+ constructor({maxQueue=200,maxSeen=5000,rateLimitPerMinute=120,leaseMs=30_000,now=Date.now,onAccept=()=>{},onConsume=()=>{}}={}){
+  this.maxQueue=Math.max(1,Math.min(2000,maxQueue));this.maxSeen=Math.max(100,Math.min(20000,maxSeen));this.rateLimitPerMinute=Math.max(1,Math.min(1000,rateLimitPerMinute));this.now=now;this.leaseMs=Math.max(5_000,Math.min(5*60_000,leaseMs));this.onAccept=onAccept;this.onConsume=onConsume;this.queue=[];this.seen=new Map();this.windows=new Map();this.leases=new Map();
  }
  ingest(input,{persist=true,bypassRateLimit=false}={}){
   const now=this.now(),event=normalize(input,now);if(!event)return{status:'invalid',detail:'Event failed protocol, timestamp or content validation.'};
@@ -37,11 +38,47 @@ export class LiveEventRuntime{
   this.queue.push(event);
   return{status:'accepted',eventId:event.eventId,queued:this.queue.length};
  }
+ claim(limit=10){
+  const count=Math.max(1,Math.min(50,Number.isInteger(limit)?limit:10)),now=this.now(),available=[];
+  for(const event of this.queue){
+   const key=event.provider+':'+event.eventId,lease=this.leases.get(key);
+   if(lease&&lease.expiresAt>now)continue;
+   available.push(event);
+   if(available.length>=count)break;
+  }
+  if(!available.length)return{deliveryId:null,events:[],eventKeys:[],queued:this.queue.length,capacity:this.maxQueue};
+  const deliveryId=crypto.randomUUID(),expiresAt=now+this.leaseMs,eventKeys=available.map(event=>event.provider+':'+event.eventId);
+  for(const key of eventKeys)this.leases.set(key,{deliveryId,expiresAt});
+  return{deliveryId,events:available,eventKeys,leaseExpiresAt:new Date(expiresAt).toISOString(),queued:this.queue.length,capacity:this.maxQueue};
+ }
+ acknowledge(deliveryId,eventKeys){
+  if(typeof deliveryId!=='string'||deliveryId.length>80||!Array.isArray(eventKeys)||eventKeys.length<1||eventKeys.length>50)return{status:'invalid',detail:'A delivery ID and 1–50 event keys are required.'};
+  const requested=new Set(eventKeys.filter(key=>typeof key==='string'&&key.length<=250&&key.includes(':')));
+  if(!requested.size||requested.size!==eventKeys.length)return{status:'invalid',detail:'Event keys must be valid provider:eventId values.'};
+  const now=this.now(),events=[],keys=[];
+  for(const event of this.queue){
+   const key=event.provider+':'+event.eventId;
+   if(!requested.has(key))continue;
+   const lease=this.leases.get(key);
+   if(lease?.deliveryId===deliveryId&&lease.expiresAt>now){events.push(event);keys.push(key);}
+  }
+  if(keys.length!==requested.size){
+   const alreadyAcked=keys.length===0&&[...requested].every(key=>this.seen.has(key)&&!this.queue.some(event=>event.provider+':'+event.eventId===key));
+   return alreadyAcked?{status:'duplicate',acknowledged:0}:{status:'not_leased',acknowledged:0,detail:'Every event must belong to the active delivery lease. Pull the events again if the lease expired.'};
+  }
+  try{this.onConsume(events);}catch(error){return{status:'persistence_error',acknowledged:0,detail:String(error?.message||'The event acknowledgement could not be saved.').slice(0,240)};}
+  const remove=new Set(keys);
+  this.queue=this.queue.filter(event=>!remove.has(event.provider+':'+event.eventId));
+  for(const key of keys)this.leases.delete(key);
+  return{status:'acknowledged',acknowledged:keys.length,queued:this.queue.length};
+ }
  consume(limit=10){
-  const count=Math.max(1,Math.min(50,Number.isInteger(limit)?limit:10));
-  const batch=this.queue.slice(0,count);
+  const batch=this.queue.slice(0,Math.max(1,Math.min(50,Number.isInteger(limit)?limit:10)));
   if(batch.length)this.onConsume(batch);
-  return this.queue.splice(0,batch.length);
+  const remove=new Set(batch.map(event=>event.provider+':'+event.eventId));
+  this.queue=this.queue.filter(event=>!remove.has(event.provider+':'+event.eventId));
+  for(const key of remove)this.leases.delete(key);
+  return batch;
  }
  restore(records){
   if(!Array.isArray(records))return{restored:0,acknowledged:0};
@@ -54,6 +91,6 @@ export class LiveEventRuntime{
   return{restored,acknowledged};
  }
  snapshotSeen(){return[...this.seen.keys()];}
- status(){return{queued:this.queue.length,capacity:this.maxQueue,deduplicationEntries:this.seen.size,providers:[...this.windows.keys()]};}
- clear(){this.queue.length=0;this.seen.clear();this.windows.clear();}
+ status(){return{queued:this.queue.length,capacity:this.maxQueue,deduplicationEntries:this.seen.size,activeLeases:[...this.leases.values()].filter(lease=>lease.expiresAt>this.now()).length,providers:[...this.windows.keys()]};}
+ clear(){this.queue.length=0;this.seen.clear();this.windows.clear();this.leases.clear();}
 }
