@@ -28,8 +28,12 @@ function updateControls(){
  $('liveSendButton').disabled=!$('liveTestText').value.trim();
 }
 function updateAutonomyControls(){
- const selected=$('liveAutonomySpeech').checked||$('liveAutonomyScenes').checked;
- $('liveAutonomyStart').disabled=state.autonomyActive||!$('liveAutonomyConsent').checked||!selected;
+ const speechSelected=$('liveAutonomySpeech').checked;
+ const scenesSelected=$('liveAutonomyScenes').checked;
+ const selected=speechSelected||scenesSelected;
+ const speechAvailable=!speechSelected||(state.modelReady&&window.speechSynthesis&&typeof SpeechSynthesisUtterance!=='undefined');
+ const scenesAvailable=!scenesSelected||state.obsConnected;
+ $('liveAutonomyStart').disabled=state.autonomyActive||!$('liveAutonomyConsent').checked||!selected||!speechAvailable||!scenesAvailable;
  $('liveAutonomyStop').disabled=!state.autonomyActive;
  $('liveAutonomySpeech').disabled=state.autonomyActive;
  $('liveAutonomyScenes').disabled=state.autonomyActive;
