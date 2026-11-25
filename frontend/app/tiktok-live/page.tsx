@@ -619,6 +619,14 @@ export default function TikTokLiveHost() {
             </article>
 
             <article className="techCard recommended">
+              <span className="techTag">BEST FREE NATIVE 3D AVATAR PATH • NO AVATAR MINUTES</span>
+              <h3>TalkingHead + HeadAudio</h3>
+              <p>An MIT-licensed browser 3D avatar renderer for full-body GLB characters, live speech, expressions, hand gestures, dynamic hair and streaming lip-sync. HeadAudio adds a fully local AudioWorklet that can estimate mouth shapes from any speech audio stream, without needing text transcripts or a paid avatar API.</p>
+              <p className="techNote">This is the strongest free-first avatar path to implement natively in Magnanimous. HeadAudio lip-sync is approximate and can lose accuracy in noisy audio; the model needs a compatible rig/blend shapes. Avatar files have separate licenses—use an original/CC0 model or a model with explicit commercial streaming rights.</p>
+              <div className="techLinks"><a href="https://github.com/met4citizen/TalkingHead" target="_blank" rel="noreferrer">TalkingHead source and MIT license</a><a href="https://github.com/met4citizen/HeadAudio" target="_blank" rel="noreferrer">HeadAudio real-time lip-sync</a><a href="https://github.com/met4citizen/MPFB" target="_blank" rel="noreferrer">MPFB open-source character creator</a></div>
+              <b className="techStatus">NATIVE IMPLEMENTATION CANDIDATE • NOT YET CONNECTED</b>
+            </article>
+            <article className="techCard recommended">
               <span className="techTag">TOP FREE CPU VOICE CANDIDATE • MULTILINGUAL</span>
               <h3>Kyutai Pocket TTS</h3>
               <p>A compact open-source speech engine designed to run on ordinary CPUs without a GPU or metered voice API. Its official project reports streamed audio, roughly 200 ms to first audio chunk, about 6× real-time on an M4 MacBook Air using two CPU cores, and English, French, German, Portuguese, Italian, Spanish and Dutch support.</p>
