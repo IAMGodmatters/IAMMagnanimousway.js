@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const SOURCE=path.join(ROOT,'portable-creator');
-const eventTests=spawnSync(process.execPath,['--test',path.join(SOURCE,'live-event-runtime.test.mjs')],{encoding:'utf8'});
+const eventTests=spawnSync(process.execPath,['--test',path.join(SOURCE,'live-event-runtime.test.mjs'),path.join(SOURCE,'live-event-journal.test.mjs')],{encoding:'utf8'});
 if(eventTests.status!==0){console.error(eventTests.stdout||'');console.error(eventTests.stderr||'');throw new Error('Portable live-event runtime unit tests failed.');}
 console.log(eventTests.stdout.trim());
 
@@ -19,6 +19,7 @@ fs.mkdirSync(path.join(target,'app'),{recursive:true});
 fs.copyFileSync(path.join(SOURCE,'host.mjs'),path.join(target,'host.mjs'));
 fs.copyFileSync(path.join(SOURCE,'obs-client.mjs'),path.join(target,'obs-client.mjs'));
 fs.copyFileSync(path.join(SOURCE,'live-event-runtime.mjs'),path.join(target,'live-event-runtime.mjs'));
+fs.copyFileSync(path.join(SOURCE,'live-event-journal.mjs'),path.join(target,'live-event-journal.mjs'));
 fs.copyFileSync(path.join(SOURCE,'live-show-director.mjs'),path.join(target,'live-show-director.mjs'));
 for(const file of ['index.html','app.js','styles.css'])fs.copyFileSync(path.join(SOURCE,'app',file),path.join(target,'app',file));
 const appSyntax=spawnSync(process.execPath,['--check',path.join(target,'app','app.js')],{encoding:'utf8'});
@@ -59,12 +60,18 @@ try{
  const homepage=await (await fetch(origin+'/')).text();
  assert.ok(homepage.includes('id="livePullButton"'),'Audience/game event review control should be present.');
  assert.ok(homepage.includes('id="liveEventList"'),'Audience/game event list should be present.');
+ assert.ok(homepage.includes('id="bridgeConnectButton"'),'Secure online companion control should be present.');
+ assert.ok(homepage.includes('id="bridgeCommandList"'),'Local remote-command approval queue should be present.');
 
  const css=await fetch(origin+'/styles.css');
  assert.equal(css.status,200,'Local stylesheet should load.');
  const health=await (await fetch(origin+'/api/health')).json();
  assert.equal(health.mode,'offline-portable');
  assert.equal(health.model.ready,false,'Local generation must remain disabled when no runtime is installed.');
+ const bridgeStatus=await (await fetch(origin+'/api/bridge/status')).json();
+ assert.equal(bridgeStatus.status,'disconnected','Online bridge must start disconnected.');
+ assert.equal((await post(origin+'/api/bridge/connect',origin,{endpoint:'https://attacker.example/socket',token:'A'.repeat(43)})).status,400,'Companion must reject non-WSS and non-Magnanimous endpoints.');
+ assert.equal((await post(origin+'/api/bridge/command/review',origin,{commandId:'unknown',approved:true})).status,404,'Unknown remote commands must not execute.');
  const eventStatus=await (await fetch(origin+'/api/live/events/status')).json();
  assert.equal(eventStatus.queued,0,'Live event queue should start empty.');
  const liveEvent={protocolVersion:1,eventId:'runtime-'+Date.now(),provider:'manual',type:'chat.message',occurredAt:new Date().toISOString(),actorName:'QA viewer',text:'Hello Magnanimous'};
@@ -83,6 +90,9 @@ try{
  assert.equal(consumedData.reviewCues.length,1,'Director should return one review cue for the event.');
  assert.equal(consumedData.reviewCues[0].requiresOperatorApproval,true,'Director cue must require operator approval.');
  assert.equal(consumedData.reviewCues[0].action,'review-only','Director cue must never execute an action.');
+ const journalPath=path.join(target,'data','live-events.jsonl');
+ assert.ok(fs.existsSync(journalPath),'Accepted events must be persisted in the USB recovery journal.');
+ assert.ok(fs.readFileSync(journalPath,'utf8').includes('kind":"ack"'),'Consumed events must have a durable acknowledgement.');
  const obsStatus=await (await fetch(origin+'/api/obs/status')).json();
  assert.equal(obsStatus.connected,false,'OBS must remain disconnected until the operator pairs it.');
  assert.equal((await fetch(origin+'/api/obs/scenes')).status,409,'OBS scene reads must fail closed before local pairing.');
