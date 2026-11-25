@@ -110,4 +110,24 @@ This repository does not bundle third-party binaries or model weights. The packa
 6. Add end-to-end USB removal/reinsertion, drive-letter change, disk-full, passphrase recovery, crash recovery and cross-device portability tests.
 
 Do not treat a successful local build as proof that every device, camera, game, driver or streaming account is compatible.
-\n## Magnanimous show director\n\nThe local show director turns validated audience and game events into bounded review cues (welcome, reply prompt, game commentary, poll update, thank-you and production notes). It never speaks, changes OBS scenes, posts, moderates, spends money or controls a game. Every cue is marked `requiresOperatorApproval: true` and `action: review-only`; viewer text is not copied into instruction prompts. Cues expire after 45 seconds by default and are generated only for the events the operator pulls from the local queue.\n\n## Cross-device reality\n\nA USB SSD can carry the Magnanimous workspace, models, media and Windows OBS Portable files, but it cannot make one binary or one OBS profile work unchanged on every operating system. OBS Portable Mode is Windows-only and its media references need relative/common paths. The launcher must detect the OS/architecture, use the matching native runtime, and keep project files portable. Public streaming and Zoom meetings still need network access.\n
+
+## Magnanimous show director
+
+The director turns validated audience and game events into bounded review cues (welcome, reply prompt, game commentary, poll update, thank-you and production notes). Manual review remains the default. Viewer text is not copied into the director's instruction prompt and is rendered as text, never HTML.
+
+## Autonomous live-show mode
+
+The local creator now has an owner-controlled **AI takeover** option. It supports two bounded actions in this portable release:
+
+- **AI host speech:** when a healthy local GGUF model is installed and enabled, Magnanimous generates a short host line from the event type and untrusted viewer context. The browser's available speech engine reads that line. Route and test this browser/device audio inside OBS before using it on a public stream; audio routing and the speech engine's offline/privacy behavior depend on the operating system and browser.
+- **OBS scene switching:** when OBS WebSocket is connected, the owner can map show moments to an explicit list of existing OBS scenes. Only those selected scenes can be switched automatically.
+
+Takeover is off by default. Starting it requires an affirmative owner authorization, a selected capability, a healthy local model for speech, and a live OBS connection plus a scene allowlist for scene changes. The session is limited to 10, 30 or 60 minutes. A visible **STOP AI TAKEOVER** control cancels browser speech and revokes pending action reservations. The session also stops if the browser control surface disappears for 30 seconds or the host process exits. Autonomous actions are limited to six per minute.
+
+This local release does not yet connect TikTok, YouTube, Facebook or Twitch accounts; the event intake still accepts operator-entered test events only. It does not send platform chat, ban or mute viewers, delete comments, spend money, change account settings, start or end a public broadcast, or control game inputs. Those capabilities need separate, authorized provider adapters and their own permission policy. The AI takeover panel is a functioning local host/OBS control foundation, not proof that a platform account or a public stream is connected.
+
+Decision receipts and autonomous action receipts are kept in bounded memory for the current local host session and cleared on shutdown. They are useful for immediate operator feedback but are not a durable audit log.
+
+## Cross-device reality
+
+A USB SSD can carry the Magnanimous workspace, models, media and Windows OBS Portable files, but it cannot make one binary or one OBS profile work unchanged on every operating system. OBS Portable Mode is Windows-only and its media references need relative/common paths. The launcher must detect the OS/architecture, use the matching native runtime, and keep project files portable. Public streaming and Zoom meetings still need network access.
