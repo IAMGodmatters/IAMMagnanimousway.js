@@ -30,3 +30,61 @@ test('strips control characters from cue actor display name and clamps expiry',(
  const cue=createReviewCue(event('e-1',{actorName:'A'+String.fromCharCode(0)+'B'}),{now:1000,ttlMs:999999});
  assert.equal(cue.actorName,'AB');assert.equal(Date.parse(cue.expiresAt)-Date.parse(cue.createdAt),120_000);
 });
+
+test('claims events without removing them and acknowledges only the exact active delivery',()=>{
+ let now=1_700_000_000_000,acks=[];
+ const q=new LiveEventRuntime({now:()=>now,onConsume:events=>acks.push(...events)});
+ q.ingest(event('lease-1'));
+ const delivery=q.claim(1);
+ assert.ok(delivery.deliveryId);
+ assert.deepEqual(delivery.eventKeys,['manual:lease-1']);
+ assert.equal(q.status().queued,1);
+ assert.equal(q.claim(1).events.length,0);
+ assert.equal(q.acknowledge(delivery.deliveryId,['manual:lease-1']).status,'acknowledged');
+ assert.equal(q.status().queued,0);
+ assert.equal(acks.length,1);
+ assert.equal(q.acknowledge(delivery.deliveryId,['manual:lease-1']).status,'duplicate');
+});
+
+test('expired leases permit redelivery and reject stale acknowledgements',()=>{
+ let now=1_700_000_000_000;
+ const q=new LiveEventRuntime({now:()=>now,leaseMs:5_000});
+ q.ingest(event('lease-expire'));
+ const first=q.claim(1);
+ now+=5_001;
+ const second=q.claim(1);
+ assert.notEqual(second.deliveryId,first.deliveryId);
+ assert.equal(q.acknowledge(first.deliveryId,first.eventKeys).status,'not_leased');
+ assert.equal(q.acknowledge(second.deliveryId,second.eventKeys).status,'acknowledged');
+});
+
+test('partial and mixed-provider acknowledgements never remove any event',()=>{
+ const q=new LiveEventRuntime({now:()=>1_700_000_000_000});
+ q.ingest(event('same-id'));
+ q.ingest(event('same-id',{provider:'youtube'}));
+ const delivery=q.claim(2);
+ assert.equal(q.acknowledge(delivery.deliveryId,[delivery.eventKeys[0],'twitch:not-in-this-delivery']).status,'not_leased');
+ assert.equal(q.status().queued,2);
+ assert.equal(q.acknowledge(delivery.deliveryId,delivery.eventKeys).acknowledged,2);
+});
+
+test('failed durable acknowledgement leaves claimed events queued for retry',()=>{
+ const q=new LiveEventRuntime({now:()=>1_700_000_000_000,onConsume:()=>{throw new Error('disk full');}});
+ q.ingest(event('ack-failure'));
+ const delivery=q.claim(1);
+ assert.equal(q.acknowledge(delivery.deliveryId,delivery.eventKeys).status,'persistence_error');
+ assert.equal(q.status().queued,1);
+});
+
+test('unacknowledged claimed events are available after runtime restart and journal replay',()=>{
+ const records=[];
+ const first=new LiveEventRuntime({now:()=>1_700_000_000_000,onAccept:e=>records.push({kind:'event',event:e}),onConsume:events=>records.push({kind:'ack',keys:events.map(e=>e.provider+':'+e.eventId)})});
+ first.ingest(event('restart-unacked'));
+ const claim=first.claim(1);
+ assert.ok(claim.deliveryId);
+ const restarted=new LiveEventRuntime({now:()=>1_700_000_000_000});
+ assert.equal(restarted.restore(records).restored,1);
+ const retry=restarted.claim(1);
+ assert.equal(retry.events[0].eventId,'restart-unacked');
+ assert.equal(restarted.acknowledge(retry.deliveryId,retry.eventKeys).status,'acknowledged');
+});
