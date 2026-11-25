@@ -4,7 +4,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { ObsWebSocketClient } from './obs-client.mjs';
-import { LiveEventRuntime } from './live-event-runtime.mjs';
+import { DurableLiveEventJournal } from './durable-live-event-journal.mjs';
 import { createReviewCues } from './live-show-director.mjs';
 
 const args=process.argv.slice(2);
@@ -29,7 +29,7 @@ let chatCount=0;
 let serverPort=PORT;
 let obsClient=null;
 const OBS_PORT=4455;
-const liveEvents=new LiveEventRuntime();
+const liveEvents=new DurableLiveEventJournal({filePath:path.join(DATA,'live-events.jsonl')});
 
 fs.mkdirSync(DATA,{recursive:true});
 
@@ -218,13 +218,21 @@ async function handleApi(req,res,url){
   if(result.status==='duplicate')return json(res,200,result);
   if(result.status==='rate_limited')return json(res,429,result);
   if(result.status==='queue_full')return json(res,503,result);
+  if(result.status==='storage_error')return json(res,507,result);
   return json(res,400,result);
  }
  if(req.method==='POST'&&url.pathname==='/api/live/events/consume'){
   const body=await readJson(req);
   const limit=Number.isInteger(body.limit)?Math.max(1,Math.min(50,body.limit)):10;
-  const events=liveEvents.consume(limit);
-  return json(res,200,{events,reviewCues:createReviewCues(events),...liveEvents.status()});
+  const delivery=liveEvents.claim(limit);
+  return json(res,200,{...delivery,reviewCues:createReviewCues(delivery.events),...liveEvents.status()});
+ }
+ if(req.method==='POST'&&url.pathname==='/api/live/events/ack'){
+  const body=await readJson(req);
+  const result=liveEvents.acknowledge(body.deliveryId,body.eventIds);
+  if(result.status==='acknowledged'||result.status==='duplicate')return json(res,200,result);
+  if(result.status==='not_leased')return json(res,409,result);
+  return json(res,400,result);
  }
  if(req.method==='POST'&&url.pathname==='/api/chat'){
   const body=await readJson(req),prompt=String(body.prompt||'').trim();
