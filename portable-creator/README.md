@@ -86,6 +86,16 @@ The cloud relay implementation is in draft PR #1017 and is not deployed. The loc
 
 This control path is local production only. It does not start a public livestream, connect a social account, or join Zoom. A real OBS hardware smoke test remains required before describing it as operational on a particular computer.
 
+## Local AI host avatar and voice routing
+
+The OBS panel can add the disclosed transparent 2-D Magnanimous host avatar as a Browser Source at the local `/avatar.html` route. It is an illustrated 2-D avatar, not a full 3-D or motion-captured character.
+
+The host panel sends reviewed captions and speaking/stop state to the local `/api/avatar/state` endpoint. The OBS Browser Source receives those events through a loopback Server-Sent Events stream at `/api/avatar/events`. This works across separate browser processes (for example, Opera for the control panel and OBS's embedded browser) without relying on a shared browser profile or BroadcastChannel. The stream is local-only, same-origin, limited to eight clients, and changes to a locked state when the encrypted workspace is locked.
+
+Voice playback uses the selected computer/browser speech engine. In OBS, enable Desktop Audio or add an Audio Output Capture source for the same output device, speak a test line, and confirm the OBS audio meter moves. If the meter does not move, the voice will not be present in the recording or stream; select the correct output device and test again.
+
+The Creator does not press TikTok's Go Live button or claim a social account is connected. Start the public broadcast yourself in TikTok LIVE Studio or another official app after checking the avatar, voice, audio meter, media rights and account eligibility.
+
 ## Local live-event runtime
 
 Accepted events and acknowledgements are encrypted with AES-256-GCM in a bounded, fsynced JSONL recovery journal. The encryption subkey is derived from the unlocked workspace key and is never written to disk. Startup replays only unacknowledged events without writing duplicate records; legacy plaintext journal records are migrated on first successful unlock. Atomic compaction retains pending events and recent deduplication IDs. If the journal reaches its configured size limit or cannot be verified, new event intake stops rather than silently dropping or overwriting recovery data.
@@ -106,7 +116,7 @@ Delivery claims use short-lived leases. The UI acknowledges a batch only after r
 The endpoints are a local event-processing foundation: OBS state and a generic authenticated local game/app event source are supported, but no native TikTok, Facebook, YouTube, Twitch, Zoom or game-SDK adapter is connected. Public broadcasting, account control, moderation and payments are not exposed.
 ## Broadcast and Zoom boundaries
 
-Offline mode can prepare the show, assets, script, overlays and avatar plan. It cannot transmit to TikTok, Facebook, YouTube, Twitch or Zoom without a network connection. The online LIVE Studio uses the provider-neutral event bridge and separate authorized adapters.
+Offline mode can prepare the show, assets, script, overlays and local avatar scene. It cannot transmit to TikTok, Facebook, YouTube, Twitch or Zoom without a network connection. The online LIVE Studio uses the provider-neutral event bridge and separate authorized adapters.
 
 For an existing Zoom desktop meeting, the practical bridge is OBS Virtual Camera plus an audio input selected in Zoom. On Windows, OBS documents a one-time administrator step to install the virtual-camera driver; this launcher deliberately does not install it. A native Zoom Video SDK integration is a separate, credentialed application path.
 
