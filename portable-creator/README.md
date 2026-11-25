@@ -103,7 +103,7 @@ Accepted events are encrypted with AES-256-GCM using a key derived from the unlo
 
 Delivery claims use short-lived leases. The UI acknowledges a batch only after rendering it; if the application closes before acknowledgement, events remain pending and become available again after restart or lease expiry. Acknowledgements are idempotent and provider-scoped. The journal uses bounded storage, atomic compaction, fsync, legacy plaintext migration and fail-closed recovery when a complete record cannot be authenticated. If storage fails, new intake pauses and returns an explicit storage error rather than pretending an event was saved.
 
-The endpoints are a local event-processing foundation only: no TikTok, Facebook, YouTube, Twitch or game platform adapter is connected by this change. Public broadcasting, account control, moderation and payments are not exposed.
+The endpoints are a local event-processing foundation: OBS state and a generic authenticated local game/app event source are supported, but no native TikTok, Facebook, YouTube, Twitch, Zoom or game-SDK adapter is connected. Public broadcasting, account control, moderation and payments are not exposed.
 ## Broadcast and Zoom boundaries
 
 Offline mode can prepare the show, assets, script, overlays and avatar plan. It cannot transmit to TikTok, Facebook, YouTube, Twitch or Zoom without a network connection. The online LIVE Studio uses the provider-neutral event bridge and separate authorized adapters.
