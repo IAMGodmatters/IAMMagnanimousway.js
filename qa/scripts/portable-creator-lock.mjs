@@ -14,6 +14,13 @@ const css=read('portable-creator/app/styles.css');
 const launcher=read('portable-creator/launch-windows.ps1');
 const manifest=JSON.parse(read('portable-creator/manifest.json'));
 const readme=read('portable-creator/README.md');
+const uiIds=[...html.matchAll(/\\bid="([^"]+)"/g)].map(match=>match[1]);
+const uiSelectors=[...app.matchAll(/\\$\\('([^']+)'\\)/g)].map(match=>match[1]);
+const missingUiSelectors=[...new Set(uiSelectors.filter(id=>!uiIds.includes(id)))];
+assert.equal(new Set(uiIds).size,uiIds.length,'Portable Creator HTML IDs must be unique.');
+assert.deepEqual(missingUiSelectors,[],'Every Portable Creator JavaScript selector must resolve to an HTML element.');
+assert(!/\\b(?:innerHTML|outerHTML|insertAdjacentHTML|eval|Function)\\b/.test(app),'Portable Creator must not inject HTML or evaluate dynamic code.');
+
 const creatorArchitecture=read('docs/live-studio/universal-creator-architecture.md');
 const onlineRelay=read('worker/src/live-bridge-relay.js');
 
@@ -95,6 +102,8 @@ checks.push(
  ['AI host dialogue is reviewed before speaking and does not execute platform commands',html.includes('Review and edit it before speaking')&&app.includes('Review and edit it before speaking.')&&!app.includes('speechSynthesis.speak(new SpeechSynthesisUtterance')],
  ['AI host can append reviewed dialogue to the encrypted creator draft',app.includes('function addHostLineToNotes')&&app.includes('Save it to keep the change in your encrypted workspace')],
 );
+ ['workspace lock clears private draft, host and viewer text from the browser UI',app.includes('function clearSensitiveUi()')&&app.includes("['passphrase','prompt','outputTitle','output','hostTopic','hostScript','hostLine','liveTestText','obsPassword','bridgeToken']")&&app.includes("state.lastHostEvent=null")&&app.includes("clearSensitiveUi();")],
+ ['workspace lock stops speech, warns before discarding unsaved content and cancels local generation',app.includes('cancelGenerationRequests();stopHostVoice();')&&app.includes('window.confirm(\'Locking clears unsaved drafts')&&app.includes('generationRequests.add(controller)')&&app.includes('signal:controller.signal')],
 const failures=checks.filter(([,ok])=>!ok);
 for(const [name,ok] of checks)console.log(`${ok?'PASS':'FAIL'} ${name}`);
 if(failures.length){console.error(`Portable creator contract failed: ${failures.length} check(s).`);process.exit(1);}
