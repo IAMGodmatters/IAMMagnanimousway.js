@@ -20,7 +20,7 @@ const checks = [
   ['host clearly discloses AI identity', host.includes('AI-GENERATED HOST') && host.includes('Do not pretend to be a human')],
   ['host truthfully discloses that this is not a TikTok broadcast', host.includes('It is not a TikTok broadcast')],
   ['viewer comments are manually entered by the operator', host.includes('Paste or type a viewer') && host.includes('LIVE HUMAN MODERATION')],
-  ['TikTok Shop LIVE narration prohibition is explicit and separated from non-Shop content', host.includes('Unoriginal Content creator policy explicitly says not to use AI-generated audio or narration in livestreams') && host.includes('its synthetic voice must not narrate a Shop LIVE') && host.includes('not a blanket ban on every ordinary non-Shop LIVE')],
+  ['TikTok Shop policy is described as a non-interactive-content risk, not a blanket AI ban', host.includes('identifies recorded or computer-generated voices used instead of sustained, real-time verbal interaction as a potential violation') && host.includes('does not create a blanket ban on every AI avatar or every synthetic voice') && host.includes('not a blanket ban on every ordinary non-Shop LIVE')],
   
   ['local Streamer.bot WebSocket connection is implemented', host.includes('function connectStreamerBot()') && host.includes('new WebSocket(new URL(streamerBotUrl).toString())')],
   ['Streamer.bot reads enabled local actions but exposes only an explicit operator-named allowlist', host.includes("request: 'GetActions'") && host.includes("action.name.startsWith('Magnanimous Approved - ')") && host.includes('approvedStreamerActions')],
@@ -68,7 +68,7 @@ const checks = [
   ['Simli session route is wired into Worker operations', operations.includes('handleTikTokLiveAvatar') && operations.includes('await handleTikTokLiveAvatar(request,env)')],
   ['Simli secret route bypasses the standalone API proxy', security.includes("url.pathname.startsWith('/api/tiktok-live/avatar/')")],
   ['Simli SDK and live TTS stream are disclosed as not yet connected', host.includes('browser SDK and a real TTS audio track are still required')],
-  ['frontier research accurately distinguishes Shop AI narration prohibition from non-Shop LIVE policy', research.includes('Unoriginal Content') && research.includes('not to use AI-generated audio or narration in livestreams') && research.includes('This is a TikTok Shop creator-policy restriction')],
+  ['frontier research accurately distinguishes Shop non-interactive-content risk from ordinary LIVE policy', research.includes('Non-Interactive Content') && research.includes('computer-generated voices') && research.includes('not a blanket ban on every ordinary non-Shop LIVE')],
   ['authenticated local app/game event panel is shown once', host.includes('Connect Streamer.bot on this computer') && !host.includes('connectLocalBridge') && !host.includes('localBridgeHead')],
   ['local event bridge requires the Streamer.bot Hello authentication challenge', host.includes('function connectStreamerBot()') && host.includes('new WebSocket(new URL(streamerBotUrl).toString())') && host.includes('No Streamer.bot Hello message arrived') && host.includes('AUTHENTICATION NOT ENFORCED')],
   ['local bridge password is transient and cleared after disconnect', host.includes('streamerBotPassword') && host.includes('setStreamerBotPassword(\'\')') && !host.includes("localStorage.setItem('streamerBotPassword'") && host.includes('not saved, sent to Magnanimous, or stored in Cloudflare')],
