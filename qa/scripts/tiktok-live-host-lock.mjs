@@ -39,6 +39,7 @@ const checks = [
   ['bridge UI never persists pairing tokens', bridgeUi.includes('never saved in browser storage') && !bridgeUi.includes('localStorage')],
   ['bridge UI has exactly one revoke handler and revocation invalidates the tracked pair', (bridgeUi.match(/async function revokePair\(\)/g)||[]).length===1 && bridgeUi.includes('await revokePairId(pairId)') && bridgeUi.includes('setPairId(\'\')')],
   ['bridge UI bounds the event feed', bridgeUi.includes('.slice(0,50)')],
+  ['AI host answers are not spoken automatically unless the operator opts in', host.includes("const [autoSpeak, setAutoSpeak] = useState(false);") && host.includes('if (autoSpeak) speak(answer);') && host.includes('onClick={() => speak(hostReply)}')],
 ];
 
 const failures = checks.filter(([, ok]) => !ok);
