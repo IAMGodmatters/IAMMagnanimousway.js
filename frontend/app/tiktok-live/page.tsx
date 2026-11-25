@@ -285,7 +285,7 @@ export default function TikTokLiveHost() {
                 <button type="button" className="secondary" onClick={() => {
                   const detail = [pendingBridgeEvent.actorName, pendingBridgeEvent.text, pendingBridgeEvent.tags ? JSON.stringify(pendingBridgeEvent.tags) : ''].filter(Boolean).join(' · ').slice(0, 1200);
                   setViewerComment('[PAIRED LIVE EVENT · REVIEWED BY CREATOR] ' + pendingBridgeEvent.provider + ' / ' + pendingBridgeEvent.type + ': ' + detail);
-                  if (pendingBridgeEvent.provider === 'game') { setTopic('Gaming & Interactive'); setGameContext(detail); }
+                  if (pendingBridgeEvent.provider === 'game') { setTopic('Gaming & Interactive'); setGameContext(detail); const gameTag = pendingBridgeEvent.tags?.gameName; if (typeof gameTag === 'string') setGameName(gameTag.slice(0,100)); }
                   setPendingBridgeEvent(null);
                 }}>Use as host context</button>
                 <button type="button" className="quiet" onClick={() => setPendingBridgeEvent(null)}>Dismiss</button>
@@ -295,7 +295,7 @@ export default function TikTokLiveHost() {
           <form onSubmit={answerComment}>
             <div className="gameCue">
               <b>GAME &amp; APP CO-HOST CONTEXT</b>
-              <p>Use this with any game or app. Until an approved adapter is connected, the creator supplies the game moment manually.</p>
+              <p>Use this with any game or app. Until a game-specific adapter is configured, you can enter the moment manually or receive it from a trusted local automation tool.</p>
               <label className="field">Game or app name
                 <input value={gameName} onChange={event => setGameName(event.target.value.slice(0,100))} maxLength={100} placeholder="Example: Minecraft, Roblox, a quiz app, Zoom activity" />
               </label>
