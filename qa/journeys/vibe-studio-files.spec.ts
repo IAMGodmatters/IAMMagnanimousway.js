@@ -126,7 +126,7 @@ test('owner multi-file Vibe Studio saves, previews, checkpoints, adds and export
     await dialog.dismiss();
   });
   await page.getByRole('button', { name: /Preview/ }).click();
-  await expect(page.getByRole('status')).toContainText('Preview cancelled. Project JavaScript was not executed.');
+  await expect(page.getByRole('status')).toContainText('Preview cancelled. Project scripts and links were not activated.');
   await expect(page.locator('iframe[title="Magnanimous multi-file preview"]')).toHaveCount(0);
   expect(reviewRequests).toBe(0);
 
