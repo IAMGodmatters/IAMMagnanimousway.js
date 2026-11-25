@@ -174,7 +174,7 @@ function connectBridge(endpoint,token){
   }
   if(envelope?.kind==='error'){bridgeError=String(envelope.message||'The online relay reported an error.').slice(0,240);if(envelope.code==='AUTH_FAILED'||envelope.code==='PAIRING_REVOKED')closeBridge();}
  });
- socket.addEventListener('close',()=>{if(bridgeSocket===socket){bridgeSocket=null;bridgeStatus='disconnected';}});
+ socket.addEventListener('close',event=>{if(bridgeSocket===socket){bridgeSocket=null;bridgeStatus='disconnected';if(event.code!==1000)bridgeError='The online relay closed the connection ('+event.code+'). Create a fresh pair if the token expired.';}});
  socket.addEventListener('error',()=>{if(bridgeSocket===socket){bridgeStatus='error';bridgeError='The secure online bridge connection failed.';}});
 }
 function safeProject(value){
@@ -263,7 +263,7 @@ async function handleApi(req,res,url){
  if(req.method==='POST'&&url.pathname==='/api/bridge/connect'){
   const body=await readJson(req);
   try{connectBridge(String(body.endpoint||''),String(body.token||''));return json(res,202,{ok:true,status:bridgeStatus});}
-  catch(error){return json(res,400,{detail:error.message});}
+  catch(error){bridgeStatus='error';bridgeError=error.message;return json(res,400,{detail:error.message});}
  }
  if(req.method==='POST'&&url.pathname==='/api/bridge/disconnect'){
   closeBridge();pendingBridgeCommands.length=0;return json(res,200,{ok:true,status:bridgeStatus});
