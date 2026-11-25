@@ -51,11 +51,11 @@ function allowedRequest(req,mutation=false){
 }
 async function readJson(req){
  const type=String(req.headers['content-type']||'').toLowerCase();
- if(!type.includes('application/json'))throw new Error('JSON content type is required.');
+ if(!type.includes('application/json')){const error=new Error('JSON content type is required.');error.status=415;throw error;}
  const chunks=[];let bytes=0;
- for await(const chunk of req){bytes+=chunk.length;if(bytes>MAX_BODY)throw new Error('Request is too large.');chunks.push(chunk);}
+ for await(const chunk of req){bytes+=chunk.length;if(bytes>MAX_BODY){const error=new Error('Request is too large.');error.status=413;throw error;}chunks.push(chunk);}
  if(!chunks.length)return {};
- try{return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw new Error('Request JSON is invalid.');}
+ try{return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{const error=new Error('Request JSON is invalid.');error.status=400;throw error;}
 }
 function deriveKey(passphrase,salt){
  return crypto.scryptSync(passphrase,salt,32,{N:32768,r:8,p:1,maxmem:64*1024*1024});
@@ -75,6 +75,7 @@ function saveVault(){
 }
 function unlockVault(passphrase){
  if(typeof passphrase!=='string'||passphrase.length<12||passphrase.length>512)throw new Error('Use a workspace passphrase with at least 12 characters.');
+ lockVault();
  if(!fs.existsSync(VAULT)){
   vaultSalt=crypto.randomBytes(16);
   vaultKey=deriveKey(passphrase,vaultSalt);
@@ -100,7 +101,7 @@ function unlockVault(passphrase){
   vaultData=parsed;
   return {created:false,projectCount:parsed.projects.length};
  }catch(error){
-  candidate.fill(0);vaultSalt=null;
+  candidate.fill(0);lockVault();
   throw new Error('The passphrase is incorrect or the encrypted workspace cannot be verified.');
  }
 }
@@ -206,7 +207,7 @@ const server=http.createServer(async(req,res)=>{
   if(url.pathname.startsWith('/api/'))return await handleApi(req,res,url);
   if(req.method!=='GET'&&req.method!=='HEAD')return json(res,405,{detail:'Method not allowed.'});
   return serveStatic(req,res,url);
- }catch(error){return json(res,500,{detail:'The local workspace could not complete the request.'});}
+ }catch(error){return json(res,Number(error?.status)||500,{detail:Number(error?.status)?error.message:'The local workspace could not complete the request.'});}
 });
 server.listen(PORT,'127.0.0.1',()=>{
  serverPort=server.address().port;
