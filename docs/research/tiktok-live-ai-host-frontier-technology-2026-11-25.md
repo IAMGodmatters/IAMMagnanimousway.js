@@ -113,3 +113,34 @@ For ministry and educational LIVE sessions, keep the AI identity clearly disclos
 ---
 
 **Truth boundary:** This research and UI update do not mean a TikTok account has been authorized, a provider account has been connected, an API key has been installed, a LIVE has been started, or a human-like avatar has been activated in production.
+
+
+## Interactive apps, games, and audience co-creation
+
+The avatar should not be the product's only capability. The stronger pattern is an event-driven live world:
+
+1. **Local event ingress:** Streamer.bot receives supported platform, OBS, controller, Crowd Control, Stream Deck, Discord webhook and other integration events on the creator's own machine. Its WebSocket events include Twitch/YouTube/Kick chat and stream events, OBS scene/stream state, controller inputs, and game-interaction events. The local WebSocket server defaults to 127.0.0.1; authentication and enforcement should be enabled. Never bind it publicly or expose the port to the internet.
+2. **Magnanimous event understanding:** Normalize every event to a small schema (tenant, source, event type, timestamp, actor, payload digest, consent/permission, risk, confidence). Deduplicate by event ID, rate-limit per actor/source, redact sensitive data, and keep a short bounded context window. Magnanimous chooses whether to speak, ask a follow-up, change a scene, launch a poll, or ignore the event.
+3. **Action broker:** The model never receives raw unrestricted access to OBS, games, or a viewer's account. It proposes a typed action; deterministic policy checks an allowlist, user authorization, cooldown, spend/resource budget and risk tier; a local bridge executes only approved actions and returns evidence.
+4. **Game adapters:** Support documented extension points only: official game/server plugins, mod SDKs, user-owned Unity/Unreal projects, controller inputs, or explicit local game events. Do not inject code, read protected process memory, bypass anti-cheat, or automate competitive gameplay. For games with no documented event surface, use safe manual/controller interaction and do not claim deep integration.
+5. **Audience co-creation:** Polls, branching stories, trivia, cooperative goals, sound cues, avatar expressions, scene transitions, and highlight markers can be driven by moderated viewer events. Every action needs a kill switch and a human moderator override.
+
+**Platform adapters:** Twitch EventSub supports WebSocket notifications; reconnect and resubscribe logic is required and missed events are not replayed during reconnect gaps. YouTube Live Chat's streamList is a server-streaming low-latency channel with a resume page token. TikTok's account-authorized LIVE Manager/OBS workflow is supported for the video input when the account is eligible; do not assume a public TikTok creator-data scope grants a general live-chat feed. Keep TikTok comments manual until a documented, account-authorized chat API is verified.
+
+**Creative home intelligence:** Use the same event model in Magnanimous's native media studio: the brain proposes a show rundown, title/caption variants, visual direction, scene plan, audio/voice choice, accessibility captions, and highlight candidates. A rights/policy gate checks music, image, likeness, disclosure and platform rules before a renderer or local media tool is called. A render is not marked complete until the native media worker returns an artifact and verification evidence. Heavy rendering belongs on owner-controlled local compute or a replaceable isolated media worker—not on a Cloudflare request CPU path.
+
+### Primary integration sources
+
+- Streamer.bot WebSocket API and event catalog: https://docs.streamer.bot/api/websocket ; https://docs.streamer.bot/api/websocket/events
+- Streamer.bot secure WebSocket configuration: https://docs.streamer.bot/api/websocket/guide/configuration
+- Twitch EventSub WebSocket lifecycle: https://dev.twitch.tv/docs/eventsub/handling-websocket-events/
+- YouTube Live Chat streamList: https://developers.google.com/youtube/data/live/reference/rest/v3/liveChatMessages/streamList
+- OBS WebSocket (included in OBS 28+; password protection recommended): https://github.com/obsproject/obs-websocket
+
+## Cloud incident: measurement before changing production
+
+The existing Cloudflare incident is an account-level alert (1,000+ resource-limit exceedances/day) and does not identify the script or route. The Cloud Exit regression lock validates the independent runtime architecture; it does not prove the production Cloudflare Worker is the source or that its CPU issue is fixed.
+
+A new read-only GitHub Actions diagnostic queries Cloudflare's Workers Analytics GraphQL API using the existing `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets. It groups adaptive request/error estimates and CPU p50/p99 by Worker script and invocation status. Adaptive counts are estimates, not raw totals. The query requires Account Analytics:Read. If the existing token lacks that scope, the workflow fails with the exact permission requirement; it never changes Worker settings, deployments, plan or billing.
+
+**Next step after first successful telemetry:** identify the affected Worker(s), inspect CPU p50/p99 and status distribution, correlate with deployed revisions and route logs, then profile and optimize only the measured hotspot. Do not increase the CPU allowance or upgrade the account as a substitute for root-cause diagnosis.
