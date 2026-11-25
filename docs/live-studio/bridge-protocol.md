@@ -46,8 +46,9 @@ The first online transport layer is implemented in `worker/src/live-bridge-relay
 - Pairing codes expire after ten minutes; an authenticated bridge session expires after twelve hours. Reconnection is permitted only during that authenticated session.
 - The relay forwards only normalized events from the companion to the browser and the allowlisted scene/overlay/audio/host commands in the opposite direction. It does not expose broadcast start/stop, account management, moderation, shell access or arbitrary code execution.
 - The room uses SQLite-backed Durable Object storage and hibernatable WebSockets. This is designed to avoid holding an always-awake relay for idle sessions; usage still remains subject to the account's free-tier limits and must be measured before production rollout.
+- A new pair initially authorizes only local/manual, OBS, game and browser event sources. TikTok, Facebook, YouTube, Twitch and Zoom are recognized by the event schema but are **not authorized by default**. They must receive explicit per-account adapter authorization before the relay accepts events labelled with those providers.
 
-The online relay has no provider OAuth tokens and does not itself fetch platform chat. A separate local companion and separately authorized provider adapters are required. A connected socket is not proof of a TikTok/Facebook/YouTube/Zoom account connection or a live broadcast.
+The online relay has no provider OAuth tokens and does not itself fetch platform chat. A separate local companion and separately authorized provider adapters are required. The default pair cannot impersonate a platform provider merely by labelling a message with its name. A connected socket is not proof of a TikTok/Facebook/YouTube/Zoom account connection or a live broadcast.
 
 ### Deployment gate
 
