@@ -49,9 +49,11 @@ export class LiveEventRuntime{
   for(const record of records){
    if(record?.kind==='event'&&record.event){const result=this.ingest(record.event,{persist:false,bypassRateLimit:true});if(result.status==='accepted')restored++;}
    else if(record?.kind==='ack'&&Array.isArray(record.keys)){const keys=new Set(record.keys);for(let i=this.queue.length-1;i>=0;i--){const event=this.queue[i];if(keys.has(event.provider+':'+event.eventId)){this.queue.splice(i,1);acknowledged++;}}}
+   else if(record?.kind==='seen'&&Array.isArray(record.keys)){for(const key of record.keys){if(typeof key==='string'&&key.length<=250){this.seen.set(key,this.now());if(this.seen.size>this.maxSeen)this.seen.delete(this.seen.keys().next().value);}}}
   }
   return{restored,acknowledged};
  }
+ snapshotSeen(){return[...this.seen.keys()];}
  status(){return{queued:this.queue.length,capacity:this.maxQueue,deduplicationEntries:this.seen.size,providers:[...this.windows.keys()]};}
  clear(){this.queue.length=0;this.seen.clear();this.windows.clear();}
 }
