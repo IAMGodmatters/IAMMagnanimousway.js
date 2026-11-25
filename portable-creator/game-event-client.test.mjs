@@ -10,7 +10,9 @@ test('sends a bounded game event only to the fixed loopback Creator endpoint',as
  assert.equal(request.url,LOCAL_GAME_EVENT_ENDPOINT);
  assert.equal(request.init.method,'POST');
  assert.equal(request.init.headers.authorization,'Bearer '+token);
- const body=JSON.parse(request.init.body);
+ const envelope=JSON.parse(request.init.body);
+ const body=envelope.event;
+ assert.deepEqual(Object.keys(envelope),['event']);
  assert.equal(body.protocolVersion,1);
  assert.equal(body.gameName,'Puzzle Quest');
  assert.equal(body.text,'Level completed');
