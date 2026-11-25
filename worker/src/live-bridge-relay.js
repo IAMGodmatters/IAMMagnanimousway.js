@@ -32,8 +32,6 @@ export function isRelayProviderAllowed(provider,allowedProviders=[]){return Arra
 export function normalizeRelayCommand(input){
  if(!input||typeof input!=='object'||Array.isArray(input)||typeof input.commandId!=='string'||!EVENT_ID.test(input.commandId))return null;
  if(input.action==='scene.set'){const sceneName=clean(input.sceneName,80);return sceneName?{commandId:input.commandId,action:'scene.set',sceneName}:null;}
- if(input.action==='overlay.show'||input.action==='overlay.hide'){const overlayId=clean(input.overlayId,80);return overlayId?{commandId:input.commandId,action:input.action,overlayId}:null;}
- if(input.action==='audio.cue'){const cueId=clean(input.cueId,80);return cueId?{commandId:input.commandId,action:'audio.cue',cueId}:null;}
  if(input.action==='host.speak'){const text=clean(input.text,500);return text?{commandId:input.commandId,action:'host.speak',text}:null;}
  return null;
 }

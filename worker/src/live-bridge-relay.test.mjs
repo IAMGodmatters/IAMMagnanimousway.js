@@ -36,6 +36,9 @@ test('only approved production commands pass the relay contract',()=>{
  assert.equal(normalizeRelayCommand({commandId:'c-2',action:'broadcast.start'}),null);
  assert.equal(normalizeRelayCommand({commandId:'c-3',action:'shell.exec',command:'whoami'}),null);
  assert.equal(normalizeRelayCommand({commandId:'c-4',action:'host.speak',text:'hello\u0000 world'}).text,'hello world');
+ assert.equal(normalizeRelayCommand({commandId:'c-5',action:'overlay.show',overlayId:'banner'}),null);
+ assert.equal(normalizeRelayCommand({commandId:'c-6',action:'overlay.hide',overlayId:'banner'}),null);
+ assert.equal(normalizeRelayCommand({commandId:'c-7',action:'audio.cue',cueId:'applause'}),null);
 });
 
 test('pair endpoint requires an authenticated tenant and returns two distinct short-lived role tokens',async()=>{

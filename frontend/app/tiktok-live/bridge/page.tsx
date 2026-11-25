@@ -99,6 +99,7 @@ export default function LiveEventBridgePage() {
   }
 
   function sendCommand() {
+    if(action!=='scene.set'&&action!=='host.speak'){setNotice('Overlay and audio-cue commands are not enabled yet. No command was sent.');return;}
     const commandId=globalThis.crypto?.randomUUID?.()||String(Date.now());
     const payload=action==='scene.set'?{sceneName:target}
       :action==='overlay.show'||action==='overlay.hide'?{overlayId:target}
@@ -166,9 +167,9 @@ export default function LiveEventBridgePage() {
           <label>Action
             <select value={action} onChange={e=>setAction(e.target.value as CommandAction)}>
               <option value="scene.set">Switch OBS scene</option>
-              <option value="overlay.show">Show overlay</option>
-              <option value="overlay.hide">Hide overlay</option>
-              <option value="audio.cue">Play approved audio cue</option>
+              <option value="overlay.show" disabled>Show overlay (not available yet)</option>
+              <option value="overlay.hide" disabled>Hide overlay (not available yet)</option>
+              <option value="audio.cue" disabled>Play audio cue (not available yet)</option>
               <option value="host.speak">Ask host to speak</option>
             </select>
           </label>
@@ -177,8 +178,8 @@ export default function LiveEventBridgePage() {
           </label>:<label>Words for the AI host
             <textarea value={speech} onChange={e=>setSpeech(e.target.value)} rows={4} maxLength={500} placeholder="Write what Magnanimous should say…" />
           </label>}
-          <button onClick={sendCommand} disabled={!connected||(needsTarget?!target.trim():!speech.trim())}>Send approved command</button>
-          <p className="hint">The bridge allows only scene selection, overlay visibility, approved audio cues and host speech. It cannot start or stop broadcasts, manage accounts, moderate viewers, spend money, run shell commands or execute arbitrary code.</p>
+          <button onClick={sendCommand} disabled={!connected||(action!=='scene.set'&&action!=='host.speak')||(needsTarget?!target.trim():!speech.trim())}>Send approved command</button>
+          <p className="hint">Currently supported: OBS scene changes and AI host speech after local operator approval. Overlay and audio-cue commands are disabled until their local engines are implemented and verified. The bridge cannot start or stop broadcasts, manage accounts, moderate viewers, spend money, run shell commands or execute arbitrary code.</p>
         </div>
       </section>
       {(error||notice)&&<div className={error?'error':'notice'} role="status">{error||notice}</div>}
