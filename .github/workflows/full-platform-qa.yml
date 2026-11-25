@@ -15,7 +15,7 @@ permissions:
 
 concurrency:
   group: full-platform-qa-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
   QA_BASE_URL: https://iammagnanimousway.com
