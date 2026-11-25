@@ -334,7 +334,7 @@ async function handleApi(req,res,url){
   try{const result=await obsClient.setProgramScene(command.sceneName);pendingBridgeCommands.splice(index,1);return json(res,200,{ok:true,approved:true,sceneName:result.sceneName||command.sceneName});}
   catch(error){return json(res,502,{detail:error.message||'OBS did not confirm the scene change.'});}
  }
- if(req.method==='GET'&&url.pathname==='/api/integrations/game/token'){
+ if(req.method==='POST'&&url.pathname==='/api/integrations/game/token'){
   if(!vaultKey)return json(res,423,{detail:'Unlock the encrypted USB workspace before creating a game integration token.'});
   if(!gameIntegrationToken)gameIntegrationToken=createLocalGameIntegrationToken();
   return json(res,200,{token:gameIntegrationToken,scope:'game.event only',expiresOn:'workspace lock or process exit',storage:'memory-only'});
