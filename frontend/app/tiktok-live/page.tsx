@@ -56,7 +56,7 @@ export default function TikTokLiveHost() {
   const [bridgeEvents, setBridgeEvents] = useState<LiveEvent[]>([]);
   const queuedCommentsRef = useRef<Array<{ id: number; text: string; source?: string }>>([]);
   const seenBridgeEventIdsRef = useRef(new Set<string>());
-  const [failedQueuedComment, setFailedQueuedComment] = useState<{ id: number; text: string } | null>(null);
+  const [failedQueuedComment, setFailedQueuedComment] = useState<{ id: number; text: string; source?: 'viewer' | 'show-rundown' } | null>(null);
   const [takeoverPaused, setTakeoverPaused] = useState(false);
   const takeoverRef = useRef(false);
   const takeoverDeadlineRef = useRef<number | null>(null);
@@ -355,6 +355,34 @@ function cleanLiveViewerText(value: string) {
       if (processingQueueId.current === next.id) processingQueueId.current = null;
     });
   }, [takeoverActive, takeoverPaused, busy, speaking, queuedComments]);
+
+  useEffect(() => {
+    if (!takeoverActive || !showRundownEnabled || takeoverPaused || !takeoverStartedAtRef.current) return;
+    const scheduleNext = () => {
+      if (!takeoverRef.current || (takeoverDeadlineRef.current && Date.now() >= takeoverDeadlineRef.current)) return;
+      const elapsed = Date.now() - (takeoverStartedAtRef.current || Date.now());
+      const duration = Math.max(1, takeoverDuration * 60_000);
+      const segment = RUNDOWN_SEGMENTS[nextRundownSegmentRef.current];
+      if (!segment || elapsed < duration * segment.at) return;
+      if (queuedCommentsRef.current.length >= 25) {
+        setNotice('The show rundown is waiting because the event queue is full. Magnanimous will not discard existing items.');
+        return;
+      }
+      const item = {
+        id: Date.now() + Math.floor(Math.random() * 1000),
+        text: 'Segment: ' + segment.title + '. Topic: ' + topic + '. ' + segment.cue + ' ' + topicInstruction,
+        source: 'show-rundown'
+      };
+      const pending = [...queuedCommentsRef.current, item];
+      queuedCommentsRef.current = pending;
+      setQueuedComments(pending);
+      setActiveRundownSegment(segment.title);
+      nextRundownSegmentRef.current += 1;
+    };
+    scheduleNext();
+    const timer = window.setInterval(scheduleNext, 1000);
+    return () => window.clearInterval(timer);
+  }, [takeoverActive, showRundownEnabled, takeoverPaused, takeoverDuration, topic, topicInstruction]);
 
   useEffect(() => {
     if (!takeoverActive || !takeoverEndsAt) return;
