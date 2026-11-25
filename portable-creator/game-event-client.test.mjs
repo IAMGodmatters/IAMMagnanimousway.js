@@ -6,7 +6,7 @@ const token='A'.repeat(43);
 
 test('sends a bounded game event only to the fixed loopback Creator endpoint',async()=>{
  let request;
- await sendLocalGameEvent({token,gameName:('<Game>'+String.fromCharCode(0)).repeat(30),actorName:'<Player>'+String.fromCharCode(0),text:'A'+String.fromCharCode(0)+' moment'},{fetchImpl:async(_url,init)=>{requestBody=init.body;return Response.json({ok:true});}});
+ const result=await sendLocalGameEvent({token,gameName:'Puzzle Quest',actorName:'Player One',text:'Level completed'},{fetchImpl:async(url,init)=>{request={url,init};return Response.json({ok:true,status:'accepted'});}});
  assert.equal(request.url,LOCAL_GAME_EVENT_ENDPOINT);
  assert.equal(request.init.method,'POST');
  assert.equal(request.init.headers.authorization,'Bearer '+token);
@@ -38,11 +38,11 @@ test('rejects empty text, invalid event IDs and stale timestamps before network 
 
 test('sanitizes and bounds game metadata and rejects failed local responses',async()=>{
  let requestBody='';
- await sendLocalGameEvent({token,gameName:'<Game>\\u0000'.repeat(30),actorName:'<Player>\\u0000',text:'A\\u0000 moment'},{fetchImpl:async(_url,init)=>{requestBody=init.body;return Response.json({ok:true});}});
+ await sendLocalGameEvent({token,gameName:('<Game>'+String.fromCharCode(0)).repeat(30),actorName:'<Player>'+String.fromCharCode(0),text:'A'+String.fromCharCode(0)+' moment'},{fetchImpl:async(_url,init)=>{requestBody=init.body;return Response.json({ok:true});}});
  const payload=JSON.parse(requestBody);
- const event=payload.event??payload;
- assert.ok(event&&typeof event==='object','The game client must send a JSON event payload.');
+ const event=payload.event;
+ assert.ok(event&&typeof event==='object','The game client must send an event envelope.');
  assert.ok(event.gameName.length<=80);
- assert.ok(!/[<>\u0000-\u001f]/.test(event.gameName+event.actorName+event.text));
+ assert.ok(!/[<>\\u0000-\\u001f]/.test(event.gameName+event.actorName+event.text));
  await assert.rejects(sendLocalGameEvent({token,text:'event'},{fetchImpl:async()=>Response.json({detail:'Workspace locked.'},{status:423})}),/Workspace locked/);
 });
