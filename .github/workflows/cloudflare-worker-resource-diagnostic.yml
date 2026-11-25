@@ -40,13 +40,12 @@ jobs:
           fi
           END="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           START="$(date -u -d "$HOURS hours ago" +%Y-%m-%dT%H:%M:%SZ)"
-          QUERY='query WorkerResourceDiagnosis($accountTag: string!, $start: Time!, $end: Time!) {
+          QUERY='query WorkerResourceDiagnosis($accountTag: String!, $start: Time!, $end: Time!) {
             viewer {
               accounts(filter: {accountTag: $accountTag}) {
                 workersInvocationsAdaptive(
                   limit: 1000
                   filter: {datetime_geq: $start, datetime_leq: $end}
-                  orderBy: [datetime_ASC]
                 ) {
                   dimensions { datetime scriptName status }
                   sum { requests errors }
