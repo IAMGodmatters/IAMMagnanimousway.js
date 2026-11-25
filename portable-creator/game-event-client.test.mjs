@@ -6,7 +6,7 @@ const token='A'.repeat(43);
 
 test('sends a bounded game event only to the fixed loopback Creator endpoint',async()=>{
  let request;
- const result=await sendLocalGameEvent({token,gameName:'Puzzle Quest',actorName:'Player One',text:'Level completed'},{fetchImpl:async(url,init)=>{request={url,init};return Response.json({ok:true,status:'accepted'});}});
+ await sendLocalGameEvent({token,gameName:('<Game>'+String.fromCharCode(0)).repeat(30),actorName:'<Player>'+String.fromCharCode(0),text:'A'+String.fromCharCode(0)+' moment'},{fetchImpl:async(_url,init)=>{requestBody=init.body;return Response.json({ok:true});}});
  assert.equal(request.url,LOCAL_GAME_EVENT_ENDPOINT);
  assert.equal(request.init.method,'POST');
  assert.equal(request.init.headers.authorization,'Bearer '+token);
