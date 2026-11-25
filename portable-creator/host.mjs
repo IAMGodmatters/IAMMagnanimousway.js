@@ -175,11 +175,15 @@ function closeBridge(){
 function bridgeSnapshot(){
  return{status:bridgeStatus,connected:bridgeStatus==='connected',error:bridgeError,pendingCommands:pendingBridgeCommands.map(({commandId,action,sceneName,overlayId,cueId,text,receivedAt})=>({commandId,action,sceneName,overlayId,cueId,text,receivedAt}))};
 }
-function connectBridge(endpoint,token){
+function validateBridgePairing(endpoint,token){
  if(typeof WebSocket!=='function')throw new Error('Online bridge requires Node.js 22 or newer. Offline creation remains available.');
- const url=new URL(endpoint);
- if(url.protocol!=='wss:'||url.hostname!=='iammagnanimousway.com'||url.username||url.password||url.search||url.hash||!/^\/api\/live-bridge\/ws\/[0-9a-f-]{36}$/i.test(url.pathname))throw new Error('Use the official secure Magnanimous live-bridge address.');
+ let url;try{url=new URL(endpoint);}catch{throw new Error('Use the official secure Magnanimous live-bridge address.');}
+ if(url.protocol!=='wss:'||url.hostname!=='iammagnanimousway.com'||url.username||url.password||url.search||url.hash||!/^\\/api\\/live-bridge\\/ws\\/[0-9a-f-]{36}$/i.test(url.pathname))throw new Error('Use the official secure Magnanimous live-bridge address.');
  if(typeof token!=='string'||token.length!==43||!/^[A-Za-z0-9_-]{43}$/.test(token))throw new Error('The companion pairing token is invalid or expired.');
+ return url;
+}
+function connectBridge(endpoint,token){
+ const url=validateBridgePairing(endpoint,token);
  closeBridge();
  bridgeStatus='connecting';bridgeError='';
  const socket=new WebSocket(url.toString());bridgeSocket=socket;
@@ -287,9 +291,11 @@ async function handleApi(req,res,url){
   return json(res,200,{...bridgeSnapshot(),workspaceUnlocked:Boolean(vaultKey),journalError:liveEventJournalError,journalWarning:liveEventJournalWarning});
  }
  if(req.method==='POST'&&url.pathname==='/api/bridge/connect'){
+  const body=await readJson(req);
+  try{validateBridgePairing(String(body.endpoint||''),String(body.token||''));}
+  catch(error){bridgeStatus='error';bridgeError=error.message;return json(res,400,{detail:error.message});}
   if(!vaultKey)return json(res,423,{detail:'Unlock the encrypted USB workspace before connecting the online bridge.'});
   if(!liveEventsRestored||liveEventJournalError||liveEventJournalWarning)return json(res,503,{detail:liveEventJournalError||liveEventJournalWarning||'The encrypted event journal has not been verified.'});
-  const body=await readJson(req);
   try{connectBridge(String(body.endpoint||''),String(body.token||''));return json(res,202,{ok:true,status:bridgeStatus});}
   catch(error){bridgeStatus='error';bridgeError=error.message;return json(res,400,{detail:error.message});}
  }
