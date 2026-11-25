@@ -85,19 +85,66 @@ if ($LaunchOBS) {
   }
 }
 
+$creatorListener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback,$Port)
+try { $creatorListener.Start(); $creatorListener.Stop() }
+catch {
+  try { $creatorListener.Stop() } catch {}
+  throw "Port $Port is already in use. Close the other local workspace or launch with -Port 3220."
+}
+
+$HostLog = Join-Path $Logs 'creator.stdout.log'
+$HostErrorLog = Join-Path $Logs 'creator.stderr.log'
+$HostArguments = '"{0}" --root "{1}" --port {2}' -f $HostScript,$Root,$Port
+$HostProcess = $null
 try {
+  $HostProcess = Start-Process -FilePath $Node -ArgumentList $HostArguments -WorkingDirectory $Root -WindowStyle Hidden -PassThru -RedirectStandardOutput $HostLog -RedirectStandardError $HostErrorLog
+  $deadline = (Get-Date).AddSeconds(20)
+  $ready = $false
+  do {
+    Start-Sleep -Milliseconds 500
+    if ($HostProcess.HasExited) { break }
+    try {
+      $health = Invoke-RestMethod -Uri ('http://127.0.0.1:' + $Port + '/api/health') -TimeoutSec 2
+      if ($health.ok -and $health.mode -eq 'offline-portable') { $ready = $true; break }
+    } catch {}
+  } while ((Get-Date) -lt $deadline)
+
+  if (-not $ready) {
+    if ($HostProcess -and -not $HostProcess.HasExited) { Stop-Process -Id $HostProcess.Id -Force }
+    $detail = ''
+    if (Test-Path $HostErrorLog) { $detail = (Get-Content -Path $HostErrorLog -Tail 8 -ErrorAction SilentlyContinue) -join ' ' }
+    throw "Magnanimous local host did not pass its health check. $detail"
+  }
+
+  if ($LaunchOBS) {
+    if (Test-Path $ObsExe) {
+      $portableMarker = Join-Path $ObsRoot 'portable_mode'
+      if (-not (Test-Path $portableMarker)) { New-Item -ItemType File -Path $portableMarker | Out-Null }
+      Start-Process -FilePath $ObsExe -ArgumentList '--portable' -WorkingDirectory $ObsRoot
+    } else {
+      Write-Warning 'OBS Portable files are not present. Add a reviewed Windows portable distribution to runtime\obs.'
+    }
+  }
+
   if (Test-Path $Chromium) {
     $browserProfile = Join-Path $Data 'browser-profile'
     New-Item -ItemType Directory -Path $browserProfile -Force | Out-Null
     Start-Process -FilePath $Chromium -ArgumentList @("--user-data-dir=$browserProfile",'--app=http://127.0.0.1:'+ $Port,'--no-first-run','--disable-sync')
   } else {
-    Start-Process -FilePath ('http://127.0.0.1:'+ $Port)
+    Start-Process -FilePath ('http://127.0.0.1:' + $Port)
   }
   Write-Host ''
-  Write-Host 'Magnanimous Portable Creator is running at http://127.0.0.1:'$Port
-  Write-Host 'It is bound to this computer only. Keep this window open while using the workspace.'
-  Write-Host 'Press Ctrl+C to stop the local creator service.'
-  & $Node $HostScript --root $Root --port $Port
+  Write-Host ('Magnanimous Portable Creator is running at http://127.0.0.1:' + $Port)
+  Write-Host 'The service is bound to this computer only. No cloud connection is used.'
+  Write-Host 'Keep this window open. Press Ctrl+C to stop the local service.'
+  while ($HostProcess -and -not $HostProcess.HasExited) {
+    Start-Sleep -Seconds 1
+    $HostProcess.Refresh()
+  }
+} finally {
+  if ($HostProcess -and -not $HostProcess.HasExited) {
+    Stop-Process -Id $HostProcess.Id -Force -ErrorAction SilentlyContinue
+  }
 } finally {
   if ($ModelProcess -and -not $ModelProcess.HasExited) {
     Stop-Process -Id $ModelProcess.Id -Force -ErrorAction SilentlyContinue
