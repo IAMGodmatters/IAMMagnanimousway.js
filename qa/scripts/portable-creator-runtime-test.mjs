@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const SOURCE=path.join(ROOT,'portable-creator');
-const eventTests=spawnSync(process.execPath,['--test',path.join(SOURCE,'live-event-runtime.test.mjs'),path.join(SOURCE,'live-event-journal.test.mjs'),path.join(SOURCE,'game-event-integration.test.mjs')],{encoding:'utf8'});
+const eventTests=spawnSync(process.execPath,['--test',path.join(SOURCE,'live-event-runtime.test.mjs'),path.join(SOURCE,'live-event-journal.test.mjs'),path.join(SOURCE,'game-event-integration.test.mjs'),path.join(SOURCE,'game-event-client.test.mjs')],{encoding:'utf8'});
 if(eventTests.status!==0){console.error(eventTests.stdout||'');console.error(eventTests.stderr||'');throw new Error('Portable live-event runtime unit tests failed.');}
 console.log(eventTests.stdout.trim());
 
