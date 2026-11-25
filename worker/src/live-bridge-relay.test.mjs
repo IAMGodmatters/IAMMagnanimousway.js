@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {handleLiveBridgeRelay,isRelayProviderAllowed,MagnanimousLiveBridgeRoom,normalizeRelayCommand,normalizeRelayEvent} from './live-bridge-relay.js';
 
 const NOW=Date.parse('2026-11-25T00:00:00.000Z');
@@ -106,6 +107,55 @@ test('Durable Object room stores only token hashes and rejects duplicate initial
  assert.equal(duplicate.status,409);
 });
 
+
+
+function makeSocket(initial){
+ let attachment={...initial};const messages=[];let closed=null;
+ return {messages,get closed(){return closed;},get attachment(){return attachment;},deserializeAttachment:()=>attachment,serializeAttachment:value=>{attachment=value;},send:value=>messages.push(JSON.parse(value)),close:(code,reason)=>{closed={code,reason};}};
+}
+function tokenHash(token){return createHash('sha256').update(token).digest('hex');}
+function makeRoomForAuth(role,origin){
+ const browserToken='B'.repeat(43),companionToken='C'.repeat(43);
+ const pair={pairId:'room-1',tenantId:'tenant-1',userId:'user-1',browserHash:tokenHash(browserToken),companionHash:tokenHash(companionToken),allowedProviders:['manual','obs','game','browser'],pairExpiresAt:Date.now()+600000,sessionExpiresAt:0};
+ const socket=makeSocket({pairId:'room-1',tenantId:'tenant-1',expectedOrigin:'https://iammagnanimousway.com',origin,role:null,authenticated:false,seen:[],sessionExpiresAt:0});
+ const state={storage:{get:async()=>pair,put:async(_key,value)=>{Object.assign(pair,value);},setAlarm:async()=>{}},getWebSockets:()=>[socket]};
+ return {room:new MagnanimousLiveBridgeRoom(state,{}),socket,token:role==='browser'?browserToken:companionToken};
+}
+
+test('browser pairing token cannot authenticate without the official browser origin',async()=>{
+ const {room,socket,token}=makeRoomForAuth('browser',null);
+ await room.webSocketMessage(socket,JSON.stringify({kind:'auth',protocolVersion:1,token}));
+ assert.equal(socket.closed?.code,4003);
+ assert.equal(socket.messages.at(-1)?.code,'ORIGIN_ROLE_MISMATCH');
+ assert.equal(socket.attachment.authenticated,false);
+});
+
+test('companion pairing token cannot authenticate from a browser origin',async()=>{
+ const {room,socket,token}=makeRoomForAuth('companion','https://iammagnanimousway.com');
+ await room.webSocketMessage(socket,JSON.stringify({kind:'auth',protocolVersion:1,token}));
+ assert.equal(socket.closed?.code,4003);
+ assert.equal(socket.messages.at(-1)?.code,'ORIGIN_ROLE_MISMATCH');
+ assert.equal(socket.attachment.authenticated,false);
+});
+
+test('official browser and originless local companion tokens authenticate only their assigned roles',async()=>{
+ const browser=makeRoomForAuth('browser','https://iammagnanimousway.com');
+ await browser.room.webSocketMessage(browser.socket,JSON.stringify({kind:'auth',protocolVersion:1,token:browser.token}));
+ assert.equal(browser.socket.attachment.authenticated,true);
+ assert.equal(browser.socket.attachment.role,'browser');
+ const companion=makeRoomForAuth('companion',null);
+ await companion.room.webSocketMessage(companion.socket,JSON.stringify({kind:'auth',protocolVersion:1,token:companion.token}));
+ assert.equal(companion.socket.attachment.authenticated,true);
+ assert.equal(companion.socket.attachment.role,'companion');
+});
+
+test('authenticated companion cannot spoof a platform event without adapter authorization',async()=>{
+ const socket=makeSocket({authenticated:true,role:'companion',allowedProviders:['manual','obs','game','browser'],seen:[],sessionExpiresAt:Date.now()+60000,windowStartedAt:Date.now(),windowCount:0});
+ const state={getWebSockets:()=>[socket]};
+ const room=new MagnanimousLiveBridgeRoom(state,{});
+ await room.webSocketMessage(socket,JSON.stringify({kind:'event',protocolVersion:1,event:{protocolVersion:1,eventId:'spoof-1',provider:'youtube',type:'audience.follow',occurredAt:new Date().toISOString()}}));
+ assert.equal(socket.messages.at(-1)?.code,'PROVIDER_NOT_AUTHORIZED');
+});
 
 test('limits authenticated browser message rate',async()=>{
  const now=Date.now();
