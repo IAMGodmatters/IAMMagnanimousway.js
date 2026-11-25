@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const SOURCE=path.join(ROOT,'portable-creator');
-const eventTests=spawnSync(process.execPath,['--test',path.join(SOURCE,'live-event-runtime.test.mjs'),path.join(SOURCE,'live-event-journal.test.mjs')],{encoding:'utf8'});
+const eventTests=spawnSync(process.execPath,['--test',path.join(SOURCE,'live-event-runtime.test.mjs'),path.join(SOURCE,'live-event-journal.test.mjs'),path.join(SOURCE,'game-event-integration.test.mjs')],{encoding:'utf8'});
 if(eventTests.status!==0){console.error(eventTests.stdout||'');console.error(eventTests.stderr||'');throw new Error('Portable live-event runtime unit tests failed.');}
 console.log(eventTests.stdout.trim());
 
@@ -23,6 +23,7 @@ fs.copyFileSync(path.join(SOURCE,'obs-client.mjs'),path.join(target,'obs-client.
 fs.copyFileSync(path.join(SOURCE,'live-event-runtime.mjs'),path.join(target,'live-event-runtime.mjs'));
 fs.copyFileSync(path.join(SOURCE,'live-event-journal.mjs'),path.join(target,'live-event-journal.mjs'));
 fs.copyFileSync(path.join(SOURCE,'live-show-director.mjs'),path.join(target,'live-show-director.mjs'));
+fs.copyFileSync(path.join(SOURCE,'game-event-integration.mjs'),path.join(target,'game-event-integration.mjs'));
 for(const file of ['index.html','app.js','styles.css'])fs.copyFileSync(path.join(SOURCE,'app',file),path.join(target,'app',file));
 const appSyntax=spawnSync(process.execPath,['--check',path.join(target,'app','app.js')],{encoding:'utf8'});
 if(appSyntax.status!==0){console.error(appSyntax.stderr||'');throw new Error('Portable creator browser script syntax check failed.');}
@@ -95,6 +96,22 @@ try{
  assert.equal(created.status,200,'A new encrypted workspace should be created.');
  const createdData=await created.json();
  assert.equal(createdData.created,true);
+ const tokenReveal=await post(origin+'/api/integrations/game/token',origin,{});
+ assert.equal(tokenReveal.status,200,'Same-origin workspace owner should be able to reveal a temporary local game token.');
+ const gameTokenData=await tokenReveal.json();
+ assert.match(gameTokenData.token,/^[A-Za-z0-9_-]{43}$/,'Game token must be 256-bit base64url.');
+ assert.equal(gameTokenData.storage,'memory-only','Game token must never be persisted to disk.');
+ const gameEvent={eventId:'local-game-'+Date.now(),occurredAt:new Date().toISOString(),gameName:'QA Game',actorName:'QA Game Event',text:'A level was completed'};
+ const localGamePost=(token,event)=>fetch(origin+'/api/integrations/game/event',{method:'POST',headers:{authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify({event})});
+ assert.equal((await localGamePost('A'.repeat(43),gameEvent)).status,401,'Invalid local integration token must be rejected.');
+ assert.equal((await post(origin+'/api/integrations/game/event','https://attacker.example',{event:gameEvent})).status,403,'Cross-origin local game integration requests must be rejected.');
+ const acceptedGameEvent=await localGamePost(gameTokenData.token,gameEvent);
+ assert.equal(acceptedGameEvent.status,202,'A valid local authenticated game event should enter the encrypted event queue.');
+ const gameBatch=await (await post(origin+'/api/live/events/consume',origin,{limit:1})).json();
+ assert.equal(gameBatch.events[0].provider,'game','Local game integration must be normalized to the game provider.');
+ assert.equal(gameBatch.events[0].type,'game.event','Local game integration must accept only game event types.');
+ assert.equal(gameBatch.events[0].tags.gameName,'QA Game','Game name should be retained as a bounded safe tag.');
+
  const invalidBridge=await post(origin+'/api/bridge/connect',origin,{endpoint:'https://attacker.example/socket',token:'A'.repeat(43)});
  assert.equal(invalidBridge.status,400,'Companion must reject non-WSS and non-Magnanimous endpoints.');
  const liveEvent={protocolVersion:1,eventId:'runtime-'+Date.now(),provider:'manual',type:'chat.message',occurredAt:new Date().toISOString(),actorName:'QA viewer',text:'Hello Magnanimous'};
@@ -137,6 +154,7 @@ try{
  assert.equal(projects.projects[0].title,'Portable rehearsal');
  assert.equal(projects.projects[0].content,'Private project body that must be encrypted at rest.');
  assert.equal((await post(origin+'/api/vault/lock',origin,{})).status,200);
+ assert.equal((await localGamePost(gameTokenData.token,gameEvent)).status,423,'Workspace lock must revoke game integration access.');
  assert.equal((await fetch(origin+'/api/projects')).status,423,'Locked vault must not expose saved projects.');
  const wrong=await post(origin+'/api/vault/unlock',origin,{passphrase:'a-different-long-passphrase'});
  assert.equal(wrong.status,401,'Wrong passphrase must fail authenticated decryption.');
@@ -145,6 +163,9 @@ try{
  assert.equal((await fetch(origin+'/api/projects')).status,423,'Wrong passphrase must not restore access.');
  const unlocked=await post(origin+'/api/vault/unlock',origin,{passphrase});
  assert.equal(unlocked.status,200,'Correct passphrase should unlock saved workspace.');
+ assert.equal((await localGamePost(gameTokenData.token,gameEvent)).status,401,'Old local game token must remain revoked after a later unlock.');
+ const nextGameToken=await (await post(origin+'/api/integrations/game/token',origin,{})).json();
+ assert.notEqual(nextGameToken.token,gameTokenData.token,'A fresh workspace unlock must issue a new game integration token.');
  const afterUnlock=await (await fetch(origin+'/api/projects')).json();
  assert.equal(afterUnlock.projects[0].title,'Portable rehearsal','Saved project should survive lock and unlock.');
  const noModel=await post(origin+'/api/chat',origin,{prompt:'Write a short livestream welcome.'});
