@@ -12,7 +12,7 @@ The sensible approach is a layered system:
 
 1. **Magnanimous owns the intelligence.** It is responsible for identity, conversation context, knowledge, safety rules, moderation decisions, and the final words spoken.
 2. **Voice and avatar systems are replaceable output adapters.** A model may speak or animate the face, but it does not acquire Magnanimous's identity, memory, or authority.
-3. **Kyutai Pocket TTS is the preferred first local voice benchmark.** Its official CPU-first engine streams audio, reports roughly 200 ms to first chunk, and supports seven languages without GPU inference. Run it locally through the existing Magnanimous Local Bridge; do not assume its community browser ports are production-ready. HeadTTS remains the better lip-sync/viseme candidate because it exposes phoneme timing.
+3. **Kyutai Pocket TTS is the preferred first local voice benchmark.** Its official CPU-first engine streams audio, reports roughly 200 ms to first chunk, and supports six currently documented languages without GPU inference. Run it locally through the existing Magnanimous Local Bridge; do not assume its community browser ports are production-ready. HeadTTS remains the better lip-sync/viseme candidate because it exposes phoneme timing.
 4. **OBS is the local broadcast bridge.** Use OBS for the scene, audio/video composition, and an authorized TikTok output. Its WebSocket API is included in OBS Studio 28+ and should be password-protected. TikTok Shop Philippines LIVE Manager documentation also describes OBS Virtual Camera as a desktop video source without a stream key; audio is selected separately, and account availability remains TikTok-controlled.
 5. **Make the live format bigger than the avatar.** Gaming, interactive storytelling, audience polls, music, education, art, community chat, and product demonstrations can each use a different stage layout and interaction loop. A stylized 2D/3D avatar or owned VRM/Live2D model is often more practical than a photoreal clone; a person should not need to show their own face.
 6. **Use a secure local event bus.** Streamer.bot can receive supported Twitch/YouTube/Kick, OBS and connected-app events locally. The current LIVE page connects to Streamer.bot over its authenticated local WebSocket, discovers supported event categories, subscribes only to selected events, and reads the local action catalog. It offers only enabled actions whose names begin exactly `Magnanimous Approved - ` and requires a separate human confirmation before sending `DoAction`. No viewer text or AI-generated response can invoke a local action.
@@ -43,6 +43,17 @@ The sensible approach is a layered system:
 - **HeyGen LiveAvatar:** The current official homepage lists Free at $0 (10 credits/month, maximum two minutes per session, one concurrent session, watermark); Starter at $19/month (150 credits, maximum five minutes per session, up to five concurrent sessions); Essential at $99/month (1,000 credits, maximum 20 minutes per session, up to 20 concurrent sessions); and Business at $475/month (5,000 credits, maximum 60 minutes per session, up to 40 concurrent sessions). One credit buys 30 seconds in Full mode or one minute in Lite mode. This means even Business's stated 60-minute session ceiling is not proof of a continuous multi-hour broadcast; credit consumption is a separate limit. Prices and credit allowances may change.
 
 No paid provider is activated by this update. The UI identifies which choices are available to test, which are paid, and which remain unconnected.
+
+## Pocket TTS home-engine implementation
+
+The existing Local Bridge now exposes two exact actions:
+
+- `pocket_tts_status`: read-only check of binary presence, OS CPU support, and D-drive target path.
+- `pocket_tts_generate`: owner-confirmed generation of a short WAV clip, using an allowlisted built-in voice and language and a fixed 120-second generation ceiling.
+
+On Windows the default root is `D:\\MagnanimousData\\PocketTTS`. The binary must be located in this root; model cache is redirected using `HF_HOME`, `HF_HUB_CACHE`, `HUGGINGFACE_HUB_CACHE`, and `XDG_CACHE_HOME` to its local `cache` directory. Audio is stored under `output` and the API returns file metadata plus the local path. No audio bytes, model weights, or voice credentials are uploaded to Magnanimous cloud.
+
+The status action uses Windows `IsProcessorFeaturePresent(PF_AVX2_INSTRUCTIONS_AVAILABLE)` to verify the AVX2 requirement. It fails closed if the OS does not report AVX2. The current official release's Windows binary is not installed automatically; no download or device modification occurs when simply checking status. A generated WAV is a discrete audio clip, not a continuous real-time media stream. It can be played from OBS or through a creator-configured, operator-approved Streamer.bot action. The host's continuous speech output still uses browser speech until a local PCM/audio-device bridge passes an end-to-end test.
 
 ## TikTok platform access and integration boundary
 
