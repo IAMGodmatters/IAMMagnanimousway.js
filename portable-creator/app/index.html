@@ -11,7 +11,7 @@
 <body>
   <header class="topbar">
     <div class="brand"><span class="brand-mark">M</span><div><strong>MAGNANIMOUS</strong><small>PORTABLE CREATOR</small></div></div>
-    <div class="mode"><span class="dot"></span> LOCAL DEVICE ONLY</div>
+    <div class="mode"><span class="dot"></span> DUAL MODE • LOCAL + ONLINE</div>
   </header>
   <main class="layout">
     <section class="hero">
@@ -88,6 +88,23 @@
         <div id="obsMessage" class="message" role="status"></div>
         <p class="muted">This controls local OBS scenes and recording only. It does not start a public livestream or connect TikTok, Facebook, YouTube or Zoom.</p>
       </article>
+      <article class="panel bridge-panel">
+        <div class="panel-heading"><div><small>SECURE ONLINE CONNECTION</small><h2>Connect to Magnanimous Live Studio</h2></div><span class="lock-icon">↗</span></div>
+        <p class="muted">Pair this computer with the online Magnanimous bridge. The companion token is held in memory only. Events are saved to the encrypted recovery journal; remote production commands wait here for your approval.</p>
+        <div class="status-row"><span id="bridgeStatus" class="status warning">Online bridge disconnected</span></div>
+        <label for="bridgeEndpoint">Secure bridge address</label>
+        <input id="bridgeEndpoint" autocomplete="off" placeholder="wss://iammagnanimousway.com/api/live-bridge/ws/…">
+        <label for="bridgeToken">Temporary companion token</label>
+        <input id="bridgeToken" type="password" autocomplete="off" placeholder="Paste the companion token from the online bridge page">
+        <div class="actions">
+          <button id="bridgeConnectButton" class="primary">Connect online</button>
+          <button id="bridgeDisconnectButton" class="quiet" disabled>Disconnect</button>
+        </div>
+        <div id="bridgeMessage" class="message" role="status"></div>
+        <div class="panel-heading"><div><small>REMOTE PRODUCTION APPROVALS</small><h3>Commands waiting for you</h3></div><span id="bridgeCommandCount" class="count">0</span></div>
+        <div id="bridgeCommandList" class="live-event-list"><p class="muted">No pending remote commands.</p></div>
+        <p class="muted">Only an approved OBS scene change is currently executable. Overlay, audio-cue and host-speech commands remain disabled until their local engines are installed and verified.</p>
+      </article>
       <article class="panel live-events-panel">
         <div class="panel-heading"><div><small>INTERACTIVE SHOW INPUT</small><h2>Audience & game events</h2></div><span class="spark">✦</span></div>
         <p class="muted">Review validated events delivered to this local creator. Nothing triggers a scene, game action, payment or moderation decision automatically.</p>
@@ -113,8 +130,8 @@
     </section>
 
     <section class="boundary">
-      <strong>Offline means local creation, not live broadcasting.</strong>
-      <p>This edition does not send data to Magnanimous cloud services, TikTok, Facebook, YouTube or Zoom. A network connection is still required to broadcast online or join a Zoom meeting. Use the online platform connectors only after you reconnect and authorize them.</p>
+      <strong>Offline creation and online collaboration work together.</strong>
+      <p>Scripts, recordings and encrypted projects remain on this device. When connected, the secure Magnanimous relay can carry authorized events and reviewed production commands. Public broadcasts still require approved platform adapters, an eligible account and an internet connection. Connecting this bridge does not by itself start a livestream.</p>
     </section>
   </main>
   <footer><span>I AM MAGNANIMOUS WAY™</span><span>Local workspace • No telemetry • No cloud calls</span></footer>
