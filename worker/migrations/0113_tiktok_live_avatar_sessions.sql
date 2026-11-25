@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS tiktok_live_avatar_sessions (
   usage_month TEXT NOT NULL,
   session_seconds INTEGER NOT NULL DEFAULT 120,
   state TEXT NOT NULL DEFAULT 'pending'
-    CHECK (state IN ('pending','issued','failed','expired')),
+    CHECK (state IN ('pending','issued','failed','expired','ended')),
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
