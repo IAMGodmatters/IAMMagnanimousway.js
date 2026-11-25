@@ -1,5 +1,5 @@
 const $=id=>document.getElementById(id);
-const state={modelReady:false,vaultUnlocked:false,projects:[],obsConnected:false,obsRecording:false,bridgeConnected:false,bridgeStatus:'disconnected',pendingBridgeCommands:[]};
+const state={modelReady:false,vaultUnlocked:false,projects:[],obsConnected:false,obsRecording:false,bridgeConnected:false,bridgeStatus:'disconnected',bridgeJournalWarning:false,pendingBridgeCommands:[]};
 async function api(path,options={}){
  const response=await fetch(path,{...options,cache:'no-store',headers:{'content-type':'application/json',...(options.headers||{})}});
  const data=await response.json().catch(()=>({detail:'The local service returned an invalid response.'}));
@@ -23,7 +23,7 @@ function updateControls(){
  $('obsStopRecordButton').disabled=!state.obsConnected||!state.obsRecording;
  $('livePullButton').disabled=!state.vaultUnlocked;
  $('liveSendButton').disabled=!state.vaultUnlocked||!$('liveTestText').value.trim();
- $('bridgeConnectButton').disabled=!state.vaultUnlocked||state.bridgeConnected||state.bridgeStatus==='connecting';
+ $('bridgeConnectButton').disabled=!state.vaultUnlocked||state.bridgeJournalWarning||state.bridgeConnected||state.bridgeStatus==='connecting';
  $('bridgeDisconnectButton').disabled=state.bridgeStatus==='disconnected';
 }
 function updateGenerationStatus(){
@@ -162,7 +162,7 @@ function renderLiveEvents(events,cues=[]){
  }
 }
 async function refreshLiveQueue(){
- try{const data=await api('/api/live/events/status');$('liveQueueStatus').textContent=data.journalError?'Recovery journal verification failed':data.recoveryLocked?'Unlock the encrypted workspace to recover saved events':!state.vaultUnlocked?'Unlock the encrypted workspace to use live events':data.queued+' queued · '+data.capacity+' capacity';$('liveQueueStatus').className='status '+(data.queued?'ready':'warning');}
+ try{const data=await api('/api/live/events/status');$('liveQueueStatus').textContent=data.journalError?'Recovery journal verification failed':data.journalWarning?'Recovery journal needs compaction':data.recoveryLocked?'Unlock the encrypted workspace to recover saved events':!state.vaultUnlocked?'Unlock the encrypted workspace to use live events':data.queued+' queued · '+data.capacity+' capacity';$('liveQueueStatus').className='status '+(data.queued?'ready':'warning');}
  catch(error){$('liveQueueStatus').textContent='Local event queue unavailable';}
 }
 function renderBridgeCommands(commands){
@@ -183,10 +183,10 @@ function renderBridgeCommands(commands){
 async function refreshBridgeStatus(){
  try{
   const data=await api('/api/bridge/status');
-  state.bridgeConnected=Boolean(data.connected);state.bridgeStatus=String(data.status||'disconnected');state.pendingBridgeCommands=data.pendingCommands||[];
+  state.bridgeConnected=Boolean(data.connected);state.bridgeStatus=String(data.status||'disconnected');state.bridgeJournalWarning=Boolean(data.journalError||data.journalWarning);state.pendingBridgeCommands=data.pendingCommands||[];
   $('bridgeStatus').textContent=state.bridgeConnected?'Online bridge connected':state.bridgeStatus==='connecting'?'Waiting for online companion':'Online bridge '+state.bridgeStatus;
   $('bridgeStatus').className='status '+(state.bridgeConnected?'ready':'warning');
-  if(data.error)message('bridgeMessage',data.error,'warning');
+  if(data.journalError)message('bridgeMessage',data.journalError,'error');else if(data.journalWarning)message('bridgeMessage',data.journalWarning,'warning');else if(data.error)message('bridgeMessage',data.error,'warning');
   renderBridgeCommands(state.pendingBridgeCommands);updateControls();
  }catch(error){$('bridgeStatus').textContent='Online bridge status unavailable';}
 }
