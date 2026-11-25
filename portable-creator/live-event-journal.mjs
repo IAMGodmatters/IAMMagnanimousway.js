@@ -58,8 +58,8 @@ export class LiveEventJournal{
   const completeEnd=source.lastIndexOf('\n'),truncatedTail=completeEnd!==source.length-1;
   const lines=source.slice(0,completeEnd+1).split(/\r?\n/);
   let legacyDetected=false;
-  for(const line of lines){
-   if(!line)continue;
+  const consumeLine=line=>{
+   if(!line)return;
    if(Buffer.byteLength(line,'utf8')>MAX_RECORD_BYTES)throw new Error('The live-event journal contains an oversized record. Existing data was preserved.');
    let envelope;try{envelope=JSON.parse(line);}catch{throw new Error('The live-event journal contains a malformed complete record. Existing data was preserved.');}
    if(envelope?.version===1&&!envelope.cipher&&(envelope.kind==='event'||envelope.kind==='ack')){
@@ -67,11 +67,22 @@ export class LiveEventJournal{
     if(envelope.kind==='event'&&envelope.event&&typeof envelope.event==='object')records.push({version:1,kind:'event',event:envelope.event});
     else if(envelope.kind==='ack'&&Array.isArray(envelope.keys))records.push({version:1,kind:'ack',keys:envelope.keys});
     else throw new Error('The legacy live-event journal contains an invalid record. Existing data was preserved.');
-    continue;
+    return;
    }
    const record=this.decode(envelope);
    if(!record)throw new Error('The live-event journal contains an unsupported record. Existing data was preserved.');
    records.push(record);
+  };
+  for(const line of lines)consumeLine(line);
+  if(truncatedTail){
+   const tail=source.slice(completeEnd+1);
+   if(tail){
+    try{JSON.parse(tail);consumeLine(tail);}
+    catch(error){
+     if(String(error?.message||'').includes('could not be unlocked or verified')||String(error?.message||'').includes('unsupported record')||String(error?.message||'').includes('invalid record'))throw error;
+     // A syntactically incomplete final write is discarded; all complete authenticated records are retained.
+    }
+   }
   }
   if(legacyDetected||truncatedTail)this.rewriteEncrypted(records);
   return records;
