@@ -106,9 +106,9 @@ checks.push(
  ['remote host speech is queued locally and cannot speak before operator approval',host.includes("value.action==='host.speak'")&&host.includes("command.action==='host.speak'")&&app.includes("result.action==='host.speak'")&&app.includes('speakHostLine()')&&host.includes("body.approved!==true")],
  ['online host speech is spoken only through the selected local device voice',app.includes("const selectedVoice=$('hostVoiceSelect').value")&&app.includes('window.speechSynthesis.speak(utterance)')&&app.includes("$('hostLine').value=String(result.speechText).slice(0,500)")],
 
-);
  ['workspace lock clears private draft, host and viewer text from the browser UI',app.includes('function clearSensitiveUi()')&&app.includes("['passphrase','prompt','outputTitle','output','hostTopic','hostScript','hostLine','liveTestText','obsPassword','bridgeToken']")&&app.includes("state.lastHostEvent=null")&&app.includes("clearSensitiveUi();")],
  ['workspace lock stops speech, warns before discarding unsaved content and cancels local generation',app.includes('cancelGenerationRequests();stopHostVoice();')&&app.includes('window.confirm(\'Locking clears unsaved drafts')&&app.includes('generationRequests.add(controller)')&&app.includes('signal:controller.signal')],
+);
 const failures=checks.filter(([,ok])=>!ok);
 for(const [name,ok] of checks)console.log(`${ok?'PASS':'FAIL'} ${name}`);
 if(failures.length){console.error(`Portable creator contract failed: ${failures.length} check(s).`);process.exit(1);}
