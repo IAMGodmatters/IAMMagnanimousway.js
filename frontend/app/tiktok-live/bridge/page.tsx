@@ -138,7 +138,7 @@ export default function LiveEventBridgePage() {
   return (
     <main className="bridgePage">
       <header className="topbar">
-        <a href="/tiktok-live">← AI Host</a>
+        <a href="/live-studio">← Live Studio</a>
         <span>I AM MAGNANIMOUS WAY™</span>
         <a href="/social-hub">Social Hub →</a>
       </header>
