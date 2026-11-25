@@ -80,19 +80,22 @@ try{
  assert.equal(noOrigin.status,403,'Origin-less browser mutations must be rejected.');
  const invalid=await post(origin+'/api/vault/unlock',origin,{passphrase:'short'});
  assert.equal(invalid.status,401,'Short passphrases must be rejected.');
- const passphrase='magnanimous-test-passphrase-2026';
+const initialEventStatus=await (await fetch(origin+'/api/live/events/status')).json();
+ assert.equal(initialEventStatus.queued,0,'Live event queue should start empty.');
+ assert.equal(initialEventStatus.locked,true,'Encrypted LIVE event journal must remain locked with the workspace.');
+ assert.equal(initialEventStatus.storageReady,false,'LIVE events must not be stored before the workspace unlocks.');
+ assert.equal((await post(origin+'/api/live/events/consume',origin,{limit:1})).status,423,'Locked journal must reject event consumption.');
+  const passphrase='magnanimous-test-passphrase-2026';
  const created=await post(origin+'/api/vault/unlock',origin,{passphrase});
  assert.equal(created.status,200,'A new encrypted workspace should be created.');
  const createdData=await created.json();
  const eventStatus=await (await fetch(origin+'/api/live/events/status')).json();
- assert.equal(eventStatus.queued,0,'Live event queue should start empty.');
- assert.equal(eventStatus.locked,true,'Encrypted LIVE event journal must remain locked with the workspace.');
- assert.equal(eventStatus.storageReady,false,'LIVE events must not be stored before the workspace unlocks.');
- assert.equal((await post(origin+'/api/live/events/consume',origin,{limit:1})).status,423,'Locked journal must reject event consumption.');
+ assert.equal(eventStatus.queued,0,'Live event queue should start empty after unlock.');
  assert.equal(eventStatus.durable,true,'Live event queue must report durable USB storage.');
  assert.equal(eventStatus.storageReady,true,'Encrypted live event journal must be ready after workspace unlock.');
  assert.equal(eventStatus.encrypted,true,'LIVE event journal must report authenticated encryption.');
- const liveEvent={protocolVersion:1,eventId:'runtime-'+Date.now(),provider:'manual',type:'chat.message',occurredAt:new Date().toISOString(),actorName:'QA viewer',text:'Hello Magnanimous'};
+ 
+  const liveEvent={protocolVersion:1,eventId:'runtime-'+Date.now(),provider:'manual',type:'chat.message',occurredAt:new Date().toISOString(),actorName:'QA viewer',text:'Hello Magnanimous'};
  const spoofedEvent=await post(origin+'/api/live/events/ingest',origin,{event:{...liveEvent,eventId:'spoof-'+Date.now(),provider:'tiktok'}});
  assert.equal(spoofedEvent.status,403,'Browser intake must reject provider-labelled events without authenticated companion adapters.');
  const acceptedEvent=await post(origin+'/api/live/events/ingest',origin,{event:liveEvent});
