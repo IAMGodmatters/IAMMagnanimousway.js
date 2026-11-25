@@ -73,6 +73,7 @@ try{
  const bridgeStatus=await (await fetch(origin+'/api/bridge/status')).json();
  assert.equal(bridgeStatus.status,'disconnected','Online bridge must start disconnected.');
  assert.equal((await post(origin+'/api/bridge/connect',origin,{endpoint:'https://attacker.example/socket',token:'A'.repeat(43)})).status,400,'Companion must reject non-WSS and non-Magnanimous endpoints.');
+ assert.equal((await post(origin+'/api/bridge/connect',origin,{endpoint:'wss://iammagnanimousway.com/api/live-bridge/ws/12345678-1234-1234-1234-123456789abc',token:'A'.repeat(43)})).status,423,'A valid bridge endpoint still requires the encrypted workspace to be unlocked.');
  assert.equal((await post(origin+'/api/bridge/command/review',origin,{commandId:'unknown',approved:true})).status,404,'Unknown remote commands must not execute.');
  const eventStatus=await (await fetch(origin+'/api/live/events/status')).json();
  assert.equal(eventStatus.queued,0,'Live event queue should start empty.');
