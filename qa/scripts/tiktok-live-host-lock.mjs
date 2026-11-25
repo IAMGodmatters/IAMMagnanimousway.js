@@ -34,6 +34,12 @@ const checks = [
   ['AI takeover includes a visible emergency stop', host.includes('STOP AI TAKEOVER') && host.includes('function stopTakeover') && host.includes('stopNaturalSpeech()')],
   ['AI takeover processes only operator-queued comments, not claimed TikTok chat access', host.includes('Paste or type a viewer') && host.includes('queuedCommentsRef.current.length >= 25') && host.includes('const next = [...queuedCommentsRef.current, item]') && host.includes('TikTok does not provide a connected comment feed')],
   ['automatic comment queue is bounded and serialized behind speech', host.includes('queuedComments.length >= 25') && host.includes('if (!takeoverActive || takeoverPaused || busy || speaking || takeoverGreetingRef.current')],
+  ['AI show director offers a separate owner opt-in timed rundown', host.includes('showRundownEnabled') && host.includes('Let Magnanimous autonomously run the timed show rundown')],
+  ['timed rundown contains all six show phases', ['Set the direction','Main teaching','Audience participation','Interactive round','Practical takeaway','Recap and close'].every(label => host.includes(label))],
+  ['rundown segments are scheduled against the selected session duration', host.includes('duration * segment.at') && host.includes('takeoverStartedAtRef.current') && host.includes('nextRundownSegmentRef.current')],
+  ['rundown cues are internal host tasks, not displayed as viewer comments', host.includes("source !== 'show-rundown'") && host.includes('Owner-approved show segment') && host.includes("next.source === 'show-rundown'")],
+  ['rundown scheduling pauses on queue failure and never discards existing items', host.includes('!showRundownEnabled || takeoverPaused') && host.includes('Magnanimous will not discard existing items')],
+
   ['failed AI answers pause and preserve the comment for retry or skip', host.includes('setFailedQueuedComment') && host.includes('retryFailedQueuedComment') && host.includes('skipFailedQueuedComment')],
   ['viewer PII and secrets are redacted before the Magnanimous prompt', host.includes('cleanLiveViewerText') && host.includes('[email removed]') && host.includes('[phone number removed]') && host.includes('[sensitive detail removed]')],
   ['AI host output is cleaned and bounded before browser speech', host.includes('cleanLiveHostText') && host.includes('.slice(0, 700)')],
