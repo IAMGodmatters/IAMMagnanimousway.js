@@ -78,7 +78,7 @@ This control path is local production only. It does not start a public livestrea
 
 ## Local live-event runtime
 
-Accepted events and acknowledgements are stored in a bounded, fsynced JSONL recovery journal. Startup replays only unacknowledged events without writing duplicate records. If the journal reaches its configured size limit, new events are rejected rather than silently dropping recovery data; compaction/export remains a required follow-up before long-running production use.
+Accepted events and acknowledgements are encrypted with AES-256-GCM in a bounded, fsynced JSONL recovery journal. The encryption subkey is derived from the unlocked workspace key and is never written to disk. Startup replays only unacknowledged events without writing duplicate records; legacy plaintext journal records are migrated on first successful unlock. Atomic compaction retains pending events and recent deduplication IDs. If the journal reaches its configured size limit or cannot be verified, new event intake stops rather than silently dropping or overwriting recovery data.
 
 The portable host now exposes a bounded, loopback-only event intake for future authorized platform and game adapters:
 
@@ -86,7 +86,7 @@ The portable host now exposes a bounded, loopback-only event intake for future a
 - `POST /api/live/events/ingest` accepts a protocol-version-1 event in a JSON `event` field.
 - `POST /api/live/events/consume` returns a bounded batch (1–50 events) for the local operator/host runtime.
 
-Browser intake accepts operator-entered `manual` events only; provider-labelled events must arrive through a future authenticated local companion adapter. The runtime validates provider, event type, event ID and timestamp; removes control characters; bounds viewer text and tags; strips credential-like tag names; deduplicates provider event IDs; applies a per-provider rate limit; and returns backpressure when the queue is full. It does not silently discard already accepted events.
+Browser intake accepts operator-entered `manual` events only; provider-labelled events must arrive through the local companion and an explicitly authorized provider adapter. TikTok, Facebook, YouTube, Twitch and Zoom are not authorized by the initial bridge pair. The runtime validates provider, event type, event ID and timestamp; removes control characters; bounds viewer text and tags; strips credential-like tag names; deduplicates provider event IDs; applies a per-provider rate limit; and returns backpressure when the queue is full. It does not silently discard already accepted events.
 
 Queue and deduplication state are transient in memory and are cleared when the host exits. They are not a substitute for durable project storage. The endpoints are a local event-processing foundation only: no TikTok, Facebook, YouTube, Twitch or game adapter is connected by this change. Public broadcasting, account control, moderation and payments are not exposed.
 
