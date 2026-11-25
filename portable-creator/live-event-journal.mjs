@@ -112,6 +112,7 @@ export class LiveEventJournal{
  syncDirectory(){try{const fd=fs.openSync(path.dirname(this.filePath),'r');try{fs.fsyncSync(fd);}finally{fs.closeSync(fd);}}catch{/* Some filesystems, including Windows, do not expose directory fsync. */}}
  repairTrailingPartial(){
   if(!fs.existsSync(this.filePath))return;
+  if(fs.statSync(this.filePath).size>this.maxBytes)throw new Error('The encrypted live-event journal exceeds its configured recovery size. Existing data was preserved.');
   const data=fs.readFileSync(this.filePath);
   if(!data.length||data[data.length-1]===10)return;
   const lastNewline=data.lastIndexOf(10),fd=fs.openSync(this.filePath,'r+');
