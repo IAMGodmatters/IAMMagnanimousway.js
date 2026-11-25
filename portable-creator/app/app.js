@@ -164,8 +164,8 @@ async function refreshLiveQueue(){
   const data=await api('/api/live/events/status');
   state.liveStorageReady=Boolean(data.durable&&data.storageReady);
   $('liveQueueStatus').textContent=state.liveStorageReady
-   ?data.queued+' queued · '+data.capacity+' capacity · saved on this USB'
-   :'Event storage paused · check this USB drive';
+   ?data.queued+' queued · '+data.capacity+' capacity · encrypted on this USB'
+   :data.locked?'Unlock the encrypted workspace to protect LIVE event data':'Event storage paused · check this USB drive';
   $('liveQueueStatus').className='status '+(state.liveStorageReady?(data.queued?'ready':''):'warning');
   updateControls();
  }catch(error){
@@ -221,12 +221,12 @@ async function unlock(){
   $('passphrase').value='';
   state.vaultUnlocked=true;
   message('vaultMessage',result.created?'Your encrypted workspace has been created on this USB drive.':'Your encrypted workspace is unlocked.','success');
-  await loadProjects();updateControls();
+  await loadProjects();await refreshLiveQueue();updateControls();
  }catch(error){message('vaultMessage',error.message,'error');}
  finally{$('unlockButton').disabled=false;}
 }
 async function lock(){
- try{await api('/api/vault/lock',{method:'POST',body:'{}'});state.vaultUnlocked=false;state.projects=[];$('projectList').replaceChildren();const p=document.createElement('p');p.className='muted';p.textContent='Unlock the workspace to see your projects.';$('projectList').append(p);updateControls();message('vaultMessage','Workspace locked. The encryption key was cleared from memory.','success');}
+ try{await api('/api/vault/lock',{method:'POST',body:'{}'});state.vaultUnlocked=false;state.projects=[];$('projectList').replaceChildren();const p=document.createElement('p');p.className='muted';p.textContent='Unlock the workspace to see your projects.';$('projectList').append(p);await refreshLiveQueue();updateControls();message('vaultMessage','Workspace locked. The encryption keys were cleared from memory.','success');}
  catch(error){message('vaultMessage',error.message,'error');}
 }
 async function loadProjects(){
