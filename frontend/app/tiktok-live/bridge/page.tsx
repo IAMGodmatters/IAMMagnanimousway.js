@@ -9,6 +9,8 @@ type CommandAction = 'scene.set' | 'overlay.show' | 'overlay.hide' | 'audio.cue'
 export default function LiveEventBridgePage() {
   const [endpoint,setEndpoint]=useState('');
   const [pairingToken,setPairingToken]=useState('');
+  const [companionToken,setCompanionToken]=useState('');
+  const [pairBusy,setPairBusy]=useState(false);
   const [status,setStatus]=useState<LiveBridgeStatus>('disconnected');
   const [events,setEvents]=useState<LiveEvent[]>([]);
   const [error,setError]=useState('');
@@ -20,22 +22,49 @@ export default function LiveEventBridgePage() {
 
   useEffect(()=>()=>{clientRef.current?.disconnect();clientRef.current=null;},[]);
 
+  function startClient(targetEndpoint:string,targetToken:string) {
+    clientRef.current?.disconnect();
+    const client=createLiveBridgeClient(targetEndpoint,targetToken,{
+      onStatus:setStatus,
+      onEvent:event=>setEvents(current=>[event,...current.filter(item=>item.eventId!==event.eventId)].slice(0,50)),
+      onError:setError,
+    });
+    clientRef.current=client;
+  }
+
   function connect() {
     setError('');setNotice('');
     try {
-      clientRef.current?.disconnect();
-      const client=createLiveBridgeClient(endpoint,pairingToken,{
-        onStatus:setStatus,
-        onEvent:event=>setEvents(current=>[event,...current.filter(item=>item.eventId!==event.eventId)].slice(0,50)),
-        onError:setError,
-      });
-      clientRef.current=client;
+      startClient(endpoint,pairingToken);
       setPairingToken('');
-      setNotice('Connection requested. Wait for the companion to authenticate and report READY.');
+      setNotice('Connection requested. Wait for the local companion to authenticate and report READY.');
     } catch (cause) {
       setStatus('error');
       setError(cause instanceof Error?cause.message:'The bridge could not be started.');
     }
+  }
+
+  async function createPair() {
+    setPairBusy(true);setError('');setNotice('');
+    try {
+      const response=await fetch('/api/live-bridge/pair',{method:'POST',headers:{'content-type':'application/json'},body:'{}',cache:'no-store'});
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(data.detail||'Sign in to Magnanimous before creating a bridge pair.');
+      setEndpoint(data.endpoint);
+      setPairingToken('');
+      setCompanionToken(data.companionToken);
+      startClient(data.endpoint,data.browserToken);
+      setNotice('Browser side connected. Copy the companion token into Magnanimous Portable Creator within ten minutes.');
+    } catch(cause) {
+      setStatus('error');
+      setError(cause instanceof Error?cause.message:'A secure pairing could not be created.');
+    } finally {setPairBusy(false);}
+  }
+
+  async function copyCompanionToken() {
+    if(!companionToken)return;
+    try {await navigator.clipboard.writeText(companionToken);setNotice('Companion token copied. Paste it only into your local Magnanimous Portable Creator.');}
+    catch {setError('Clipboard access was unavailable. Select and copy the companion token manually.');}
   }
 
   function disconnect() {
@@ -71,22 +100,28 @@ export default function LiveEventBridgePage() {
         <p>One safe event language for your live audience, OBS scenes, browser sources and supported games. Magnanimous stays the brain; each platform or app is a replaceable connection.</p>
       </section>
       <section className="boundary">
-        <b>Implementation status: bridge client and protocol foundation added; companion server and platform adapters are not deployed yet.</b>
-        <p>This screen becomes operational when a compatible Magnanimous Companion is installed and paired. Do not enter TikTok, Google, Twitch, OBS or game-account passwords here. Use only a short-lived pairing token issued by the companion. Until the companion is available, the existing AI Host's manual comment workflow remains usable.</p>
+        <b>Implementation status: online relay pairing and the local companion connection path are being brought online in stages. Provider account adapters and public broadcasting are not yet connected.</b>
+        <p>Create a secure pair here, then paste the separate companion token into Magnanimous Portable Creator on the computer running OBS. Do not enter TikTok, Google, Meta, Twitch, Zoom, OBS or game-account passwords here. These pairing tokens are temporary and are not saved in browser storage.</p>
       </section>
       <section className="panel">
         <div className="panelHead"><div><small>01 • PAIR YOUR COMPANION</small><h2>Secure connection</h2></div><span className={connected?'online':'offline'}>{status.toUpperCase()}</span></div>
+        <button onClick={createPair} disabled={pairBusy}>{pairBusy?'Creating secure pair…':'Create secure pair'}</button>
+        <p className="hint">Sign in to your Magnanimous account first. A pair is valid for ten minutes and the connected session lasts up to twelve hours.</p>
         <label>Companion WebSocket address
           <input value={endpoint} onChange={e=>setEndpoint(e.target.value)} placeholder="wss://your-approved-companion.example/events" autoComplete="off" />
         </label>
-        <label>One-time pairing token
-          <input value={pairingToken} onChange={e=>setPairingToken(e.target.value)} type="password" placeholder="Paste the companion's temporary pairing token" autoComplete="new-password" />
+        <label>Browser pairing token (optional manual entry)
+          <input value={pairingToken} onChange={e=>setPairingToken(e.target.value)} type="password" placeholder="Use Create secure pair above or paste a browser token" autoComplete="new-password" />
         </label>
+        {companionToken&&<label>Companion token — paste into the local USB Creator
+          <input value={companionToken} readOnly type="password" autoComplete="off" />
+          <button className="secondary" onClick={copyCompanionToken}>Copy companion token</button>
+        </label>}
         <div className="actions">
           <button onClick={connect} disabled={!endpoint.trim()||pairingToken.trim().length<16}>Connect companion</button>
           <button className="secondary" onClick={disconnect} disabled={status==='disconnected'}>Disconnect</button>
         </div>
-        <p className="hint">Remote connections require WSS. Plain WS is accepted only for localhost / 127.0.0.1. Pairing tokens stay in memory and are never saved in browser storage or placed in the URL.</p>
+        <p className="hint">Remote connections require WSS. The browser and local companion use different temporary tokens. Tokens stay in memory and are never saved in browser storage or placed in the URL.</p>
       </section>
       <section className="grid">
         <div className="panel">
