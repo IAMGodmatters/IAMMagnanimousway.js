@@ -110,4 +110,34 @@ This repository does not bundle third-party binaries or model weights. The packa
 6. Add end-to-end USB removal/reinsertion, drive-letter change, disk-full, passphrase recovery, crash recovery and cross-device portability tests.
 
 Do not treat a successful local build as proof that every device, camera, game, driver or streaming account is compatible.
-\n## Magnanimous show director\n\nThe local show director turns validated audience and game events into bounded review cues (welcome, reply prompt, game commentary, poll update, thank-you and production notes). It never speaks, changes OBS scenes, posts, moderates, spends money or controls a game. Every cue is marked `requiresOperatorApproval: true` and `action: review-only`; viewer text is not copied into instruction prompts. Cues expire after 45 seconds by default and are generated only for the events the operator pulls from the local queue.\n\n## Cross-device reality\n\nA USB SSD can carry the Magnanimous workspace, models, media and Windows OBS Portable files, but it cannot make one binary or one OBS profile work unchanged on every operating system. OBS Portable Mode is Windows-only and its media references need relative/common paths. The launcher must detect the OS/architecture, use the matching native runtime, and keep project files portable. Public streaming and Zoom meetings still need network access.\n
+
+## Magnanimous show director
+
+The director turns validated audience and game events into bounded review cues (welcome, reply prompt, game commentary, poll update, thank-you and production notes). Manual review remains the default. Viewer text is not copied into the director's instruction prompt and is rendered as text, never HTML.
+
+## Autonomous live-show mode
+
+The local creator now has an owner-controlled **AI takeover** option. It supports two bounded actions in this portable release:
+
+- **AI host speech:** when a healthy local GGUF model is installed and enabled, Magnanimous generates a short host line from the event type and untrusted viewer context. The browser's available speech engine reads that line. Route and test this browser/device audio inside OBS before using it on a public stream; audio routing and the speech engine's offline/privacy behavior depend on the operating system and browser.
+- **OBS scene switching:** when OBS WebSocket is connected, the owner can map show moments to an explicit list of existing OBS scenes. Only those selected scenes can be switched automatically.
+
+Takeover is off by default. Starting it requires an affirmative owner authorization, a selected capability, a healthy local model for speech, and a live OBS connection plus a scene allowlist for scene changes. The session is limited to 10, 30 or 60 minutes. A visible **STOP AI TAKEOVER** control cancels browser speech and revokes pending action reservations. The session also stops if the browser control surface disappears for 30 seconds or the host process exits. Autonomous actions are limited to six per minute.
+
+This local release does not yet connect TikTok, YouTube, Facebook or Twitch accounts; the event intake still accepts operator-entered test events only. It does not send platform chat, ban or mute viewers, delete comments, spend money, change account settings, start or end a public broadcast, or control game inputs. Those capabilities need separate, authorized provider adapters and their own permission policy. The AI takeover panel is a functioning local host/OBS control foundation, not proof that a platform account or a public stream is connected.
+
+Decision receipts and autonomous action receipts are kept in bounded memory for the current local host session and cleared on shutdown. They are useful for immediate operator feedback but are not a durable audit log.
+
+## Cross-device reality
+
+A USB SSD can carry the Magnanimous workspace, models, media and Windows OBS Portable files, but it cannot make one binary or one OBS profile work unchanged on every operating system. OBS Portable Mode is Windows-only and its media references need relative/common paths. The launcher must detect the OS/architecture, use the matching native runtime, and keep project files portable. Public streaming and Zoom meetings still need network access.
+
+## Online AI Host takeover
+
+The online TikTok LIVE Host offers an explicit owner opt-in takeover mode. During a 10-, 30- or 60-minute session, Magnanimous can answer queued comments and speak the replies through the existing Magnanimous chat and natural-speech pipeline. The queue is capped at 25 items, responses are serialized behind speech playback, common contact details and secrets are redacted before prompting, and failed automatic answers pause the queue with Retry and Skip controls. The owner can stop the takeover at any time.
+
+A paired Companion event bridge can relay normalized chat, follow, subscription, gift, poll and game events to the AI Host tab through a same-browser event channel. This path requires the companion and an authorized provider adapter to be actually installed and connected. The current repository contains the bridge client/protocol UI, but the companion server and provider adapters are not yet deployed. TikTok public developer scopes reviewed for this release do not document a general LIVE comment subscription. Therefore, TikTok comments still need operator entry unless an approved, documented capability is supplied by an authorized adapter.
+
+A second owner-controlled option, **Timed show rundown**, lets Magnanimous generate and speak six scheduled segments: opening direction, main teaching, audience participation, an interactive round, a practical takeaway, and recap/closing. The segments are timed against the selected 10/30/60-minute session and enter the same bounded queue as audience and game events. It can be disabled while using takeover as a reactive co-host only. If the AI service fails, the automatic queue pauses and preserves the failed item for Retry or Skip.
+
+The online takeover speaks through the browser's existing voice engine. It does not start or end a public stream, send TikTok chat messages, moderate/ban/mute viewers, change account settings, or spend money. The public broadcast remains controlled by the creator in TikTok LIVE Studio or the account's approved streaming workflow.

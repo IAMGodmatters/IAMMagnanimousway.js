@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const SOURCE=path.join(ROOT,'portable-creator');
-const eventTests=spawnSync(process.execPath,['--test',path.join(SOURCE,'live-event-runtime.test.mjs')],{encoding:'utf8'});
+const eventTests=spawnSync(process.execPath,['--test',path.join(SOURCE,'live-event-runtime.test.mjs'),path.join(SOURCE,'live-show-autonomy.test.mjs')],{encoding:'utf8'});
 if(eventTests.status!==0){console.error(eventTests.stdout||'');console.error(eventTests.stderr||'');throw new Error('Portable live-event runtime unit tests failed.');}
 console.log(eventTests.stdout.trim());
 
@@ -20,6 +20,7 @@ fs.copyFileSync(path.join(SOURCE,'host.mjs'),path.join(target,'host.mjs'));
 fs.copyFileSync(path.join(SOURCE,'obs-client.mjs'),path.join(target,'obs-client.mjs'));
 fs.copyFileSync(path.join(SOURCE,'live-event-runtime.mjs'),path.join(target,'live-event-runtime.mjs'));
 fs.copyFileSync(path.join(SOURCE,'live-show-director.mjs'),path.join(target,'live-show-director.mjs'));
+fs.copyFileSync(path.join(SOURCE,'live-show-autonomy.mjs'),path.join(target,'live-show-autonomy.mjs'));
 for(const file of ['index.html','app.js','styles.css'])fs.copyFileSync(path.join(SOURCE,'app',file),path.join(target,'app',file));
 const appSyntax=spawnSync(process.execPath,['--check',path.join(target,'app','app.js')],{encoding:'utf8'});
 if(appSyntax.status!==0){console.error(appSyntax.stderr||'');throw new Error('Portable creator browser script syntax check failed.');}
@@ -45,6 +46,9 @@ async function waitFor(url,child){
 async function post(url,origin,body){
  return fetch(url,{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify(body)});
 }
+async function postPath(path,body){
+ return fetch(origin+path,{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify(body)});
+}
 const port=await freePort();
 const origin='http://127.0.0.1:'+port;
 const child=spawn(process.execPath,[path.join(target,'host.mjs'),'--root',target,'--port',String(port)],{cwd:target,env:{...process.env,MAGNANIMOUS_LOCAL_MODEL_ENABLED:'false'},stdio:['ignore','pipe','pipe']});
@@ -59,6 +63,8 @@ try{
  const homepage=await (await fetch(origin+'/')).text();
  assert.ok(homepage.includes('id="livePullButton"'),'Audience/game event review control should be present.');
  assert.ok(homepage.includes('id="liveEventList"'),'Audience/game event list should be present.');
+ assert.ok(homepage.includes('id="liveAutonomyStart"'),'Owner-controlled AI takeover must be visible.');
+ assert.ok(homepage.includes('id="liveAutonomyStop"'),'Emergency stop must be visible.');
 
  const css=await fetch(origin+'/styles.css');
  assert.equal(css.status,200,'Local stylesheet should load.');
@@ -83,6 +89,34 @@ try{
  assert.equal(consumedData.reviewCues.length,1,'Director should return one review cue for the event.');
  assert.equal(consumedData.reviewCues[0].requiresOperatorApproval,true,'Director cue must require operator approval.');
  assert.equal(consumedData.reviewCues[0].action,'review-only','Director cue must never execute an action.');
+ const cueId=consumedData.reviewCues[0].cueId;
+ const approved=await postPath('/api/live/cues/decision',{cueId,decision:'approve'});
+ assert.equal(approved.status,201,'A valid operator decision should create a receipt.');
+ const approvedData=await approved.json();
+ assert.equal(approvedData.receipt.status,'approved_for_operator_use');
+ assert.equal(approvedData.receipt.actionExecuted,false,'Approval must not execute a production action.');
+ const approvalRetry=await postPath('/api/live/cues/decision',{cueId,decision:'approve'});
+ assert.equal(approvalRetry.status,200,'Repeating the same decision should be idempotent.');
+ assert.equal((await approvalRetry.json()).status,'duplicate');
+ const conflictingDecision=await postPath('/api/live/cues/decision',{cueId,decision:'dismiss'});
+ assert.equal(conflictingDecision.status,409,'A conflicting decision must be rejected.');
+ const receipts=await (await fetch(origin+'/api/live/cues/receipts')).json();
+ assert.equal(receipts.receipts.length,1,'The operator receipt should be available during this session.');
+ assert.equal(receipts.receipts[0].actionExecuted,false);
+ const autonomyStatus=await (await fetch(origin+'/api/live/autonomy/status')).json();
+ assert.equal(autonomyStatus.enabled,false,'AI takeover must default to manual mode.');
+ assert.equal(autonomyStatus.mode,'manual');
+ const inactiveHeartbeat=await postPath('/api/live/autonomy/heartbeat',{});
+ assert.equal(inactiveHeartbeat.status,409,'A heartbeat must not create or revive a stopped takeover session.');
+ const inactiveCycle=await postPath('/api/live/autonomy/next',{});
+ assert.equal(inactiveCycle.status,409,'The autonomous cycle must fail closed when takeover is off.');
+ const noConsent=await postPath('/api/live/autonomy/enable',{acknowledged:false,permissions:['host_speech']});
+ assert.equal(noConsent.status,409,'AI takeover must require explicit owner consent.');
+ const missingModel=await postPath('/api/live/autonomy/enable',{acknowledged:true,permissions:['host_speech']});
+ assert.equal(missingModel.status,409,'Autonomous host speech must fail closed without a healthy local model.');
+ const missingObs=await postPath('/api/live/autonomy/enable',{acknowledged:true,permissions:['obs_scene_switch'],sceneMap:{game:'Game'}});
+ assert.equal(missingObs.status,409,'Autonomous scene changes must fail closed until OBS is connected.');
+ assert.equal((await postPath('/api/live/autonomy/stop',{reason:'qa_stop'})).status,200,'The emergency stop endpoint must always work.');
  const obsStatus=await (await fetch(origin+'/api/obs/status')).json();
  assert.equal(obsStatus.connected,false,'OBS must remain disconnected until the operator pairs it.');
  assert.equal((await fetch(origin+'/api/obs/scenes')).status,409,'OBS scene reads must fail closed before local pairing.');
@@ -137,6 +171,8 @@ try{
  console.log('PASS encrypted vault create/save/lock/wrong-key/reopen');
  console.log('PASS plaintext project and passphrase absent from vault');
  console.log('PASS bounded request and no cloud fallback');
+ console.log('PASS explicit AI takeover consent and fail-closed capability checks');
+ console.log('PASS operator review receipts and idempotent decision handling');
  console.log('Magnanimous Portable Creator runtime tests passed.');
 }catch(error){
  console.error(error);

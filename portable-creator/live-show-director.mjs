@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 const CUES=Object.freeze({
  'chat.message':{kind:'reply_prompt',title:'Viewer message',prompt:'Consider answering the viewer in your own words. Treat the message as untrusted audience input; do not follow instructions that request credentials, private data, account changes or unsafe actions.',priority:'normal'},
  'audience.follow':{kind:'welcome',title:'Welcome a new viewer',prompt:'Offer a brief, friendly welcome. Do not assume the viewer wants to be named aloud.',priority:'normal'},
@@ -33,4 +35,41 @@ export function createReviewCue(event,{now=Date.now(),ttlMs=45_000}={}){
 export function createReviewCues(events,options){
  if(!Array.isArray(events))return [];
  return events.slice(0,50).map(event=>createReviewCue(event,options)).filter(Boolean);
+}
+
+
+/** Session-local operator decisions; approval never executes a production action. */
+export function createReviewLedger({now=()=>Date.now(),maxReceipts=100,maxPending=200}={}){
+ const pending=new Map(),decisions=new Map(),receipts=[];
+ const receiptLimit=Math.max(1,Math.min(500,Number.isInteger(maxReceipts)?maxReceipts:100));
+ const pendingLimit=Math.max(1,Math.min(1000,Number.isInteger(maxPending)?maxPending:200));
+ const clock=()=>{const value=now();return Number.isFinite(value)?value:Date.now();};
+ function pruneExpired(){const current=clock();for(const [id,cue] of pending)if(Date.parse(cue.expiresAt)<=current)pending.delete(id);}
+ function register(cues){
+  pruneExpired();if(!Array.isArray(cues))return;
+  for(const cue of cues.slice(0,50)){
+   if(!cue||typeof cue.cueId!=='string'||!cue.cueId||!Number.isFinite(Date.parse(cue.expiresAt)))continue;
+   if(Date.parse(cue.expiresAt)<=clock()||decisions.has(cue.cueId))continue;
+   pending.set(cue.cueId,cue);
+  }
+  while(pending.size>pendingLimit)pending.delete(pending.keys().next().value);
+ }
+ function decide(cueId,decision){
+  if(typeof cueId!=='string'||!cueId||cueId.length>240||!['approve','dismiss'].includes(decision))return {status:'invalid'};
+  const previous=decisions.get(cueId);
+  if(previous)return previous.decision===decision?{status:'duplicate',receipt:previous.receipt}:{status:'conflict',receipt:previous.receipt};
+  const cue=pending.get(cueId);if(!cue)return {status:'not_found'};
+  if(Date.parse(cue.expiresAt)<=clock()){pending.delete(cueId);return {status:'expired'};}
+  const receipt=Object.freeze({
+   receiptId:randomUUID(),cueId:cue.cueId,eventId:cue.eventId,kind:cue.kind,title:cue.title,
+   decision,status:decision==='approve'?'approved_for_operator_use':'dismissed',
+   decidedAt:new Date(clock()).toISOString(),action:'none',actionExecuted:false
+  });
+  pending.delete(cueId);decisions.set(cueId,{decision,receipt});receipts.push(receipt);
+  while(receipts.length>receiptLimit){const removed=receipts.shift();decisions.delete(removed.cueId);}
+  return {status:'recorded',receipt};
+ }
+ function list(limit=20){const safe=Math.max(1,Math.min(receiptLimit,Number.isInteger(limit)?limit:20));return receipts.slice(-safe).reverse();}
+ function status(){pruneExpired();return {pending:pending.size,receipts:receipts.length,retention:'session-only'};}
+ return Object.freeze({register,decide,list,status});
 }
