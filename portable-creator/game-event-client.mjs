@@ -20,7 +20,7 @@ export async function sendLocalGameEvent({token,gameName,actorName='Game integra
  const event={protocolVersion:1,eventId,occurredAt,gameName:safeGame,actorName:safeActor||'Game integration',text:safeText};
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),Math.max(500,Math.min(10000,timeoutMs)));
  try {
-  const response=await fetchImpl(LOOPBACK_ENDPOINT,{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+token},body:JSON.stringify(event),signal:controller.signal,redirect:'error'});
+  const response=await fetchImpl(LOOPBACK_ENDPOINT,{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+token},body:JSON.stringify({event}),signal:controller.signal,redirect:'error'});
   if(!response.ok){let detail='The local Creator rejected the game event ('+response.status+').';try{const body=await response.json();if(typeof body.detail==='string')detail=body.detail.slice(0,240);}catch{}throw new Error(detail);}
   return await response.json();
  } catch(error) {
