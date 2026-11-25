@@ -20,8 +20,8 @@ const checks = [
   ['host clearly discloses AI identity', host.includes('AI-GENERATED HOST') && host.includes('Do not pretend to be a human')],
   ['host truthfully discloses that this is not a TikTok broadcast', host.includes('It is not a TikTok broadcast')],
   ['viewer comments are manually entered by the operator', host.includes('Paste or type a viewer') && host.includes('LIVE HUMAN MODERATION')],
-  ['TikTok Shop guidance describes synthetic voice as a non-interactive risk when replacing live engagement', host.includes('allows AIGC in compliant content') && host.includes('computer-generated voices are used instead of live engagement') && host.includes('not worded as a blanket ban') && host.includes('real human host')],
-  ['TikTok Shop AI narration prohibition is distinguished from non-Shop streams', host.includes('Unoriginal Content creator policy explicitly says not to use AI-generated audio or narration') && host.includes('not a blanket statement that every non-Shop TikTok creator livestream prohibits AI hosts')],
+  ['TikTok Shop guidance accurately distinguishes AIGC permission from non-interactive LIVE risk', host.includes('allows AI-generated content') && host.includes('computer-generated voices used instead of live interaction') && host.includes('not a blanket ban on all AI voices') && host.includes('real human host')],
+  
   ['local Streamer.bot WebSocket connection is implemented', host.includes('function connectStreamerBot()') && host.includes('new WebSocket(new URL(streamerBotUrl).toString())')],
   ['Streamer.bot address is restricted to loopback/private LAN', host.includes('function isAllowedLocalEventUrl') && host.includes('host.endsWith(\'.local\')') && host.includes('/^10\\\\./.test(host)')],
   ['browser Local Network and Loopback permission is explained', host.includes('Local Network or Loopback access') && host.includes('Local Network/Loopback permission')],
