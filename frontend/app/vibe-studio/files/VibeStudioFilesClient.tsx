@@ -208,12 +208,17 @@ export default function VibeStudioFilesClient(){
   if(!project||!token){setError('Select a project first.');return;}
   const html=selectedPath==='index.html'?content:project.html;
   const currentFiles=files.map(file=>file.path===selectedPath?{...file,content}:file);
+  const hasProjectScripts=/<script\\b/i.test(html)||currentFiles.some(file=>file.path.toLowerCase().endsWith('.js')&&file.content.trim().length>0);
+  if(hasProjectScripts&&!window.confirm('This preview will run JavaScript from the project. The iframe has an opaque origin and cannot read the main app DOM, cookies or storage; its content policy blocks fetch, XHR, WebSocket and remote assets. Links or scripts can still navigate the preview frame and create navigation requests. Continue only if you trust every project file. Continue?')){
+   setNotice('Preview cancelled. Project JavaScript was not executed.');
+   return;
+  }
   setBusy('preview');setError('');
   try{
    const checked=await requestWithToken(token,'/api/magnanimous/vibe-studio/review',{method:'POST',body:JSON.stringify({html,files:currentFiles.map(file=>({path:file.path,content:file.content}))})});
    if(!checked.valid)throw new Error(checked.error||'The index.html document did not pass structural validation.');
    setPreview(previewDocument(html,currentFiles));
-   setNotice('Preview assembled from index.html, local CSS/JS files and JSON fixtures. It runs in an opaque-origin browser frame with a restrictive content policy; it is not a full-stack VM.');
+   setNotice('Preview assembled from index.html, local CSS/JS files and JSON fixtures. The opaque-origin iframe isolates the main app DOM and storage; scripts and links may still navigate the preview frame. It is not a full-stack VM.');
   }catch(e){setError(e instanceof Error?e.message:'Preview validation failed.');}finally{setBusy('');}
  }
  function downloadZip(){
@@ -242,7 +247,7 @@ export default function VibeStudioFilesClient(){
     {!project?<div className="vibeFilesEmpty"><h2>Open a saved prototype</h2><p>Multi-file projects keep your existing single-file work intact. Start by creating or opening a project in Vibe Studio.</p><a href="/vibe-studio">Open Vibe Studio →</a></div>:<>
      <div className="vibeFilesToolbar"><div><small>03 / SOURCE EDITOR</small><h2>{selectedPath}</h2><span>Revision {selected?.revision||1}{dirty?' · Unsaved changes':''}</span></div><div><button type="button" onClick={runPreview} disabled={!!busy}>▶ Preview</button><button type="button" className="primary" onClick={()=>void saveFile()} disabled={!!busy||!dirty}>{busy==='save'?'Saving…':'Save file'}</button></div></div>
      <textarea className="vibeFilesCode" spellCheck={false} aria-keyshortcuts="Control+S Meta+S Control+Enter Meta+Enter" aria-describedby="vibe-files-editor-hint" value={content} onKeyDown={e=>{if((e.ctrlKey||e.metaKey)&&!e.altKey&&!e.shiftKey&&e.key.toLowerCase()==='s'){e.preventDefault();if(dirty&&!busy)void saveFile();}else if((e.ctrlKey||e.metaKey)&&!e.altKey&&!e.shiftKey&&e.key==='Enter'){e.preventDefault();if(!busy)void runPreview();}}} onChange={e=>{setContent(e.target.value);setPreview('');}} aria-label={'Edit '+selectedPath} disabled={!!busy} />
-     <p className="vibeFilesHint" id="vibe-files-editor-hint">Ctrl/⌘+S saves a new checkpoint. Ctrl/⌘+Enter refreshes the isolated preview. The editor stores text only: no terminal, package installation, server execution, external network access or production secrets are available in this phase.</p>
+     <p className="vibeFilesHint" id="vibe-files-editor-hint">Ctrl/⌘+S saves a new checkpoint. Ctrl/⌘+Enter refreshes the isolated preview. The editor stores text only: no terminal, package installation, server execution or production secrets are available. Preview policy blocks fetch, XHR, WebSocket and remote assets, but trusted project code can still navigate the preview frame; only run code you trust.</p>
      <div className="vibeFilesHistory"><div><small>04 / FILE CHECKPOINTS</small><h3>Revision history</h3></div>{versions.length?versions.map(version=><div className="vibeFilesVersion" key={version.revision}><span><strong>v{version.revision}</strong><small>{version.note} · {displayTime(version.created_at)}</small></span><button type="button" onClick={()=>void loadVersion(version.revision)} disabled={!!busy}>Load</button></div>):<p>No saved revisions for this file yet.</p>}</div>
      <div className="vibeFilesPreview"><div><small>05 / ISOLATED PREVIEW</small><h3>Local project preview</h3></div>{preview?<iframe title="Magnanimous multi-file preview" srcDoc={preview} sandbox="allow-scripts" referrerPolicy="no-referrer"/>:<p>Choose Preview to assemble index.html with local styles, scripts and JSON fixtures. The preview uses an opaque-origin frame and restrictive CSP.</p>}</div>
     </>}
