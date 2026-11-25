@@ -1,5 +1,5 @@
 const $=id=>document.getElementById(id);
-const state={modelReady:false,vaultUnlocked:false,projects:[],obsConnected:false,obsRecording:false};
+const state={modelReady:false,vaultUnlocked:false,projects:[],obsConnected:false,obsRecording:false,liveStorageReady:false};
 async function api(path,options={}){
  const response=await fetch(path,{...options,cache:'no-store',headers:{'content-type':'application/json',...(options.headers||{})}});
  const data=await response.json().catch(()=>({detail:'The local service returned an invalid response.'}));
@@ -21,8 +21,8 @@ function updateControls(){
  $('obsSwitchButton').disabled=!state.obsConnected||!$('obsSceneSelect').value;
  $('obsStartRecordButton').disabled=!state.obsConnected||state.obsRecording;
  $('obsStopRecordButton').disabled=!state.obsConnected||!state.obsRecording;
- $('livePullButton').disabled=false;
- $('liveSendButton').disabled=!$('liveTestText').value.trim();
+ $('livePullButton').disabled=!state.liveStorageReady;
+ $('liveSendButton').disabled=!state.liveStorageReady||!$('liveTestText').value.trim();
 }
 function updateGenerationStatus(){
  $('modelStatus').textContent=state.modelReady?'Local AI ready: '+state.modelName:'Offline draft builder ready • Local AI not installed';
@@ -160,8 +160,20 @@ function renderLiveEvents(events,cues=[]){
  }
 }
 async function refreshLiveQueue(){
- try{const data=await api('/api/live/events/status');$('liveQueueStatus').textContent=data.queued+' queued · '+data.capacity+' capacity';$('liveQueueStatus').className='status '+(data.queued?'ready':'');}
- catch(error){$('liveQueueStatus').textContent='Local event queue unavailable';}
+ try{
+  const data=await api('/api/live/events/status');
+  state.liveStorageReady=Boolean(data.durable&&data.storageReady);
+  $('liveQueueStatus').textContent=state.liveStorageReady
+   ?data.queued+' queued · '+data.capacity+' capacity · saved on this USB'
+   :'Event storage paused · check this USB drive';
+  $('liveQueueStatus').className='status '+(state.liveStorageReady?(data.queued?'ready':''):'warning');
+  updateControls();
+ }catch(error){
+  state.liveStorageReady=false;
+  $('liveQueueStatus').textContent='Local event journal unavailable';
+  $('liveQueueStatus').className='status warning';
+  updateControls();
+ }
 }
 async function sendLocalEvent(){
  const text=$('liveTestText').value.trim(),type=$('liveTestType').value;
