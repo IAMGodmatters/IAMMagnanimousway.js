@@ -40,6 +40,6 @@ jobs:
           node-version: 24
       - name: Attribute Worker resource-limit invocations for the last 24 hours
         env:
-          CLOUDFLARE_ACCOUNT_ID: \${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_ANALYTICS_READ_TOKEN: \${{ secrets.CLOUDFLARE_ANALYTICS_READ_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_ANALYTICS_READ_TOKEN: ${{ secrets.CLOUDFLARE_ANALYTICS_READ_TOKEN }}
         run: node qa/scripts/cloudflare-worker-analytics-audit.mjs
