@@ -66,7 +66,7 @@ test('journal ciphertext does not expose viewer text and requires the workspace 
 });
 
 test('ignores a malformed trailing line while preserving earlier records',()=>{
- const dir=temporary(),file=path.join(dir,'events.jsonl'),journal=new LiveEventJournal(file);
+ const dir=temporary(),file=path.join(dir,'events.jsonl'),journal=journalFor(file);
  journal.appendEvent(event('valid'));
  fs.appendFileSync(file,'{"broken":');
  const records=journal.load();
