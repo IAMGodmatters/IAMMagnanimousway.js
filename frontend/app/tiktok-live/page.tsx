@@ -48,7 +48,7 @@ export default function TikTokLiveHost() {
   const [takeoverActive, setTakeoverActive] = useState(false);
   const [showRundownEnabled, setShowRundownEnabled] = useState(false);
   const [activeRundownSegment, setActiveRundownSegment] = useState('');
-  const [rundownSegmentsRemaining, setRundownSegmentsRemaining] = useState(RUNDOWN_SEGMENTS.length);
+  const [rundownSegmentsRemaining, setRundownSegmentsRemaining] = useState<number>(RUNDOWN_SEGMENTS.length);
   const [takeoverDuration, setTakeoverDuration] = useState(30);
   const [takeoverEndsAt, setTakeoverEndsAt] = useState<number | null>(null);
   const [takeoverSeconds, setTakeoverSeconds] = useState(0);
