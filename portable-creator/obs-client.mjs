@@ -55,7 +55,7 @@ export class ObsWebSocketClient {
     try{packet=JSON.parse(messageData(event));}catch{finish(new Error('OBS sent an invalid WebSocket message.'));return;}
     if(packet.op===0){
      const hello=packet.d||{};
-     const identify={rpcVersion:1};
+     const identify={rpcVersion:1,eventSubscriptions:0};
      if(hello.authentication){
       if(!secret){finish(new Error('OBS requires its WebSocket password.'));return;}
       identify.authentication=authentication(secret,String(hello.authentication.salt||''),String(hello.authentication.challenge||''));
