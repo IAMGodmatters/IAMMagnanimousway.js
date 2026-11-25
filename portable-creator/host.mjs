@@ -265,6 +265,11 @@ async function handleApi(req,res,url){
   if(result.status==='queue_full')return json(res,503,result);
   return json(res,400,result);
  }
+ if(req.method==='POST'&&url.pathname==='/api/live/autonomy/heartbeat'){
+  const result=liveAutonomy.heartbeat();
+  if(!result.ok)return json(res,409,{detail:'AI takeover is not active.'});
+  return json(res,200,{ok:true,status:result.status});
+ }
  if(req.method==='GET'&&url.pathname==='/api/live/autonomy/status'){
   return json(res,200,{...liveAutonomy.status(),model:await modelStatus(),obsConnected:Boolean(obsClient?.connected)});
  }
