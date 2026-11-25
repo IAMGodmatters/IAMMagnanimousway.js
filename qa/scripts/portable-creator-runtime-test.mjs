@@ -111,6 +111,8 @@ try{
  assert.equal(gameBatch.events[0].provider,'game','Local game integration must be normalized to the game provider.');
  assert.equal(gameBatch.events[0].type,'game.event','Local game integration must accept only game event types.');
  assert.equal(gameBatch.events[0].tags.gameName,'QA Game','Game name should be retained as a bounded safe tag.');
+ assert.ok(gameBatch.deliveryId,'Game event batch must have a delivery lease.');
+ assert.equal((await post(origin+'/api/live/events/ack',origin,{deliveryId:gameBatch.deliveryId,eventKeys:gameBatch.eventKeys})).status,200,'Game event batch must be acknowledged after review.');
 
  const invalidBridge=await post(origin+'/api/bridge/connect',origin,{endpoint:'https://attacker.example/socket',token:'A'.repeat(43)});
  assert.equal(invalidBridge.status,400,'Companion must reject non-WSS and non-Magnanimous endpoints.');
@@ -130,6 +132,15 @@ try{
  assert.equal(consumedData.reviewCues.length,1,'Director should return one review cue for the event.');
  assert.equal(consumedData.reviewCues[0].requiresOperatorApproval,true,'Director cue must require operator approval.');
  assert.equal(consumedData.reviewCues[0].action,'review-only','Director cue must never execute an action.');
+ assert.ok(consumedData.deliveryId,'Claimed event batch must include a delivery ID.');
+ assert.deepEqual(consumedData.eventKeys,['manual:'+liveEvent.eventId],'Claimed batch must use provider-scoped event keys.');
+ const duplicateClaim=await post(origin+'/api/live/events/consume',origin,{limit:1});
+ assert.equal((await duplicateClaim.json()).events.length,0,'An unexpired delivery lease must prevent duplicate concurrent delivery.');
+ const ack=await post(origin+'/api/live/events/ack',origin,{deliveryId:consumedData.deliveryId,eventKeys:consumedData.eventKeys});
+ assert.equal(ack.status,200,'Events should be acknowledged after the local UI renders them.');
+ const duplicateAck=await post(origin+'/api/live/events/ack',origin,{deliveryId:consumedData.deliveryId,eventKeys:consumedData.eventKeys});
+ assert.equal(duplicateAck.status,200,'Repeated event acknowledgements must be idempotent.');
+ assert.equal((await (await fetch(origin+'/api/live/events/status')).json()).queued,0,'Acknowledged events should leave the durable queue.');
  const journalPath=path.join(target,'data','live-events.jsonl');
  assert.ok(fs.existsSync(journalPath),'Accepted events must be persisted in the USB recovery journal.');
  const rawJournal=fs.readFileSync(journalPath,'utf8');
