@@ -96,7 +96,7 @@ OBS Portable Mode keeps OBS configuration beside the application on Windows, but
 - Host binds only to IPv4 loopback `127.0.0.1`; it is not available to other devices on Wi-Fi.
 - Only same-origin browser requests are accepted for state changes.
 - The local model target is fixed to `127.0.0.1:9931`; browser inputs cannot choose a URL or issue shell commands.
-- The encrypted vault uses scrypt key derivation and AES-256-GCM authenticated encryption. It is locked when the local host exits.
+- The encrypted project vault uses scrypt key derivation and AES-256-GCM authenticated encryption. The LIVE event journal uses a separate HKDF-derived AES-256-GCM key and is locked whenever the workspace locks or the local host exits. Both keys are wiped from memory on lock.
 - Model and voice license terms differ by model. Review the exact model card/license before redistribution or commercial use.
 - The drive itself should also use BitLocker To Go or another whole-drive encryption method when it stores private material. The vault encrypts project contents, not the folder names or all runtime binaries.
 
