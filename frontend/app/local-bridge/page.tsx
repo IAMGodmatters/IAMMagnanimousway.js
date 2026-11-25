@@ -27,6 +27,13 @@ export default function LocalBridgePage(){
  const [notice,setNotice]=useState('');
  const [busy,setBusy]=useState('');
  const [heimdallTaskId,setHeimdallTaskId]=useState('');
+ const [obsTaskId,setObsTaskId]=useState('');
+ const [obsTaskAction,setObsTaskAction]=useState('');
+ const [obsTaskResult,setObsTaskResult]=useState('');
+ const [obsScenes,setObsScenes]=useState<{name:string;current?:boolean;approved_for_remote_switch?:boolean}[]>([]);
+ const [obsAudioCues,setObsAudioCues]=useState<string[]>([]);
+ const [selectedObsScene,setSelectedObsScene]=useState('');
+ const [selectedObsAudioCue,setSelectedObsAudioCue]=useState('');
  const [copied,setCopied]=useState(false);
 
  const headers=(json=false)=>{const h:Record<string,string>={Authorization:`Bearer ${token}`};if(json)h['Content-Type']='application/json';return h};
@@ -99,6 +106,48 @@ export default function LocalBridgePage(){
    const task=d.task||d;
    setNotice(`Heimdall task ${heimdallTaskId}: ${task.status||'unknown'}.`+(task.status==='completed'?` Result: ${JSON.stringify(task.result||{}).slice(0,1200)}`:'')+(task.error?` Error: ${String(task.error).slice(0,300)}`:''));
   }catch(e:any){setNotice(e?.message||'Could not read the device task status.')}finally{setBusy('')}
+ }
+
+ async function runObsTask(device:Device,action:'obs_status'|'obs_scene_list'|'obs_output_status'|'obs_scene_set'|'obs_audio_cue',payload:Record<string,string>={}){
+  if(busy||!device.online||!device.capabilities.includes(action))return;
+  setBusy('obs');setNotice('');setObsTaskResult('');
+  try{
+   const d=await read(await fetch('/api/magnanimous/local-bridge/tasks',{method:'POST',headers:headers(true),body:JSON.stringify({device_id:device.id,action,payload})}));
+   setObsTaskId(d.id);setObsTaskAction(action);
+   if(d.requires_confirmation){
+    const summary=action==='obs_scene_set'?('switch OBS program scene to "'+payload.sceneName+'"')
+     :action==='obs_audio_cue'?('restart approved OBS media cue "'+payload.cueId+'"')
+     :'perform the requested OBS action';
+    if(!confirm('Confirm task '+d.id+': '+summary+'?')){
+     await read(await fetch('/api/magnanimous/local-bridge/tasks/'+encodeURIComponent(d.id)+'/cancel',{method:'POST',headers:headers(true)}));
+     setObsTaskId('');
+     setNotice('OBS task '+d.id+' cancelled. No OBS change was executed.');return;
+    }
+    await read(await fetch(d.confirmation_endpoint,{method:'POST',headers:headers(true)}));
+   }
+   setNotice('OBS task '+d.id+' was queued on '+device.name+'. Check task result to see the actual device response.');
+  }catch(e:any){setNotice(e?.message||'Unable to queue the OBS task.')}finally{setBusy('')}
+ }
+
+ async function readObsResult(){
+  if(!obsTaskId||busy)return;setBusy('read-obs');
+  try{
+   const d=await read(await fetch('/api/magnanimous/local-bridge/tasks/'+encodeURIComponent(obsTaskId),{headers:headers(),cache:'no-store'}));
+   const task=d.task||d,result=task.result||{};
+   setObsTaskResult(JSON.stringify({status:task.status||'unknown',result,error:task.error||''},null,2).slice(0,3500));
+   if(task.status==='completed'&&obsTaskAction==='obs_scene_list'){
+    const scenes=Array.isArray(result.scenes)?result.scenes:[];
+    setObsScenes(scenes);
+    const cues=Array.isArray(result.approved_audio_cues)?result.approved_audio_cues:[];
+    setObsAudioCues(cues);
+    if(!scenes.some((item:any)=>item.name===selectedObsScene&&item.approved_for_remote_switch)){
+     const first=scenes.find((item:any)=>item.approved_for_remote_switch);
+     setSelectedObsScene(first?.name||'');
+    }
+    if(!cues.includes(selectedObsAudioCue))setSelectedObsAudioCue(cues[0]||'');
+   }
+   setNotice('OBS task '+obsTaskId+': '+(task.status||'unknown')+'.');
+  }catch(e:any){setNotice(e?.message||'Could not read the OBS task result.')}finally{setBusy('')}
  }
 
  async function revoke(device:Device){
@@ -184,6 +233,39 @@ export default function LocalBridgePage(){
    {heimdallTaskId&&<button disabled={Boolean(busy)} onClick={readHeimdallResult}>CHECK TASK RESULT</button>}
   </section>
 
+  <section className="card obsPanel" aria-label="OBS Studio local production controls">
+   <small>OWNER LOCAL • OBS STUDIO</small><h2>OBS production controls</h2>
+   <p>Connect OBS on this paired Windows computer using the local setup command. The OBS password stays protected on the computer and is never entered here. Status checks are read-only; changing a scene or restarting an approved media cue requires a separate confirmation.</p>
+   {activeDevices.filter(d=>d.capabilities.includes('obs_status')).length===0?<p className="obsMissing">OBS is not configured on an online paired computer yet. On the Windows computer, run <strong>python bridge_agent.py obs-configure</strong> from the paired Local Bridge folder, then restart the Local Bridge agent. OBS WebSocket password authentication must be enabled.</p>:activeDevices.filter(d=>d.capabilities.includes('obs_status')).map(d=><div className="obsDevice" key={d.id}>
+    <div className="deviceTop"><div><b>{d.name}</b><p>{d.hostname} • OBS local adapter advertised</p></div><span className="online">LOCAL CONNECTION READY</span></div>
+    <div className="obsActions">
+     <button disabled={!d.online||Boolean(busy)} onClick={()=>runObsTask(d,'obs_status')}>CHECK OBS STATUS</button>
+     <button disabled={!d.online||!d.capabilities.includes('obs_scene_list')||Boolean(busy)} onClick={()=>runObsTask(d,'obs_scene_list')}>LIST SCENES + APPROVED CUES</button>
+     <button disabled={!d.online||!d.capabilities.includes('obs_output_status')||Boolean(busy)} onClick={()=>runObsTask(d,'obs_output_status')}>READ OUTPUT STATUS</button>
+    </div>
+    <div className="obsControls">
+     <label>Owner-approved scene
+      <select value={selectedObsScene} onChange={e=>setSelectedObsScene(e.target.value)}>
+       <option value="">Select an approved scene</option>
+       {obsScenes.filter(scene=>scene.approved_for_remote_switch).map(scene=><option key={scene.name} value={scene.name}>{scene.name}</option>)}
+      </select>
+     </label>
+     <button disabled={!d.online||!d.capabilities.includes('obs_scene_set')||!selectedObsScene||Boolean(busy)} onClick={()=>runObsTask(d,'obs_scene_set',{sceneName:selectedObsScene})}>SWITCH TO APPROVED SCENE</button>
+     <label>Owner-approved media cue
+      <select value={selectedObsAudioCue} onChange={e=>setSelectedObsAudioCue(e.target.value)}>
+       <option value="">Select an approved media cue</option>
+       {obsAudioCues.map(cue=><option key={cue} value={cue}>{cue}</option>)}
+      </select>
+     </label>
+     <button disabled={!d.online||!d.capabilities.includes('obs_audio_cue')||!selectedObsAudioCue||Boolean(busy)} onClick={()=>runObsTask(d,'obs_audio_cue',{cueId:selectedObsAudioCue})}>RESTART APPROVED MEDIA CUE</button>
+    </div>
+   </div>)}
+   {obsTaskId&&<div className="obsResult">
+    <div className="obsResultHead"><b>Last OBS task: {obsTaskId}</b><button disabled={Boolean(busy)} onClick={readObsResult}>{busy==='read-obs'?'CHECKING…':'CHECK TASK RESULT'}</button></div>
+    {obsTaskResult&&<pre>{obsTaskResult}</pre>}
+   </div>}
+  </section>
+
   <section className="grid">
    <article className="card">
     <small>ONE-CLICK WINDOWS ACTIVATION</small><h2>Pair a computer</h2>
@@ -222,6 +304,6 @@ export default function LocalBridgePage(){
   </section>
 
   <style jsx>{`
-   *{box-sizing:border-box}.page{min-height:100vh;background:#05080c;color:#eafaff;padding:24px 28px 70px;font-family:Inter,system-ui,sans-serif;background-image:radial-gradient(circle at 80% 0,rgba(54,210,255,.12),transparent 28%)}header,.hero,.grid,.card,.notice{max-width:1400px;margin-left:auto;margin-right:auto}header{display:flex;justify-content:space-between;font-size:9px;letter-spacing:.15em;color:#6d8994}header nav{display:flex;gap:14px}a{color:#74dff2;text-decoration:none}.hero{margin-top:26px;padding:30px;border:1px solid #205267;border-radius:22px;background:#07141c}.hero h1{font-size:clamp(42px,7vw,76px);margin:6px 0}.hero p{max-width:950px;color:#8ca6b0;line-height:1.6}.badges{display:flex;gap:8px;flex-wrap:wrap}.badges>*{border:1px solid #24596b;border-radius:999px;padding:8px 11px;font-size:9px}.badges .good{border-color:#267c55;color:#86f6bb}.badges .warn{border-color:#8a6a2d;color:#f1cf82}.notice{margin-top:12px;padding:12px;border:1px solid #5b4927;background:#171208;border-radius:10px;color:#efd18d}.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:10px;margin-top:12px}.card{margin-top:12px;padding:20px;border:1px solid #173b49;border-radius:16px;background:#071118}.grid .card{margin-top:0}.card small{color:#63d8f1;letter-spacing:.14em;font-size:9px}.card p,.card li,.card label{color:#7896a1;font-size:11px;line-height:1.55}.card input[type=text],.card input:not([type]){width:100%;margin-top:6px;padding:11px;border-radius:9px;border:1px solid #245365;background:#030a0e;color:#dffaff}.check{display:flex;align-items:center;gap:8px;margin:12px 0}.check input{width:auto}.card button{border:1px solid #2b687b;background:#0c2c37;color:#d5f9ff;border-radius:10px;padding:10px 13px;cursor:pointer;margin-right:7px}.card button.primary{background:#115469;border-color:#52cce8;font-weight:800}.card button.danger{background:#2a1013;border-color:#7d3137;color:#ffbec3}.pair{margin-top:14px;padding:14px;border:1px solid #245365;border-radius:12px;background:#050c11}.pairTop{display:flex;justify-content:space-between;gap:12px;margin-bottom:12px}.pair b{display:block;font-family:monospace;font-size:18px;color:#a9f5ff}.pair span{font-size:9px;color:#6d8b96}.head,.deviceTop{display:flex;justify-content:space-between;gap:16px;align-items:center}.devices>article{margin-top:8px;padding:14px;border:1px solid #153844;border-radius:11px}.devices p{margin:5px 0}.states{display:flex;gap:6px;flex-wrap:wrap}.states span{border:1px solid #294957;border-radius:999px;padding:5px 8px;font-size:8px}.online{color:#7ef0b8}.offline{color:#dd9d78}.pending{color:#efd18d}.actions{margin-top:10px}.errText{color:#ffb5bb!important}details{margin-top:15px;color:#75929c}button:disabled{opacity:.5;cursor:not-allowed}@media(max-width:850px){.grid{grid-template-columns:1fr}.page{padding:18px 12px}.pairTop,.deviceTop{align-items:flex-start;flex-direction:column}}`}</style>
+   *{box-sizing:border-box}.page{min-height:100vh;background:#05080c;color:#eafaff;padding:24px 28px 70px;font-family:Inter,system-ui,sans-serif;background-image:radial-gradient(circle at 80% 0,rgba(54,210,255,.12),transparent 28%)}header,.hero,.grid,.card,.notice{max-width:1400px;margin-left:auto;margin-right:auto}header{display:flex;justify-content:space-between;font-size:9px;letter-spacing:.15em;color:#6d8994}header nav{display:flex;gap:14px}a{color:#74dff2;text-decoration:none}.hero{margin-top:26px;padding:30px;border:1px solid #205267;border-radius:22px;background:#07141c}.hero h1{font-size:clamp(42px,7vw,76px);margin:6px 0}.hero p{max-width:950px;color:#8ca6b0;line-height:1.6}.badges{display:flex;gap:8px;flex-wrap:wrap}.badges>*{border:1px solid #24596b;border-radius:999px;padding:8px 11px;font-size:9px}.badges .good{border-color:#267c55;color:#86f6bb}.badges .warn{border-color:#8a6a2d;color:#f1cf82}.notice{margin-top:12px;padding:12px;border:1px solid #5b4927;background:#171208;border-radius:10px;color:#efd18d}.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:10px;margin-top:12px}.card{margin-top:12px;padding:20px;border:1px solid #173b49;border-radius:16px;background:#071118}.grid .card{margin-top:0}.card small{color:#63d8f1;letter-spacing:.14em;font-size:9px}.card p,.card li,.card label{color:#7896a1;font-size:11px;line-height:1.55}.card input[type=text],.card input:not([type]){width:100%;margin-top:6px;padding:11px;border-radius:9px;border:1px solid #245365;background:#030a0e;color:#dffaff}.check{display:flex;align-items:center;gap:8px;margin:12px 0}.check input{width:auto}.card button{border:1px solid #2b687b;background:#0c2c37;color:#d5f9ff;border-radius:10px;padding:10px 13px;cursor:pointer;margin-right:7px}.card button.primary{background:#115469;border-color:#52cce8;font-weight:800}.card button.danger{background:#2a1013;border-color:#7d3137;color:#ffbec3}.obsPanel{margin-top:12px}.obsDevice{margin-top:12px;padding:14px;border:1px solid #1e5260;border-radius:12px;background:#061018}.obsActions,.obsControls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.obsControls label{display:block;min-width:220px;flex:1;color:#94adb7;font-size:10px}.obsControls select{display:block;width:100%;margin-top:6px;padding:10px;border:1px solid #285465;background:#030a0e;color:#dffaff;border-radius:9px}.obsMissing{border:1px dashed #4f6872;padding:12px;border-radius:10px}.obsResult{margin-top:13px;padding:12px;border:1px solid #234958;border-radius:10px}.obsResultHead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}.obsResult pre{white-space:pre-wrap;overflow:auto;max-height:240px;background:#030a0e;padding:10px;border-radius:8px;font-size:10px;color:#addce7}.pair{margin-top:14px;padding:14px;border:1px solid #245365;border-radius:12px;background:#050c11}.pairTop{display:flex;justify-content:space-between;gap:12px;margin-bottom:12px}.pair b{display:block;font-family:monospace;font-size:18px;color:#a9f5ff}.pair span{font-size:9px;color:#6d8b96}.head,.deviceTop{display:flex;justify-content:space-between;gap:16px;align-items:center}.devices>article{margin-top:8px;padding:14px;border:1px solid #153844;border-radius:11px}.devices p{margin:5px 0}.states{display:flex;gap:6px;flex-wrap:wrap}.states span{border:1px solid #294957;border-radius:999px;padding:5px 8px;font-size:8px}.online{color:#7ef0b8}.offline{color:#dd9d78}.pending{color:#efd18d}.actions{margin-top:10px}.errText{color:#ffb5bb!important}details{margin-top:15px;color:#75929c}button:disabled{opacity:.5;cursor:not-allowed}@media(max-width:850px){.grid{grid-template-columns:1fr}.page{padding:18px 12px}.pairTop,.deviceTop{align-items:flex-start;flex-direction:column}}`}</style>
  </main>
 }
