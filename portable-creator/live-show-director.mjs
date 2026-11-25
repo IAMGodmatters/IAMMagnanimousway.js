@@ -13,7 +13,7 @@ const SAFE_NAME=/[\x00-\x1F\x7F]/g;
 export function createReviewCue(event,{now=Date.now(),ttlMs=45_000}={}){
  if(!event||typeof event!=='object'||Array.isArray(event)||typeof event.eventId!=='string'||event.eventId.length>160)return null;
  const template=CUES[event.type];if(!template)return null;
- const actor=typeof event.actorName==='string'?event.actorName.replace(SAFE_NAME,'').trim().slice(0,80):'';
+ const actor=typeof event.actorName==='string'?safeDisplayName(event.actorName):'';
  const ttl=Math.max(5_000,Math.min(120_000,Number.isFinite(ttlMs)?ttlMs:45_000));
  return Object.freeze({
   cueId:String(event.provider||'unknown')+':'+event.eventId,
