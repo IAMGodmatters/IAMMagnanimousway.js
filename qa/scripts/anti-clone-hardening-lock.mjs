@@ -21,7 +21,7 @@ for(const [name,config] of [['next.config.js',js],['next.config.ts',ts]]){
   must(explicitlyFalse(config,'poweredByHeader'),`${name} must keep framework identification headers explicitly disabled.`);
 }
 
-must(/^\\*\\s+@IAMGodmatters\\s*$/m.test(codeOwners),'All proprietary repository paths must have the platform owner recorded as code owner.');
+must(codeOwners.split(/\r?\n/).some(line=>line.trim()==='* @IAMGodmatters'),'All proprietary repository paths must have the platform owner recorded as code owner.');
 must(/PROPRIETARY LICENSE/i.test(license),'Proprietary license heading is missing.');
 must(/All rights reserved/i.test(license),'All-rights-reserved notice is missing.');
 must(/No permission is granted to copy/i.test(license),'Explicit no-copy grant is missing.');
