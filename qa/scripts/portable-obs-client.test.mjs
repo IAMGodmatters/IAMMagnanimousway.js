@@ -25,6 +25,8 @@ class FakeWebSocket {
    const {requestId,requestType}=packet.d;
    let responseData={};
    if(requestType==='GetSceneList')responseData={scenes:[{sceneName:'Starting Soon'},{sceneName:'Main Show'}],currentProgramSceneName:'Starting Soon'};
+   if(requestType==='GetInputList')responseData={inputs:[]};
+   if(requestType==='CreateInput')responseData={inputUuid:'avatar-source-1'};
    if(requestType==='GetRecordStatus')responseData={outputActive:true,outputPaused:false};
    if(requestType==='StopRecord')responseData={outputPath:'F:/Creator/recording.mkv'};
    queueMicrotask(()=>this.emit('message',{data:JSON.stringify({op:7,d:{requestId,requestStatus:{result:true},responseData}})}));
@@ -44,6 +46,15 @@ assert.deepEqual(scenes.scenes.map(scene=>scene.sceneName),['Starting Soon','Mai
 assert.equal(scenes.currentProgramSceneName,'Starting Soon');
 await client.setProgramScene('Main Show');
 await assert.rejects(()=>client.setProgramScene('Unknown Scene'),/not in the current OBS scene list/);
+const avatar=await client.createHostAvatarSource({sceneName:'Main Show',url:'http://127.0.0.1:3219/avatar.html',width:1080,height:1920});
+assert.equal(avatar.created,true);
+assert.equal(avatar.sourceName,'Magnanimous AI Host Avatar');
+const avatarRequest=FakeWebSocket.last.sent.find(packet=>packet.op===6&&packet.d.requestType==='CreateInput');
+assert.equal(avatarRequest.d.requestData.inputKind,'browser_source');
+assert.equal(avatarRequest.d.requestData.inputSettings.url,'http://127.0.0.1:3219/avatar.html');
+assert.equal(avatarRequest.d.requestData.sceneName,'Main Show');
+await assert.rejects(()=>client.createHostAvatarSource({sceneName:'Main Show',url:'https://attacker.example/avatar.html'}),/Only the local 127.0.0.1/);
+
 await client.startRecording();
 const status=await client.getRecordStatus();
 assert.equal(status.outputActive,true);
@@ -54,5 +65,6 @@ assert.equal(client.connected,false);
 console.log('PASS OBS WebSocket authentication challenge');
 console.log('PASS loopback-only endpoint and scene discovery');
 console.log('PASS allowlisted scene switch and invalid-scene rejection');
+console.log('PASS local-only OBS avatar browser source and remote URL rejection');
 console.log('PASS recording start/status/stop requests');
 console.log('PASS explicit disconnect clears connection state');
