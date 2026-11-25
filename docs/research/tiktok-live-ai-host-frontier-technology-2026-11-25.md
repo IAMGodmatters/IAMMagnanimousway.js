@@ -104,7 +104,8 @@ For ministry and educational LIVE sessions, keep the AI identity clearly disclos
 - Simli official pricing and plan limits: https://www.simli.com/pricing
 - Simli official Javascript SDK integration: https://docs.simli.com/api-reference/simli-client
 - Simli official JavaScript SDK and LiveKit transport usage: https://github.com/simliai/simli-client
-- Simli current Compose token endpoint / secure server request: https://www.npmjs.com/package/simli-client
+- Simli official backend authentication example: https://docs.simli.com/api-reference/backend-authentication
+- Simli official JavaScript SDK reference: https://docs.simli.com/api-reference/simli-client
 - Simli WebRTC client package: https://www.npmjs.com/package/simli-client
 - Tavus CVI modular architecture and BYO LLM/audio: https://www.tavus.io/cvi
 - Tavus developer plans and minute overage: https://www.tavus.io/pricing
