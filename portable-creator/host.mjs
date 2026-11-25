@@ -186,7 +186,7 @@ function connectBridge(endpoint,token){
   let envelope;try{envelope=JSON.parse(String(message.data));}catch{bridgeError='The online relay sent an unreadable message.';return;}
   if(envelope?.kind==='ready'&&envelope.protocolVersion===1){bridgeStatus='connected';bridgeError='';return;}
   if(envelope?.kind==='waiting'){bridgeStatus='connecting';return;}
-  if(envelope?.kind==='event'&&envelope.protocolVersion===1){const result=liveEvents.ingest(envelope.event);if(result.status==='persistence_error')bridgeError='A received event could not be saved to the USB recovery journal.';return;}
+  if(envelope?.kind==='event'&&envelope.protocolVersion===1){const result=liveEvents.ingest(envelope.event,{bypassRateLimit:true});if(!['accepted','duplicate'].includes(result.status)){const blocked=result.status==='persistence_error';bridgeError=String(result.detail||'The local companion could not accept the incoming event.').slice(0,240);try{socket.send(JSON.stringify({kind:'error',code:blocked?'LOCAL_STORAGE_BLOCKED':'LOCAL_EVENT_REJECTED',message:bridgeError}));}catch{}bridgeStatus='error';bridgeSocket=null;try{socket.close(4429,'Local event intake stopped');}catch{}}return;}
   if(envelope?.kind==='command'&&envelope.protocolVersion===1){
    const command=safeBridgeCommand(envelope.command);
    if(!command){bridgeError='An unsupported remote command was rejected.';return;}
