@@ -10,6 +10,7 @@ const CUES=Object.freeze({
  'system.notice':{kind:'operator_notice',title:'Show notice',prompt:'Review the notice and decide whether it belongs on screen. Do not display it automatically.',priority:'normal'}
 });
 const SAFE_NAME=/[\x00-\x1F\x7F]/g;
+function safeDisplayName(value){return value.replace(SAFE_NAME,'').trim().slice(0,80);}
 export function createReviewCue(event,{now=Date.now(),ttlMs=45_000}={}){
  if(!event||typeof event!=='object'||Array.isArray(event)||typeof event.eventId!=='string'||event.eventId.length>160)return null;
  const template=CUES[event.type];if(!template)return null;
