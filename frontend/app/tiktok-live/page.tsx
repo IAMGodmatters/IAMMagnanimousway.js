@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { normalizeLiveEvent, type LiveEvent } from '../../lib/live-studio/event-contract';
 import type { FormEvent } from 'react';
 import { postMagnanimousChat } from '../../lib/magnanimous-chat-transport';
 import { primeNaturalSpeech, speakTextNaturally, stopNaturalSpeech } from '../../lib/natural-speech';
@@ -39,6 +40,10 @@ export default function TikTokLiveHost() {
   const [gameName, setGameName] = useState('');
   const [gameEventType, setGameEventType] = useState('moment');
   const [gameContext, setGameContext] = useState('');
+  const [localBridgeReady, setLocalBridgeReady] = useState(false);
+  const [forwardToLocalHost, setForwardToLocalHost] = useState(false);
+  const [pendingBridgeEvent, setPendingBridgeEvent] = useState<LiveEvent | null>(null);
+  const hostBridgeChannelRef = useRef<BroadcastChannel | null>(null);
 
   const topicInstruction = useMemo(() => {
     if (topic === 'Faith & Scripture') return 'You are speaking in a Christian ministry and Bible-learning context. When relevant, use the King James Version (KJV), distinguish Scripture from your own explanation, and never invent a verse or claim a quotation is Scripture unless accurate.';
@@ -49,6 +54,30 @@ export default function TikTokLiveHost() {
   }, [topic]);
 
   useEffect(() => () => stopNaturalSpeech(), []);
+
+  useEffect(() => {
+    if (typeof BroadcastChannel !== 'function') return;
+    const channel = new BroadcastChannel('magnanimous-live-host-bridge-v1');
+    hostBridgeChannelRef.current = channel;
+    channel.addEventListener('message', event => {
+      const data = event.data;
+      if (!data || typeof data !== 'object') return;
+      if (data.type === 'bridge.status') setLocalBridgeReady(data.connected === true);
+      if (data.type === 'live.event') {
+        const normalized = normalizeLiveEvent(data.event);
+        if (normalized) setPendingBridgeEvent(normalized);
+      }
+      if (data.type === 'host.speak.result') {
+        setNotice(data.ok === true
+          ? 'AI reply sent to the paired USB companion. It will speak only after local operator approval.'
+          : 'The USB companion did not receive the AI reply. Check that LIVE Event Bridge is connected.');
+      }
+    });
+    return () => {
+      channel.close();
+      hostBridgeChannelRef.current = null;
+    };
+  }, []);
 
   function speak(text: string) {
     if (!text.trim()) return;
@@ -143,9 +172,21 @@ export default function TikTokLiveHost() {
       if (!answer) throw new Error('Magnanimous AI returned an empty answer.');
       setHostReply(answer);
       setLines(items => [...items, { id: Date.now() + 1, role: 'host', text: answer }]);
-      setStatus(autoSpeak ? 'HOST SPEAKING' : 'REPLY READY');
-      if (autoSpeak) speak(answer);
-      else setStatus('REPLY READY');
+      if (forwardToLocalHost) {
+        if (localBridgeReady && hostBridgeChannelRef.current) {
+          hostBridgeChannelRef.current.postMessage({ type: 'host.speak', text: answer });
+          setStatus('SENT FOR LOCAL HOST APPROVAL');
+          setNotice('AI reply sent to the paired USB companion. The local operator must approve it before the avatar speaks.');
+        } else {
+          setStatus('REPLY READY');
+          setNotice('The USB companion is not connected. Open LIVE Event Bridge in another tab and connect the F-drive Creator first.');
+        }
+      } else if (autoSpeak) {
+        setStatus('HOST SPEAKING');
+        speak(answer);
+      } else {
+        setStatus('REPLY READY');
+      }
     } catch (error: any) {
       setLines(items => items.filter(line => line.id !== commentId));
       setViewerComment(comment);
@@ -235,6 +276,21 @@ export default function TikTokLiveHost() {
               ))}
             </div>
           </div>
+          {pendingBridgeEvent && (
+            <div className="incomingEvent" role="status">
+              <b>Incoming {pendingBridgeEvent.provider.toUpperCase()} event · {pendingBridgeEvent.type}</b>
+              <p>{[pendingBridgeEvent.actorName, pendingBridgeEvent.text].filter(Boolean).join(': ') || 'A game or audience event arrived from your paired local companion.'}</p>
+              <div className="eventActions">
+                <button type="button" className="secondary" onClick={() => {
+                  const detail = [pendingBridgeEvent.actorName, pendingBridgeEvent.text, pendingBridgeEvent.tags ? JSON.stringify(pendingBridgeEvent.tags) : ''].filter(Boolean).join(' · ').slice(0, 1200);
+                  setViewerComment('[PAIRED LIVE EVENT · REVIEWED BY CREATOR] ' + pendingBridgeEvent.provider + ' / ' + pendingBridgeEvent.type + ': ' + detail);
+                  if (pendingBridgeEvent.provider === 'game') { setTopic('Gaming & Interactive'); setGameContext(detail); }
+                  setPendingBridgeEvent(null);
+                }}>Use as host context</button>
+                <button type="button" className="quiet" onClick={() => setPendingBridgeEvent(null)}>Dismiss</button>
+              </div>
+            </div>
+          )}
           <form onSubmit={answerComment}>
             <div className="gameCue">
               <b>GAME &amp; APP CO-HOST CONTEXT</b>
@@ -255,6 +311,7 @@ export default function TikTokLiveHost() {
               <textarea value={viewerComment} onChange={event => setViewerComment(event.target.value)} rows={4} placeholder="Paste or type a viewer question, game event, score update or audience prediction here…" />
             </label>
             <label className="toggle"><input type="checkbox" checked={autoSpeak} onChange={event => setAutoSpeak(event.target.checked)} /> Automatically speak each AI answer after generation (optional)</label>
+            <label className="toggle"><input type="checkbox" checked={forwardToLocalHost} onChange={event => setForwardToLocalHost(event.target.checked)} disabled={!localBridgeReady} /> Send AI replies to the paired F-drive host for local approval {localBridgeReady ? '(connected)' : '(open LIVE Event Bridge to connect)'}</label>
             <button className="primary answerButton" type="submit" disabled={busy || !viewerComment.trim()}>{busy ? 'Magnanimous is answering…' : '✦ Answer comment with Magnanimous AI'}</button>
           </form>
           {notice && <div className="notice">{notice}</div>}
@@ -282,7 +339,7 @@ export default function TikTokLiveHost() {
         *{box-sizing:border-box}.livePage{min-height:100vh;background:#050a11;color:#eef8ff;padding:18px 24px 55px;font-family:Inter,system-ui,sans-serif;background-image:radial-gradient(circle at 12% 6%,rgba(40,192,231,.12),transparent 28%),radial-gradient(circle at 92% 20%,rgba(190,150,58,.09),transparent 24%)}
         .topbar{max-width:1440px;margin:auto;display:flex;justify-content:space-between;align-items:center;color:#85a2b4;font-size:10px;letter-spacing:.13em}.topbar a{color:#73dff4;text-decoration:none}
         .intro{max-width:1440px;margin:36px auto 20px;display:grid;grid-template-columns:1.4fr .8fr;gap:22px;align-items:center}.intro small,.setup small,.consoleHead small{color:#71dff0;letter-spacing:.18em;font-size:9px}.intro h1{font-size:clamp(48px,7vw,82px);line-height:.91;letter-spacing:-.055em;margin:10px 0 15px}.intro h1 em{font-style:normal;color:#e7c46a}.intro p{max-width:760px;color:#91a9b7;line-height:1.65;font-size:14px}.noticeCard{background:#101a21;border:1px solid #30485a;border-radius:16px;padding:18px}.noticeCard b{color:#e8cf8b}.noticeCard p{font-size:12px;margin-bottom:0}
-        .gameCue{border:1px solid #315268;border-radius:12px;padding:12px;margin:12px 0;background:#0b1b26}.gameCue>b{font-size:10px;letter-spacing:.12em;color:#e8cf8b}.gameCue>p{font-size:11px;color:#91a9b7;line-height:1.5}.gameCue input,.gameCue select,.gameCue textarea{width:100%;background:#08121a;color:#eef8ff;border:1px solid #315268;border-radius:8px;padding:10px;font:inherit}.workspace{max-width:1440px;margin:auto;display:grid;grid-template-columns:minmax(420px,1fr) minmax(340px,460px);gap:16px;align-items:start}.stageColumn,.console{background:#08121a;border:1px solid #203b4b;border-radius:18px;padding:15px}.stageLabel{display:flex;justify-content:space-between;align-items:center;font-size:9px;color:#88a9b8;letter-spacing:.12em;margin:1px 2px 12px}.stageLabel span{display:flex;align-items:center;gap:7px}.stageLabel b{color:#d6ba72}.pulse{width:7px;height:7px;border-radius:50%;background:#647985}.pulse.on{background:#69f1b0;box-shadow:0 0 12px #69f1b0}
+        .incomingEvent{border:1px solid #69c8d9;background:#0b1b26;border-radius:12px;padding:12px;margin:12px 0}.incomingEvent>b{font-size:11px;color:#8de4f0}.incomingEvent p{font-size:12px;line-height:1.5;color:#d3e4ec}.eventActions{display:flex;gap:8px;flex-wrap:wrap}.gameCue{border:1px solid #315268;border-radius:12px;padding:12px;margin:12px 0;background:#0b1b26}.gameCue>b{font-size:10px;letter-spacing:.12em;color:#e8cf8b}.gameCue>p{font-size:11px;color:#91a9b7;line-height:1.5}.gameCue input,.gameCue select,.gameCue textarea{width:100%;background:#08121a;color:#eef8ff;border:1px solid #315268;border-radius:8px;padding:10px;font:inherit}.workspace{max-width:1440px;margin:auto;display:grid;grid-template-columns:minmax(420px,1fr) minmax(340px,460px);gap:16px;align-items:start}.stageColumn,.console{background:#08121a;border:1px solid #203b4b;border-radius:18px;padding:15px}.stageLabel{display:flex;justify-content:space-between;align-items:center;font-size:9px;color:#88a9b8;letter-spacing:.12em;margin:1px 2px 12px}.stageLabel span{display:flex;align-items:center;gap:7px}.stageLabel b{color:#d6ba72}.pulse{width:7px;height:7px;border-radius:50%;background:#647985}.pulse.on{background:#69f1b0;box-shadow:0 0 12px #69f1b0}
         .stage{position:relative;overflow:hidden;width:min(100%,490px);aspect-ratio:9/16;max-height:790px;margin:0 auto;border:1px solid #315268;border-radius:20px;background:radial-gradient(ellipse at 50% 38%,rgba(23,115,150,.38),transparent 40%),linear-gradient(160deg,#0d2333,#080e19 58%,#1d1b18);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;isolation:isolate}.stageGlow{position:absolute;width:85%;aspect-ratio:1;border-radius:50%;background:#b68b3b;opacity:.12;filter:blur(70px);top:23%;z-index:-1}.orbit{position:absolute;left:50%;top:41%;width:84%;aspect-ratio:1;border:1px solid rgba(108,224,245,.17);border-radius:50%;transform:translate(-50%,-50%)}.orbitTwo{width:105%;border-color:rgba(217,182,94,.16);transform:translate(-50%,-50%) rotateX(68deg) rotateZ(-24deg)}.brand{position:absolute;top:7%;font-size:11px;letter-spacing:.28em;color:#e5c36d;font-weight:800}
         .portrait{position:relative;width:64%;aspect-ratio:1;border-radius:50%;overflow:hidden;border:2px solid rgba(229,196,109,.78);box-shadow:0 0 0 10px rgba(229,196,109,.07),0 0 60px rgba(60,196,225,.18);background:linear-gradient(140deg,#173b4c,#111b29);z-index:1}.portrait img{position:relative;z-index:2;width:100%;height:100%;object-fit:cover}.portraitFallback{position:absolute;inset:0;display:grid;place-items:center;font-size:100px;color:#e5c36d;font-family:Georgia,serif}.voiceHalo{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(255,255,255,.3);pointer-events:none;z-index:3}.speaking .voiceHalo{animation:halo .85s infinite alternate}@keyframes halo{to{inset:-8px;box-shadow:0 0 36px rgba(78,221,245,.5)}}
         .hostName{margin-top:28px;font-size:clamp(28px,4vw,43px);font-weight:900;letter-spacing:.12em;text-align:center;text-shadow:0 3px 18px #000}.hostRole{font-size:9px;letter-spacing:.24em;color:#d8bd79;margin-top:8px}.equalizer{height:50px;display:flex;align-items:center;justify-content:center;gap:4px;margin-top:28px}.equalizer i{display:block;width:4px;height:7px;border-radius:4px;background:linear-gradient(0deg,#d6ac57,#78e6f3);opacity:.9;transition:height .15s ease}.speaking .equalizer i{animation:bars .42s ease-in-out infinite alternate}@keyframes bars{to{transform:scaleY(.35)}}.disclosure{position:absolute;bottom:12%;font-size:8px;letter-spacing:.15em;color:#9fc5d1;text-align:center}.spokenReply{position:absolute;bottom:4%;left:8%;right:8%;font-size:9px;line-height:1.4;color:#c7dce3;text-align:center;max-height:8%;overflow:hidden;text-overflow:ellipsis}
