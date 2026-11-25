@@ -78,6 +78,30 @@ For ministry and educational LIVE sessions, keep the AI identity clearly disclos
 - Keeps manual comment relay and truthful preview-only status. No unofficial TikTok comment scraper, hidden session access, or automatic LIVE launch is added.
 - Does not install a paid SDK, store a provider key, start a paid session, or enable an automatic charge.
 
+## Cloud resilience findings relevant to LIVE and the wider platform
+
+Cloudflare's current official limits confirm the known Magnanimous D1 pressure point: the Workers Free plan allows 5 million D1 rows read/day and 100,000 rows written/day, with daily limits enforced from 1 September 2026. Once exhausted, D1 queries fail until midnight UTC; stored data is not deleted. Workers Free also has 100,000 requests/day and a 10 ms CPU-time limit per request. These are different failure modes and must be diagnosed separately.
+
+The repository already has important protections:
+- D1 schema is migration-owned rather than recreated on each request.
+- Known D1 quota errors are classified as explicit 503 responses with a UTC reset time.
+- Deployment refuses to deploy code when a changed migration cannot be applied.
+- If no migration changed, deployment can defer only the D1 control-plane/materialization step after verifying required production tables.
+- The checked-in Magnanimous capability manifest remains authoritative when its D1 cache cannot be refreshed.
+- A scheduled maintenance workflow retries deferred migrations/materialization after the UTC reset.
+- The standalone runtime includes provider-neutral SQL, object storage, KV, queue, event, vector, analytics, and secret-vault adapters, but its public production deployment is not yet proven live in this task.
+
+This update adds a **read-only account-wide D1 analytics check** to `.github/workflows/cloudflare-worker-resource-diagnostic.yml`. It queries the official `d1AnalyticsAdaptiveGroups` dataset, reports rows read/written by database for the current UTC day, and warns at 70% and 90% of the documented Free thresholds. It requires a dedicated `CLOUDFLARE_ANALYTICS_READ_TOKEN` with Account Analytics:Read and does not mutate Worker settings, billing, D1, or deployments. Analytics values are estimates, not an exact live quota meter; the account's actual quota status must be confirmed from Cloudflare's error response or dashboard.
+
+The correct longer-term path is not to remove D1 or weaken payment/auth guarantees. Reduce avoidable row scans and writes, keep the capability manifest in source control as the authoritative brain, use idempotent conditional upserts, preserve quota-aware deferral, and graduate to a controlled paid plan only when real measured usage and revenue justify it. Do not move production identity, billing, credentials, or tenant authorization to an unverified standalone host merely to avoid D1 limits.
+
+Primary Cloudflare references:
+- D1 Free daily query enforcement (1 September 2026): https://developers.cloudflare.com/changelog/post/2026-09-01-d1-free-tier-limit-enforcement/
+- D1 pricing and row thresholds: https://developers.cloudflare.com/d1/platform/pricing/
+- D1 analytics metrics and GraphQL datasets: https://developers.cloudflare.com/d1/observability/metrics-analytics/
+- D1 expensive-query analysis: https://developers.cloudflare.com/d1/observability/find-expensive-queries/
+- Workers plan and CPU limits (updated 18 November 2026): https://developers.cloudflare.com/workers/platform/limits/
+
 ## Next integration sequence
 
 1. **Complete local avatar audio rendering.** Install the official Simli browser SDK, add a server-only session token, and connect a local TTS stream to the avatar. The Simli key stays in the Worker secret; only the bounded session token reaches the browser.
