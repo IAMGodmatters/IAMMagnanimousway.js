@@ -27,7 +27,7 @@
   },
   "optionalComponents": {
     "localLanguageModel": "A separately licensed GGUF model and a compatible llama.cpp server build.",
-    "broadcastStudio": "An OBS Studio Windows portable distribution with reviewed license notices.",
+    "broadcastStudio": "An OBS Studio distribution with reviewed license notices; the local control adapter uses OBS WebSocket v5 on 127.0.0.1:4455",
     "speech": "A local TTS engine and a separately licensed voice model. No voice model is bundled by default.",
     "mediaTools": "A separately licensed FFmpeg distribution with its build configuration and notices reviewed."
   },
@@ -38,6 +38,7 @@
     "portableObsScenes": "requires OBS portable files and portable media paths",
     "onlineBroadcast": "requires a network connection and authorized platform account",
     "zoomMeeting": "requires a network connection; OBS virtual camera or Zoom Video SDK integration",
-    "automaticTiktokLiveChat": "not enabled without an approved and documented integration"
+    "automaticTiktokLiveChat": "not enabled without an approved and documented integration",
+    "localObsControl": "Implemented as an optional authenticated loopback OBS WebSocket adapter; requires OBS Studio with WebSocket Server enabled and hardware verification"
   }
 }
