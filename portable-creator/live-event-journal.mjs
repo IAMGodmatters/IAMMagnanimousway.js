@@ -52,21 +52,28 @@ export class LiveEventJournal{
  }
  load(){
   if(!fs.existsSync(this.filePath))return[];
+  const size=fs.statSync(this.filePath).size;
+  if(size>this.maxBytes)throw new Error('The encrypted live-event journal exceeds its configured recovery size. Existing data was preserved.');
   const source=fs.readFileSync(this.filePath,'utf8'),records=[];
+  const completeEnd=source.lastIndexOf('\n'),truncatedTail=completeEnd!==source.length-1;
+  const lines=source.slice(0,completeEnd+1).split(/\r?\n/);
   let legacyDetected=false;
-  for(const line of source.split(/\r?\n/)){
-   if(!line||Buffer.byteLength(line,'utf8')>MAX_RECORD_BYTES)continue;
-   let envelope;try{envelope=JSON.parse(line);}catch{continue;}
+  for(const line of lines){
+   if(!line)continue;
+   if(Buffer.byteLength(line,'utf8')>MAX_RECORD_BYTES)throw new Error('The live-event journal contains an oversized record. Existing data was preserved.');
+   let envelope;try{envelope=JSON.parse(line);}catch{throw new Error('The live-event journal contains a malformed complete record. Existing data was preserved.');}
    if(envelope?.version===1&&!envelope.cipher&&(envelope.kind==='event'||envelope.kind==='ack')){
     legacyDetected=true;
     if(envelope.kind==='event'&&envelope.event&&typeof envelope.event==='object')records.push({version:1,kind:'event',event:envelope.event});
     else if(envelope.kind==='ack'&&Array.isArray(envelope.keys))records.push({version:1,kind:'ack',keys:envelope.keys});
+    else throw new Error('The legacy live-event journal contains an invalid record. Existing data was preserved.');
     continue;
    }
    const record=this.decode(envelope);
-   if(record)records.push(record);
+   if(!record)throw new Error('The live-event journal contains an unsupported record. Existing data was preserved.');
+   records.push(record);
   }
-  if(legacyDetected)this.rewriteEncrypted(records);
+  if(legacyDetected||truncatedTail)this.rewriteEncrypted(records);
   return records;
  }
  rewriteEncrypted(records){
@@ -74,9 +81,9 @@ export class LiveEventJournal{
   const payload=lines.join('\n')+(lines.length?'\n':'');
   if(Buffer.byteLength(payload,'utf8')>this.maxBytes)throw new Error('Legacy live-event journal is larger than the encrypted recovery limit. Export it before continuing.');
   const temporary=this.filePath+'.migrate-'+crypto.randomBytes(6).toString('hex');
-  const fd=fs.openSync(temporary,'wx');
-  try{fs.writeSync(fd,payload,null,'utf8');fs.fsyncSync(fd);}finally{fs.closeSync(fd);}
-  try{fs.renameSync(temporary,this.filePath);}catch(error){try{fs.unlinkSync(temporary);}catch{}throw error;}
+  const fd=fs.openSync(temporary,'wx',0o600);
+  try{const bytes=Buffer.from(payload,'utf8');let offset=0;while(offset<bytes.length){const written=fs.writeSync(fd,bytes,offset,bytes.length-offset);if(written<=0)throw new Error('Journal migration write did not make progress.');offset+=written;}fs.fsyncSync(fd);}finally{fs.closeSync(fd);}
+  try{fs.renameSync(temporary,this.filePath);this.syncDirectory();}catch(error){try{fs.unlinkSync(temporary);}catch{}throw error;}
  }
  sizeBytes(){return fs.existsSync(this.filePath)?fs.statSync(this.filePath).size:0;}
  needsCompaction(){return this.sizeBytes()>Math.floor(this.maxBytes*0.5);}
@@ -88,10 +95,11 @@ export class LiveEventJournal{
   const payload=lines.join('\n')+(lines.length?'\n':'');
   if(Buffer.byteLength(payload,'utf8')>this.maxBytes)throw new Error('The remaining event queue is larger than the recovery journal limit.');
   const temporary=this.filePath+'.compact-'+crypto.randomBytes(6).toString('hex');
-  const fd=fs.openSync(temporary,'wx');
-  try{fs.writeSync(fd,payload,null,'utf8');fs.fsyncSync(fd);}finally{fs.closeSync(fd);}
-  try{fs.renameSync(temporary,this.filePath);}catch(error){try{fs.unlinkSync(temporary);}catch{}throw error;}
+  const fd=fs.openSync(temporary,'wx',0o600);
+  try{const bytes=Buffer.from(payload,'utf8');let offset=0;while(offset<bytes.length){const written=fs.writeSync(fd,bytes,offset,bytes.length-offset);if(written<=0)throw new Error('Journal compaction write did not make progress.');offset+=written;}fs.fsyncSync(fd);}finally{fs.closeSync(fd);}
+  try{fs.renameSync(temporary,this.filePath);this.syncDirectory();}catch(error){try{fs.unlinkSync(temporary);}catch{}throw error;}
  }
+ syncDirectory(){try{const fd=fs.openSync(path.dirname(this.filePath),'r');try{fs.fsyncSync(fd);}finally{fs.closeSync(fd);}}catch{/* Some filesystems, including Windows, do not expose directory fsync. */}}
  append(records){
   if(!Array.isArray(records)||records.length===0)return;
   const lines=records.map(record=>this.encode(record));
@@ -99,8 +107,9 @@ export class LiveEventJournal{
   const payload=lines.join('\n')+'\n';
   const currentSize=fs.existsSync(this.filePath)?fs.statSync(this.filePath).size:0;
   if(currentSize+Buffer.byteLength(payload,'utf8')>this.maxBytes)throw new Error('The event recovery journal reached its safety limit. Export or archive the workspace before continuing.');
-  const fd=fs.openSync(this.filePath,'a');
-  try{fs.writeSync(fd,payload,null,'utf8');fs.fsyncSync(fd);}finally{fs.closeSync(fd);}
+  const existed=fs.existsSync(this.filePath),fd=fs.openSync(this.filePath,'a',0o600);
+  try{const bytes=Buffer.from(payload,'utf8');let offset=0;while(offset<bytes.length){const written=fs.writeSync(fd,bytes,offset,bytes.length-offset);if(written<=0)throw new Error('Journal append write did not make progress.');offset+=written;}fs.fsyncSync(fd);}finally{fs.closeSync(fd);}
+  if(!existed)this.syncDirectory();
  }
  appendEvent(event){this.append([{kind:'event',event}]);}
  appendAcks(events){
