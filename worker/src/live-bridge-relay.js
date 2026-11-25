@@ -148,7 +148,9 @@ export async function handleLiveBridgeRelay(request,env,user=null){
  const url=new URL(request.url);
  if(url.pathname==='/api/live-bridge/pair'&&request.method==='POST'){
   if(!user?.id||!user?.tenant_id)return json({detail:'Sign in to create a live bridge.'},401);
-  if(!env.LIVE_BRIDGE_ROOMS)return json({detail:'The online bridge service is not configured on this deployment.'},503);
+  if(!env.LIVE_BRIDGE_ROOMS||!env.LIVE_BRIDGE_PAIR_LIMITER?.limit)return json({detail:'The online bridge service is not configured on this deployment.'},503);
+  const rate=await env.LIVE_BRIDGE_PAIR_LIMITER.limit({key:String(user.tenant_id)+':'+String(user.id)});
+  if(!rate?.success)return json({detail:'Too many pairing requests. Wait one minute before creating another pair.'},429);
   const pairId=crypto.randomUUID();
   const browserToken=randomToken(),companionToken=randomToken();
   const pairExpiresAt=Date.now()+TOKEN_TTL_MS;
