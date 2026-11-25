@@ -10,7 +10,7 @@ Each provider adapter translates only authorized events into the common `LiveEve
 - `youtube`: official YouTube Live Streaming API; prefer `liveChatMessages.streamList` to aggressive polling.
 - `twitch`: official EventSub WebSocket or webhook transport with required broadcaster scopes.
 - `tiktok`: use only official account-authorized LIVE/streaming paths available to the creator. Where no supported comment API is available, use operator-entered comments or another permitted surface. Never scrape private endpoints or collect passwords.
-- `obs`: connect through a local companion process to OBS WebSocket. Require OBS authentication and explicit operator pairing; never expose the OBS password remotely.
+- `obs`: a Windows-first owner-local OBS WebSocket adapter is available through the paired Local Bridge. It uses Windows DPAPI for the password, connects only to 127.0.0.1, and enforces local scene/media allowlists. The separate browser Live Event Bridge still needs its own deployed WSS relay before automatic audience-event ingestion can be called live.
 - `game` and `browser`: documented plugin APIs, local game events, strict-origin browser postMessage, or explicit operator-triggered events. Never inject code into games or bypass anti-cheat.
 
 ## Protocol
