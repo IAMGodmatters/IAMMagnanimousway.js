@@ -36,10 +36,22 @@ const pendingBridgeCommands=[];
 const OBS_PORT=4455;
 
 fs.mkdirSync(DATA,{recursive:true});
-const liveEventJournal=new LiveEventJournal(path.join(DATA,'live-events.jsonl'));
+let liveEventsRestored=false;
+let liveEventJournalError='';
+const liveEventJournal=new LiveEventJournal(path.join(DATA,'live-events.jsonl'),{keyProvider:()=>vaultKey?crypto.createHmac('sha256',vaultKey).update('magnanimous-live-event-journal-v1').digest():null});
 const liveEvents=new LiveEventRuntime({onAccept:event=>liveEventJournal.appendEvent(event),onConsume:events=>liveEventJournal.appendAcks(events)});
-const liveEventRecovery=liveEvents.restore(liveEventJournal.load());
-console.log('Recovered '+liveEventRecovery.restored+' live events; acknowledged '+liveEventRecovery.acknowledged+'.');
+function restoreLiveEvents(){
+ if(liveEventsRestored)return{restored:0,acknowledged:0};
+ try{
+  const result=liveEvents.restore(liveEventJournal.load());
+  liveEventsRestored=true;liveEventJournalError='';
+  console.log('Recovered '+result.restored+' live events; acknowledged '+result.acknowledged+'.');
+  return result;
+ }catch(error){
+  liveEventJournalError=String(error?.message||'The encrypted event journal could not be verified.').slice(0,240);
+  return{restored:0,acknowledged:0,error:liveEventJournalError};
+ }
+}
 
 function securityHeaders(res,type='application/json; charset=utf-8'){
  res.setHeader('content-type',type);
@@ -194,11 +206,11 @@ async function handleApi(req,res,url){
  }
  if(req.method==='POST'&&url.pathname==='/api/vault/unlock'){
   const body=await readJson(req);
-  try{return json(res,200,{ok:true,...unlockVault(String(body.passphrase||''))});}
+  try{const result=unlockVault(String(body.passphrase||''));const recovery=restoreLiveEvents();return json(res,200,{ok:true,...result,journal:{recovered:recovery.restored,acknowledged:recovery.acknowledged,error:recovery.error||''}});}
   catch(error){return json(res,401,{detail:error.message});}
  }
  if(req.method==='POST'&&url.pathname==='/api/vault/lock'){
-  lockVault();return json(res,200,{ok:true,locked:true});
+  closeBridge();liveEvents.clear();liveEventsRestored=false;lockVault();return json(res,200,{ok:true,locked:true});
  }
  if(req.method==='GET'&&url.pathname==='/api/projects'){
   if(!vaultData)return json(res,423,{detail:'Unlock the encrypted USB workspace first.'});
@@ -259,9 +271,11 @@ async function handleApi(req,res,url){
   catch(error){return json(res,502,{detail:error.message||'OBS could not stop recording.'});}
  }
  if(req.method==='GET'&&url.pathname==='/api/bridge/status'){
-  return json(res,200,bridgeSnapshot());
+  return json(res,200,{...bridgeSnapshot(),workspaceUnlocked:Boolean(vaultKey),journalError:liveEventJournalError});
  }
  if(req.method==='POST'&&url.pathname==='/api/bridge/connect'){
+  if(!vaultKey)return json(res,423,{detail:'Unlock the encrypted USB workspace before connecting the online bridge.'});
+  if(!liveEventsRestored||liveEventJournalError)return json(res,503,{detail:liveEventJournalError||'The encrypted event journal has not been verified.'});
   const body=await readJson(req);
   try{connectBridge(String(body.endpoint||''),String(body.token||''));return json(res,202,{ok:true,status:bridgeStatus});}
   catch(error){bridgeStatus='error';bridgeError=error.message;return json(res,400,{detail:error.message});}
@@ -280,9 +294,11 @@ async function handleApi(req,res,url){
   catch(error){return json(res,502,{detail:error.message||'OBS did not confirm the scene change.'});}
  }
  if(req.method==='GET'&&url.pathname==='/api/live/events/status'){
-  return json(res,200,liveEvents.status());
+  return json(res,200,{...liveEvents.status(),recoveryLocked:!vaultKey&&fs.existsSync(liveEventJournal.filePath),journalError:liveEventJournalError});
  }
  if(req.method==='POST'&&url.pathname==='/api/live/events/ingest'){
+  if(!vaultKey)return json(res,423,{detail:'Unlock the encrypted USB workspace before accepting events.'});
+  if(!liveEventsRestored||liveEventJournalError)return json(res,503,{detail:liveEventJournalError||'The encrypted event journal has not been verified.'});
   const body=await readJson(req);
   if(body.event?.provider!=='manual')return json(res,403,{status:'provider_untrusted',detail:'Browser intake accepts operator-entered manual events only; provider adapters must authenticate in the local companion.'});
   const result=liveEvents.ingest(body.event);
@@ -297,6 +313,8 @@ async function handleApi(req,res,url){
   return json(res,400,result);
  }
  if(req.method==='POST'&&url.pathname==='/api/live/events/consume'){
+  if(!vaultKey)return json(res,423,{detail:'Unlock the encrypted USB workspace before reviewing events.'});
+  if(!liveEventsRestored||liveEventJournalError)return json(res,503,{detail:liveEventJournalError||'The encrypted event journal has not been verified.'});
   const body=await readJson(req);
   const limit=Number.isInteger(body.limit)?Math.max(1,Math.min(50,body.limit)):10;
   const events=liveEvents.consume(limit);
