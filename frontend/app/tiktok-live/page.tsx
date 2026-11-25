@@ -59,6 +59,7 @@ export default function TikTokLiveHost() {
     if (typeof BroadcastChannel !== 'function') return;
     const channel = new BroadcastChannel('magnanimous-live-host-bridge-v1');
     hostBridgeChannelRef.current = channel;
+    channel.postMessage({ type: 'bridge.status.request' });
     channel.addEventListener('message', event => {
       const data = event.data;
       if (!data || typeof data !== 'object') return;
