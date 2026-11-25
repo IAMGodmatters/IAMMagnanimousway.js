@@ -156,7 +156,7 @@ export async function handleLiveBridgeRelay(request,env,user=null){
   const stub=env.LIVE_BRIDGE_ROOMS.get(id);
   const created=await stub.fetch('https://bridge.internal/internal/create',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({pairId,tenantId:String(user.tenant_id),userId:String(user.id),browserHash:await hash(browserToken),companionHash:await hash(companionToken),allowedProviders:LOCAL_COMPANION_PROVIDERS,pairExpiresAt})});
   if(!created.ok)return json({detail:'The secure bridge room could not be created.'},502);
-  return json({ok:true,pairId,endpoint:url.origin+'/api/live-bridge/ws/'+pairId,browserToken,companionToken,expiresAt:new Date(pairExpiresAt).toISOString(),sessionHours:12},201);
+  return json({ok:true,pairId,endpoint:url.origin.replace(/^https:/,'wss:')+'/api/live-bridge/ws/'+pairId,browserToken,companionToken,expiresAt:new Date(pairExpiresAt).toISOString(),sessionHours:12},201);
  }
  const match=url.pathname.match(/^\/api\/live-bridge\/ws\/([0-9a-f-]{36})$/i);
  if(match&&request.method==='GET'){
