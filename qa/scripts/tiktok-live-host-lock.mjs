@@ -23,6 +23,7 @@ const checks = [
   ['TikTok Shop policy is described as a non-interactive-content risk, not a blanket AI ban', host.includes('identifies recorded or computer-generated voices used instead of sustained, real-time verbal interaction as a potential violation') && host.includes('does not create a blanket ban on every AI avatar or every synthetic voice') && host.includes('not a blanket ban on every ordinary non-Shop LIVE')],
   
   ['local Streamer.bot WebSocket connection is implemented', host.includes('function connectStreamerBot()') && host.includes('new WebSocket(new URL(streamerBotUrl).toString())')],
+  ['TikTok comment ingestion remains manual and no unofficial endpoint is used', host.includes('TikTok comments are entered manually') && host.includes('does not scrape TikTok') && host.includes('daily statistics for partner creators')],
   ['Streamer.bot reads enabled local actions but exposes only an explicit operator-named allowlist', host.includes("request: 'GetActions'") && host.includes("action.name.startsWith('Magnanimous Approved - ')") && host.includes('approvedStreamerActions')],
   ['Streamer.bot action execution requires an explicit human confirmation', host.includes('function runApprovedStreamerAction(action: ApprovedAction)') && host.includes('window.confirm') && host.includes("request: 'DoAction'")],
   ['viewer text and AI responses cannot invoke local app/game actions', host.includes('Viewer comments and AI-generated text can never call this function') && host.includes('use_tools: false')],
