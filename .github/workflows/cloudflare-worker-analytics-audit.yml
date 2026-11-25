@@ -1,0 +1,46 @@
+name: Cloudflare Worker Read-only CPU Attribution
+
+on:
+  schedule:
+    - cron: '5 0 * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'qa/scripts/cloudflare-worker-analytics-audit.mjs'
+      - 'qa/scripts/cloudflare-worker-analytics-audit.test.mjs'
+      - '.github/workflows/cloudflare-worker-analytics-audit.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-worker-analytics-audit
+  cancel-in-progress: true
+
+jobs:
+  test:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Test read-only Cloudflare analytics audit
+        run: node --test qa/scripts/cloudflare-worker-analytics-audit.test.mjs
+
+  audit:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Attribute Worker resource-limit invocations for the last 24 hours
+        env:
+          CLOUDFLARE_ACCOUNT_ID: \${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: \${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ANALYTICS_READ_TOKEN: \${{ secrets.CLOUDFLARE_ANALYTICS_READ_TOKEN }}
+        run: node qa/scripts/cloudflare-worker-analytics-audit.mjs
