@@ -320,7 +320,6 @@ async function disconnectBridge(){
 }
 async function reviewBridgeCommand(commandId,approved){
  try{
-  const pending=state.pendingBridgeCommands.find(item=>item.commandId===commandId);
   const result=await api('/api/bridge/command/review',{method:'POST',body:JSON.stringify({commandId,approved})});
   if(approved&&result.action==='host.speak'&&result.speechText){
    $('hostLine').value=String(result.speechText).slice(0,500);
