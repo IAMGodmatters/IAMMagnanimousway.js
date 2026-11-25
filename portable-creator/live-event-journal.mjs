@@ -15,7 +15,7 @@ export class LiveEventJournal{
  getKey(){
   const key=this.keyProvider();
   if(!Buffer.isBuffer(key)||key.length!==32)throw new Error('Unlock the encrypted workspace before using durable live-event recovery.');
-  return Buffer.from(key);
+  const copy=Buffer.from(key);key.fill(0);return copy;
  }
  encode(record){
   const key=this.getKey(),iv=crypto.randomBytes(12);
