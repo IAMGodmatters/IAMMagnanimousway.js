@@ -27,6 +27,6 @@ test('does not create cues for unknown event types or malformed input',()=>{
  assert.equal(createReviewCue(null),null);assert.equal(createReviewCue({eventId:'x',type:'unknown'}),null);
 });
 test('strips control characters from cue actor display name and clamps expiry',()=>{
- const cue=createReviewCue(event('e-1',{actorName:'A\\u0000B'}),{now:1000,ttlMs:999999});
+ const cue=createReviewCue(event('e-1',{actorName:'A'+String.fromCharCode(0)+'B'}),{now:1000,ttlMs:999999});
  assert.equal(cue.actorName,'AB');assert.equal(Date.parse(cue.expiresAt)-Date.parse(cue.createdAt),120_000);
 });
