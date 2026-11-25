@@ -13,13 +13,17 @@ const eventTests=spawnSync(process.execPath,['--test',path.join(SOURCE,'live-eve
 if(eventTests.status!==0){console.error(eventTests.stdout||'');console.error(eventTests.stderr||'');throw new Error('Portable live-event runtime unit tests failed.');}
 console.log(eventTests.stdout.trim());
 
+const journalTests=spawnSync(process.execPath,['--test',path.join(SOURCE,'durable-live-event-journal.test.mjs')],{encoding:'utf8'});
+if(journalTests.status!==0){console.error(journalTests.stdout||'');console.error(journalTests.stderr||'');throw new Error('Portable durable live-event journal tests failed.');}
+console.log(journalTests.stdout.trim());
+
 const temp=fs.mkdtempSync(path.join(os.tmpdir(),'magnanimous-portable-'));
 const target=path.join(temp,'portable');
 fs.mkdirSync(path.join(target,'app'),{recursive:true});
 fs.copyFileSync(path.join(SOURCE,'host.mjs'),path.join(target,'host.mjs'));
 fs.copyFileSync(path.join(SOURCE,'obs-client.mjs'),path.join(target,'obs-client.mjs'));
 fs.copyFileSync(path.join(SOURCE,'live-event-runtime.mjs'),path.join(target,'live-event-runtime.mjs'));
-fs.copyFileSync(path.join(SOURCE,'live-show-director.mjs'),path.join(target,'live-show-director.mjs'));
+fs.copyFileSync(path.join(SOURCE,'live-show-director.mjs'),path.join(target,'live-show-director.mjs'));\nfs.copyFileSync(path.join(SOURCE,'durable-live-event-journal.mjs'),path.join(target,'durable-live-event-journal.mjs'));
 for(const file of ['index.html','app.js','styles.css'])fs.copyFileSync(path.join(SOURCE,'app',file),path.join(target,'app',file));
 const appSyntax=spawnSync(process.execPath,['--check',path.join(target,'app','app.js')],{encoding:'utf8'});
 if(appSyntax.status!==0){console.error(appSyntax.stderr||'');throw new Error('Portable creator browser script syntax check failed.');}
