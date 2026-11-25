@@ -73,7 +73,7 @@ Browser intake accepts operator-entered `manual` events only; provider-labelled 
 
 Queue and deduplication state are transient in memory and are cleared when the host exits. They are not a substitute for durable project storage. The endpoints are a local event-processing foundation only: no TikTok, Facebook, YouTube, Twitch or game adapter is connected by this change. Public broadcasting, account control, moderation and payments are not exposed.
 
-The portable runtime QA suite copies this module into an isolated temporary host and exercises event ingestion, duplicate rejection and bounded consumption. Unit tests cover validation, sanitization, rate limits, queue backpressure and cleanup.
+The portable UI includes an operator-controlled event review panel to pull and inspect a bounded batch. Browser intake accepts manual events only; it cannot impersonate a TikTok, Facebook, YouTube, Twitch or game adapter. The portable runtime QA suite copies this module into an isolated temporary host and exercises event ingestion, duplicate rejection, spoofed-provider rejection and bounded consumption. Unit tests cover validation, sanitization, rate limits, queue backpressure and cleanup.
 
 ## Broadcast and Zoom boundaries
 
