@@ -391,7 +391,8 @@ async function pullLiveEvents(){
    state.lastHostEvent=events[events.length-1];
    $('hostStageStatus').textContent='New reviewed event available';
    message('liveEventMessage',events.length+' event(s) loaded. Review the messages and Magnanimous suggestions before acknowledging.','success');
-  }else message('liveEventMessage','No unclaimed events are waiting.','info');
+  }else if(data.queued>0&&data.activeLeases>0)message('liveEventMessage','Events are still queued for a previous review. They will become available again when that review lease expires.','warning');
+  else message('liveEventMessage','No unclaimed events are waiting.','info');
   $('liveQueueStatus').textContent=data.queued+' queued · '+data.capacity+' capacity';
  }catch(error){message('liveEventMessage',error.message,'error');}
  finally{$('livePullButton').disabled=Boolean(state.pendingLiveDelivery);await refreshLiveQueue();}
