@@ -35,6 +35,7 @@ let bridgeStatus='disconnected';
 let bridgeError='';
 let gameIntegrationToken=null;
 const pendingBridgeCommands=[];
+const avatarClients=new Set();
 const OBS_PORT=4455;
 
 fs.mkdirSync(DATA,{recursive:true});
@@ -81,6 +82,14 @@ function send(res,status,data,type){
  res.end(type?.startsWith('application/json')?JSON.stringify(data):data);
 }
 function json(res,status,data){send(res,status,data,'application/json; charset=utf-8');}
+function broadcastAvatarState(state){
+ const payload=JSON.stringify(state);
+ const frame='data: '+payload+'\\n\\n';
+ for(const client of avatarClients){
+  if(client.destroyed||client.writableEnded){avatarClients.delete(client);continue;}
+  try{client.write(frame);}catch{avatarClients.delete(client);}
+ }
+}
 function isLoopbackAddress(address){
  return address==='127.0.0.1'||address==='::1'||address==='::ffff:127.0.0.1';
 }
@@ -125,6 +134,7 @@ function unlockVault(passphrase){
   vaultKey=deriveKey(passphrase,vaultSalt);
   vaultData={schema:1,projects:[],createdAt:new Date().toISOString()};
   saveVault();
+  broadcastAvatarState({type:'ready'});
   return {created:true,projectCount:0};
  }
  const envelope=JSON.parse(fs.readFileSync(VAULT,'utf8'));
@@ -143,6 +153,7 @@ function unlockVault(passphrase){
   if(parsed?.schema!==1||!Array.isArray(parsed.projects))throw new Error('Workspace data format is invalid.');
   vaultKey=candidate;
   vaultData=parsed;
+  broadcastAvatarState({type:'ready'});
   return {created:false,projectCount:parsed.projects.length};
  }catch(error){
   candidate.fill(0);lockVault();
@@ -150,6 +161,7 @@ function unlockVault(passphrase){
  }
 }
 function lockVault(){
+ broadcastAvatarState({type:'locked'});
  closeBridge();
  pendingBridgeCommands.length=0;
  liveEvents.clear();liveEventsRestored=false;liveEventJournalError='';liveEventJournalWarning='';
@@ -223,6 +235,31 @@ function safeProject(value){
  return {id:crypto.randomUUID(),title,content,type,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
 }
 async function handleApi(req,res,url){
+ if(req.method==='GET'&&url.pathname==='/api/avatar/events'){
+  securityHeaders(res,'text/event-stream; charset=utf-8');
+  res.setHeader('connection','keep-alive');
+  res.setHeader('x-accel-buffering','no');
+  res.statusCode=200;
+  res.write('data: '+JSON.stringify({type:vaultKey?'ready':'locked'})+'\\n\\n');
+  avatarClients.add(res);
+  res.on('close',()=>avatarClients.delete(res));
+  return;
+ }
+ if(req.method==='POST'&&url.pathname==='/api/avatar/state'){
+  if(!vaultKey)return json(res,423,{detail:'Unlock the encrypted workspace before sending host state to the OBS avatar.'});
+  const body=await readJson(req);
+  if(body.type==='line'&&typeof body.text==='string'){
+   const text=body.text.replace(/[\\u0000-\\u001f\\u007f]/g,' ').trim().slice(0,240);
+   if(!text)return json(res,400,{detail:'A non-empty host line is required.'});
+   broadcastAvatarState({type:'line',text});
+   return json(res,200,{ok:true});
+  }
+  if(body.type==='speaking'||body.type==='stopped'){
+   broadcastAvatarState({type:body.type});
+   return json(res,200,{ok:true});
+  }
+  return json(res,400,{detail:'The avatar state event is not supported.'});
+ }
  if(req.method==='GET'&&url.pathname==='/api/health'){
   const model=await modelStatus();
   return json(res,200,{ok:true,mode:'offline-portable',networkRequiredForBroadcast:true,model,vault:{initialized:fs.existsSync(VAULT),unlocked:Boolean(vaultData),projectCount:vaultData?.projects?.length||0}});
