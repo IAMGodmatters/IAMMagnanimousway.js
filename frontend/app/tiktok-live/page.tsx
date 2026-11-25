@@ -16,6 +16,26 @@ async function read(response: Response) {
   catch { return { detail: raw.startsWith('<') ? 'The Magnanimous service returned a webpage instead of an answer.' : raw || `Request failed (${response.status}).` }; }
 }
 
+async function sha256Base64(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+  let binary = '';
+  new Uint8Array(digest).forEach(byte => { binary += String.fromCharCode(byte); });
+  return btoa(binary);
+}
+
+function isAllowedLocalEventUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    if (!['ws:', 'wss:'].includes(url.protocol) || url.username || url.password) return false;
+    const host = url.hostname.toLowerCase().replace(/^\\[|\\]$/g, '');
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host.endsWith('.local')
+      || /^10\\./.test(host) || /^192\\.168\\./.test(host)
+      || /^172\\.(1[6-9]|2\\d|3[01])\\./.test(host);
+  } catch {
+    return false;
+  }
+}
+
 function authHeaders(): Record<string, string> {
   if (typeof window === 'undefined') return { 'Content-Type': 'application/json' };
   const token = localStorage.getItem('iam_account_token') || localStorage.getItem('odin_admin_token') || '';
@@ -51,6 +71,11 @@ const WELCOME = 'Welcome, everyone. This is Magnanimous AI, an openly disclosed 
 
 export default function TikTokLiveHost() {
   const [topic, setTopic] = useState('Faith & Scripture');
+  const [streamerBotUrl, setStreamerBotUrl] = useState('ws://127.0.0.1:8080/');
+  const [streamerBotPassword, setStreamerBotPassword] = useState('');
+  const [streamerBotStatus, setStreamerBotStatus] = useState('DISCONNECTED');
+  const [streamerBotEvents, setStreamerBotEvents] = useState<Array<{ id: string; source: string; type: string; summary: string; timestamp: string }>>([]);
+  const streamerBotSocket = useRef<WebSocket | null>(null);
   const [liveFormat, setLiveFormat] = useState('Gaming & play-along');
   const [liveEventInput, setLiveEventInput] = useState('');
   const [creativePlan, setCreativePlan] = useState('');
@@ -312,6 +337,179 @@ export default function TikTokLiveHost() {
     setViewerComment('Live event from ' + item.source + ' (' + item.type + '). ' + item.summary + '. Give the audience a short, engaging response or ask a useful follow-up.');
   }
 
+  function disconnectStreamerBot() {
+    const socket = streamerBotSocket.current;
+    streamerBotSocket.current = null;
+    if (socket && socket.readyState < WebSocket.CLOSING) socket.close(1000, 'Operator disconnected');
+    setStreamerBotStatus('DISCONNECTED');
+    setStreamerBotPassword('');
+  }
+
+  async function connectStreamerBot() {
+    if (streamerBotSocket.current && streamerBotSocket.current.readyState < WebSocket.CLOSING) {
+      setNotice('A Streamer.bot connection is already active or opening. Disconnect it before reconnecting.');
+      return;
+    }
+    if (!window.isSecureContext || !('WebSocket' in window)) {
+      setNotice('This browser cannot establish a secure local WebSocket connection. Open the Magnanimous page over HTTPS in a current desktop browser.');
+      return;
+    }
+    if (!isAllowedLocalEventUrl(streamerBotUrl)) {
+      setNotice('For safety, the event bridge only accepts localhost, a .local device name, or a private LAN IP. It rejects public Internet hosts and credentials embedded in URLs.');
+      return;
+    }
+    if (!streamerBotPassword.trim()) {
+      setNotice('Enter the Streamer.bot WebSocket password. Enable Authentication and Enforce on the local WebSocket server first.');
+      return;
+    }
+
+    setNotice('');
+    setStreamerBotEvents([]);
+    setStreamerBotStatus('CONNECTING TO LOCAL EVENT BUS');
+    let socket: WebSocket;
+    try {
+      socket = new WebSocket(new URL(streamerBotUrl).toString());
+    } catch {
+      setStreamerBotStatus('CONNECTION FAILED');
+      setNotice('The local Streamer.bot WebSocket URL could not be opened.');
+      return;
+    }
+    streamerBotSocket.current = socket;
+    let helloHandled = false;
+    let authenticated = false;
+    let subscribed = false;
+    let closedByTimeout = false;
+    const helloTimer = window.setTimeout(() => {
+      if (!helloHandled && socket.readyState === WebSocket.OPEN) {
+        closedByTimeout = true;
+        socket.close(4000, 'Streamer.bot Hello timeout');
+        setStreamerBotStatus('HELLO TIMEOUT');
+        setNotice('No Streamer.bot Hello message arrived. Confirm the local app is running and its WebSocket address/port are correct.');
+      }
+    }, 9000);
+
+    socket.onopen = () => setStreamerBotStatus('CONNECTED • VERIFYING LOCAL IDENTITY');
+    socket.onmessage = async event => {
+      let packet: any;
+      try { packet = JSON.parse(String(event.data)); }
+      catch { return; }
+
+      if (!helloHandled && (packet?.request === 'Hello' || packet?.info?.source === 'websocketServer')) {
+        helloHandled = true;
+        window.clearTimeout(helloTimer);
+        const challenge = packet?.authentication;
+        if (!challenge?.salt || !challenge?.challenge) {
+          setStreamerBotStatus('AUTHENTICATION NOT ENFORCED');
+          setNotice('Streamer.bot did not issue an authentication challenge. Enable both Authentication and Enforce in Servers/Clients → WebSocket Server, then reconnect. Magnanimous refuses an unauthenticated event feed.');
+          socket.close(4001, 'Authentication challenge required');
+          return;
+        }
+        try {
+          const secret = await sha256Base64(streamerBotPassword + String(challenge.salt));
+          const proof = await sha256Base64(secret + String(challenge.challenge));
+          if (socket.readyState !== WebSocket.OPEN) return;
+          socket.send(JSON.stringify({ request: 'Authenticate', id: 'magnanimous-auth', authentication: proof }));
+        } catch {
+          setStreamerBotStatus('AUTHENTICATION FAILED');
+          setNotice('The browser could not complete the Streamer.bot authentication challenge.');
+          socket.close(4002, 'Authentication error');
+        }
+        return;
+      }
+
+      if (packet?.id === 'magnanimous-auth') {
+        if (packet.status !== 'ok') {
+          setStreamerBotStatus('AUTHENTICATION REJECTED');
+          setNotice('Streamer.bot rejected the local password. Check it in the local Streamer.bot settings and try again.');
+          socket.close(4003, 'Authentication rejected');
+          return;
+        }
+        authenticated = true;
+        if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ request: 'GetEvents', id: 'magnanimous-get-events' }));
+        setStreamerBotStatus('AUTHENTICATED • READING EVENT CATALOG');
+        return;
+      }
+
+      if (packet?.id === 'magnanimous-get-events' && authenticated) {
+        const available = packet.events && typeof packet.events === 'object' ? packet.events : {};
+        const requested: Record<string, string[]> = {
+          Twitch: ['ChatMessage', 'Follow', 'Cheer', 'Sub', 'ReSub', 'GiftSub', 'GiftBomb', 'Raid', 'RewardRedemption', 'HypeTrainStart', 'HypeTrainUpdate', 'HypeTrainLevelUp', 'HypeTrainEnd', 'PollCreated', 'PollUpdated', 'PollCompleted', 'PredictionCreated', 'PredictionUpdated', 'PredictionCompleted', 'PredictionCanceled', 'PredictionLocked', 'CharityDonation'],
+          youTube: ['Message', 'SuperChat', 'SuperSticker', 'NewSponsor', 'MembershipGift', 'GiftMembershipReceived', 'BroadcastStarted', 'BroadcastEnded'],
+          obs: ['Connected', 'Disconnected'],
+          general: ['Custom'],
+          streamlabs: ['Donation', 'Merchandise'],
+          streamElements: ['Tip', 'Merch'],
+          midi: ['Message'],
+          speechToText: ['Dictation', 'Command'],
+        };
+        const selected: Record<string, string[]> = {};
+        for (const [category, names] of Object.entries(requested)) {
+          const providerNames = Array.isArray(available[category]) ? available[category].map((item: unknown) => String(item)) : [];
+          const matches = names.filter(name => providerNames.includes(name));
+          if (matches.length) selected[category] = matches;
+        }
+        if (!Object.keys(selected).length) {
+          setStreamerBotStatus('NO SUPPORTED EVENTS');
+          setNotice('Streamer.bot connected, but no supported event categories were returned. Check which integrations are enabled in Streamer.bot.');
+          socket.close(4004, 'No supported events');
+          return;
+        }
+        socket.send(JSON.stringify({ request: 'Subscribe', id: 'magnanimous-subscribe', events: selected }));
+        return;
+      }
+
+      if (packet?.id === 'magnanimous-subscribe' && authenticated) {
+        if (packet.status !== 'ok') {
+          setStreamerBotStatus('SUBSCRIPTION FAILED');
+          setNotice('Streamer.bot did not accept the selected event subscriptions.');
+          socket.close(4005, 'Subscription rejected');
+          return;
+        }
+        subscribed = true;
+        setStreamerBotStatus('LIVE • LOCAL EVENTS CONNECTED');
+        return;
+      }
+
+      if (!subscribed || !packet?.event || typeof packet.event !== 'object') return;
+      const source = String(packet.event.source || 'App').slice(0, 40);
+      const type = String(packet.event.type || 'Event').slice(0, 60);
+      const data = packet.data && typeof packet.data === 'object' ? packet.data : {};
+      const keys = ['displayName', 'userName', 'username', 'message', 'text', 'rewardName', 'title', 'gameName', 'amount', 'viewerCount'];
+      const values: string[] = [];
+      for (const key of keys) {
+        const value = (data as Record<string, unknown>)[key];
+        if ((typeof value === 'string' || typeof value === 'number') && String(value).trim()) {
+          const clean = String(value).replace(/[\\u0000-\\u001f\\u007f]/g, ' ').replace(/\\s+/g, ' ').trim().slice(0, 180);
+          if (clean && !values.includes(clean)) values.push(clean);
+        }
+      }
+      const summary = values.slice(0, 3).join(' • ') || 'New event received';
+      const timestamp = String(packet.timeStamp || new Date().toISOString());
+      const id = `${timestamp}-${source}-${type}-${Math.random().toString(36).slice(2, 8)}`;
+      setStreamerBotEvents(items => [{ id, source, type, summary, timestamp }, ...items].slice(0, 20));
+    };
+    socket.onerror = () => {
+      setStreamerBotStatus('CONNECTION ERROR');
+      setNotice('Could not reach Streamer.bot. Confirm it is running, bound to localhost/private LAN, and allowed by the computer firewall.');
+    };
+    socket.onclose = event => {
+      window.clearTimeout(helloTimer);
+      if (streamerBotSocket.current === socket) streamerBotSocket.current = null;
+      if (!closedByTimeout && event.code !== 1000 && event.code !== 4001 && event.code !== 4002 && event.code !== 4003 && event.code !== 4004 && event.code !== 4005) {
+        setStreamerBotStatus('DISCONNECTED');
+        setNotice('The Streamer.bot connection closed. Check the local application and reconnect.');
+      } else if (event.code === 1000 && streamerBotStatus !== 'DISCONNECTED') {
+        setStreamerBotStatus('DISCONNECTED');
+      }
+      setStreamerBotPassword('');
+    };
+  }
+
+  function useStreamerBotEvent(item: { source: string; type: string; summary: string }) {
+    setLiveEventInput(`${item.source} • ${item.type}: ${item.summary}`);
+    setNotice('The selected local event is ready. Review it, then choose Create a live reaction.');
+  }
+
   async function answerComment(event?: FormEvent) {
     event?.preventDefault();
     const comment = viewerComment.trim();
@@ -436,6 +634,26 @@ export default function TikTokLiveHost() {
           <label className="field">Welcome message
             <textarea value={welcomeText} onChange={event => setWelcomeText(event.target.value)} rows={4} />
           </label>
+          <section className="eventBus" aria-label="Local app and game event connection">
+            <div className="directorHead"><small>LOCAL MULTI-APP EVENT BRIDGE</small><b>Connect Streamer.bot on this computer</b></div>
+            <p>Stream events from Twitch, YouTube, OBS, Streamlabs, StreamElements, MIDI, speech-to-text and Streamer.bot custom triggers into Magnanimous. This reads events only; it does not run game commands or control OBS scenes automatically.</p>
+            <label className="field">Local WebSocket address
+              <input value={streamerBotUrl} onChange={event => setStreamerBotUrl(event.target.value)} placeholder="ws://127.0.0.1:8080/" />
+            </label>
+            <label className="field">Streamer.bot WebSocket password
+              <input type="password" value={streamerBotPassword} onChange={event => setStreamerBotPassword(event.target.value)} autoComplete="off" placeholder="Password stored only in this page's memory" />
+            </label>
+            <div className="eventBusActions">
+              <button type="button" className="secondary" onClick={connectStreamerBot} disabled={streamerBotStatus.startsWith('CONNECT') || streamerBotStatus.startsWith('AUTHENTICATED') || streamerBotStatus.startsWith('LIVE •')}>CONNECT LOCAL EVENT BUS</button>
+              <button type="button" className="stop" onClick={disconnectStreamerBot} disabled={streamerBotStatus === 'DISCONNECTED'}>DISCONNECT</button>
+              <span className={streamerBotStatus.startsWith('LIVE') ? 'eventState on' : 'eventState'}>{streamerBotStatus}</span>
+            </div>
+            <p className="directorNote">In Streamer.bot: Servers/Clients → WebSocket Server; bind to 127.0.0.1, enable Authentication and Enforce, set a password, and keep the port off the public Internet. The password is used only for the local challenge and is not saved, sent to Magnanimous, or stored in Cloudflare.</p>
+            <div className="eventFeed">
+              <div className="eventFeedHead"><b>Recent local app/game events</b><button type="button" onClick={() => setStreamerBotEvents([])}>Clear events</button></div>
+              {streamerBotEvents.length === 0 ? <p className="directorNote">No local events received yet. Connect Streamer.bot, start an approved game/app or test trigger, and events will appear here.</p> : streamerBotEvents.map(item => <article key={item.id}><small>{item.source} • {item.type}</small><p>{item.summary}</p><button type="button" className="secondary" onClick={() => useStreamerBotEvent(item)}>USE FOR LIVE REACTION</button></article>)}
+            </div>
+          </section>
           <section className="director" aria-label="Creative live director">
             <div className="directorHead"><small>MAGNANIMOUS CREATIVE DIRECTOR</small><b>React to games, apps and room events</b></div>
             <label className="field">What just happened? (operator-approved event)
@@ -593,7 +811,7 @@ export default function TikTokLiveHost() {
         .portrait{position:relative;width:64%;aspect-ratio:1;border-radius:50%;overflow:hidden;border:2px solid rgba(229,196,109,.78);box-shadow:0 0 0 10px rgba(229,196,109,.07),0 0 60px rgba(60,196,225,.18);background:linear-gradient(140deg,#173b4c,#111b29);z-index:1}.portrait img{position:relative;z-index:2;width:100%;height:100%;object-fit:cover}.portraitFallback{position:absolute;inset:0;display:grid;place-items:center;font-size:100px;color:#e5c36d;font-family:Georgia,serif}.voiceHalo{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(255,255,255,.3);pointer-events:none;z-index:3}.speaking .voiceHalo{animation:halo .85s infinite alternate}@keyframes halo{to{inset:-8px;box-shadow:0 0 36px rgba(78,221,245,.5)}}
         .hostName{margin-top:28px;font-size:clamp(28px,4vw,43px);font-weight:900;letter-spacing:.12em;text-align:center;text-shadow:0 3px 18px #000}.hostRole{font-size:9px;letter-spacing:.24em;color:#d8bd79;margin-top:8px}.equalizer{height:50px;display:flex;align-items:center;justify-content:center;gap:4px;margin-top:28px}.equalizer i{display:block;width:4px;height:7px;border-radius:4px;background:linear-gradient(0deg,#d6ac57,#78e6f3);opacity:.9;transition:height .15s ease}.speaking .equalizer i{animation:bars .42s ease-in-out infinite alternate}@keyframes bars{to{transform:scaleY(.35)}}.disclosure{position:absolute;bottom:12%;font-size:8px;letter-spacing:.15em;color:#9fc5d1;text-align:center}.spokenReply{position:absolute;bottom:4%;left:8%;right:8%;font-size:9px;line-height:1.4;color:#c7dce3;text-align:center;max-height:8%;overflow:hidden;text-overflow:ellipsis}
         .stageActions{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:13px 0 5px}.primary,.secondary,.stop{border:0;border-radius:10px;padding:11px 13px;font-weight:800;font-size:11px;cursor:pointer}.primary{background:linear-gradient(110deg,#dcb75e,#8ee9f1);color:#07131b}.secondary{background:#123140;color:#c9f7ff;border:1px solid #2e6375}.stop{background:#311e25;color:#ffb9c2;border:1px solid #6c3944}.stageHint{color:#7893a2;font-size:10px;text-align:center;line-height:1.5}
-        .console{padding:18px}.consoleHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:17px}.consoleHead h2{font-size:22px;margin:6px 0 0}.director{border:1px solid #315163;border-radius:12px;background:#071019;padding:12px;margin:12px 0}.directorHead{display:flex;flex-direction:column;gap:5px}.directorHead small{font-size:8px;color:#d8ba72;letter-spacing:.15em}.directorHead b{font-size:12px;color:#dff6ff}.director button{margin:4px 5px 4px 0}.directorNote{font-size:9px;line-height:1.5;color:#809aa8}.creativePlan{margin-top:10px;border:1px solid #475b41;border-radius:9px;background:#13190f;padding:10px}.creativePlan b{color:#e5c878;font-size:10px}.creativePlan p{color:#d8e2d0;white-space:pre-wrap;font-size:10px;line-height:1.5}.safe{font-size:8px;color:#85e6b4;border:1px solid #326b54;border-radius:30px;padding:6px 8px}.field{display:block;color:#a7bdc8;font-size:10px;font-weight:700;margin:12px 0}.field select,.field textarea{display:block;width:100%;margin-top:7px;background:#050d13;color:#e9f8ff;border:1px solid #2b4b5b;border-radius:10px;padding:11px;font:inherit;font-size:12px;resize:vertical}.toggle{display:flex;align-items:center;gap:8px;color:#9eb3bd;font-size:10px;margin:10px 0}.toggle input{accent-color:#77dff1}.answerButton{width:100%;margin-top:7px}.primary:disabled{opacity:.45;cursor:not-allowed}.notice{background:#2a1d0e;color:#f1d59a;padding:10px;border:1px solid #6c5228;border-radius:9px;font-size:10px;line-height:1.5;margin-top:12px}.conversationHead{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #203b4b;margin-top:18px;padding-top:13px;color:#d4e7ee;font-size:11px}.conversationHead button{background:transparent;border:0;color:#79d9ea;font-size:9px;cursor:pointer}.conversation{max-height:380px;overflow:auto;margin-top:8px}.conversation article{padding:10px 12px;border-radius:10px;margin:7px 0}.conversation article.viewer{background:#112b39}.conversation article.host{background:#151a22;border:1px solid #3a4a51}.conversation article small{font-size:8px;letter-spacing:.13em;color:#80dfee}.conversation article p,.empty{font-size:11px;line-height:1.5;color:#d8e9ef;white-space:pre-wrap;margin:5px 0 0}.empty{color:#829ba8;padding:12px}
+        .console{padding:18px}.consoleHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:17px}.consoleHead h2{font-size:22px;margin:6px 0 0}.eventBus{border:1px solid #315163;border-radius:12px;background:#08131b;padding:12px;margin:12px 0}.eventBus>p{font-size:9px;line-height:1.5;color:#809aa8}.eventBusActions{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.eventState{font-size:8px;color:#d7b971;letter-spacing:.08em}.eventState.on{color:#92eeb7}.eventFeed{border-top:1px solid #244253;margin-top:10px;padding-top:10px}.eventFeedHead{display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#bfe4ee}.eventFeedHead button{background:transparent;border:0;color:#84e0f1;font-size:8px}.eventFeed article{background:#101e28;border:1px solid #2a495b;border-radius:9px;padding:9px;margin:7px 0}.eventFeed article small{font-size:8px;color:#8ddbe8}.eventFeed article p{font-size:10px;color:#e0f0f5;margin:5px 0}.eventFeed article button{font-size:8px;padding:7px 10px;min-height:30px}.director{border:1px solid #315163;border-radius:12px;background:#071019;padding:12px;margin:12px 0}.directorHead{display:flex;flex-direction:column;gap:5px}.directorHead small{font-size:8px;color:#d8ba72;letter-spacing:.15em}.directorHead b{font-size:12px;color:#dff6ff}.director button{margin:4px 5px 4px 0}.directorNote{font-size:9px;line-height:1.5;color:#809aa8}.creativePlan{margin-top:10px;border:1px solid #475b41;border-radius:9px;background:#13190f;padding:10px}.creativePlan b{color:#e5c878;font-size:10px}.creativePlan p{color:#d8e2d0;white-space:pre-wrap;font-size:10px;line-height:1.5}.safe{font-size:8px;color:#85e6b4;border:1px solid #326b54;border-radius:30px;padding:6px 8px}.field{display:block;color:#a7bdc8;font-size:10px;font-weight:700;margin:12px 0}.field select,.field textarea{display:block;width:100%;margin-top:7px;background:#050d13;color:#e9f8ff;border:1px solid #2b4b5b;border-radius:10px;padding:11px;font:inherit;font-size:12px;resize:vertical}.toggle{display:flex;align-items:center;gap:8px;color:#9eb3bd;font-size:10px;margin:10px 0}.toggle input{accent-color:#77dff1}.answerButton{width:100%;margin-top:7px}.primary:disabled{opacity:.45;cursor:not-allowed}.notice{background:#2a1d0e;color:#f1d59a;padding:10px;border:1px solid #6c5228;border-radius:9px;font-size:10px;line-height:1.5;margin-top:12px}.conversationHead{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #203b4b;margin-top:18px;padding-top:13px;color:#d4e7ee;font-size:11px}.conversationHead button{background:transparent;border:0;color:#79d9ea;font-size:9px;cursor:pointer}.conversation{max-height:380px;overflow:auto;margin-top:8px}.conversation article{padding:10px 12px;border-radius:10px;margin:7px 0}.conversation article.viewer{background:#112b39}.conversation article.host{background:#151a22;border:1px solid #3a4a51}.conversation article small{font-size:8px;letter-spacing:.13em;color:#80dfee}.conversation article p,.empty{font-size:11px;line-height:1.5;color:#d8e9ef;white-space:pre-wrap;margin:5px 0 0}.empty{color:#829ba8;padding:12px}
         .setup{max-width:1440px;margin:18px auto 0;background:#08121a;border:1px solid #203b4b;border-radius:18px;padding:21px}.setup h2{margin:5px 0 14px;font-size:24px}.setup ol{padding-left:20px;color:#a4b8c2;font-size:11px;line-height:1.65}.setup li{margin:7px 0;padding-left:4px}.setup li b{color:#e8cd84}.frontier{margin-top:18px;border:1px solid #254557;border-radius:16px;background:#07131c;padding:18px}.frontierHead h2{font-size:clamp(23px,3vw,32px);margin:6px 0}.frontierHead p{max-width:900px;color:#8ea9b8;font-size:11px;line-height:1.6}.frontierHead small{color:#70dfef;letter-spacing:.16em;font-size:9px}.techGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:13px}.techCard{border:1px solid #244353;border-radius:12px;background:#0a1a24;padding:14px;display:flex;flex-direction:column;min-width:0}.techCard.recommended{border-color:#a58a4b;background:linear-gradient(145deg,#1d1b11,#0a1a24)}.techTag{font-size:8px;letter-spacing:.12em;color:#7bdff0;font-weight:900}.techCard h3{font-size:16px;margin:8px 0}.techCard p,.techCard li{color:#9eb4bf;font-size:10px;line-height:1.6}.techCard ul{padding-left:17px;margin:0 0 9px}.techNote{border-left:2px solid #ac8744;padding-left:9px}.techLinks{display:flex;flex-wrap:wrap;gap:12px;margin:7px 0 10px}.techLinks a{color:#83e1f1;font-size:9px;text-decoration:underline;text-underline-offset:3px}.techStatus{color:#91e6b2;font-size:8px;letter-spacing:.1em;margin-top:auto;padding-top:6px}.localBridge{margin-top:16px;padding:16px;border:1px solid #315266;border-radius:14px;background:#0b1720}.localBridgeHead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.localBridge small{font-size:9px;letter-spacing:.15em;color:#71dfef}.localBridge h3{font-size:20px;margin:5px 0}.localBridgeHead p{max-width:780px;color:#9eb4bf;font-size:10px;line-height:1.6}.bridgeOnline,.bridgeOffline{font-size:8px;letter-spacing:.1em;border-radius:20px;padding:7px 9px;white-space:nowrap}.bridgeOnline{color:#8ee8b5;border:1px solid #367354}.bridgeOffline{color:#d5bd80;border:1px solid #6a5a34}.localBridge .field input{display:block;width:100%;margin-top:7px;background:#050d13;color:#e9f8ff;border:1px solid #2b4b5b;border-radius:10px;padding:11px;font:inherit;font-size:12px}.bridgeActions{display:flex;gap:8px;flex-wrap:wrap}.bridgeFeed{margin-top:13px;border-top:1px solid #254253;padding-top:12px}.bridgeFeed>b{font-size:11px;color:#e8d49a}.bridgeFeed article{padding:10px;margin-top:7px;background:#0d202b;border-radius:9px}.bridgeFeed article span{font-size:9px;color:#78d9eb}.bridgeFeed article p{font-size:10px;color:#b3c5ce;margin:6px 0}.bridgeFeed article button{background:transparent;border:1px solid #356174;color:#91e6f1;border-radius:7px;padding:6px 9px;font-size:9px}.interactiveLayer{margin-top:14px;border:1px solid #315266;border-radius:13px;background:linear-gradient(145deg,#0e1c27,#09131b);padding:16px}.interactiveLayer>small{color:#71dfef;letter-spacing:.15em;font-size:9px}.interactiveLayer h3{font-size:20px;margin:7px 0}.interactiveLayer>p{font-size:10px;line-height:1.65;color:#9eb4bf}.interactiveGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:12px 0}.interactiveGrid>div{padding:11px;border:1px solid #284657;border-radius:9px;background:#0b1a23;display:flex;flex-direction:column;gap:6px}.interactiveGrid b{font-size:11px;color:#e7cd8a}.interactiveGrid span{font-size:9px;line-height:1.5;color:#9cb3bf}.interactiveLayer .techNote{border-left:2px solid #ac8744;padding-left:9px}.interactiveLayer .techLinks{display:flex;flex-wrap:wrap;gap:12px}.interactiveLayer .techLinks a{color:#83e1f1;font-size:9px;text-decoration:underline;text-underline-offset:3px}.techDecision{margin-top:13px;border:1px solid #50603a;border-radius:10px;background:#16190f;color:#c4d1ab;padding:13px;font-size:10px;line-height:1.6}.techDecision b{color:#efce7c}.policy{background:#171b12;border:1px solid #58633a;border-radius:10px;padding:14px;color:#d2ddb9;font-size:11px;line-height:1.6;margin-top:14px}.policy b{color:#f1d184}.policy p{margin:8px 0}.policy .techLinks{margin-bottom:0}.footLinks{display:flex;flex-wrap:wrap;gap:16px;border-top:1px solid #203b4b;margin-top:16px;padding-top:14px}.footLinks a{color:#7adff1;text-decoration:none;font-size:10px}
         @media(max-width:960px){.interactiveGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.techGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.workspace{grid-template-columns:1fr}.stage{max-height:720px}.intro{grid-template-columns:1fr}.console{max-width:none}}@media(max-width:560px){.interactiveGrid{grid-template-columns:1fr}.techGrid{grid-template-columns:1fr}.livePage{padding:14px 12px 40px}.topbar{font-size:8px}.intro{margin-top:25px}.intro h1{font-size:54px}.workspace{grid-template-columns:minmax(0,1fr)}.stageColumn,.console{padding:11px}.stage{width:min(100%,390px)}.stageLabel{font-size:7px}.consoleHead h2{font-size:19px}}
       `}</style>
