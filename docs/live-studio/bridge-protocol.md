@@ -18,7 +18,7 @@ Protocol version 1 begins with an `auth` envelope carrying a short-lived pairing
 
 Incoming events use `event-contract.ts`. Unknown providers/types, malformed IDs, stale timestamps and oversized fields are rejected. Sensitive values such as tokens, cookies, passwords and authorization headers are invalid event tags.
 
-Outgoing commands are restricted to scene selection, overlay visibility, approved audio cues and host speech. No broadcast start/stop, account management, moderation, payments, arbitrary navigation, shell or arbitrary code execution is exposed.
+Outgoing commands are restricted to OBS scene selection and locally approved host speech. Overlay and audio-cue commands are rejected until their local engines are implemented and tested. No broadcast start/stop, account management, moderation, payments, arbitrary navigation, shell or arbitrary code execution is exposed.
 
 ## Reliability and privacy
 - Pairing tokens remain in memory and never enter browser storage, URLs or logs.
@@ -46,7 +46,7 @@ The first online transport layer is implemented in `worker/src/live-bridge-relay
 - The browser client refuses arbitrary secure WebSocket hosts, custom ports, query strings and fragments. It accepts only the official `wss://iammagnanimousway.com/api/live-bridge/ws/<pair-id>` address, preventing a look-alike page from redirecting a temporary token to an attacker-controlled server.
 - Each room binds one browser and one companion to the creating tenant/user. It validates provider/event schemas, rejects unsupported commands, bounds messages and deduplicates recent event IDs per companion connection.
 - Pairing codes expire after ten minutes; an authenticated bridge session expires after twelve hours. Reconnection is permitted only during that authenticated session. The signed-in account owner can revoke a pair at any time; revocation deletes the room record and closes both sockets.
-- The relay forwards only normalized events from the companion to the browser and the allowlisted scene/overlay/audio/host commands in the opposite direction. It does not expose broadcast start/stop, account management, moderation, shell access or arbitrary code execution.
+- The relay forwards only normalized events from the companion to the browser and allowlisted scene/host commands in the opposite direction. Overlay and audio-cue commands are not accepted. It does not expose broadcast start/stop, account management, moderation, shell access or arbitrary code execution.
 - The room uses SQLite-backed Durable Object storage and hibernatable WebSockets. This is designed to avoid holding an always-awake relay for idle sessions; usage still remains subject to the account's free-tier limits and must be measured before production rollout.
 - A new pair initially authorizes only local/manual, OBS, game and browser event sources. TikTok, Facebook, YouTube, Twitch and Zoom are recognized by the event schema but are **not authorized by default**. They must receive explicit per-account adapter authorization before the relay accepts events labelled with those providers.
 - Hard per-socket message caps are 30/minute from the companion and 10/minute from the browser. At the maximum 12-hour session length, that bounds one fully active pair to at most 28,800 messages before connection overhead. The Worker pair-creation rate limiter is 5/minute per tenant/user; Cloudflare documents that its rate-limit counters are approximate and per data-center location.

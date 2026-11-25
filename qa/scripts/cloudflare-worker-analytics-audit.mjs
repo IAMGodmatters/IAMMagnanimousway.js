@@ -15,6 +15,11 @@ function numberOrZero(value) {
   const valueNumber = Number(value);
   return Number.isFinite(valueNumber) ? valueNumber : 0;
 }
+function finiteOrNull(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
 export function summarizeRows(rows) {
   const byScript = new Map();
   for (const row of rows) {
@@ -32,9 +37,9 @@ export function summarizeRows(rows) {
     summary.subrequestsEstimate += numberOrZero(row?.sum?.subrequests);
     summary.statuses[status] = (summary.statuses[status] || 0) + requests;
     if (status === 'exceededResources') summary.exceededResourcesEstimate += requests;
-    const p50 = Number(row?.quantiles?.cpuTimeP50), p99 = Number(row?.quantiles?.cpuTimeP99);
-    if (Number.isFinite(p50)) summary.maxCpuTimeP50 = summary.maxCpuTimeP50 === null ? p50 : Math.max(summary.maxCpuTimeP50, p50);
-    if (Number.isFinite(p99)) summary.maxCpuTimeP99 = summary.maxCpuTimeP99 === null ? p99 : Math.max(summary.maxCpuTimeP99, p99);
+    const p50 = finiteOrNull(row?.quantiles?.cpuTimeP50), p99 = finiteOrNull(row?.quantiles?.cpuTimeP99);
+    if (p50 !== null) summary.maxCpuTimeP50 = summary.maxCpuTimeP50 === null ? p50 : Math.max(summary.maxCpuTimeP50, p50);
+    if (p99 !== null) summary.maxCpuTimeP99 = summary.maxCpuTimeP99 === null ? p99 : Math.max(summary.maxCpuTimeP99, p99);
     const timestamp = String(dimensions.datetime || '');
     if (timestamp) {
       if (!summary.firstSeen || timestamp < summary.firstSeen) summary.firstSeen = timestamp;

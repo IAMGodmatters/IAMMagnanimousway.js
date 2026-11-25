@@ -17,6 +17,14 @@ test('groups estimated invocation metrics by Worker and status', () => {
   assert.equal(result[0].maxCpuTimeP99, 11000);
   assert.equal(result[1].scriptName, 'other-worker');
 });
+test('does not report missing CPU quantiles as zero', () => {
+  const [summary] = summarizeRows([
+    { dimensions: { scriptName: 'worker-without-quantiles', status: 'success' }, sum: { requests: 1, errors: 0 }, quantiles: { cpuTimeP50: null, cpuTimeP99: null } },
+  ]);
+  assert.equal(summary.maxCpuTimeP50, null);
+  assert.equal(summary.maxCpuTimeP99, null);
+});
+
 test('builds a bounded account-wide 24-hour Workers GraphQL query', () => {
   const request = buildWorkersQuery('account-123', '2026-11-24T00:00:00.000Z', '2026-11-25T00:00:00.000Z');
   assert.match(request.query, /workersInvocationsAdaptive\(limit: 10000/);
