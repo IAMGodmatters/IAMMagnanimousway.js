@@ -73,6 +73,12 @@ try{
  const obsStatus=await (await fetch(origin+'/api/obs/status')).json();
  assert.equal(obsStatus.connected,false,'OBS must remain disconnected until the operator pairs it.');
  assert.equal((await fetch(origin+'/api/obs/scenes')).status,409,'OBS scene reads must fail closed before local pairing.');
+ const lockedEventStatus=await (await fetch(origin+'/api/live/events/status')).json();
+ assert.equal(lockedEventStatus.durable,true,'Live event queue must report durable USB storage.');
+ assert.equal(lockedEventStatus.encrypted,true,'LIVE event journal must use authenticated encryption.');
+ assert.equal(lockedEventStatus.locked,true,'Encrypted LIVE event journal must remain locked with the workspace.');
+ assert.equal(lockedEventStatus.storageReady,false,'LIVE events must not be stored before the workspace unlocks.');
+ assert.equal((await post(origin+'/api/live/events/consume',origin,{limit:1})).status,423,'Locked journal must reject event consumption.');
 
  const wrongOrigin=await post(origin+'/api/vault/unlock','https://attacker.example',{passphrase:'this-is-a-long-test-passphrase'});
  assert.equal(wrongOrigin.status,403,'Cross-origin state changes must be rejected.');
@@ -90,7 +96,7 @@ const initialEventStatus=await (await fetch(origin+'/api/live/events/status')).j
  assert.equal(created.status,200,'A new encrypted workspace should be created.');
  const createdData=await created.json();
  const eventStatus=await (await fetch(origin+'/api/live/events/status')).json();
- assert.equal(eventStatus.queued,0,'Live event queue should start empty after unlock.');
+ assert.equal(eventStatus.queued,0,'Live event queue should start empty after unlock.');\n assert.equal(eventStatus.locked,false,'Encrypted LIVE event journal should unlock with the workspace.');
  assert.equal(eventStatus.durable,true,'Live event queue must report durable USB storage.');
  assert.equal(eventStatus.storageReady,true,'Encrypted live event journal must be ready after workspace unlock.');
  assert.equal(eventStatus.encrypted,true,'LIVE event journal must report authenticated encryption.');
