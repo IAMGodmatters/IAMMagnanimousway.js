@@ -27,7 +27,7 @@ Magnanimous-Portable/
     styles.css
   data/                       created on first launch
     vault.enc                 encrypted project vault
-    live-events.jsonl         durable LIVE event journal and delivery receipts
+    live-events.jsonl         AES-256-GCM encrypted LIVE event journal and delivery receipts
     browser-profile/          only when portable Chromium is supplied
     cache/
     logs/
@@ -73,11 +73,11 @@ The portable host now exposes a bounded, loopback-only event intake for future a
 
 Browser intake accepts operator-entered `manual` events only; provider-labelled events must arrive through a future authenticated local companion adapter. The runtime validates provider, event type, event ID and timestamp; removes control characters; bounds viewer text and tags; strips credential-like tag names; deduplicates provider event IDs; applies a per-provider rate limit; and returns backpressure when the queue is full.
 
-Accepted events are appended to a USB-rooted JSONL journal and synchronously flushed before the intake endpoint confirms acceptance. Pending events and deduplication keys survive host restarts. Delivery uses expiring leases: if the application closes before acknowledgement, an event becomes available again after the lease expires. Acknowledgements are idempotent and use provider-scoped keys so two providers can safely use the same event ID. The journal compacts atomically after it reaches its size threshold, retains a bounded deduplication window, and recovers complete records if the final write is truncated. If storage fails, new intake pauses and returns an explicit storage error rather than pretending the event was saved.
+Accepted events are appended to a USB-rooted JSONL journal and synchronously flushed before the intake endpoint confirms acceptance. Every record is encrypted with AES-256-GCM using a key derived from the unlocked workspace key through HKDF; viewer names and chat text are never written as plaintext. The journal key is wiped from memory when the workspace is locked, and LIVE intake/consumption remains paused until the workspace is unlocked again. Pending events and deduplication keys survive host restarts when the correct workspace passphrase is supplied. Delivery uses expiring leases: if the application closes before acknowledgement, an event becomes available again after the lease expires. Acknowledgements are idempotent and use provider-scoped keys so two providers can safely use the same event ID. The journal compacts atomically after it reaches its size threshold, retains a bounded deduplication window, and recovers complete records if the final write is truncated. If storage fails, new intake pauses and returns an explicit storage error rather than pretending the event was saved.
 
 The endpoints are a local event-processing foundation only: no TikTok, Facebook, YouTube, Twitch or game adapter is connected by this change. Public broadcasting, account control, moderation and payments are not exposed.
 
-The portable UI includes an operator-controlled event review panel. It acknowledges a batch only after rendering it; unacknowledged events are retried after their lease expires. Browser intake accepts manual events only; it cannot impersonate a TikTok, Facebook, YouTube, Twitch or game adapter. Unit and runtime QA cover restart recovery, duplicate suppression, leases, acknowledgements, provider-scoped IDs, truncated-tail recovery, spoofed-provider rejection and queue backpressure.
+The portable UI includes an operator-controlled event review panel. It acknowledges a batch only after rendering it; unacknowledged events are retried after their lease expires. Browser intake accepts manual events only; it cannot impersonate a TikTok, Facebook, YouTube, Twitch or game adapter. Unit and runtime QA cover encrypted-at-rest content, wrong-key preservation, workspace lock/unlock, restart recovery, duplicate suppression, leases, acknowledgements, provider-scoped IDs, truncated-tail recovery, spoofed-provider rejection and queue backpressure.
 
 ## Broadcast and Zoom boundaries
 
