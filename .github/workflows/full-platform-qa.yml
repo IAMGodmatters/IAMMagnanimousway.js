@@ -47,6 +47,9 @@ jobs:
       - name: Run deterministic native unit and integration tests
         run: node qa/scripts/run-native-regression-tests.mjs
 
+      - name: Test online live bridge relay contracts
+        run: node --test worker/src/live-bridge-relay.test.mjs
+
       - name: Test portable creator event director and local host
         run: |
           node --test portable-creator/live-event-runtime.test.mjs
