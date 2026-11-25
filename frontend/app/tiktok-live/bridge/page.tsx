@@ -10,6 +10,8 @@ export default function LiveEventBridgePage() {
   const [endpoint,setEndpoint]=useState('');
   const [pairingToken,setPairingToken]=useState('');
   const [companionToken,setCompanionToken]=useState('');
+  const [pairId,setPairId]=useState('');
+  const [revokeBusy,setRevokeBusy]=useState(false);
   const [pairBusy,setPairBusy]=useState(false);
   const [status,setStatus]=useState<LiveBridgeStatus>('disconnected');
   const [events,setEvents]=useState<LiveEvent[]>([]);
@@ -50,6 +52,8 @@ export default function LiveEventBridgePage() {
       const response=await fetch('/api/live-bridge/pair',{method:'POST',headers:{'content-type':'application/json'},body:'{}',cache:'no-store'});
       const data=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(data.detail||'Sign in to Magnanimous before creating a bridge pair.');
+      if(pairId)await revokePairId(pairId);
+      setPairId(data.pairId);
       setEndpoint(data.endpoint);
       setPairingToken('');
       setCompanionToken(data.companionToken);
@@ -67,11 +71,31 @@ export default function LiveEventBridgePage() {
     catch {setError('Clipboard access was unavailable. Select and copy the companion token manually.');}
   }
 
+  async function revokePairId(id:string) {
+    const response=await fetch('/api/live-bridge/revoke',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({pairId:id}),cache:'no-store'});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok||data.revoked!==true)throw new Error(data.detail||'The existing pairing could not be revoked. No new pair was created.');
+  }
+
+  async function revokePair() {
+    if(!pairId)return;
+    setRevokeBusy(true);setError('');setNotice('');
+    try {
+      await revokePairId(pairId);
+      clientRef.current?.disconnect();clientRef.current=null;
+      setPairId('');setPairingToken('');setCompanionToken('');setEndpoint('');
+      setStatus('disconnected');
+      setNotice('Pairing revoked. The local companion has lost access and must be paired again.');
+    } catch(cause) {
+      setError(cause instanceof Error?cause.message:'The pairing could not be revoked. Retry before creating another pair.');
+    } finally {setRevokeBusy(false);}
+  }
+
   function disconnect() {
     clientRef.current?.disconnect();
     clientRef.current=null;
     setStatus('disconnected');
-    setNotice('Disconnected from the companion.');
+    setNotice('Browser connection disconnected. Use Revoke pairing to stop the local companion and invalidate both tokens.');
   }
 
   async function revokePair() {
@@ -134,7 +158,8 @@ export default function LiveEventBridgePage() {
         </label>}
         <div className="actions">
           <button onClick={connect} disabled={!endpoint.trim()||pairingToken.trim().length<16}>Connect companion</button>
-          <button className="secondary" onClick={disconnect} disabled={status==='disconnected'}>Disconnect</button>
+          <button className="secondary" onClick={disconnect} disabled={status==='disconnected'}>Disconnect browser</button>
+          <button className="secondary" onClick={revokePair} disabled={!pairId||revokeBusy}>{revokeBusy?'Revoking…':'Revoke pairing'}</button>
           <button className="secondary" onClick={revokePair} disabled={!endpoint.trim()}>Revoke pairing</button>
         </div>
         <p className="hint">Remote connections require WSS. The browser and local companion use different temporary tokens. Tokens stay in memory and are never saved in browser storage or placed in the URL.</p>
