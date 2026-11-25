@@ -114,6 +114,12 @@ export class MagnanimousLiveBridgeRoom {
    this.sendToRole('browser',{kind:'event',event});
    return;
   }
+  if(attachment.role==='companion'&&envelope?.kind==='error'){
+   const code=['LOCAL_STORAGE_BLOCKED','LOCAL_EVENT_REJECTED'].includes(envelope.code)?envelope.code:'LOCAL_EVENT_REJECTED';
+   const message=clean(envelope.message,240)||'The local companion could not safely accept an event.';
+   this.sendToRole('browser',{kind:'error',code,message});
+   return;
+  }
   if(attachment.role==='browser'&&envelope?.kind==='command'&&envelope.protocolVersion===1){
    const command=normalizeRelayCommand(envelope.command);
    if(!command){ws.send(JSON.stringify({kind:'error',code:'INVALID_COMMAND',message:'The command is not supported.'}));return;}
