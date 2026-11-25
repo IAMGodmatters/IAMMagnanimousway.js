@@ -14,6 +14,7 @@ const css=read('portable-creator/app/styles.css');
 const launcher=read('portable-creator/launch-windows.ps1');
 const manifest=JSON.parse(read('portable-creator/manifest.json'));
 const readme=read('portable-creator/README.md');
+const creatorArchitecture=read('docs/live-studio/universal-creator-architecture.md');
 
 execFileSync(process.execPath,['--check',path.join(ROOT,'portable-creator/host.mjs')],{cwd:ROOT,stdio:'inherit'});
 execFileSync(process.execPath,['--check',path.join(ROOT,'portable-creator/app/app.js')],{cwd:ROOT,stdio:'inherit'});
@@ -43,6 +44,13 @@ const checks=[
  ['manifest separates offline creation from network-dependent broadcast and Zoom',manifest.capabilities.offlineProjectPlanning===true&&manifest.capabilities.onlineBroadcast.includes('network connection')&&manifest.capabilities.zoomMeeting.includes('network connection')],
  ['no external platform account credentials are collected in portable offline app',!/(tiktokPassword|facebookPassword|zoomPassword|oauthRefreshToken)/i.test(host+app+html)],
  ['runtime binaries and model weights are not checked into the portable source',!exists('portable-creator/runtime')&&!exists('portable-creator/models/magnanimous.gguf')],
+ ['universal creator architecture distinguishes documented APIs from deployed connectors',creatorArchitecture.includes('does not mean the Magnanimous connector is already authorized or connected')],
+ ['TikTok developer access is explicitly review-gated',creatorArchitecture.includes('TikTok\'s developer documentation says API access requires an app submission and approval')],
+ ['YouTube and Twitch use their official live event transports',creatorArchitecture.includes('liveChatMessages.streamList')&&creatorArchitecture.includes('Twitch EventSub WebSocket')],
+ ['Zoom Meeting SDK bot restriction and RTMS alternative are documented',creatorArchitecture.includes('does not support bots or AI notetakers')&&creatorArchitecture.includes('RTMS')],
+ ['OBS local WebSocket authentication and portability boundaries are documented',creatorArchitecture.includes('OBS WebSocket')&&creatorArchitecture.includes('authentication password')&&creatorArchitecture.includes('scene media references')],
+ ['game adapters prohibit process injection and anti-cheat bypass',creatorArchitecture.includes('does not read game memory, inject code, defeat anti-cheat')],
+ ['offline and online delivery are distinct capabilities',creatorArchitecture.includes('Offline mode separates **local creation** from **Internet delivery**')],
 ];
 const failures=checks.filter(([,ok])=>!ok);
 for(const [name,ok] of checks)console.log(`${ok?'PASS':'FAIL'} ${name}`);
