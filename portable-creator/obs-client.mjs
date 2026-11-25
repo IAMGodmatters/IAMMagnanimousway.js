@@ -100,6 +100,27 @@ export class ObsWebSocketClient {
   await this.request('SetCurrentProgramScene',{sceneName});
   return {sceneName};
  }
+ async createHostAvatarSource({sceneName,url,width=1080,height=1920}={}){
+  if(typeof sceneName!=='string'||!sceneName.trim()||sceneName.length>128)throw new Error('Choose a valid OBS scene for the AI host avatar.');
+  if(!Number.isInteger(width)||!Number.isInteger(height)||width<320||width>3840||height<180||height>2160)throw new Error('The AI host avatar canvas dimensions are invalid.');
+  let target;try{target=new URL(String(url||''));}catch{throw new Error('The AI host avatar must use the local Magnanimous companion page.');}
+  if(target.protocol!=='http:'||target.hostname!=='127.0.0.1'||!/^\\d{1,5}$/.test(target.port)||target.pathname!=='/avatar.html'||target.username||target.password||target.search||target.hash)throw new Error('Only the local 127.0.0.1 Magnanimous avatar page is allowed as an OBS browser source.');
+  const {scenes}=await this.getScenes();
+  if(!scenes.some(scene=>scene.sceneName===sceneName))throw new Error('That scene is not in the current OBS scene list.');
+  const inputName='Magnanimous AI Host Avatar';
+  const inputs=await this.request('GetInputList');
+  const existing=(inputs.inputs||[]).find(input=>input.inputName===inputName);
+  const inputSettings={url:target.toString(),width,height,css:'body{background:rgba(0,0,0,0);}',shutdown:false};
+  if(existing){
+   if(existing.inputKind!=='browser_source')throw new Error('An OBS source already uses the Magnanimous avatar name but is not a browser source.');
+   await this.request('SetInputSettings',{inputName,inputSettings,overlay:true});
+   const items=await this.request('GetSceneItemList',{sceneName});
+   if(!(items.sceneItems||[]).some(item=>item.sourceName===inputName))await this.request('CreateSceneItem',{sceneName,sourceName:inputName,sceneItemEnabled:true});
+   return {sourceName:inputName,sceneName,updated:true,width,height};
+  }
+  await this.request('CreateInput',{sceneName,inputName,inputKind:'browser_source',inputSettings,sceneItemEnabled:true});
+  return {sourceName:inputName,sceneName,created:true,width,height};
+ }
  startRecording(){return this.request('StartRecord');}
  stopRecording(){return this.request('StopRecord');}
  async getRecordStatus(){return await this.request('GetRecordStatus');}
