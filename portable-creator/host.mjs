@@ -174,7 +174,21 @@ async function handleApi(req,res,url){
   const password=body.password||'';
   if(password.length>512)return json(res,400,{detail:'OBS password is too long.'});
   if(obsClient)obsClient.disconnect();
-  const candidate=new ObsWebSocketClient({port:OBS_PORT});
+  const candidate=new ObsWebSocketClient({port:OBS_PORT,onEvent:(eventType,eventData)=>{
+   let type,text,tags={source:'obs'};
+   if(eventType==='CurrentProgramSceneChanged'){
+    const sceneName=String(eventData.sceneName||'').replace(/[\\u0000-\\u001f\\u007f]/g,' ').trim().slice(0,120);
+    if(!sceneName)return;
+    type='obs.scene_changed';text='OBS program scene changed to '+sceneName;tags.sceneName=sceneName;
+   }else if(eventType==='StreamStateChanged'||eventType==='RecordStateChanged'){
+    const label=eventType==='StreamStateChanged'?'stream':'recording';
+    type='system.notice';text='OBS '+label+' state changed';
+    tags.output=label;tags.active=Boolean(eventData.outputActive);
+    tags.state=String(eventData.outputState||'unknown').slice(0,80);
+   }else return;
+   const result=liveEvents.ingest({protocolVersion:1,eventId:'obs-'+crypto.randomUUID(),provider:'obs',type,occurredAt:new Date().toISOString(),actorName:'OBS Studio',text,tags});
+   if(result.status!=='accepted'&&result.status!=='duplicate')console.warn('OBS event was not persisted:',result.status);
+  }});
   try{
    const result=await candidate.connect(password);
    obsClient=candidate;
