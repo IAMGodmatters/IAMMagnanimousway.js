@@ -70,6 +70,7 @@ checks.push(
  ['OBS controls require explicit user actions and disclose local-only scope',html.includes('Connect to OBS')&&html.includes('Start recording')&&html.includes('does not start a public livestream')],
  ['OBS recording and scene controls are exposed in the UI',app.includes("'/api/obs/recording/start'")&&app.includes("'/api/obs/scene'")&&app.includes('refreshObsScenes')],
  ['AI takeover defaults to manual mode and requires explicit owner consent',autonomy.includes("mode: 'manual'")&&autonomy.includes("acknowledged !== true")],
+ ['portable takeover renews its lease during long speech and exposes heartbeat-only endpoint',host.includes("url.pathname==='/api/live/autonomy/heartbeat'")&&app.includes("setInterval(sendAutonomyHeartbeat,10000)")&&app.includes('stopAutonomyPolling(true)')],
  ['AI takeover only permits host speech and approved OBS scene switches',autonomy.includes("['host_speech', 'obs_scene_switch']")&&autonomy.includes('scene_not_approved')],
  ['AI takeover session is time-bounded and automatically expires',autonomy.includes('MAX_SESSION_MS = 60 * 60 * 1000')&&autonomy.includes('session_expired')],
  ['AI takeover stops after the control-surface heartbeat lease expires',autonomy.includes('IDLE_LEASE_MS = 30_000')&&autonomy.includes('control_surface_disconnected')],
