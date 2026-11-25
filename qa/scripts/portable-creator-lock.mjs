@@ -15,6 +15,7 @@ const launcher=read('portable-creator/launch-windows.ps1');
 const manifest=JSON.parse(read('portable-creator/manifest.json'));
 const readme=read('portable-creator/README.md');
 const creatorArchitecture=read('docs/live-studio/universal-creator-architecture.md');
+const onlineRelay=read('worker/src/live-bridge-relay.js');
 
 execFileSync(process.execPath,['--check',path.join(ROOT,'portable-creator/host.mjs')],{cwd:ROOT,stdio:'inherit'});
 execFileSync(process.execPath,['--check',path.join(ROOT,'portable-creator/app/app.js')],{cwd:ROOT,stdio:'inherit'});
@@ -56,6 +57,7 @@ const checks=[
  ['online companion token remains memory-only and is not logged or stored',host.includes('new WebSocket(url.toString())')&&host.includes('token}'))&&!host.includes('oauthRefreshToken')&&html.includes('Temporary companion token')],
  ['online bridge commands enter a local approval queue before any execution',host.includes('pendingBridgeCommands.push')&&host.includes('/api/bridge/command/review')&&app.includes('Local approval required')],
  ['only an approved OBS scene change is executable from the remote bridge',host.includes("command.action!=='scene.set'")&&host.includes('obsClient.setProgramScene')&&html.includes('only an approved OBS scene change')],
+ ['platform events are rejected until an account adapter explicitly authorizes them',onlineRelay.includes('LOCAL_COMPANION_PROVIDERS')&&onlineRelay.includes('isRelayProviderAllowed(event.provider,attachment.allowedProviders)')&&onlineRelay.includes('PROVIDER_NOT_AUTHORIZED')],
  ['runtime binaries and model weights are not checked into the portable source',!exists('portable-creator/runtime')&&!exists('portable-creator/models/magnanimous.gguf')],
  ['universal creator architecture distinguishes documented APIs from deployed connectors',creatorArchitecture.includes('does not mean the Magnanimous connector is already authorized or connected')],
  ['TikTok developer access is explicitly review-gated',creatorArchitecture.includes('TikTok\'s developer documentation says API access requires an app submission and approval')],
