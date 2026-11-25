@@ -280,20 +280,33 @@ export default{
  },
  async scheduled(controller,env,ctx){
   const origin=String(env.PUBLIC_SITE_URL||'https://iammagnanimousway.com').replace(/\/$/,'');
+  // Free Workers receive only 10 ms CPU per Cron invocation. Keep time-sensitive
+  // work frequent, and rotate expensive maintenance across four deterministic slots.
+  // Every job remains scheduled; this prevents eleven independent workloads from
+  // competing inside one 10 ms CPU budget.
+  const slot=Math.floor(Number(controller?.scheduledTime||Date.now())/900000)%4;
   const scheduledTasks=[
    pruneExpiredMeetingRooms(env).catch(error=>console.error('meeting room retention cleanup failed',error)),
-   scheduledGrowth(env,origin).catch(error=>console.error('scheduled growth automation failed',error)),
-   scheduledNativeWeb(env).catch(error=>console.error('scheduled native web automation failed',error)),
-   scheduledMagnanimousCapabilityMesh(env).catch(error=>console.error('scheduled capability mesh check failed',error)),
-   scheduledMagnanimousRoutines(env).catch(error=>console.error('scheduled Magnanimous routines failed',error)),
-   scheduledSelfHealing(env,origin).catch(error=>console.error('scheduled self-healing check failed',error)),
-   scheduledTelecomEmailWatch(env).catch(error=>console.error('scheduled telecom email watch failed',error)),
-   scheduledMagnanimousAttentionWatch(env).catch(error=>console.error('scheduled native attention watch failed',error)),
-   scheduledSocialPublishing(env).catch(error=>console.error('scheduled social publishing failed',error)),
-   scheduledNativeStoreCommerce(env).catch(error=>console.error('scheduled native store commerce failed',error)),
-   scheduledMagnanimousTvProgramming(env).catch(error=>console.error('scheduled TV programming cleanup failed',error))
+   scheduledSocialPublishing(env).catch(error=>console.error('scheduled social publishing failed',error))
   ];
-  if(continuousLearningRunsLocally(env))scheduledTasks.push(runContinuousLearningCycle(env,{source:'cron'}).catch(error=>console.error('scheduled continuous learning failed',error)));
+  const add=(promise,label)=>scheduledTasks.push(Promise.resolve(promise).catch(error=>console.error(label,error)));
+  if(slot===0){
+   add(scheduledNativeStoreCommerce(env),'scheduled native store commerce failed');
+   add(scheduledGrowth(env,origin),'scheduled growth automation failed');
+   if(continuousLearningRunsLocally(env))add(runContinuousLearningCycle(env,{source:'cron'}),'scheduled continuous learning failed');
+  }else if(slot===1){
+   add(scheduledMagnanimousRoutines(env),'scheduled Magnanimous routines failed');
+   add(scheduledMagnanimousTvProgramming(env),'scheduled TV programming cleanup failed');
+   add(scheduledMagnanimousCapabilityMesh(env),'scheduled capability mesh check failed');
+  }else if(slot===2){
+   add(scheduledNativeStoreCommerce(env),'scheduled native store commerce failed');
+   add(scheduledNativeWeb(env),'scheduled native web automation failed');
+   add(scheduledTelecomEmailWatch(env),'scheduled telecom email watch failed');
+  }else if(slot===3){
+   add(scheduledMagnanimousRoutines(env),'scheduled Magnanimous routines failed');
+   add(scheduledSelfHealing(env,origin),'scheduled self-healing check failed');
+   add(scheduledMagnanimousAttentionWatch(env),'scheduled native attention watch failed');
+  }
   const task=Promise.all(scheduledTasks);
   if(ctx?.waitUntil)ctx.waitUntil(task);else await task;
  }
