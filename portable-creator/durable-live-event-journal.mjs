@@ -39,8 +39,10 @@ export class DurableLiveEventJournal {
     this.key = Buffer.from(crypto.hkdfSync('sha256', masterKey, JOURNAL_SALT, JOURNAL_INFO, 32));
     this.storageFailed = false;
     this.recovery = { malformedLines: 0, truncatedTail: false, authenticationError: false, storageError: false };
-    try { this._recover(); }
-    catch {
+    try {
+      fs.mkdirSync(path.dirname(this.filePath), { recursive: true });
+      this._recover();
+    } catch {
       this.storageFailed = true;
       this.recovery.storageError = true;
     }
