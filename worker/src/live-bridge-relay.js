@@ -94,8 +94,7 @@ export class MagnanimousLiveBridgeRoom {
    const supplied=await hash(envelope.token);
    const role=sameHex(supplied,pair.browserHash)?'browser':sameHex(supplied,pair.companionHash)?'companion':null;
    if(!role){ws.send(JSON.stringify({kind:'error',code:'AUTH_FAILED',message:'The companion pairing token is invalid.'}));ws.close(4001,'Invalid pairing token');return;}
-   if((role==='browser'&&attachment.origin!==attachment.expectedOrigin)||(role==='companion'&&attachment.origin!==null)){ws.send(JSON.stringify({kind:'error',code:'ORIGIN_ROLE_MISMATCH',message:'This pairing token was used from the wrong connection role.'}));ws.close(4003,'Pairing role mismatch');return;}
-   if((role==='browser'&&attachment.origin!==attachment.expectedOrigin)||(role==='companion'&&attachment.origin!==null)){ws.send(JSON.stringify({kind:'error',code:'ORIGIN_ROLE_MISMATCH',message:'This pairing token can only be used by its assigned browser or local companion.'}));ws.close(4003,'Pairing origin mismatch');return;}
+   if((role==='browser'&&attachment.origin!==attachment.expectedOrigin)||(role==='companion'&&attachment.origin!==null)){ws.send(JSON.stringify({kind:'error',code:'ORIGIN_ROLE_MISMATCH',message:'This pairing token can only be used by its assigned browser or local companion.'}));ws.close(4003,'Pairing role mismatch');return;}
    const sessionExpiresAt=pair.sessionExpiresAt||Date.now()+SESSION_TTL_MS;
    if(Date.now()>sessionExpiresAt){ws.send(JSON.stringify({kind:'error',code:'PAIRING_REVOKED',message:'The bridge session expired. Create a new pair.'}));ws.close(4001,'Bridge session expired');return;}
    if(!pair.sessionExpiresAt){pair.sessionExpiresAt=sessionExpiresAt;await this.state.storage.put('pair',pair);await this.state.storage.setAlarm(sessionExpiresAt);}
