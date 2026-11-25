@@ -320,8 +320,14 @@ async function disconnectBridge(){
 }
 async function reviewBridgeCommand(commandId,approved){
  try{
+  const pending=state.pendingBridgeCommands.find(item=>item.commandId===commandId);
   const result=await api('/api/bridge/command/review',{method:'POST',body:JSON.stringify({commandId,approved})});
-  message('bridgeMessage',approved?'Approved command completed locally'+(result.sceneName?' · '+result.sceneName:'')+'.':'Remote command rejected.','success');
+  if(approved&&result.action==='host.speak'&&result.speechText){
+   $('hostLine').value=String(result.speechText).slice(0,500);
+   message('hostMessage','Online host speech approved locally. Starting the selected device voice.','success');
+   speakHostLine();
+  }
+  message('bridgeMessage',approved?'Approved command completed locally'+(result.sceneName?' · '+result.sceneName:'')+(result.action==='host.speak'?' · host speech sent to device voice':'')+'.':'Remote command rejected.','success');
   await refreshBridgeStatus();await refreshObsStatus();
  }catch(error){message('bridgeMessage',error.message,'error');}
 }
