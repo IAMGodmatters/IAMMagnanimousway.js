@@ -132,6 +132,8 @@ function unlockVault(passphrase){
  }
 }
 function lockVault(){
+ closeBridge();
+ liveEvents.clear();liveEventsRestored=false;liveEventJournalError='';
  if(vaultKey)vaultKey.fill(0);
  vaultKey=null;vaultSalt=null;vaultData=null;
 }
@@ -210,7 +212,7 @@ async function handleApi(req,res,url){
   catch(error){return json(res,401,{detail:error.message});}
  }
  if(req.method==='POST'&&url.pathname==='/api/vault/lock'){
-  closeBridge();liveEvents.clear();liveEventsRestored=false;lockVault();return json(res,200,{ok:true,locked:true});
+  lockVault();return json(res,200,{ok:true,locked:true});
  }
  if(req.method==='GET'&&url.pathname==='/api/projects'){
   if(!vaultData)return json(res,423,{detail:'Unlock the encrypted USB workspace first.'});
