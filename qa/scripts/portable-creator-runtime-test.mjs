@@ -96,7 +96,8 @@ const initialEventStatus=await (await fetch(origin+'/api/live/events/status')).j
  assert.equal(created.status,200,'A new encrypted workspace should be created.');
  const createdData=await created.json();
  const eventStatus=await (await fetch(origin+'/api/live/events/status')).json();
- assert.equal(eventStatus.queued,0,'Live event queue should start empty after unlock.');\n assert.equal(eventStatus.locked,false,'Encrypted LIVE event journal should unlock with the workspace.');
+ assert.equal(eventStatus.queued,0,'Live event queue should start empty after unlock.');
+ assert.equal(eventStatus.locked,false,'Encrypted LIVE event journal should unlock with the workspace.');
  assert.equal(eventStatus.durable,true,'Live event queue must report durable USB storage.');
  assert.equal(eventStatus.storageReady,true,'Encrypted live event journal must be ready after workspace unlock.');
  assert.equal(eventStatus.encrypted,true,'LIVE event journal must report authenticated encryption.');
