@@ -7,6 +7,7 @@ import { ObsWebSocketClient } from './obs-client.mjs';
 import { LiveEventRuntime } from './live-event-runtime.mjs';
 import { LiveEventJournal } from './live-event-journal.mjs';
 import { createReviewCues } from './live-show-director.mjs';
+import { createLocalGameIntegrationToken, verifyLocalGameIntegrationToken, normalizeLocalGameEvent } from './game-event-integration.mjs';
 
 const args=process.argv.slice(2);
 function arg(name,fallback){const i=args.indexOf(name);return i>=0?args[i+1]:fallback;}
@@ -32,6 +33,7 @@ let obsClient=null;
 let bridgeSocket=null;
 let bridgeStatus='disconnected';
 let bridgeError='';
+let gameIntegrationToken=null;
 const pendingBridgeCommands=[];
 const OBS_PORT=4455;
 
@@ -79,11 +81,16 @@ function send(res,status,data,type){
  res.end(type?.startsWith('application/json')?JSON.stringify(data):data);
 }
 function json(res,status,data){send(res,status,data,'application/json; charset=utf-8');}
-function allowedRequest(req,mutation=false){
+function isLoopbackAddress(address){
+ return address==='127.0.0.1'||address==='::1'||address==='::ffff:127.0.0.1';
+}
+function allowedRequest(req,mutation=false,allowNoOriginLocalIntegration=false){
  const expectedHost='127.0.0.1:'+serverPort;
  if(String(req.headers.host||'').toLowerCase()!==expectedHost)return false;
  const origin=String(req.headers.origin||'');
- if(mutation&&origin!=='http://127.0.0.1:'+serverPort)return false;
+ if(mutation&&origin!=='http://127.0.0.1:'+serverPort){
+  if(!(allowNoOriginLocalIntegration&&!origin&&isLoopbackAddress(req.socket.remoteAddress)))return false;
+ }
  return !origin||origin==='http://127.0.0.1:'+serverPort;
 }
 async function readJson(req){
@@ -145,6 +152,7 @@ function unlockVault(passphrase){
 function lockVault(){
  closeBridge();
  liveEvents.clear();liveEventsRestored=false;liveEventJournalError='';liveEventJournalWarning='';
+ gameIntegrationToken=null;
  if(vaultKey)vaultKey.fill(0);
  vaultKey=null;vaultSalt=null;vaultData=null;
 }
@@ -326,6 +334,29 @@ async function handleApi(req,res,url){
   try{const result=await obsClient.setProgramScene(command.sceneName);pendingBridgeCommands.splice(index,1);return json(res,200,{ok:true,approved:true,sceneName:result.sceneName||command.sceneName});}
   catch(error){return json(res,502,{detail:error.message||'OBS did not confirm the scene change.'});}
  }
+ if(req.method==='GET'&&url.pathname==='/api/integrations/game/token'){
+  if(!vaultKey)return json(res,423,{detail:'Unlock the encrypted USB workspace before creating a game integration token.'});
+  if(!gameIntegrationToken)gameIntegrationToken=createLocalGameIntegrationToken();
+  return json(res,200,{token:gameIntegrationToken,scope:'game.event only',expiresOn:'workspace lock or process exit',storage:'memory-only'});
+ }
+ if(req.method==='POST'&&url.pathname==='/api/integrations/game/event'){
+  if(!vaultKey)return json(res,423,{detail:'Unlock the encrypted USB workspace before accepting game events.'});
+  if(!verifyLocalGameIntegrationToken(gameIntegrationToken,req.headers.authorization))return json(res,401,{detail:'The local game integration token is missing, invalid or expired.'});
+  if(!liveEventsRestored||liveEventJournalError||liveEventJournalWarning)return json(res,503,{detail:liveEventJournalError||liveEventJournalWarning||'The encrypted event journal has not been verified.'});
+  const body=await readJson(req),event=normalizeLocalGameEvent(body.event);
+  if(!event)return json(res,400,{detail:'Send a valid protocol-version-1 game.event with a unique eventId, current timestamp and short text.'});
+  const result=liveEvents.ingest(event);
+  if(result.status==='accepted'){
+   const accepted=liveEvents.queue.at(-1);
+   if(accepted&&bridgeSocket?.readyState===1){try{bridgeSocket.send(JSON.stringify({kind:'event',protocolVersion:1,event:accepted}));}catch{}}
+   return json(res,202,result);
+  }
+  if(result.status==='duplicate')return json(res,200,result);
+  if(result.status==='rate_limited')return json(res,429,result);
+  if(result.status==='queue_full')return json(res,503,result);
+  if(result.status==='persistence_error')return json(res,507,result);
+  return json(res,400,result);
+ }
  if(req.method==='GET'&&url.pathname==='/api/live/events/status'){
   return json(res,200,{...liveEvents.status(),recoveryLocked:!vaultKey&&fs.existsSync(liveEventJournal.filePath),journalError:liveEventJournalError,journalWarning:liveEventJournalWarning});
  }
@@ -406,8 +437,9 @@ function serveStatic(req,res,url){
 }
 const server=http.createServer(async(req,res)=>{
  try{
-  if(!allowedRequest(req,req.method!=='GET'&&req.method!=='HEAD'))return json(res,403,{detail:'Only the local portable application origin is accepted.'});
   const url=new URL(req.url||'/', 'http://127.0.0.1:'+serverPort);
+  const localGameIntegration=req.method==='POST'&&url.pathname==='/api/integrations/game/event';
+  if(!allowedRequest(req,req.method!=='GET'&&req.method!=='HEAD',localGameIntegration))return json(res,403,{detail:'Only the local portable application origin is accepted.'});
   if(url.pathname.startsWith('/api/'))return await handleApi(req,res,url);
   if(req.method!=='GET'&&req.method!=='HEAD')return json(res,405,{detail:'Method not allowed.'});
   return serveStatic(req,res,url);
