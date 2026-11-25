@@ -23,6 +23,7 @@ export default function OwnerCloudflare(){
  const[readPath,setReadPath]=useState('/zones'),[readResult,setReadResult]=useState<any>(null);
  const[method,setMethod]=useState('PATCH'),[mutationPath,setMutationPath]=useState(''),[mutationBody,setMutationBody]=useState('{}');
  const[filter,setFilter]=useState('');
+ const[workerAnalytics,setWorkerAnalytics]=useState<any>(null);
  function token(){return localStorage.getItem('odin_admin_token')||localStorage.getItem('iam_account_token')||''}
  function headers(json=false){const h:Record<string,string>={Authorization:`Bearer ${token()}`};if(json)h['Content-Type']='application/json';return h}
  async function body(r:Response){const t=await r.text();try{return JSON.parse(t)}catch{return{detail:t||`HTTP ${r.status}`}}}
@@ -49,6 +50,16 @@ export default function OwnerCloudflare(){
 
  async function verify(){setBusy('verify');setMessage('');try{const r=await fetch(`${api}/api/cloudflare/token-verify`,{headers:headers(),cache:'no-store'}),d=await body(r);setReadResult(d);if(!r.ok)throw new Error(d.detail||'Token verification failed.');setMessage('Cloudflare token verification completed.')}catch(e:any){setMessage(e?.message||'Token verification failed.')}finally{setBusy('')}}
  async function quick(path:string){setBusy(path);setMessage('');try{const r=await fetch(`${api}${path}`,{headers:headers(),cache:'no-store'}),d=await body(r);setReadResult(d);if(!r.ok)throw new Error(d.detail||`Request failed (${r.status}).`);setMessage('Cloudflare read completed.')}catch(e:any){setMessage(e?.message||'Cloudflare read failed.')}finally{setBusy('')}}
+ async function loadWorkerAnalytics(){
+  setBusy('worker-analytics');setMessage('');setWorkerAnalytics(null);
+  try{
+   const r=await fetch(`${api}/api/cloudflare/worker-analytics?hours=24`,{headers:headers(),cache:'no-store'}),d=await body(r);
+   setWorkerAnalytics(d);
+   if(!r.ok)throw new Error(d.detail||'Worker analytics could not be read.');
+   setMessage('Read-only Worker analytics received. Review status groups and CPU quantiles below.');
+  }catch(e:any){setMessage(e?.message||'Worker analytics is unavailable.');}
+  finally{setBusy('')}
+ }
  async function runRead(){setBusy('read');setMessage('');setReadResult(null);try{const r=await fetch(`${api}/api/cloudflare/read`,{method:'POST',headers:headers(true),body:JSON.stringify({path:readPath})}),d=await body(r);setReadResult(d);if(!r.ok)throw new Error(d.detail||`Cloudflare read failed (${r.status}).`);setMessage('Read-only Cloudflare API request completed.')}catch(e:any){setMessage(e?.message||'Cloudflare read failed.')}finally{setBusy('')}}
  async function stage(){
   setBusy('stage');setMessage('');
@@ -79,6 +90,13 @@ export default function OwnerCloudflare(){
   </section>
 
   <section className="panel"><div className="panelHead"><div><small>READ-ONLY API ACTION</small><h2>Run a Cloudflare GET</h2></div></div><div className="row"><label>Relative Cloudflare API path<input value={readPath} onChange={e=>setReadPath(e.target.value)} placeholder="/zones or /accounts/{id}/workers/scripts"/></label><button onClick={runRead} disabled={busy==='read'||!readPath.trim()}>{busy==='read'?'READING…':'RUN SAFE READ'}</button></div></section>
+  <section className="panel">
+   <div className="panelHead"><div><small>CPU INCIDENT • READ-ONLY TELEMETRY</small><h2>Worker health and resource-limit investigation</h2></div><span>NO CONFIGURATION CHANGES</span></div>
+   <p>Query the last 24 hours of Workers Analytics, grouped by script and status. Requires a token with <b>Account Analytics:Read</b>. Magnanimous will not change limits, deploy scripts, or upgrade the account.</p>
+   <div className="row"><label>Window<input value="Last 24 hours (UTC)" readOnly/></label><button onClick={loadWorkerAnalytics} disabled={!!busy}>{busy==='worker-analytics'?'QUERYING…':'READ WORKER CPU / ERROR METRICS'}</button></div>
+   {workerAnalytics&&<pre className="result">{pretty(workerAnalytics)}</pre>}
+   <p className="muted">Important: Cloudflare's adaptive analytics can return sampled estimates. Its <code>exceededResources</code> status groups Worker error 1102 with request-limit error 1027, so it is not by itself proof of CPU exceedance. This view identifies scripts and time buckets; route/stack attribution still requires targeted logs or profiling.</p>
+  </section>
 
   <section className="panel"><div className="panelHead"><div><small>TWO-STEP MUTATION</small><h2>Stage infrastructure action</h2></div><span>STAGE ≠ EXECUTE</span></div><div className="mutation"><label>Method<select value={method} onChange={e=>setMethod(e.target.value)}><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option></select></label><label>Relative API path<input value={mutationPath} onChange={e=>setMutationPath(e.target.value)} placeholder="/zones/{zone_id}/dns_records/{record_id}"/></label><label className="wide">JSON body<textarea value={mutationBody} onChange={e=>setMutationBody(e.target.value)} spellCheck={false}/></label><button onClick={stage} disabled={busy==='stage'||!mutationPath.trim()}>{busy==='stage'?'STAGING…':'STAGE FOR REVIEW'}</button></div></section>
 
