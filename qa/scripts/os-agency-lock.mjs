@@ -34,6 +34,7 @@ const wrangler=read('worker/wrangler.jsonc');
 const notFound=read('frontend/app/not-found.tsx');
 const notFoundRecovery=read('frontend/app/not-found-recovery.tsx');
 const packageJson=read('frontend/package.json');
+const deployWorkflow=read('.github/workflows/deploy.yml');
 
 // Option A — Reliability First.
 includes(standaloneLayout,"iam_standalone_voice_hidden",'reliability: standalone voice controls retain persistent hide/show state');
@@ -138,7 +139,13 @@ includes(agencyBilling,"String(sub.status||'')!=='active'",'billing: Agency acti
 // Non-regression boundaries.
 notMatches(agencyRuntime,/CREATE TABLE IF NOT EXISTS\s+(?:crm_|bpo_clients)/i,'non-regression: Agency Command must not create a duplicate CRM/BPO client table');
 notMatches(inboxRuntime,/CREATE TABLE IF NOT EXISTS\s+(?:crm_|bpo_clients)/i,'non-regression: Unified Inbox must not create a duplicate CRM/BPO client table');
-includes(packageJson,'verify-main-protection.mjs','reliability: production branch-protection safety gate remains installed');
+includes(deployWorkflow,'Verify effective main ruleset before production deployment','reliability: production branch-protection safety gate remains installed as a dedicated workflow job');
+includes(deployWorkflow,'run: node scripts/verify-main-protection.mjs','reliability: production deployment executes the effective main-ruleset verifier before building');
+includes(deployWorkflow,'actions/create-github-app-token@v3','reliability: dedicated production audit job mints a short-lived repository-scoped GitHub App token');
+includes(deployWorkflow,'permission-administration: write','reliability: audit token requests only the ruleset administration permission needed to inspect bypass actors');
+includes(deployWorkflow,'needs: [runtime-impact, ruleset-audit]','reliability: production deployment waits for successful effective-ruleset verification');
+includes(deployWorkflow,'Manual production deployments must be dispatched from main','reliability: manual production deployments cannot use a non-authoritative branch');
+must(!packageJson.includes('verify-main-protection.mjs'),'reliability: privileged ruleset audit is not invoked from the npm build lifecycle');
 
 console.log(`Magnanimous OS + Agency locks: ${passes.length} checks passed.`);
 if(failures.length){console.error(`\nMAGNANIMOUS OS / AGENCY CONTRACT FAILURE (${failures.length})`);for(const f of failures)console.error(`- ${f}`);process.exit(1)}

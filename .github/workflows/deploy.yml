@@ -35,6 +35,10 @@ jobs:
         run: |
           set -euo pipefail
           if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            if [ "${GITHUB_REF_NAME}" != "main" ]; then
+              echo "::error::Manual production deployments must be dispatched from main; refusing ref ${GITHUB_REF_NAME}."
+              exit 1
+            fi
             echo "changed=true" >> "$GITHUB_OUTPUT"
             echo "standalone_changed=true" >> "$GITHUB_OUTPUT"
             echo "Manual production deployment requested."
@@ -59,9 +63,49 @@ jobs:
             cat /tmp/magnanimous-deploy-changed-files.txt
           fi
 
-  deploy:
+  ruleset-audit:
+    name: Verify effective GitHub main ruleset
     needs: runtime-impact
     if: needs.runtime-impact.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout ruleset verifier
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Setup Node for ruleset verifier
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Mint repository-scoped ruleset audit token
+        id: ruleset-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.RULESET_AUDIT_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RULESET_AUDIT_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-administration: write
+
+      - name: Verify effective main ruleset before production deployment
+        working-directory: frontend
+        env:
+          GITHUB_ACTIONS: 'true'
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          GITHUB_WORKFLOW: Build and Deploy I AM
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ steps.ruleset-token.outputs.token }}
+        run: node scripts/verify-main-protection.mjs
+
+  deploy:
+    needs: [runtime-impact, ruleset-audit]
+    if: needs.runtime-impact.outputs.changed == 'true' && needs.ruleset-audit.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
