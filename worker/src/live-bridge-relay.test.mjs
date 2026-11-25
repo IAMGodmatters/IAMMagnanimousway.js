@@ -42,7 +42,7 @@ test('pair endpoint requires an authenticated tenant and returns two distinct sh
   idFromName:id=>id,
   get:id=>({fetch:async(_url,init)=>{initialized=JSON.parse(init.body);return Response.json({ok:true});}})
  }};
- const request=new Request('https://iammagnanimousway.com/api/live-bridge/pair',{method:'POST',headers:{'content-type':'application/json'}});
+ const request=new Request('https://iammagnanimousway.com/api/live-bridge/pair',{method:'POST',headers:{'content-type':'application/json','Origin':'https://iammagnanimousway.com','Sec-Fetch-Site':'same-origin'}});
  const denied=await handleLiveBridgeRelay(request,env,null);
  assert.equal(denied.status,401);
  const response=await handleLiveBridgeRelay(request,env,{id:'user-1',tenant_id:'tenant-1'});
@@ -64,9 +64,20 @@ test('pair endpoint requires an authenticated tenant and returns two distinct sh
 
 
 
+
+test('pair endpoint rejects cross-site and originless requests before allocating a room',async()=>{
+ let allocations=0;
+ const env={LIVE_BRIDGE_PAIR_LIMITER:{limit:async()=>({success:true})},LIVE_BRIDGE_ROOMS:{idFromName:id=>{allocations++;return id;},get:()=>({fetch:async()=>Response.json({ok:true})})}};
+ for(const headers of [{},{Origin:'https://attacker.example','Sec-Fetch-Site':'cross-site'}]){
+  const response=await handleLiveBridgeRelay(new Request('https://iammagnanimousway.com/api/live-bridge/pair',{method:'POST',headers}),env,{id:'user-1',tenant_id:'tenant-1'});
+  assert.equal(response.status,403);
+ }
+ assert.equal(allocations,0);
+});
+
 test('pair endpoint enforces the per-user pairing rate limit',async()=>{
  const env={LIVE_BRIDGE_PAIR_LIMITER:{limit:async()=>({success:false})},LIVE_BRIDGE_ROOMS:{idFromName:id=>id,get:()=>({fetch:async()=>Response.json({ok:true})})}};
- const request=new Request('https://iammagnanimousway.com/api/live-bridge/pair',{method:'POST'});
+ const request=new Request('https://iammagnanimousway.com/api/live-bridge/pair',{method:'POST',headers:{Origin:'https://iammagnanimousway.com','Sec-Fetch-Site':'same-origin'}});
  const response=await handleLiveBridgeRelay(request,env,{id:'user-1',tenant_id:'tenant-1'});
  assert.equal(response.status,429);
 });
@@ -108,7 +119,7 @@ test('limits authenticated browser message rate',async()=>{
 });
 
 test('pair endpoint fails closed when the online bridge namespace is absent',async()=>{
- const request=new Request('https://iammagnanimousway.com/api/live-bridge/pair',{method:'POST'});
+ const request=new Request('https://iammagnanimousway.com/api/live-bridge/pair',{method:'POST',headers:{Origin:'https://iammagnanimousway.com'}});
  const response=await handleLiveBridgeRelay(request,{}, {id:'user-1',tenant_id:'tenant-1'});
  assert.equal(response.status,503);
 });
