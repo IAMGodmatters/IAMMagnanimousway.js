@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { ObsWebSocketClient } from './obs-client.mjs';
 
 const args=process.argv.slice(2);
 function arg(name,fallback){const i=args.indexOf(name);return i>=0?args[i+1]:fallback;}
@@ -24,6 +25,8 @@ let chatBusy=false;
 let chatWindow=Date.now();
 let chatCount=0;
 let serverPort=PORT;
+let obsClient=null;
+const OBS_PORT=4455;
 
 fs.mkdirSync(DATA,{recursive:true});
 
@@ -157,6 +160,50 @@ async function handleApi(req,res,url){
   vaultData.projects.push(project);saveVault();
   return json(res,201,{project:{id:project.id,title:project.title,type:project.type,updatedAt:project.updatedAt}});
  }
+ if(req.method==='GET'&&url.pathname==='/api/obs/status'){
+  if(!obsClient?.connected)return json(res,200,{connected:false,recording:false});
+  try{const status=await obsClient.getRecordStatus();return json(res,200,{connected:true,recording:Boolean(status.outputActive),recordingPaused:Boolean(status.outputPaused)});}
+  catch{return json(res,200,{connected:Boolean(obsClient?.connected),recording:false,statusUnavailable:true});}
+ }
+ if(req.method==='POST'&&url.pathname==='/api/obs/connect'){
+  const body=await readJson(req);
+  if(body.password!==undefined&&typeof body.password!=='string')return json(res,400,{detail:'OBS password must be text.'});
+  const password=body.password||'';
+  if(password.length>512)return json(res,400,{detail:'OBS password is too long.'});
+  if(obsClient)obsClient.disconnect();
+  const candidate=new ObsWebSocketClient({port:OBS_PORT});
+  try{
+   const result=await candidate.connect(password);
+   obsClient=candidate;
+   return json(res,200,{ok:true,...result,host:'127.0.0.1',port:OBS_PORT});
+  }catch(error){candidate.disconnect();obsClient=null;return json(res,502,{detail:error.message||'OBS connection failed.'});}
+ }
+ if(req.method==='POST'&&url.pathname==='/api/obs/disconnect'){
+  if(obsClient)obsClient.disconnect();
+  obsClient=null;
+  return json(res,200,{ok:true,connected:false});
+ }
+ if(req.method==='GET'&&url.pathname==='/api/obs/scenes'){
+  if(!obsClient?.connected)return json(res,409,{detail:'Connect to OBS first.'});
+  try{return json(res,200,await obsClient.getScenes());}
+  catch(error){return json(res,502,{detail:error.message||'Could not read OBS scenes.'});}
+ }
+ if(req.method==='POST'&&url.pathname==='/api/obs/scene'){
+  if(!obsClient?.connected)return json(res,409,{detail:'Connect to OBS first.'});
+  const body=await readJson(req);
+  try{return json(res,200,{ok:true,...await obsClient.setProgramScene(String(body.sceneName||''))});}
+  catch(error){return json(res,400,{detail:error.message||'Could not switch OBS scene.'});}
+ }
+ if(req.method==='POST'&&url.pathname==='/api/obs/recording/start'){
+  if(!obsClient?.connected)return json(res,409,{detail:'Connect to OBS first.'});
+  try{await obsClient.startRecording();return json(res,200,{ok:true,recording:true});}
+  catch(error){return json(res,502,{detail:error.message||'OBS could not start recording.'});}
+ }
+ if(req.method==='POST'&&url.pathname==='/api/obs/recording/stop'){
+  if(!obsClient?.connected)return json(res,409,{detail:'Connect to OBS first.'});
+  try{const result=await obsClient.stopRecording();return json(res,200,{ok:true,recording:false,outputPath:String(result.outputPath||'')});}
+  catch(error){return json(res,502,{detail:error.message||'OBS could not stop recording.'});}
+ }
  if(req.method==='POST'&&url.pathname==='/api/chat'){
   const body=await readJson(req),prompt=String(body.prompt||'').trim();
   if(!prompt||prompt.length>6000)return json(res,400,{detail:'Enter a prompt of 1–6,000 characters.'});
@@ -215,6 +262,8 @@ server.listen(PORT,'127.0.0.1',()=>{
  console.log('Local-only mode. No remote network listener is open.');
 });
 function close(){
+ if(obsClient)obsClient.disconnect();
+ obsClient=null;
  lockVault();
  server.close(()=>process.exit(0));
 }

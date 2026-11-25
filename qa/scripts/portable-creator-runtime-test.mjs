@@ -13,6 +13,7 @@ const temp=fs.mkdtempSync(path.join(os.tmpdir(),'magnanimous-portable-'));
 const target=path.join(temp,'portable');
 fs.mkdirSync(path.join(target,'app'),{recursive:true});
 fs.copyFileSync(path.join(SOURCE,'host.mjs'),path.join(target,'host.mjs'));
+fs.copyFileSync(path.join(SOURCE,'obs-client.mjs'),path.join(target,'obs-client.mjs'));
 for(const file of ['index.html','app.js','styles.css'])fs.copyFileSync(path.join(SOURCE,'app',file),path.join(target,'app',file));
 
 function freePort(){
@@ -51,6 +52,9 @@ try{
  const health=await (await fetch(origin+'/api/health')).json();
  assert.equal(health.mode,'offline-portable');
  assert.equal(health.model.ready,false,'Local generation must remain disabled when no runtime is installed.');
+ const obsStatus=await (await fetch(origin+'/api/obs/status')).json();
+ assert.equal(obsStatus.connected,false,'OBS must remain disconnected until the operator pairs it.');
+ assert.equal((await fetch(origin+'/api/obs/scenes')).status,409,'OBS scene reads must fail closed before local pairing.');
  assert.equal((await fetch(origin+'/api/projects')).status,423,'Project data must remain locked before passphrase entry.');
  const wrongOrigin=await post(origin+'/api/vault/unlock','https://attacker.example',{passphrase:'this-is-a-long-test-passphrase'});
  assert.equal(wrongOrigin.status,403,'Cross-origin state changes must be rejected.');

@@ -64,6 +64,30 @@
         <div id="creatorMessage" class="message" role="status"></div>
       </article>
 
+      <article class="panel obs-panel">
+        <div class="panel-heading"><div><small>LOCAL PRODUCTION CONTROL</small><h2>OBS Studio</h2></div><span class="lock-icon">◉</span></div>
+        <p class="muted">Control OBS running on this computer. This connection stays on 127.0.0.1; no OBS password is saved or sent to the cloud.</p>
+        <div class="status-row"><span id="obsStatus" class="status warning">OBS not connected</span></div>
+        <label for="obsPassword">OBS WebSocket password</label>
+        <input id="obsPassword" type="password" autocomplete="off" placeholder="Enter only if OBS requires a password">
+        <div class="actions">
+          <button id="obsConnectButton" class="primary">Connect to OBS</button>
+          <button id="obsDisconnectButton" class="quiet" disabled>Disconnect</button>
+        </div>
+        <label for="obsSceneSelect">Program scene</label>
+        <select id="obsSceneSelect" disabled><option value="">Connect to load scenes</option></select>
+        <div class="actions">
+          <button id="obsRefreshButton" class="quiet" disabled>Refresh scenes</button>
+          <button id="obsSwitchButton" class="secondary" disabled>Switch scene</button>
+        </div>
+        <p id="obsCurrentScene" class="muted">Open OBS and enable its WebSocket server to connect.</p>
+        <div class="actions">
+          <button id="obsStartRecordButton" class="secondary" disabled>Start recording</button>
+          <button id="obsStopRecordButton" class="quiet" disabled>Stop recording</button>
+        </div>
+        <div id="obsMessage" class="message" role="status"></div>
+        <p class="muted">This controls local OBS scenes and recording only. It does not start a public livestream or connect TikTok, Facebook, YouTube or Zoom.</p>
+      </article>
       <article class="panel projects-panel">
         <div class="panel-heading"><div><small>YOUR ENCRYPTED LIBRARY</small><h2>Saved projects</h2></div><span id="projectCount" class="count">0</span></div>
         <div id="projectList" class="project-list"><p class="muted">Unlock the workspace to see your projects.</p></div>
