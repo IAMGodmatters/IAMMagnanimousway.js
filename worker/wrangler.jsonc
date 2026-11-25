@@ -100,6 +100,14 @@
     ]
   },
   "ai": { "binding": "AI" },
+  "durable_objects": {
+    "bindings": [
+      { "name": "LIVE_BRIDGE_ROOMS", "class_name": "MagnanimousLiveBridgeRoom" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1-live-bridge-rooms", "new_sqlite_classes": ["MagnanimousLiveBridgeRoom"] }
+  ],
   "d1_databases": [
     {
       "binding": "DB",
