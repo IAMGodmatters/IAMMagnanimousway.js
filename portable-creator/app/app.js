@@ -35,7 +35,7 @@ function updateControls(){
  $('obsAvatarButton').disabled=!state.obsConnected||!$('obsSceneSelect').value;
  $('obsStartRecordButton').disabled=!state.obsConnected||state.obsRecording;
  $('obsStopRecordButton').disabled=!state.obsConnected||!state.obsRecording;
- $('livePullButton').disabled=!state.vaultUnlocked;
+ $('livePullButton').disabled=!state.vaultUnlocked||Boolean(state.pendingLiveDelivery);
  $('liveSendButton').disabled=!state.vaultUnlocked||!$('liveTestText').value.trim();
  $('gameIntegrationTokenButton').disabled=!state.vaultUnlocked;
  $('gameIntegrationTokenHideButton').disabled=!$('gameIntegrationToken').value;
