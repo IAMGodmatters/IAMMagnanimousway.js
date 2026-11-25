@@ -149,7 +149,7 @@ async function generateAutonomousHostLine(event,cue){
   const safeContext={
    eventType:String(event?.type||'unknown').slice(0,80),
    suggestedIntent:String(cue?.prompt||'').slice(0,500),
-   viewerText:String(event?.text||'').replace(/[\\u0000-\\u001f\\u007f]/g,' ').slice(0,240)
+   viewerText:String(event?.text||'').replace(/[\u0000-\u001f\u007f]/g,' ').slice(0,240)
   };
   const response=await fetch('http://'+MODEL_HOST+':'+MODEL_PORT+'/v1/chat/completions',{
    method:'POST',headers:{'content-type':'application/json'},
@@ -162,8 +162,8 @@ async function generateAutonomousHostLine(event,cue){
   const data=await response.json().catch(()=>({}));
   if(!response.ok)return {ok:false,status:'model_error'};
   const line=String(data?.choices?.[0]?.message?.content||'')
-   .replace(/[\\u0000-\\u001f\\u007f]/g,' ')
-   .replace(/\\s+/g,' ').trim().slice(0,280);
+   .replace(/[\u0000-\u001f\u007f]/g,' ')
+   .replace(/\s+/g,' ').trim().slice(0,280);
   if(!line)return {ok:false,status:'empty_response'};
   return {ok:true,line};
  }catch{return {ok:false,status:'model_error'};}
