@@ -72,7 +72,8 @@ try{
  assert.equal(health.model.ready,false,'Local generation must remain disabled when no runtime is installed.');
  const eventStatus=await (await fetch(origin+'/api/live/events/status')).json();
  assert.equal(eventStatus.queued,0,'Live event queue should start empty.');
- assert.equal(eventStatus.durable,true,'Live event queue must report durable USB storage.');\n assert.equal(eventStatus.storageReady,true,'Live event journal must be ready before intake.');
+ assert.equal(eventStatus.durable,true,'Live event queue must report durable USB storage.');
+ assert.equal(eventStatus.storageReady,true,'Live event journal must be ready before intake.');
  const liveEvent={protocolVersion:1,eventId:'runtime-'+Date.now(),provider:'manual',type:'chat.message',occurredAt:new Date().toISOString(),actorName:'QA viewer',text:'Hello Magnanimous'};
  const spoofedEvent=await post(origin+'/api/live/events/ingest',origin,{event:{...liveEvent,eventId:'spoof-'+Date.now(),provider:'tiktok'}});
  assert.equal(spoofedEvent.status,403,'Browser intake must reject provider-labelled events without authenticated companion adapters.');
