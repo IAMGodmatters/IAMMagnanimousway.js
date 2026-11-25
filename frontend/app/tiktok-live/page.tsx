@@ -83,7 +83,8 @@ export default function TikTokLiveHost() {
     setBusy(true);
     setNotice('');
     setViewerComment('');
-    setLines(items => [...items, { id: Date.now(), role: 'viewer', text: comment }]);
+    const commentId = Date.now();
+    setLines(items => [...items, { id: commentId, role: 'viewer', text: comment }]);
     setStatus('MAGNANIMOUS IS THINKING');
     const recent = lines.slice(-8).map(line => `${line.role === 'viewer' ? 'Viewer' : 'Magnanimous AI'}: ${line.text}`).join('\n');
     const prompt = [
@@ -117,6 +118,7 @@ export default function TikTokLiveHost() {
       if (autoSpeak) speak(answer);
       else setStatus('REPLY READY');
     } catch (error: any) {
+      setLines(items => items.filter(line => line.id !== commentId));
       setViewerComment(comment);
       setStatus('PREVIEW READY');
       setNotice(error?.name === 'AbortError' ? 'Magnanimous AI took too long. The viewer comment has been restored; tap Answer comment to retry.' : error?.message || 'Magnanimous AI could not answer this comment.');
