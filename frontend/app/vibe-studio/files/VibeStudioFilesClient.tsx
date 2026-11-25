@@ -39,8 +39,11 @@ function insertBeforeLastClosingTag(source:string,tag:'body'|'html',insertion:st
 function previewDocument(html:string,files:StoredFile[]){
  const csp='<meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; script-src &#39;unsafe-inline&#39;; style-src &#39;unsafe-inline&#39;; img-src data: blob:; font-src data:; media-src data: blob:; connect-src &#39;none&#39;; form-action &#39;none&#39;; frame-src &#39;none&#39;; object-src &#39;none&#39;; base-uri &#39;none&#39;">';
  let output=String(html||'');
- if(!/<head\b[^>]*>/i.test(output))output=output.replace(/<html\b[^>]*>/i,match=>match+'<head></head>');
- output=output.replace(/<head\b[^>]*>/i,match=>match+csp);
+ // A meta-delivered CSP cannot protect markup parsed before it. Put the policy
+ // immediately after the doctype (or create one) before any user-authored node.
+ const doctypeMatch=output.match(/^\uFEFF?\s*<!doctype\b[^>]*>/i);
+ if(doctypeMatch)output=output.slice(0,doctypeMatch[0].length)+csp+output.slice(doctypeMatch[0].length);
+ else output='<!doctype html>'+csp+output;
  const cssFiles=files.filter(file=>file.path.toLowerCase().endsWith('.css')).sort((a,b)=>a.path.localeCompare(b.path)).map(file=>({path:file.path,content:file.content}));
  const jsFiles=files.filter(file=>file.path.toLowerCase().endsWith('.js')).sort((a,b)=>a.path.localeCompare(b.path)).map(file=>({path:file.path,content:file.content}));
  const fixtures:Record<string,unknown>=Object.create(null);

