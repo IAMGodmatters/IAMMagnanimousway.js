@@ -6,20 +6,18 @@ const MAX_SESSION_SECONDS=120;
 const MAX_IDLE_SECONDS=30;
 const MAX_MONTHLY_SESSIONS=20;
 const MAX_PENDING_AGE_SECONDS=180;
-const SIMLI_SESSION_URL='https://api.simli.ai/startAudioToVideoSession';
-const SIMLI_ICE_URL='https://api.simli.ai/getIceServer';
+const SIMLI_SESSION_URL='https://api.simli.ai/compose/token';
+const SIMLI_ICE_URL='https://api.simli.ai/compose/ice';
 
 function monthKey(date=new Date()){return date.toISOString().slice(0,7)}
 function now(){return Math.floor(Date.now()/1000)}
 function ready(env){return env?.SIMLI_AVATAR_ENABLED==='true'&&Boolean(String(env?.SIMLI_API_KEY||'').trim())&&Boolean(String(env?.SIMLI_FACE_ID||'').trim())}
 
-async function providerPost(url,body){
- const response=await fetch(url,{
-  method:'POST',
-  headers:{'content-type':'application/json'},
-  body:JSON.stringify(body),
-  signal:AbortSignal.timeout(15000)
- });
+async function providerRequest(url,apiKey,{method='POST',body=null}={}){
+ const headers={'x-simli-api-key':apiKey,accept:'application/json'};
+ const options={method,headers,signal:AbortSignal.timeout(15000)};
+ if(body!==null){headers['content-type']='application/json';options.body=JSON.stringify(body);}
+ const response=await fetch(url,options);
  const data=await response.json().catch(()=>null);
  return{ok:response.ok,status:response.status,data};
 }
@@ -115,21 +113,24 @@ export async function handleTikTokLiveAvatar(request,env){
 
   let session;
   try{
-   // Simli's documented backend-auth flow first retrieves ICE configuration,
-   // then starts an audio-to-video session. Both calls happen server-side.
-   const ice=await providerPost(SIMLI_ICE_URL,{apiKey:String(env.SIMLI_API_KEY)});
-   if(!ice.ok||!ice.data){
+   // Current Simli API v2: retrieve temporary P2P ICE credentials with
+   // GET /compose/ice, then mint a short-lived token with POST /compose/token.
+   // Both calls stay server-side and use the x-simli-api-key header.
+   const apiKey=String(env.SIMLI_API_KEY);
+   const ice=await providerRequest(SIMLI_ICE_URL,apiKey,{method:'GET'});
+   if(!ice.ok||!Array.isArray(ice.data)||ice.data.length===0){
     await env.DB.prepare("UPDATE tiktok_live_avatar_sessions SET state='failed',updated_at=? WHERE id=?").bind(now(),reservationId).run();
-    return json({code:'SIMLI_ICE_UNAVAILABLE',detail:'Simli did not return ICE configuration. No avatar session was created.'},502);
+    return json({code:'SIMLI_ICE_UNAVAILABLE',detail:'Simli did not return valid ICE server credentials. No avatar session was created.'},502);
    }
 
-   session=await providerPost(SIMLI_SESSION_URL,{
-    apiKey:String(env.SIMLI_API_KEY),
+   session=await providerRequest(SIMLI_SESSION_URL,apiKey,{body:{
     faceId:String(env.SIMLI_FACE_ID),
+    apiVersion:'v2',
     handleSilence:true,
     maxSessionLength:MAX_SESSION_SECONDS,
-    maxIdleTime:MAX_IDLE_SECONDS
-   });
+    maxIdleTime:MAX_IDLE_SECONDS,
+    audioInputFormat:'pcm16'
+   }});
    if(!session.ok||!session.data?.session_token){
     await env.DB.prepare("UPDATE tiktok_live_avatar_sessions SET state='failed',updated_at=? WHERE id=?").bind(now(),reservationId).run();
     return json({code:'SIMLI_SESSION_UNAVAILABLE',detail:'Simli did not issue a valid short-lived session. No avatar session was returned to the browser.'},502);
