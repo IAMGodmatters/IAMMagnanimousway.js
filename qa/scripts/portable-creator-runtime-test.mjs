@@ -106,6 +106,8 @@ try{
  const autonomyStatus=await (await fetch(origin+'/api/live/autonomy/status')).json();
  assert.equal(autonomyStatus.enabled,false,'AI takeover must default to manual mode.');
  assert.equal(autonomyStatus.mode,'manual');
+ const inactiveHeartbeat=await postPath('/api/live/autonomy/heartbeat',{});
+ assert.equal(inactiveHeartbeat.status,409,'A heartbeat must not create or revive a stopped takeover session.');
  const inactiveCycle=await postPath('/api/live/autonomy/next',{});
  assert.equal(inactiveCycle.status,409,'The autonomous cycle must fail closed when takeover is off.');
  const noConsent=await postPath('/api/live/autonomy/enable',{acknowledged:false,permissions:['host_speech']});
