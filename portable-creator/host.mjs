@@ -5,7 +5,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { ObsWebSocketClient } from './obs-client.mjs';
 import { LiveEventRuntime } from './live-event-runtime.mjs';
-import { createReviewCues } from './live-show-director.mjs';
+import { createReviewCues, createReviewLedger } from './live-show-director.mjs';
 
 const args=process.argv.slice(2);
 function arg(name,fallback){const i=args.indexOf(name);return i>=0?args[i+1]:fallback;}
@@ -30,6 +30,7 @@ let serverPort=PORT;
 let obsClient=null;
 const OBS_PORT=4455;
 const liveEvents=new LiveEventRuntime();
+const reviewLedger=createReviewLedger();
 
 fs.mkdirSync(DATA,{recursive:true});
 
@@ -223,8 +224,23 @@ async function handleApi(req,res,url){
  if(req.method==='POST'&&url.pathname==='/api/live/events/consume'){
   const body=await readJson(req);
   const limit=Number.isInteger(body.limit)?Math.max(1,Math.min(50,body.limit)):10;
-  const events=liveEvents.consume(limit);
-  return json(res,200,{events,reviewCues:createReviewCues(events),...liveEvents.status()});
+  const events=liveEvents.consume(limit),reviewCues=createReviewCues(events);
+  reviewLedger.register(reviewCues);
+  return json(res,200,{events,reviewCues,...liveEvents.status()});
+ }
+ if(req.method==='GET'&&url.pathname==='/api/live/cues/receipts'){
+  return json(res,200,{receipts:reviewLedger.list(20),...reviewLedger.status()});
+ }
+ if(req.method==='POST'&&url.pathname==='/api/live/cues/decision'){
+  const body=await readJson(req),cueId=typeof body.cueId==='string'?body.cueId.trim():'';
+  if(!cueId||cueId.length>240)return json(res,400,{detail:'A valid review cue ID is required.'});
+  const result=reviewLedger.decide(cueId,body.decision);
+  if(result.status==='recorded')return json(res,201,result);
+  if(result.status==='duplicate')return json(res,200,result);
+  if(result.status==='conflict')return json(res,409,{detail:'This cue already has a different recorded decision.',...result});
+  if(result.status==='expired')return json(res,410,{detail:'This review cue expired. Pull fresh events for a new cue.',...result});
+  if(result.status==='not_found')return json(res,404,{detail:'This cue is unknown, expired or already outside the review session.'});
+  return json(res,400,{detail:'Choose approve or dismiss for this review cue.'});
  }
  if(req.method==='POST'&&url.pathname==='/api/chat'){
   const body=await readJson(req),prompt=String(body.prompt||'').trim();
