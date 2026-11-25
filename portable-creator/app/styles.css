@@ -20,3 +20,12 @@
 .review-receipt strong,.review-receipt small{display:block}
 .review-receipt strong{font-size:10px;color:#e5c371}
 .review-receipt small{margin-top:4px;font-size:9px;color:#8fa6b2}
+
+.autonomy-check{display:flex!important;align-items:flex-start;gap:9px;margin:11px 0!important;color:#d1e1e6!important;font-size:11px!important;line-height:1.5}
+.autonomy-check input{width:16px!important;min-width:16px;height:16px;margin:1px 0 0;accent-color:#ddbd6b}
+.autonomy-scene-map{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;padding:12px;border:1px solid #294858;border-radius:10px;background:#07131b}
+.autonomy-scene-map label{margin:7px 0 3px!important}
+.autonomy-output{min-height:48px;margin-top:12px;padding:12px;border:1px solid #294858;border-radius:10px;background:#07131b;color:#e6c879;font-size:12px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+#liveAutonomyStop{border:1px solid #a94e4e;color:#ffd0cc;background:#371a1b}
+#liveAutonomyStop:not(:disabled){font-weight:900}
+@media(max-width:600px){.autonomy-scene-map{grid-template-columns:1fr}.live-autonomy-panel .actions button{flex:1 1 100%}}
