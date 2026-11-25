@@ -281,7 +281,8 @@ export default function TikTokLiveHost() {
               <span className="techTag">FREE BROADCAST CONTROL</span>
               <h3>OBS Studio + obs-websocket</h3>
               <p>OBS includes its WebSocket control API in version 28 and newer. It can control scenes and overlays locally, with password protection. This is the practical bridge between a browser avatar and an authorized TikTok stream.</p>
-              <div className="techLinks"><a href="https://github.com/obsproject/obs-websocket" target="_blank" rel="noreferrer">Official OBS WebSocket project</a></div>
+              <p className="techNote">TikTok Shop Philippines LIVE Manager documentation describes OBS Virtual Camera as a desktop video source that does not need a separate stream key; audio must be selected separately. This applies only when that LIVE Manager workflow is available to the account. OBS does not grant TikTok LIVE eligibility.</p>
+              <div className="techLinks"><a href="https://seller-ph.tiktok.com/university/essay?knowledge_id=8100940387305232" target="_blank" rel="noreferrer">TikTok Philippines desktop / OBS Virtual Camera guide</a><a href="https://github.com/obsproject/obs-websocket" target="_blank" rel="noreferrer">Official OBS WebSocket project</a></div>
               <b className="techStatus">OPEN SOURCE • LOCAL CONTROL</b>
             </article>
           </div>
