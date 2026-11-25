@@ -22,6 +22,7 @@ export default function LiveEventBridgePage() {
   const [speech,setSpeech]=useState('');
   const clientRef=useRef<ReturnType<typeof createLiveBridgeClient>|null>(null);
   const hostChannelRef=useRef<BroadcastChannel|null>(null);
+  const statusRef=useRef<LiveBridgeStatus>(status);
 
   useEffect(()=>{
     if(typeof BroadcastChannel!=='function')return;
@@ -29,7 +30,9 @@ export default function LiveEventBridgePage() {
     hostChannelRef.current=channel;
     channel.addEventListener('message',event=>{
       const data=event.data;
-      if(!data||typeof data!=='object'||data.type!=='host.speak'||typeof data.text!=='string')return;
+      if(!data||typeof data!=='object')return;
+      if(data.type==='bridge.status.request'){channel.postMessage({type:'bridge.status',connected:statusRef.current==='connected'});return;}
+      if(data.type!=='host.speak'||typeof data.text!=='string')return;
       const text=data.text.replace(/[\\u0000-\\u001f\\u007f]/g,' ').trim().slice(0,500);
       if(!text)return;
       const commandId=globalThis.crypto?.randomUUID?.()||String(Date.now());
@@ -43,6 +46,7 @@ export default function LiveEventBridgePage() {
   },[]);
 
   useEffect(()=>{
+    statusRef.current=status;
     hostChannelRef.current?.postMessage({type:'bridge.status',connected:status==='connected'});
   },[status]);
 
