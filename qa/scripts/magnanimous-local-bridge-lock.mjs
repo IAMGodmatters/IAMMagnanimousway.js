@@ -70,6 +70,29 @@ for(const needle of [
 ]) assert(agent.includes(needle),`agent safety contract missing: ${needle}`);
 
 assert(!agent.includes('shell=True'),'local agent must not enable shell execution');
+const publicAgent=read('frontend/public/downloads/local-bridge/bridge_agent.py');
+const obsDocs=read('docs/live-studio/obs-local-adapter.md');
+const obsProtocolTest=read('qa/scripts/obs-local-bridge-runtime-test.py');
+assert.equal(agent,publicAgent,'Public Local Bridge distribution must exactly mirror the reviewed private agent source.');
+for(const needle of [
+ 'class _ObsWebSocket:',
+ 'socket.create_connection(("127.0.0.1", port)',
+ 'Sec-WebSocket-Accept',
+ 'def _obs_auth(password: str, salt: str, challenge: str)',
+ 'CryptProtectData',
+ 'CryptUnprotectData',
+ 'approved_scenes',
+ 'approved_audio_cues',
+ 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_RESTART',
+ 'def configure_obs(args):',
+ 'obs-configure',
+ 'obs-forget',
+]) assert(agent.includes(needle),'OBS Local Bridge implementation missing: '+needle);
+assert(!agent.includes('StartStream'),'OBS adapter must not expose broadcast start.');
+assert(!agent.includes('StopStream'),'OBS adapter must not expose broadcast stop.');
+assert(obsDocs.includes('127.0.0.1')&&obsDocs.includes('DPAPI')&&obsDocs.includes('does not start or stop a broadcast'));
+assert(obsProtocolTest.includes('expected_auth')&&obsProtocolTest.includes('GetVersion'));
+
 assert(virtualPhonePage.includes('Magnanimous Virtual Phone Farm'),'virtual phone farm control page must exist');
 for(const action of ['android_emulator_status','android_emulator_list','android_emulator_install_image','android_emulator_create','android_emulator_start','android_emulator_stop','android_emulator_delete','android_cloud_status','android_cloud_start','android_cloud_stop']) assert(virtualPhonePage.includes(action),'virtual phone page must expose '+action);
 assert(virtualPhonePage.includes('No cloud VM is provisioned'),'cloud phone UI must disclose that it does not provision or purchase a VM');
@@ -91,6 +114,18 @@ assert(agent.includes('"--device", "/dev/kvm"'));
 assert(agent.includes('payload.get("google_sdk_license_accepted") is not True'));
 assert(runtime.includes('body.google_sdk_license_accepted!==true'));
 assert.equal(LOCAL_BRIDGE_ACTIONS.heimdall_status.confirmation,false);
+assert.equal(LOCAL_BRIDGE_ACTIONS.obs_status.auto,true);
+assert.equal(LOCAL_BRIDGE_ACTIONS.obs_scene_list.auto,true);
+assert.equal(LOCAL_BRIDGE_ACTIONS.obs_output_status.confirmation,false);
+assert.equal(LOCAL_BRIDGE_ACTIONS.obs_scene_set.confirmation,true);
+assert.equal(LOCAL_BRIDGE_ACTIONS.obs_audio_cue.confirmation,true);
+assert.equal(LOCAL_BRIDGE_POLICY.obs_password_storage,'windows-dpapi-local-only');
+assert.equal(LOCAL_BRIDGE_POLICY.obs_host_policy,'127.0.0.1-only');
+assert.equal(LOCAL_BRIDGE_POLICY.obs_inbound_listener_required,false);
+assert.equal(LOCAL_BRIDGE_POLICY.obs_remote_password_transport,false);
+assert(!Object.hasOwn(LOCAL_BRIDGE_ACTIONS,'obs_broadcast_start'));
+assert(!Object.hasOwn(LOCAL_BRIDGE_ACTIONS,'obs_broadcast_stop'));
+
 assert.equal(LOCAL_BRIDGE_ACTIONS.heimdall_detect.confirmation,true);
 assert.equal(LOCAL_BRIDGE_ACTIONS.heimdall_detect.auto,false);
 assert(!Object.hasOwn(LOCAL_BRIDGE_ACTIONS,'heimdall_flash'));
