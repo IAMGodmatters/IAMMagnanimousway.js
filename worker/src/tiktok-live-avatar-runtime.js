@@ -81,6 +81,12 @@ export async function handleTikTokLiveAvatar(request,env){
  }
 
  try{
+  // Reclaim stale active slots only when the creator explicitly starts a new
+  // session. Expired reservations remain counted in the monthly budget, so
+  // reclaiming an abandoned session can never create a quota bypass.
+  await env.DB.prepare(
+   "UPDATE tiktok_live_avatar_sessions SET state='expired',updated_at=? WHERE tenant_id=? AND usage_month=? AND state='issued' AND updated_at<?"
+  ).bind(stamp,user.tenant_id,month,stamp-MAX_SESSION_SECONDS-MAX_IDLE_SECONDS-30).run();
   await env.DB.prepare(
    "UPDATE tiktok_live_avatar_sessions SET state='expired',updated_at=? WHERE tenant_id=? AND usage_month=? AND state='pending' AND created_at<?"
   ).bind(stamp,user.tenant_id,month,stamp-MAX_PENDING_AGE_SECONDS).run();
