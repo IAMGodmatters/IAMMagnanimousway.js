@@ -405,7 +405,7 @@ export default function TikTokLiveHost() {
     };
     socket.onerror = () => {
       setStreamerBotStatus('CONNECTION ERROR');
-      setNotice('Could not reach Streamer.bot. Confirm it is running, bound to localhost/private LAN, allow the browser's Local Network/Loopback permission prompt, and check the computer firewall.');
+      setNotice('Could not reach Streamer.bot. Confirm it is running, bound to localhost/private LAN, allow this site to use Local Network or Loopback access in the browser, and check the computer firewall.');
     };
     socket.onclose = event => {
       window.clearTimeout(helloTimer);
