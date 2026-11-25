@@ -89,6 +89,8 @@ jobs:
         run: node --check worker/src/magnanimous-public-data-runtime.js
       - name: Syntax check Local Bridge Python agent
         run: python -m py_compile local-bridge/bridge_agent.py
+      - name: Verify OBS local WebSocket authentication and request flow
+        run: python qa/scripts/obs-local-bridge-runtime-test.py
       - name: Syntax check Local Bridge PowerShell installer
         shell: pwsh
         run: |
