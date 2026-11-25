@@ -375,8 +375,20 @@ async function sendLocalEvent(){
 }
 async function pullLiveEvents(){
  $('livePullButton').disabled=true;
- try{const data=await api('/api/live/events/consume',{method:'POST',body:JSON.stringify({limit:20})});renderLiveEvents(data.events||[],data.reviewCues||[]);if((data.events||[]).length){state.lastHostEvent=data.events[data.events.length-1];$('hostStageStatus').textContent='New reviewed event available';} $('liveQueueStatus').textContent=data.queued+' queued · '+data.capacity+' capacity';message('liveEventMessage',(data.events||[]).length+' event(s) pulled from the local queue.','success');}
- catch(error){message('liveEventMessage',error.message,'error');}
+ try{
+  const data=await api('/api/live/events/consume',{method:'POST',body:JSON.stringify({limit:20})});
+  const events=data.events||[];
+  renderLiveEvents(events,data.reviewCues||[]);
+  if(events.length){
+   state.lastHostEvent=events[events.length-1];
+   $('hostStageStatus').textContent='New reviewed event available';
+  }
+  if(data.deliveryId&&events.length){
+   const receipt=await api('/api/live/events/ack',{method:'POST',body:JSON.stringify({deliveryId:data.deliveryId,eventKeys:data.eventKeys||[]})});
+   message('liveEventMessage',receipt.acknowledged+' event(s) safely received and acknowledged.','success');
+  }else message('liveEventMessage','No unclaimed events are waiting.','info');
+  $('liveQueueStatus').textContent=data.queued+' queued · '+data.capacity+' capacity';
+ }catch(error){message('liveEventMessage',error.message,'error');}
  finally{$('livePullButton').disabled=false;await refreshLiveQueue();}
 }
 async function refresh(){
