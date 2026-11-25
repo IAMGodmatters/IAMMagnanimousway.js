@@ -5,6 +5,7 @@ import type { FormEvent } from 'react';
 import { postMagnanimousChat } from '../../lib/magnanimous-chat-transport';
 import { primeNaturalSpeech, speakTextNaturally, stopNaturalSpeech } from '../../lib/natural-speech';
 import { configurePersonaVoice } from '../../lib/persona-voice';
+import { normalizeLiveEvent, type LiveEvent } from '../../lib/live-studio/event-contract';
 
 const api = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 type Line = { id: number; role: 'viewer' | 'host'; text: string };
@@ -39,7 +40,11 @@ export default function TikTokLiveHost() {
   const [takeoverDuration, setTakeoverDuration] = useState(30);
   const [takeoverEndsAt, setTakeoverEndsAt] = useState<number | null>(null);
   const [takeoverSeconds, setTakeoverSeconds] = useState(0);
-  const [queuedComments, setQueuedComments] = useState<Array<{ id: number; text: string }>>([]);
+  const [queuedComments, setQueuedComments] = useState<Array<{ id: number; text: string; source?: string }>>([]);
+  const [bridgeStatus, setBridgeStatus] = useState<'connected' | 'reconnecting' | 'disconnected' | 'error'>('disconnected');
+  const [bridgeEvents, setBridgeEvents] = useState<LiveEvent[]>([]);
+  const queuedCommentsRef = useRef<Array<{ id: number; text: string; source?: string }>>([]);
+  const seenBridgeEventIdsRef = useRef(new Set<string>());
   const [failedQueuedComment, setFailedQueuedComment] = useState<{ id: number; text: string } | null>(null);
   const [takeoverPaused, setTakeoverPaused] = useState(false);
   const takeoverRef = useRef(false);
@@ -48,12 +53,47 @@ export default function TikTokLiveHost() {
   const takeoverAbortRef = useRef<AbortController | null>(null);
   const processingQueueId = useRef<number | null>(null);
 
+  queuedCommentsRef.current = queuedComments;
+
   const topicInstruction = useMemo(() => {
     if (topic === 'Faith & Scripture') return 'You are speaking in a Christian ministry and Bible-learning context. When relevant, use the King James Version (KJV), distinguish Scripture from your own explanation, and never invent a verse or claim a quotation is Scripture unless accurate.';
     if (topic === 'AI Education') return 'Teach AI clearly for beginners. Explain terms in plain language, give practical examples, and do not pretend uncertain claims are facts.';
     if (topic === 'Magnanimous Platform') return 'Explain I AM MAGNANIMOUS WAY and Magnanimous AI accurately. Do not claim any feature, connection, approval, deployment, or live status that has not been verified.';
     return 'Be a helpful, welcoming general-interest host. Answer the question directly, keep it conversational, and avoid unsupported claims.';
   }, [topic]);
+
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') return;
+    const channel = new BroadcastChannel('magnanimous-live-events-v1');
+    channel.onmessage = message => {
+      const payload = message.data;
+      if (payload?.kind === 'status' && ['connected','reconnecting','disconnected','error'].includes(payload.status)) {
+        setBridgeStatus(payload.status);
+        return;
+      }
+      if (payload?.kind !== 'event') return;
+      const event = normalizeLiveEvent(payload.event);
+      if (!event || seenBridgeEventIdsRef.current.has(event.eventId)) return;
+      seenBridgeEventIdsRef.current.add(event.eventId);
+      if (seenBridgeEventIdsRef.current.size > 500) {
+        const oldest = seenBridgeEventIdsRef.current.values().next().value;
+        if (oldest) seenBridgeEventIdsRef.current.delete(oldest);
+      }
+      setBridgeEvents(items => [event, ...items.filter(item => item.eventId !== event.eventId)].slice(0, 12));
+      if (!takeoverRef.current) return;
+      const hostPrompt = liveEventToHostPrompt(event);
+      if (!hostPrompt) return;
+      if (queuedCommentsRef.current.length >= 25) {
+        setNotice('The live event queue is full (25 items). Magnanimous will not discard existing events.');
+        return;
+      }
+      const item = { id: Date.now() + Math.floor(Math.random() * 1000), text: hostPrompt, source: event.provider + ' · ' + event.type };
+      const next = [...queuedCommentsRef.current, item];
+      queuedCommentsRef.current = next;
+      setQueuedComments(next);
+    };
+    return () => channel.close();
+  }, []);
 
   useEffect(() => () => { takeoverRef.current = false; takeoverAbortRef.current?.abort(); stopNaturalSpeech(); }, []);
 
@@ -90,6 +130,25 @@ export default function TikTokLiveHost() {
     setHostReply(welcomeText.trim());
     speak(welcomeText.trim());
   }
+
+function liveEventToHostPrompt(event: LiveEvent): string | null {
+  switch (event.type) {
+    case 'chat.message':
+      return event.text ? 'A viewer posted this untrusted live comment: ' + event.text : null;
+    case 'audience.follow':
+      return 'A new viewer followed the live channel. Offer a short, friendly welcome without assuming they want to be named.';
+    case 'audience.subscription':
+      return 'A viewer subscribed. Offer a brief thank-you without promising benefits or pressuring anyone.';
+    case 'audience.gift':
+      return 'A viewer sent a gift. Offer a brief thank-you without mentioning a value or encouraging others to spend.';
+    case 'audience.poll_vote':
+      return 'A viewer voted in the audience poll. Give a neutral participation update without inventing poll totals or a winner.';
+    case 'game.event':
+      return event.text ? 'A game event occurred. Offer short, safe commentary on this untrusted game event: ' + event.text : 'A game event occurred. Invite viewers to follow along.';
+    default:
+      return null;
+  }
+}
 
 function cleanLiveViewerText(value: string) {
     return String(value || '')
@@ -189,12 +248,14 @@ function cleanLiveViewerText(value: string) {
     const comment = viewerComment.trim();
     if (!comment) return;
     if (takeoverRef.current) {
-      if (queuedComments.length >= 25) {
+      if (queuedCommentsRef.current.length >= 25) {
         setNotice('The local queue is full (25 comments). Let Magnanimous finish a few answers before adding more.');
         return;
       }
-      const item = { id: Date.now() + Math.floor(Math.random() * 1000), text: comment };
-      setQueuedComments(items => [...items, item]);
+      const item = { id: Date.now() + Math.floor(Math.random() * 1000), text: comment, source: 'operator-entered comment' };
+      const next = [...queuedCommentsRef.current, item];
+      queuedCommentsRef.current = next;
+      setQueuedComments(next);
       setViewerComment('');
       setNotice('Comment queued. Magnanimous will answer and speak it automatically while takeover is active.');
       return;
@@ -230,6 +291,7 @@ function cleanLiveViewerText(value: string) {
     setTakeoverActive(false);
     setTakeoverEndsAt(null);
     setTakeoverSeconds(0);
+    queuedCommentsRef.current = [];
     setQueuedComments([]);
     setFailedQueuedComment(null);
     setTakeoverPaused(false);
@@ -244,7 +306,9 @@ function cleanLiveViewerText(value: string) {
 
   function retryFailedQueuedComment() {
     if (!failedQueuedComment || queuedComments.length >= 25) return;
-    setQueuedComments(items => [{ id: Date.now() + Math.floor(Math.random() * 1000), text: failedQueuedComment.text }, ...items]);
+    const next = [{ id: Date.now() + Math.floor(Math.random() * 1000), text: failedQueuedComment.text, source: 'retried event' }, ...queuedCommentsRef.current];
+    queuedCommentsRef.current = next;
+    setQueuedComments(next);
     setFailedQueuedComment(null);
     setTakeoverPaused(false);
     setNotice('Retrying the preserved comment. The automatic queue will resume after the response.');
@@ -261,7 +325,9 @@ function cleanLiveViewerText(value: string) {
     const next = queuedComments[0];
     if (processingQueueId.current === next.id) return;
     processingQueueId.current = next.id;
-    setQueuedComments(items => items.slice(1));
+    const remaining = queuedCommentsRef.current.slice(1);
+    queuedCommentsRef.current = remaining;
+    setQueuedComments(remaining);
     void processComment(next.text, true).finally(() => {
       if (processingQueueId.current === next.id) processingQueueId.current = null;
     });
@@ -343,6 +409,9 @@ function cleanLiveViewerText(value: string) {
           </label>
           <section className="takeoverPanel" aria-label="AI live-show takeover">
             <div className="takeoverTitle"><b>MAGNANIMOUS AI TAKEOVER</b><span className={takeoverActive ? 'takeoverOn' : 'takeoverOff'}>{takeoverActive ? `ACTIVE · ${Math.floor(takeoverSeconds / 60)}:${String(takeoverSeconds % 60).padStart(2, '0')} LEFT` : 'OFF · MANUAL CONTROL'}</span></div>
+            <div className="liveBridgeStatus">EVENT BRIDGE · <b>{bridgeStatus.toUpperCase()}</b> · {bridgeEvents.length} recent event(s)</div>
+            <a className="bridgeConnectLink" href="/tiktok-live/bridge" target="_blank" rel="noopener noreferrer">Open secure companion bridge in another tab →</a>
+            <p className="bridgeStatusNote">When a paired Magnanimous Companion and an authorized provider/game adapter are connected in that tab, supported events can enter this host queue automatically. The companion and TikTok comment adapter are not yet deployed, so manual comments remain available.</p>
             <label className="takeoverConsent"><input type="checkbox" checked={takeoverConsent} disabled={takeoverActive} onChange={event => setTakeoverConsent(event.target.checked)} /> I authorize Magnanimous AI to run this host session and speak queued replies for the selected time.</label>
             <label className="field takeoverDuration">Maximum takeover session
               <select value={takeoverDuration} disabled={takeoverActive} onChange={event => setTakeoverDuration(Number(event.target.value))}>
@@ -395,6 +464,7 @@ function cleanLiveViewerText(value: string) {
         .hostName{margin-top:28px;font-size:clamp(28px,4vw,43px);font-weight:900;letter-spacing:.12em;text-align:center;text-shadow:0 3px 18px #000}.hostRole{font-size:9px;letter-spacing:.24em;color:#d8bd79;margin-top:8px}.equalizer{height:50px;display:flex;align-items:center;justify-content:center;gap:4px;margin-top:28px}.equalizer i{display:block;width:4px;height:7px;border-radius:4px;background:linear-gradient(0deg,#d6ac57,#78e6f3);opacity:.9;transition:height .15s ease}.speaking .equalizer i{animation:bars .42s ease-in-out infinite alternate}@keyframes bars{to{transform:scaleY(.35)}}.disclosure{position:absolute;bottom:12%;font-size:8px;letter-spacing:.15em;color:#9fc5d1;text-align:center}.spokenReply{position:absolute;bottom:4%;left:8%;right:8%;font-size:9px;line-height:1.4;color:#c7dce3;text-align:center;max-height:8%;overflow:hidden;text-overflow:ellipsis}
         .stageActions{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:13px 0 5px}.primary,.secondary,.stop{border:0;border-radius:10px;padding:11px 13px;font-weight:800;font-size:11px;cursor:pointer}.primary{background:linear-gradient(110deg,#dcb75e,#8ee9f1);color:#07131b}.secondary{background:#123140;color:#c9f7ff;border:1px solid #2e6375}.stop{background:#311e25;color:#ffb9c2;border:1px solid #6c3944}.stageHint{color:#7893a2;font-size:10px;text-align:center;line-height:1.5}
         .takeoverFailure{margin-top:9px;padding:10px;border:1px solid #805044;border-radius:9px;background:#291b1a;color:#f0d0bb}.takeoverFailure b{font-size:10px}.takeoverFailure p{font-size:9px;line-height:1.5}.takeoverFailure>div{display:flex;gap:7px;flex-wrap:wrap}.takeoverFailure button{font-size:9px;padding:8px 10px}
+         .liveBridgeStatus{margin-top:10px;color:#8eb4c0;font-size:9px;letter-spacing:.08em}.liveBridgeStatus b{color:#e4c477}.bridgeConnectLink{display:inline-block;margin-top:7px;color:#79e0f0;font-size:10px;text-decoration:none}.bridgeStatusNote{margin:5px 0;color:#94a8b1;font-size:9px;line-height:1.5}
         .takeoverPanel{margin:10px 0 16px;padding:13px;border:1px solid #5a4a2b;border-radius:12px;background:linear-gradient(145deg,#1a1b18,#0a151d)}.takeoverTitle{display:flex;justify-content:space-between;gap:8px;align-items:center;color:#e6c577;font-size:10px;letter-spacing:.1em}.takeoverOn{color:#8cebb4}.takeoverOff{color:#9db0b8}.takeoverConsent{display:flex;gap:8px;align-items:flex-start;color:#d2e0e4;font-size:10px;line-height:1.5;margin:12px 0}.takeoverConsent input{accent-color:#e2c16b;margin-top:2px}.takeoverDuration{margin:8px 0}.takeoverActions{display:flex;flex-wrap:wrap;gap:8px;margin:9px 0}.takeoverActions button{flex:1}.takeoverActions .stop:disabled{opacity:.4}.takeoverPanel>small{display:block;color:#9bb0ba;font-size:9px}.takeoverBoundary{margin:9px 0 0;color:#b9cbd1;font-size:9px;line-height:1.55}
         .console{padding:18px}.consoleHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:17px}.consoleHead h2{font-size:22px;margin:6px 0 0}.safe{font-size:8px;color:#85e6b4;border:1px solid #326b54;border-radius:30px;padding:6px 8px}.field{display:block;color:#a7bdc8;font-size:10px;font-weight:700;margin:12px 0}.field select,.field textarea{display:block;width:100%;margin-top:7px;background:#050d13;color:#e9f8ff;border:1px solid #2b4b5b;border-radius:10px;padding:11px;font:inherit;font-size:12px;resize:vertical}.toggle{display:flex;align-items:center;gap:8px;color:#9eb3bd;font-size:10px;margin:10px 0}.toggle input{accent-color:#77dff1}.answerButton{width:100%;margin-top:7px}.primary:disabled{opacity:.45;cursor:not-allowed}.notice{background:#2a1d0e;color:#f1d59a;padding:10px;border:1px solid #6c5228;border-radius:9px;font-size:10px;line-height:1.5;margin-top:12px}.conversationHead{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #203b4b;margin-top:18px;padding-top:13px;color:#d4e7ee;font-size:11px}.conversationHead button{background:transparent;border:0;color:#79d9ea;font-size:9px;cursor:pointer}.conversation{max-height:380px;overflow:auto;margin-top:8px}.conversation article{padding:10px 12px;border-radius:10px;margin:7px 0}.conversation article.viewer{background:#112b39}.conversation article.host{background:#151a22;border:1px solid #3a4a51}.conversation article small{font-size:8px;letter-spacing:.13em;color:#80dfee}.conversation article p,.empty{font-size:11px;line-height:1.5;color:#d8e9ef;white-space:pre-wrap;margin:5px 0 0}.empty{color:#829ba8;padding:12px}
         .setup{max-width:1440px;margin:18px auto 0;background:#08121a;border:1px solid #203b4b;border-radius:18px;padding:21px}.setup h2{margin:5px 0 14px;font-size:24px}.setup ol{padding-left:20px;color:#a4b8c2;font-size:11px;line-height:1.65}.setup li{margin:7px 0;padding-left:4px}.setup li b{color:#e8cd84}.policy{background:#2b1b12;border:1px solid #714d2d;border-radius:10px;padding:13px;color:#f2d39a;font-size:11px;line-height:1.55;margin-top:14px}.footLinks{display:flex;flex-wrap:wrap;gap:16px;border-top:1px solid #203b4b;margin-top:16px;padding-top:14px}.footLinks a{color:#7adff1;text-decoration:none;font-size:10px}
