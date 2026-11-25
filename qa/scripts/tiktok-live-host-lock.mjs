@@ -27,7 +27,7 @@ const checks = [
   ['AI host can advance a supplied show script one cue at a time', host.includes('function useNextScriptCue()') && host.includes('Next script cue') && host.includes('setScriptSectionIndex')],
   ['quick game director buttons populate the AI context without claiming automated capture', host.includes('GAME DIRECTOR · QUICK MOMENTS') && host.includes('queueGameMoment') && host.includes('setGameContext(moment)') && host.includes('automatic game-screen capture is not connected yet')],
   ['platform-specific commerce and AI-content rules are not bypassed', host.includes('Platform rules still apply') && host.includes('check that platform\'s current AI-content and livestream rules')],
-  ['Social Hub links to the host control room', social.includes('href="/tiktok-live"')],
+  ['Social Hub links to the host control room', social.includes('href="/live-studio"')],
   ['platform-neutral Live Studio route reuses the Magnanimous AI host', liveStudio.includes("export { default } from '../tiktok-live/page'")],
   ['platform-neutral bridge route reuses the secure event bridge', liveStudioBridge.includes("export { default } from '../../tiktok-live/bridge/page'")],
   ['live host provides destination-specific setup for TikTok, YouTube, Facebook, Twitch, Zoom and RTMP', ['TikTok LIVE','YouTube','Facebook','Twitch','Zoom','Other RTMP'].every(name => host.includes("name: '"+name+"'")) && host.includes('destinationGuide') && host.includes('Streaming destination')],
