@@ -38,6 +38,8 @@ const checks = [
   ['official OBS Virtual Camera workflow is qualified by account access', host.includes('does not need a separate stream key') && host.includes('audio must be selected separately') && host.includes('OBS does not grant TikTok LIVE eligibility')],
   ['Simli server gateway is owner-only', avatarRuntime.includes('platformOwnerDeveloperIdentity') && avatarRuntime.includes('Only the platform owner')],
   ['Simli gateway uses documented server-side token endpoint and LiveKit transport', avatarRuntime.includes('https://api.simli.ai/compose/token') && avatarRuntime.includes("'x-simli-api-key':apiKey") && avatarRuntime.includes("transport_mode:'livekit'")],
+  ['Simli Compose request passes the config in the documented flat JSON body', avatarRuntime.includes("faceId:String(env.SIMLI_FACE_ID)") && avatarRuntime.includes("audioInputFormat:'pcm16'") && !/config:\s*\{\s*faceId/.test(avatarRuntime)],
+  ['Simli LiveKit mode does not make an unnecessary P2P ICE request', avatarRuntime.includes("transport_mode:'livekit'") && !/getIceServer/i.test(avatarRuntime)],
   ['Simli provider key remains a Worker secret and is not returned', avatarRuntime.includes('SIMLI_API_KEY') && avatarRuntime.includes('String(env.SIMLI_API_KEY)') && avatarRuntime.includes("'x-simli-api-key':apiKey") && !avatarRuntime.includes('apiKey:session')],
   ['Simli gateway is fail-closed until explicitly enabled', avatarRuntime.includes("env?.SIMLI_AVATAR_ENABLED==='true'") && avatarRuntime.includes('SIMLI_AVATAR_NOT_CONFIGURED')],
   ['Simli sessions are provider-capped at 120 seconds and 30 idle seconds', avatarRuntime.includes('MAX_SESSION_SECONDS=120') && avatarRuntime.includes('MAX_IDLE_SECONDS=30')],
