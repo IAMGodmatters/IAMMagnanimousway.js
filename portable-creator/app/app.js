@@ -30,6 +30,8 @@ function updateControls(){
  $('obsRefreshButton').disabled=!state.obsConnected;
  $('obsSceneSelect').disabled=!state.obsConnected;
  $('obsSwitchButton').disabled=!state.obsConnected||!$('obsSceneSelect').value;
+ $('obsAvatarLayout').disabled=!state.obsConnected;
+ $('obsAvatarButton').disabled=!state.obsConnected||!$('obsSceneSelect').value;
  $('obsStartRecordButton').disabled=!state.obsConnected||state.obsRecording;
  $('obsStopRecordButton').disabled=!state.obsConnected||!state.obsRecording;
  $('livePullButton').disabled=!state.vaultUnlocked;
@@ -115,6 +117,16 @@ async function refreshObsScenes(){
  else if(data.currentProgramSceneName)select.value=data.currentProgramSceneName;
  $('obsCurrentScene').textContent=data.currentProgramSceneName?'Program scene: '+data.currentProgramSceneName:'No program scene reported';
  updateControls();
+}
+async function addHostAvatarToObs(){
+ const sceneName=$('obsSceneSelect').value,layout=$('obsAvatarLayout').value;
+ if(!sceneName){message('obsMessage','Choose an OBS scene first.','warning');return;}
+ $('obsAvatarButton').disabled=true;
+ try{
+  const result=await api('/api/obs/host-avatar',{method:'POST',body:JSON.stringify({sceneName,layout})});
+  message('obsMessage',(result.created?'Added':'Updated')+' the Magnanimous AI Host Avatar browser source in '+result.sceneName+'. The avatar follows the local host voice and captions.','success');
+ }catch(error){message('obsMessage',error.message,'error');}
+ finally{updateControls();}
 }
 async function refreshObsStatus(){
  try{
@@ -448,6 +460,7 @@ $('obsConnectButton').addEventListener('click',connectObs);
 $('obsDisconnectButton').addEventListener('click',disconnectObs);
 $('obsRefreshButton').addEventListener('click',()=>refreshObsStatus());
 $('obsSwitchButton').addEventListener('click',switchObsScene);
+$('obsAvatarButton').addEventListener('click',addHostAvatarToObs);
 $('obsStartRecordButton').addEventListener('click',()=>setObsRecording(true));
 $('obsStopRecordButton').addEventListener('click',()=>setObsRecording(false));
 $('livePullButton').addEventListener('click',pullLiveEvents);
