@@ -145,7 +145,6 @@ export default function LiveEventBridgePage() {
           <button onClick={connect} disabled={!endpoint.trim()||pairingToken.trim().length<16}>Connect companion</button>
           <button className="secondary" onClick={disconnect} disabled={status==='disconnected'}>Disconnect browser</button>
           <button className="secondary" onClick={revokePair} disabled={!pairId||revokeBusy}>{revokeBusy?'Revoking…':'Revoke pairing'}</button>
-          <button className="secondary" onClick={revokePair} disabled={!endpoint.trim()}>Revoke pairing</button>
         </div>
         <p className="hint">Remote connections require WSS. The browser and local companion use different temporary tokens. Tokens stay in memory and are never saved in browser storage or placed in the URL.</p>
       </section>
