@@ -18,12 +18,13 @@ function messageData(event){
 }
 
 export class ObsWebSocketClient {
- constructor({WebSocketImpl=globalThis.WebSocket,port=DEFAULT_PORT,timeoutMs=5000}={}){
+ constructor({WebSocketImpl=globalThis.WebSocket,port=DEFAULT_PORT,timeoutMs=5000,onEvent=()=>{}}={}){
   if(typeof WebSocketImpl!=='function')throw new Error('This Node runtime does not provide a WebSocket client.');
   if(!Number.isInteger(port)||port<1024||port>65535)throw new Error('OBS WebSocket port is invalid.');
   this.WebSocketImpl=WebSocketImpl;
   this.port=port;
   this.timeoutMs=timeoutMs;
+  this.onEvent=typeof onEvent==='function'?onEvent:()=>{};
   this.socket=null;
   this.connected=false;
   this.rpcVersion=null;
@@ -55,7 +56,7 @@ export class ObsWebSocketClient {
     try{packet=JSON.parse(messageData(event));}catch{finish(new Error('OBS sent an invalid WebSocket message.'));return;}
     if(packet.op===0){
      const hello=packet.d||{};
-     const identify={rpcVersion:1,eventSubscriptions:0};
+     const identify={rpcVersion:1,eventSubscriptions:68};
      if(hello.authentication){
       if(!secret){finish(new Error('OBS requires its WebSocket password.'));return;}
       identify.authentication=authentication(secret,String(hello.authentication.salt||''),String(hello.authentication.challenge||''));
@@ -68,6 +69,12 @@ export class ObsWebSocketClient {
     if(packet.op===2){
      this.connected=true;this.rpcVersion=packet.d?.negotiatedRpcVersion||1;
      finish(null,{connected:true,rpcVersion:this.rpcVersion});return;
+    }
+    if(packet.op===5){
+     const eventType=String(packet.d?.eventType||'');
+     const eventData=packet.d?.eventData&&typeof packet.d.eventData==='object'?packet.d.eventData:{};
+     try{this.onEvent(eventType,eventData);}catch{}
+     return;
     }
     if(packet.op===7){
      const pending=this.pending.get(packet.d?.requestId);
