@@ -8,7 +8,6 @@ const MAX_MONTHLY_SESSIONS=20;
 const MAX_PENDING_AGE_SECONDS=180;
 const SIMLI_SESSION_URL='https://api.simli.ai/compose/token';
 const SIMLI_ICE_URL='https://api.simli.ai/compose/ice';
-const SIMLI_ICE_URL='https://api.simli.ai/compose/ice';
 
 function monthKey(date=new Date()){return date.toISOString().slice(0,7)}
 function now(){return Math.floor(Date.now()/1000)}
