@@ -67,9 +67,9 @@ export async function fetchWorkersMetrics({ accountId, token, start, end, fetchI
 }
 export async function runAudit(env = process.env, fetchImpl = fetch, now = Date.now()) {
   const accountId = String(env.CLOUDFLARE_ACCOUNT_ID || '').trim();
-  const token = String(env.CLOUDFLARE_ANALYTICS_READ_TOKEN || env.CLOUDFLARE_API_TOKEN || '').trim();
+  const token = String(env.CLOUDFLARE_ANALYTICS_READ_TOKEN || '').trim();
   if (!accountId) throw new Error('CLOUDFLARE_ACCOUNT_ID is missing. No Cloudflare request was made.');
-  if (!token) throw new Error('Cloudflare analytics token is missing. Add CLOUDFLARE_ANALYTICS_READ_TOKEN with Account Analytics:Read. No Cloudflare request was made.');
+  if (!token) throw new Error('Cloudflare analytics token is missing. Add CLOUDFLARE_ANALYTICS_READ_TOKEN with Account Analytics:Read. A general API token is deliberately not accepted. No Cloudflare request was made.');
   const end = new Date(now).toISOString(), start = new Date(now - 24 * HOUR).toISOString();
   const { rows, truncated } = await fetchWorkersMetrics({ accountId, token, start, end, fetchImpl });
   if (!rows.length) throw new Error('Cloudflare returned zero rows for the 24-hour window. This is not proof of zero usage; check account ID, data availability and token scope.');
