@@ -158,7 +158,8 @@ function connectBridge(endpoint,token){
  closeBridge();
  bridgeStatus='connecting';bridgeError='';
  const socket=new WebSocket(url.toString());bridgeSocket=socket;
- socket.addEventListener('open',()=>{if(bridgeSocket!==socket)return;socket.send(JSON.stringify({kind:'auth',protocolVersion:1,token}));});
+ const authenticate=()=>{if(bridgeSocket===socket)socket.send(JSON.stringify({kind:'auth',protocolVersion:1,token}));socket.removeEventListener('open',authenticate);};
+ socket.addEventListener('open',authenticate,{once:true});
  socket.addEventListener('message',message=>{
   if(bridgeSocket!==socket)return;
   let envelope;try{envelope=JSON.parse(String(message.data));}catch{bridgeError='The online relay sent an unreadable message.';return;}
