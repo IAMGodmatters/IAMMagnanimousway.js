@@ -221,7 +221,7 @@ export default function Local3DAvatar({ textToSpeak }: Local3DAvatarProps) {
         <div><small>FREE-FIRST NATIVE AVATAR</small><h3>Build your faceless 3D host</h3></div>
         <span className={avatarReady ? 'ready' : ''}>{avatarReady ? '3D READY' : 'LOCAL PREVIEW'}</span>
       </div>
-      <p className="localAvatarCopy">Use your own licensed GLB character. The model stays in this browser tab; it is not uploaded to Magnanimous. TalkingHead renders the 3D character and HeadTTS supplies neural speech with word/viseme timing. The optional voice downloads model files for this session but has persistent browser model caching disabled.</p>
+      <p className="localAvatarCopy">Use your own licensed GLB character. The model stays in this browser tab. It is not uploaded to Magnanimous. TalkingHead renders the 3D character and HeadTTS supplies neural speech with word/viseme timing. The optional voice downloads model files for this session but has persistent browser model caching disabled.</p>
       <div className="localAvatarControls">
         <label className="fileButton">Choose 3D avatar (.glb)
           <input type="file" accept=".glb,model/gltf-binary" onChange={event => chooseAvatar(event.target.files?.[0])} />
