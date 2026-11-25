@@ -131,3 +131,11 @@ Decision receipts and autonomous action receipts are kept in bounded memory for 
 ## Cross-device reality
 
 A USB SSD can carry the Magnanimous workspace, models, media and Windows OBS Portable files, but it cannot make one binary or one OBS profile work unchanged on every operating system. OBS Portable Mode is Windows-only and its media references need relative/common paths. The launcher must detect the OS/architecture, use the matching native runtime, and keep project files portable. Public streaming and Zoom meetings still need network access.
+
+## Online AI Host takeover
+
+The online TikTok LIVE Host offers an explicit owner opt-in takeover mode. During a 10-, 30- or 60-minute session, Magnanimous can answer queued comments and speak the replies through the existing Magnanimous chat and natural-speech pipeline. The queue is capped at 25 items, responses are serialized behind speech playback, common contact details and secrets are redacted before prompting, and failed automatic answers pause the queue with Retry and Skip controls. The owner can stop the takeover at any time.
+
+A paired Companion event bridge can relay normalized chat, follow, subscription, gift, poll and game events to the AI Host tab through a same-browser event channel. This path requires the companion and an authorized provider adapter to be actually installed and connected. The current repository contains the bridge client/protocol UI, but the companion server and provider adapters are not yet deployed. TikTok public developer scopes reviewed for this release do not document a general LIVE comment subscription. Therefore, TikTok comments still need operator entry unless an approved, documented capability is supplied by an authorized adapter.
+
+The online takeover speaks through the browser's existing voice engine. It does not start or end a public stream, send TikTok chat messages, moderate/ban/mute viewers, change account settings, or spend money. The public broadcast remains controlled by the creator in TikTok LIVE Studio or the account's approved streaming workflow.
