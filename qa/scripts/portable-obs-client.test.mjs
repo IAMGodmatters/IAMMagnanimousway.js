@@ -32,13 +32,13 @@ class FakeWebSocket {
  }
  close(){if(this.readyState>=2)return;this.readyState=3;queueMicrotask(()=>this.emit('close',{}));}
 }
-const client=new ObsWebSocketClient({WebSocketImpl:FakeWebSocket,timeoutMs:100});
+const receivedEvents=[];\nconst client=new ObsWebSocketClient({WebSocketImpl:FakeWebSocket,timeoutMs:100,onEvent:(type,data)=>receivedEvents.push({type,data})});
 const connected=await client.connect('test-password');
 assert.equal(connected.connected,true);
 assert.equal(FakeWebSocket.last.url,'ws://127.0.0.1:4455');
 const identify=FakeWebSocket.last.sent.find(packet=>packet.op===1);
 assert.equal(identify.d.authentication,expectedAuth('test-password'));
-assert.equal(identify.d.eventSubscriptions,0,'The adapter must not subscribe to unneeded OBS events.');
+assert.equal(identify.d.eventSubscriptions,68,'The adapter subscribes only to OBS scene and output state events.');\nFakeWebSocket.last.emit('message',{data:JSON.stringify({op:5,d:{eventType:'CurrentProgramSceneChanged',eventData:{sceneName:'Main Show'}}})});\nassert.deepEqual(receivedEvents,[{type:'CurrentProgramSceneChanged',data:{sceneName:'Main Show'}}]);
 const scenes=await client.getScenes();
 assert.deepEqual(scenes.scenes.map(scene=>scene.sceneName),['Starting Soon','Main Show']);
 assert.equal(scenes.currentProgramSceneName,'Starting Soon');
@@ -55,4 +55,4 @@ console.log('PASS OBS WebSocket authentication challenge');
 console.log('PASS loopback-only endpoint and scene discovery');
 console.log('PASS allowlisted scene switch and invalid-scene rejection');
 console.log('PASS recording start/status/stop requests');
-console.log('PASS explicit disconnect clears connection state');
+console.log('PASS bounded OBS scene/output event subscription and delivery');\nconsole.log('PASS explicit disconnect clears connection state');
