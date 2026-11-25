@@ -23,12 +23,12 @@ export class LiveEventRuntime{
  constructor({maxQueue=200,maxSeen=5000,rateLimitPerMinute=120,now=Date.now,onAccept=()=>{},onConsume=()=>{}}={}){
   this.maxQueue=Math.max(1,Math.min(2000,maxQueue));this.maxSeen=Math.max(100,Math.min(20000,maxSeen));this.rateLimitPerMinute=Math.max(1,Math.min(1000,rateLimitPerMinute));this.now=now;this.onAccept=onAccept;this.onConsume=onConsume;this.queue=[];this.seen=new Map();this.windows=new Map();
  }
- ingest(input,{persist=true}={}){
+ ingest(input,{persist=true,bypassRateLimit=false}={}){
   const now=this.now(),event=normalize(input,now);if(!event)return{status:'invalid',detail:'Event failed protocol, timestamp or content validation.'};
   const key=event.provider+':'+event.eventId;
   if(this.seen.has(key))return{status:'duplicate',eventId:event.eventId};
   const window=this.windows.get(event.provider);
-  if(window&&now-window.startedAt<60_000&&window.count>=this.rateLimitPerMinute)return{status:'rate_limited',detail:'Provider event rate limit reached.'};
+  if(!bypassRateLimit&&window&&now-window.startedAt<60_000&&window.count>=this.rateLimitPerMinute)return{status:'rate_limited',detail:'Provider event rate limit reached.'};
   if(this.queue.length>=this.maxQueue)return{status:'queue_full',detail:'Event queue is full; backpressure applied without dropping queued events.'};
   if(persist){try{this.onAccept(event);}catch{return{status:'persistence_error',detail:'The event could not be safely written to the recovery journal.'};}}
   if(!window||now-window.startedAt>=60_000)this.windows.set(event.provider,{startedAt:now,count:1});else window.count++;
@@ -47,7 +47,7 @@ export class LiveEventRuntime{
   if(!Array.isArray(records))return{restored:0,acknowledged:0};
   let restored=0,acknowledged=0;
   for(const record of records){
-   if(record?.kind==='event'&&record.event){const result=this.ingest(record.event,{persist:false});if(result.status==='accepted')restored++;}
+   if(record?.kind==='event'&&record.event){const result=this.ingest(record.event,{persist:false,bypassRateLimit:true});if(result.status==='accepted')restored++;}
    else if(record?.kind==='ack'&&Array.isArray(record.keys)){const keys=new Set(record.keys);for(let i=this.queue.length-1;i>=0;i--){const event=this.queue[i];if(keys.has(event.provider+':'+event.eventId)){this.queue.splice(i,1);acknowledged++;}}}
   }
   return{restored,acknowledged};
