@@ -87,6 +87,7 @@ function unlockVault(passphrase){
   vaultKey=deriveKey(passphrase,vaultSalt);
   vaultData={schema:1,projects:[],createdAt:new Date().toISOString()};
   saveVault();
+  liveEvents.unlock(vaultKey);
   return {created:true,projectCount:0};
  }
  const envelope=JSON.parse(fs.readFileSync(VAULT,'utf8'));
@@ -105,6 +106,7 @@ function unlockVault(passphrase){
   if(parsed?.schema!==1||!Array.isArray(parsed.projects))throw new Error('Workspace data format is invalid.');
   vaultKey=candidate;
   vaultData=parsed;
+  liveEvents.unlock(vaultKey);
   return {created:false,projectCount:parsed.projects.length};
  }catch(error){
   candidate.fill(0);lockVault();
@@ -112,6 +114,7 @@ function unlockVault(passphrase){
  }
 }
 function lockVault(){
+ liveEvents.lock();
  if(vaultKey)vaultKey.fill(0);
  vaultKey=null;vaultSalt=null;vaultData=null;
 }
@@ -228,6 +231,7 @@ async function handleApi(req,res,url){
   const body=await readJson(req);
   if(body.event?.provider!=='manual')return json(res,403,{status:'provider_untrusted',detail:'Browser intake accepts operator-entered manual events only; provider adapters must authenticate in the local companion.'});
   const result=liveEvents.ingest(body.event);
+  if(result.status==='locked')return json(res,423,result);
   if(result.status==='accepted')return json(res,202,result);
   if(result.status==='duplicate')return json(res,200,result);
   if(result.status==='rate_limited')return json(res,429,result);
@@ -239,11 +243,15 @@ async function handleApi(req,res,url){
   const body=await readJson(req);
   const limit=Number.isInteger(body.limit)?Math.max(1,Math.min(50,body.limit)):10;
   const delivery=liveEvents.claim(limit);
+  if(delivery.status==='locked')return json(res,423,delivery);
+  if(delivery.status==='storage_error')return json(res,507,delivery);
   return json(res,200,{...delivery,reviewCues:createReviewCues(delivery.events),...liveEvents.status()});
  }
  if(req.method==='POST'&&url.pathname==='/api/live/events/ack'){
   const body=await readJson(req);
   const result=liveEvents.acknowledge(body.deliveryId,body.eventKeys);
+  if(result.status==='locked')return json(res,423,result);
+  if(result.status==='storage_error')return json(res,507,result);
   if(result.status==='acknowledged'||result.status==='duplicate')return json(res,200,result);
   if(result.status==='not_leased')return json(res,409,result);
   return json(res,400,result);
