@@ -3,6 +3,7 @@ const state={modelReady:false,vaultUnlocked:false,projects:[],obsConnected:false
 let autonomyTimer=null;
 let autonomyTickBusy=false;
 let autonomySpeechBusy=false;
+let autonomyCancellingSpeech=false;
 async function api(path,options={}){
  const response=await fetch(path,{...options,cache:'no-store',headers:{'content-type':'application/json',...(options.headers||{})}});
  const data=await response.json().catch(()=>({detail:'The local service returned an invalid response.'}));
@@ -98,6 +99,7 @@ async function startLiveAutonomy(){
    durationMinutes:Number($('liveAutonomyDuration').value)
   })});
   state.autonomyActive=true;
+  autonomyCancellingSpeech=false;
   $('liveAutonomyStatus').textContent='AI TAKEOVER ACTIVE · Expires '+new Date(result.session.expiresAt).toLocaleTimeString();
   $('liveAutonomyStatus').className='status warning';
   $('liveAutonomyOutput').textContent='Magnanimous is now running the abilities you selected. The STOP AI TAKEOVER control remains available.';
@@ -113,7 +115,7 @@ async function startLiveAutonomy(){
 function stopAutonomyPolling(cancelSpeech=true){
  if(autonomyTimer){clearInterval(autonomyTimer);autonomyTimer=null;}
  autonomyTickBusy=false;
- if(cancelSpeech&&window.speechSynthesis)window.speechSynthesis.cancel();
+ if(cancelSpeech){autonomyCancellingSpeech=true;if(window.speechSynthesis)window.speechSynthesis.cancel();}
  autonomySpeechBusy=false;
 }
 async function stopLiveAutonomy(reason='operator_stop'){
@@ -135,6 +137,7 @@ async function recordAutonomySpeech(reservationId,outcome,detail='browser_speech
 }
 function speakAutonomyLine(speech,eventType){
  if(!speech?.line||!speech?.reservationId)return;
+ autonomyCancellingSpeech=false;
  $('liveAutonomyOutput').textContent='MAGNANIMOUS · '+eventType+'\n'+speech.line;
  if(!window.speechSynthesis||typeof SpeechSynthesisUtterance==='undefined'){
   recordAutonomySpeech(speech.reservationId,'unavailable','speech_engine_unavailable');
@@ -144,8 +147,8 @@ function speakAutonomyLine(speech,eventType){
  const utterance=new SpeechSynthesisUtterance(speech.line);
  utterance.rate=1;
  utterance.pitch=1;
- utterance.onend=()=>{autonomySpeechBusy=false;recordAutonomySpeech(speech.reservationId,'succeeded');};
- utterance.onerror=()=>{autonomySpeechBusy=false;recordAutonomySpeech(speech.reservationId,'failed','speech_engine_error');};
+ utterance.onend=()=>{autonomySpeechBusy=false;if(!autonomyCancellingSpeech)recordAutonomySpeech(speech.reservationId,'succeeded');};
+ utterance.onerror=()=>{autonomySpeechBusy=false;if(!autonomyCancellingSpeech)recordAutonomySpeech(speech.reservationId,'failed','speech_engine_error');};
  window.speechSynthesis.speak(utterance);
 }
 async function runAutonomyCycle(){
