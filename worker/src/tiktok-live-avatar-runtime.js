@@ -7,7 +7,6 @@ const MAX_IDLE_SECONDS=30;
 const MAX_MONTHLY_SESSIONS=20;
 const MAX_PENDING_AGE_SECONDS=180;
 const SIMLI_SESSION_URL='https://api.simli.ai/compose/token';
-const SIMLI_ICE_URL='https://api.simli.ai/compose/ice';
 
 function monthKey(date=new Date()){return date.toISOString().slice(0,7)}
 function now(){return Math.floor(Date.now()/1000)}
@@ -113,19 +112,13 @@ export async function handleTikTokLiveAvatar(request,env){
 
   let session;
   try{
-   // Simli's current REST API v2 maps the former session/ICE endpoints to
-   // GET /compose/ice and POST /compose/token. The official simli-client SDK
-   // uses WebRTC P2P and accepts the short-lived token plus ICE credentials.
-   // Keep the provider key server-side; only bounded session credentials leave it.
+   // Current official simli-client documentation recommends LiveKit mode.
+   // Its backend contract is a flat avatar config at /compose/token with the
+   // API key in x-simli-api-key. LiveKit mode needs no P2P ICE lookup.
+   // Keep the provider key server-side; only the short-lived session token leaves.
    const apiKey=String(env.SIMLI_API_KEY);
-   const ice=await providerRequest(SIMLI_ICE_URL,apiKey,{method:'GET'});
-   if(!ice.ok||!Array.isArray(ice.data)||ice.data.length===0){
-    await env.DB.prepare("UPDATE tiktok_live_avatar_sessions SET state='failed',updated_at=? WHERE id=?").bind(now(),reservationId).run();
-    return json({code:'SIMLI_ICE_UNAVAILABLE',detail:'Simli did not return valid ICE server credentials. No avatar session was created.'},502);
-   }
    session=await providerRequest(SIMLI_SESSION_URL,apiKey,{body:{
     faceId:String(env.SIMLI_FACE_ID),
-    apiVersion:'v2',
     handleSilence:false,
     maxSessionLength:MAX_SESSION_SECONDS,
     maxIdleTime:MAX_IDLE_SECONDS,
@@ -139,8 +132,7 @@ export async function handleTikTokLiveAvatar(request,env){
    await env.DB.prepare("UPDATE tiktok_live_avatar_sessions SET state='issued',updated_at=? WHERE id=?").bind(now(),reservationId).run();
    return json({
     provider:'simli',
-    transport_mode:'webrtc-p2p',
-    ice_config:ice.data,
+    transport_mode:'livekit',
     session_token:session.data.session_token,
     warnings:Array.isArray(session.data.warnings)?session.data.warnings:[],
     max_session_length_seconds:MAX_SESSION_SECONDS,
