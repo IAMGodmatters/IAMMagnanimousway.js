@@ -1,4 +1,4 @@
-name: Cloudflare Worker Read-only CPU Attribution
+name: Cloudflare Worker Resource-Limit Attribution (Read-only)
 
 on:
   schedule:
@@ -41,6 +41,5 @@ jobs:
       - name: Attribute Worker resource-limit invocations for the last 24 hours
         env:
           CLOUDFLARE_ACCOUNT_ID: \${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: \${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ANALYTICS_READ_TOKEN: \${{ secrets.CLOUDFLARE_ANALYTICS_READ_TOKEN }}
         run: node qa/scripts/cloudflare-worker-analytics-audit.mjs
