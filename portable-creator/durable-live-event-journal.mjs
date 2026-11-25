@@ -24,8 +24,13 @@ export class DurableLiveEventJournal {
     this.leases = new Map();
     this.storageFailed = false;
     this.recovery = { malformedLines: 0, truncatedTail: false };
-    fs.mkdirSync(path.dirname(this.filePath), { recursive: true });
-    this._recover();
+    try {
+      fs.mkdirSync(path.dirname(this.filePath), { recursive: true });
+      this._recover();
+    } catch {
+      this.storageFailed = true;
+      this.recovery.storageError = true;
+    }
   }
 
   _remember(key, at = this.now()) {
@@ -53,7 +58,9 @@ export class DurableLiveEventJournal {
 
   _recover() {
     if (!fs.existsSync(this.filePath)) return;
-    const raw = fs.readFileSync(this.filePath);
+    let raw;
+    try { raw = fs.readFileSync(this.filePath); }
+    catch { this.storageFailed = true; this.recovery.storageError = true; return; }
     const text = raw.toString('utf8');
     const completeEnd = text.lastIndexOf('\n');
     if (completeEnd !== text.length - 1) this.recovery.truncatedTail = true;
@@ -96,6 +103,10 @@ export class DurableLiveEventJournal {
       fs.closeSync(fd);
       fd = undefined;
       fs.renameSync(temp, this.filePath);
+      try {
+        const directoryFd = fs.openSync(path.dirname(this.filePath), 'r');
+        try { fs.fsyncSync(directoryFd); } finally { fs.closeSync(directoryFd); }
+      } catch { /* Some filesystems, including Windows, do not expose directory fsync. */ }
     } catch {
       if (fd !== undefined) fs.closeSync(fd);
       try { fs.rmSync(temp, { force: true }); } catch {}
@@ -120,6 +131,7 @@ export class DurableLiveEventJournal {
       this.pending.set(key, event);
       return { status: 'accepted', eventId: event.eventId, queued: this.pending.size, durable: true };
     } catch (error) {
+      this.validator.clear();
       return { status: 'storage_error', detail: error.message };
     }
   }
