@@ -214,7 +214,7 @@ export default function TikTokLiveHost() {
           <li><b>Disclose the AI host.</b> Keep the visible AI-generated label. Do not use another person's face or voice without permission.</li>
         </ol>
         <div className="policy"><b>Do not use this AI-voice host to sell products on TikTok Shop LIVE.</b> TikTok Shop Philippines' current livestream guidance says AI-generated audio/narration should not be used in product-selling livestreams. Use this host for educational, ministry, and community sessions, and check the latest rules before changing the content type.</div>
-        <div className="footLinks"><a href="/ai-chat">Magnanimous AI Chat</a><a href="/video-agents">Video Agents</a><a href="/social-hub">Connect Social Accounts</a></div>
+        <div className="footLinks"><a href="/ai-chat">Magnanimous AI Chat</a><a href="/tiktok-live/bridge">LIVE Event Bridge</a><a href="/video-agents">Video Agents</a><a href="/social-hub">Connect Social Accounts</a></div>
       </section>
 
       <style jsx>{`
