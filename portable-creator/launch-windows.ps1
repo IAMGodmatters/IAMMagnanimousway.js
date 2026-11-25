@@ -162,20 +162,42 @@ try {
   if (Test-Path $Chromium) {
     Start-Process -FilePath $Chromium -ArgumentList @("--user-data-dir=$browserProfile","--disk-cache-dir=$browserCache",'--app=http://127.0.0.1:'+ $Port,'--no-first-run','--disable-sync')
   } else {
-    $systemEdge = $null
-    $edgeCandidates = @()
-    if (${env:ProgramFiles(x86)}) { $edgeCandidates += (Join-Path ${env:ProgramFiles(x86)} 'Microsoft\Edge\Application\msedge.exe') }
-    if ($env:ProgramFiles) { $edgeCandidates += (Join-Path $env:ProgramFiles 'Microsoft\Edge\Application\msedge.exe') }
-    $systemEdge = $edgeCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
-    if (-not $systemEdge) {
-      $edgeCommand = Get-Command msedge.exe -ErrorAction SilentlyContinue
-      if ($edgeCommand) { $systemEdge = $edgeCommand.Source }
+    $systemOpera = $null
+    $operaCandidates = @()
+    if ($env:LOCALAPPDATA) {
+      $operaCandidates += (Join-Path $env:LOCALAPPDATA 'Programs\Opera\opera.exe')
+      $operaCandidates += (Join-Path $env:LOCALAPPDATA 'Programs\Opera GX\opera.exe')
     }
-    if ($systemEdge) {
-      Start-Process -FilePath $systemEdge -ArgumentList @("--user-data-dir=$browserProfile","--disk-cache-dir=$browserCache",'--app=http://127.0.0.1:'+ $Port,'--no-first-run','--disable-sync')
+    if ($env:ProgramFiles) {
+      $operaCandidates += (Join-Path $env:ProgramFiles 'Opera\opera.exe')
+      $operaCandidates += (Join-Path $env:ProgramFiles 'Opera\launcher.exe')
+    }
+    if (${env:ProgramFiles(x86)}) {
+      $operaCandidates += (Join-Path ${env:ProgramFiles(x86)} 'Opera\launcher.exe')
+    }
+    $systemOpera = $operaCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+    if (-not $systemOpera) {
+      $operaCommand = Get-Command opera.exe -ErrorAction SilentlyContinue
+      if ($operaCommand) { $systemOpera = $operaCommand.Source }
+    }
+    if ($systemOpera) {
+      Start-Process -FilePath $systemOpera -ArgumentList @("--user-data-dir=$browserProfile","--disk-cache-dir=$browserCache",'--app=http://127.0.0.1:'+ $Port,'--no-first-run','--disable-sync')
     } else {
-      Write-Warning 'No bundled Chromium or system Edge was found. The default browser may store its profile on the system drive.'
-      Start-Process -FilePath ('http://127.0.0.1:' + $Port)
+      $systemEdge = $null
+      $edgeCandidates = @()
+      if (${env:ProgramFiles(x86)}) { $edgeCandidates += (Join-Path ${env:ProgramFiles(x86)} 'Microsoft\Edge\Application\msedge.exe') }
+      if ($env:ProgramFiles) { $edgeCandidates += (Join-Path $env:ProgramFiles 'Microsoft\Edge\Application\msedge.exe') }
+      $systemEdge = $edgeCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+      if (-not $systemEdge) {
+        $edgeCommand = Get-Command msedge.exe -ErrorAction SilentlyContinue
+        if ($edgeCommand) { $systemEdge = $edgeCommand.Source }
+      }
+      if ($systemEdge) {
+        Start-Process -FilePath $systemEdge -ArgumentList @("--user-data-dir=$browserProfile","--disk-cache-dir=$browserCache",'--app=http://127.0.0.1:'+ $Port,'--no-first-run','--disable-sync')
+      } else {
+        Write-Warning 'No bundled Chromium, Opera or system Edge was found. The default browser may store its profile on the system drive.'
+        Start-Process -FilePath ('http://127.0.0.1:' + $Port)
+      }
     }
   }
   Write-Host ''
