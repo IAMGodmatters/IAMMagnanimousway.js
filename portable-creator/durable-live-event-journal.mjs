@@ -40,20 +40,15 @@ export class DurableLiveEventJournal {
     const line = JSON.stringify({ version: 1, ...record }) + '\n';
     let fd;
     try {
+      if (fs.existsSync(this.filePath) && fs.statSync(this.filePath).size > MAX_JOURNAL_BYTES) this._compact();
       fd = fs.openSync(this.filePath, 'a', 0o600);
       fs.writeSync(fd, line, null, 'utf8');
       fs.fsyncSync(fd);
-    } catch (error) {
+    } catch {
       this.storageFailed = true;
       throw new Error('Could not safely persist the live event. Check USB drive space and write access.');
     } finally {
       if (fd !== undefined) fs.closeSync(fd);
-    }
-    try {
-      if (fs.statSync(this.filePath).size > MAX_JOURNAL_BYTES) this._compact();
-    } catch {
-      this.storageFailed = true;
-      throw new Error('The event journal could not be verified after writing.');
     }
   }
 
