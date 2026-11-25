@@ -29,6 +29,7 @@ test('owner multi-file Vibe Studio saves, previews, checkpoints, adds and export
   });
 
   let exfiltrationRequests = 0;
+  let reviewRequests = 0;
   await page.route('https://vibe-preview-exfil.test/**', async (route) => {
     exfiltrationRequests += 1;
     await route.fulfill({ status: 204, body: '' });
@@ -71,6 +72,7 @@ test('owner multi-file Vibe Studio saves, previews, checkpoints, adds and export
       return;
     }
     if (path === '/api/magnanimous/vibe-studio/review' && method === 'POST') {
+      reviewRequests += 1;
       await route.fulfill({ json: { valid: true, issues: [] } });
       return;
     }
@@ -118,7 +120,23 @@ test('owner multi-file Vibe Studio saves, previews, checkpoints, adds and export
   await expect(page.getByRole('status')).toContainText('Saved styles.css as a new immutable checkpoint.');
   await expect(page.locator('.vibeFilesToolbar')).toContainText('Revision 2');
 
+  page.once('dialog', async (dialog) => {
+    expect(dialog.type()).toBe('confirm');
+    expect(dialog.message()).toContain('navigate the preview frame');
+    await dialog.dismiss();
+  });
   await page.getByRole('button', { name: /Preview/ }).click();
+  await expect(page.getByRole('status')).toContainText('Preview cancelled. Project JavaScript was not executed.');
+  await expect(page.locator('iframe[title="Magnanimous multi-file preview"]')).toHaveCount(0);
+  expect(reviewRequests).toBe(0);
+
+  page.once('dialog', async (dialog) => {
+    expect(dialog.type()).toBe('confirm');
+    expect(dialog.message()).toContain('Continue only if you trust every project file.');
+    await dialog.accept();
+  });
+  await page.getByRole('button', { name: /Preview/ }).click();
+  await expect.poll(() => reviewRequests).toBe(1);
   const preview = page.frameLocator('iframe[title="Magnanimous multi-file preview"]');
   await expect(preview.locator('html')).toHaveAttribute('data-vibe-early-script', 'ran');
   await expect(preview.locator('html')).toHaveAttribute('data-vibe-fetch-settled', 'yes');
