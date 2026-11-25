@@ -157,6 +157,17 @@ test('authenticated companion cannot spoof a platform event without adapter auth
  assert.equal(socket.messages.at(-1)?.code,'PROVIDER_NOT_AUTHORIZED');
 });
 
+
+test('forwards sanitized local storage failures to the browser operator',async()=>{
+ const browserMessages=[];
+ const browser={deserializeAttachment:()=>({authenticated:true,role:'browser'}),send:value=>browserMessages.push(JSON.parse(value))};
+ const companion={deserializeAttachment:()=>({authenticated:true,role:'companion'}),send(){},serializeAttachment(){}};
+ const state={storage:{get:async()=>null},getWebSockets:()=>[browser,companion]};
+ const room=new MagnanimousLiveBridgeRoom(state,{});
+ await room.webSocketMessage(companion,JSON.stringify({kind:'error',code:'LOCAL_STORAGE_BLOCKED',message:'The encrypted event journal is full.'}));
+ assert.deepEqual(browserMessages,[{kind:'error',code:'LOCAL_STORAGE_BLOCKED',message:'The encrypted event journal is full.'}]);
+});
+
 test('limits authenticated browser message rate',async()=>{
  const now=Date.now();
  let attachment={authenticated:true,role:'browser',sessionExpiresAt:now+60_000,windowStartedAt:now,windowCount:0};
