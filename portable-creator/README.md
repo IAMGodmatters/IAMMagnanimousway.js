@@ -26,7 +26,8 @@ Magnanimous-Portable/
     app.js
     styles.css
   data/                       created on first launch
-    vault.enc                 encrypted project vault\n    live-events.jsonl         durable LIVE event journal and delivery receipts
+    vault.enc                 encrypted project vault
+    live-events.jsonl         durable LIVE event journal and delivery receipts
     browser-profile/          only when portable Chromium is supplied
     cache/
     logs/
