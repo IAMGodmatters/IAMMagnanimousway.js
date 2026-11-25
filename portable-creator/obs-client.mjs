@@ -104,7 +104,7 @@ export class ObsWebSocketClient {
   if(typeof sceneName!=='string'||!sceneName.trim()||sceneName.length>128)throw new Error('Choose a valid OBS scene for the AI host avatar.');
   if(!Number.isInteger(width)||!Number.isInteger(height)||width<320||width>3840||height<180||height>2160)throw new Error('The AI host avatar canvas dimensions are invalid.');
   let target;try{target=new URL(String(url||''));}catch{throw new Error('The AI host avatar must use the local Magnanimous companion page.');}
-  if(target.protocol!=='http:'||target.hostname!=='127.0.0.1'||!/^\\d{1,5}$/.test(target.port)||target.pathname!=='/avatar.html'||target.username||target.password||target.search||target.hash)throw new Error('Only the local 127.0.0.1 Magnanimous avatar page is allowed as an OBS browser source.');
+  if(target.protocol!=='http:'||target.hostname!=='127.0.0.1'||!/^[0-9]{1,5}$/.test(target.port)||target.pathname!=='/avatar.html'||target.username||target.password||target.search||target.hash)throw new Error('Only the local 127.0.0.1 Magnanimous avatar page is allowed as an OBS browser source.');
   const {scenes}=await this.getScenes();
   if(!scenes.some(scene=>scene.sceneName===sceneName))throw new Error('That scene is not in the current OBS scene list.');
   const inputName='Magnanimous AI Host Avatar';
