@@ -118,12 +118,11 @@ try{
  assert.equal(rawJournal.includes('Hello Magnanimous'),false,'Viewer messages must never be written to the journal as plaintext.');
  const vaultEnvelope=JSON.parse(fs.readFileSync(path.join(target,'data','vault.enc'),'utf8'));
  const vaultKey=crypto.scryptSync(passphrase,Buffer.from(vaultEnvelope.salt,'hex'),32,{N:32768,r:8,p:1,maxmem:64*1024*1024});
- const journalKey=crypto.createHmac('sha256',vaultKey).update('magnanimous-live-event-journal-v1').digest();
- const journal=new LiveEventJournal(journalPath,{keyProvider:()=>journalKey});
+ const journal=new LiveEventJournal(journalPath,{keyProvider:()=>crypto.createHmac('sha256',vaultKey).update('magnanimous-live-event-journal-v1').digest()});
  const journalRecords=journal.load();
  assert.ok(journalRecords.some(record=>record.kind==='event'),'Encrypted journal should contain the accepted event.');
  assert.ok(journalRecords.some(record=>record.kind==='ack'),'Encrypted journal should contain the durable acknowledgement.');
- journalKey.fill(0);vaultKey.fill(0);
+ vaultKey.fill(0);
 
  const saved=await post(origin+'/api/projects',origin,{title:'Portable rehearsal',type:'live-show',content:'Private project body that must be encrypted at rest.'});
  assert.equal(saved.status,201,'Project should be saved into encrypted storage.');
