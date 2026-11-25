@@ -74,9 +74,9 @@ For ministry and educational LIVE sessions, keep the AI identity clearly disclos
 
 ## Next integration sequence
 
-1. **Install the official Simli browser SDK** in the frontend and update the lockfile. The secure Worker session/ICE gateway is already scaffolded, but the browser has not yet established a WebRTC avatar stream.
+1. **Install the official Simli browser SDK** in the frontend and update the lockfile. The secure Worker server-side session-token gateway is scaffolded using the current `/compose/token` endpoint and LiveKit transport. The current Simli client uses LiveKit by default and requires no P2P ICE-server credentials in the browser.
 2. **Benchmark HeadTTS + Kokoro locally** on the actual desktop browser. Confirm WebGPU availability, memory use, first-load time, and sustained speech generation. Keep the existing browser SpeechSynthesis path as a fallback. HeadTTS is currently English-only.
-3. **Add tested audio conversion.** HeadTTS's default output is 24 kHz; Simli documents 16 kHz PCM16 input. Resample and validate the byte format before passing audio to the avatar SDK.
+3. **Add tested audio conversion.** HeadTTS's default output is 24 kHz; Simli's current browser SDK expects mono PCM16 16 kHz chunks for `sendAudioData`. Resample and validate the byte format before passing audio to the avatar SDK.
 4. **Connect Magnanimous output to the avatar.** Magnanimous generates the answer, local TTS renders the approved words, and Simli renders the face. Preserve a clear AI disclosure and keep all provider credentials on the server.
 5. **Add operator controls and usage reporting.** Explicit start/stop, two-minute provider session ceiling, visible 40-minute monthly reservation budget, and local disconnect. Current gateway reservations are conservative launch caps—not an exact meter of streamed seconds.
 6. **Run an end-to-end test** with a short, non-sensitive script through the browser, OBS Virtual Camera, TikTok's account-authorized desktop workflow, and separately selected audio. Do not use synthetic narration for TikTok Shop LIVE.
@@ -96,7 +96,8 @@ For ministry and educational LIVE sessions, keep the AI identity clearly disclos
 - HeadTTS browser demo: https://met4citizen.github.io/HeadTTS/
 - Simli official pricing and plan limits: https://www.simli.com/pricing
 - Simli official Javascript SDK integration: https://docs.simli.com/api-reference/simli-client
-- Simli official backend authentication (server proxy for session token and ICE config): https://docs.simli.com/api-reference/backend-authentication
+- Simli official JavaScript SDK and LiveKit transport usage: https://github.com/simliai/simli-client
+- Simli current Compose token endpoint / secure server request: https://www.npmjs.com/package/simli-client
 - Simli WebRTC client package: https://www.npmjs.com/package/simli-client
 - Tavus CVI modular architecture and BYO LLM/audio: https://www.tavus.io/cvi
 - Tavus developer plans and minute overage: https://www.tavus.io/pricing
