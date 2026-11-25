@@ -64,6 +64,21 @@ test('journal rejects an oversized append without changing existing data',()=>{
 
 
 
+
+test('compacts encrypted journal to only unacknowledged events',()=>{
+ const dir=temporary(),file=path.join(dir,'events.jsonl'),journal=journalFor(file);
+ const first=event('first'),second=event('second');
+ journal.appendEvent(first);journal.appendEvent(second);journal.appendAcks([first]);
+ assert.equal(journal.load().length,3);
+ journal.compact([second]);
+ const records=journal.load();
+ assert.equal(records.length,1);
+ assert.equal(records[0].kind,'event');
+ assert.equal(records[0].event.eventId,'second');
+ assert.equal(journal.needsCompaction(),false);
+ fs.rmSync(dir,{recursive:true,force:true});
+});
+
 test('migrates the earlier plaintext JSONL journal to encrypted records without losing events',()=>{
  const dir=temporary(),file=path.join(dir,'events.jsonl');
  const legacy=[{version:1,kind:'event',event:event('legacy-event')},{version:1,kind:'ack',keys:['manual:older-event']}];
