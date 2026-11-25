@@ -1088,6 +1088,12 @@ jobs:
             exit 1
           }
 
+          check_get "Magnanimous TikTok LIVE host route" "$BASE_URL/tiktok-live/" /tmp/magnanimous-tiktok-live.html
+          grep -q "MAGNANIMOUS AI • TIKTOK LIVE HOST" /tmp/magnanimous-tiktok-live.html || {
+            echo "Magnanimous TikTok LIVE host production route marker missing."
+            exit 1
+          }
+
           check_get "Plans endpoint" "$BASE_URL/api/plans" /tmp/plans.json
           python - <<'PY'
           import json
