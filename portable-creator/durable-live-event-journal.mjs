@@ -146,24 +146,23 @@ export class DurableLiveEventJournal {
     const keys = available.map(([key]) => key);
     this._append({ op: 'claim', deliveryId, keys, expiresAt });
     for (const key of keys) this.leases.set(key, { deliveryId, expiresAt });
-    return { deliveryId, events: available.map(([, event]) => event), leaseExpiresAt: new Date(expiresAt).toISOString(), queued: this.pending.size, capacity: this.maxPending };
+    return { deliveryId, events: available.map(([, event]) => event), eventKeys: keys, leaseExpiresAt: new Date(expiresAt).toISOString(), queued: this.pending.size, capacity: this.maxPending };
   }
 
-  acknowledge(deliveryId, eventIds) {
-    if (typeof deliveryId !== 'string' || deliveryId.length > 80 || !Array.isArray(eventIds) || eventIds.length < 1 || eventIds.length > 50) {
-      return { status: 'invalid', detail: 'A delivery ID and 1–50 event IDs are required.' };
+  acknowledge(deliveryId, eventKeys) {
+    if (typeof deliveryId !== 'string' || deliveryId.length > 80 || !Array.isArray(eventKeys) || eventKeys.length < 1 || eventKeys.length > 50) {
+      return { status: 'invalid', detail: 'A delivery ID and 1–50 event keys are required.' };
     }
-    const requested = new Set(eventIds.filter(id => typeof id === 'string' && id.length <= 160));
-    if (!requested.size || requested.size !== eventIds.length) return { status: 'invalid', detail: 'Event IDs must be valid text values.' };
+    const requested = new Set(eventKeys.filter(key => typeof key === 'string' && key.length <= 300 && key.includes(':')));
+    if (!requested.size || requested.size !== eventKeys.length) return { status: 'invalid', detail: 'Event keys must be valid provider:eventId values.' };
     const now = this.now();
     const keys = [];
-    for (const [key, event] of this.pending) {
-      if (!requested.has(event.eventId)) continue;
+    for (const key of requested) {
       const lease = this.leases.get(key);
-      if (lease?.deliveryId === deliveryId && lease.expiresAt > now) keys.push(key);
+      if (this.pending.has(key) && lease?.deliveryId === deliveryId && lease.expiresAt > now) keys.push(key);
     }
     if (!keys.length) {
-      const alreadyAcked = [...requested].every(id => this.acked.has('manual:' + id) || [...this.acked].some(key => key.endsWith(':' + id)));
+      const alreadyAcked = [...requested].every(key => this.seen.has(key) && !this.pending.has(key));
       return alreadyAcked ? { status: 'duplicate', acknowledged: 0 } : { status: 'not_leased', acknowledged: 0, detail: 'The delivery is unknown or its acknowledgement lease expired. Pull the events again.' };
     }
     for (const key of keys) {
