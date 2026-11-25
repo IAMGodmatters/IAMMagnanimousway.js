@@ -27,6 +27,12 @@ export default function LocalBridgePage(){
  const [notice,setNotice]=useState('');
  const [busy,setBusy]=useState('');
  const [heimdallTaskId,setHeimdallTaskId]=useState('');
+ const [pocketTtsTaskId,setPocketTtsTaskId]=useState('');
+ const [pocketTtsDeviceName,setPocketTtsDeviceName]=useState('');
+ const [pocketTtsText,setPocketTtsText]=useState('Welcome, everyone. Magnanimous AI is here to make this stream more creative and interactive.');
+ const [pocketTtsVoice,setPocketTtsVoice]=useState('alba');
+ const [pocketTtsLanguage,setPocketTtsLanguage]=useState('english');
+ const [pocketTtsResult,setPocketTtsResult]=useState<any>(null);
  const [copied,setCopied]=useState(false);
 
  const headers=(json=false)=>{const h:Record<string,string>={Authorization:`Bearer ${token}`};if(json)h['Content-Type']='application/json';return h};
@@ -99,6 +105,49 @@ export default function LocalBridgePage(){
    const task=d.task||d;
    setNotice(`Heimdall task ${heimdallTaskId}: ${task.status||'unknown'}.`+(task.status==='completed'?` Result: ${JSON.stringify(task.result||{}).slice(0,1200)}`:'')+(task.error?` Error: ${String(task.error).slice(0,300)}`:''));
   }catch(e:any){setNotice(e?.message||'Could not read the device task status.')}finally{setBusy('')}
+ }
+
+ async function runPocketTts(device:Device,action:'pocket_tts_status'|'pocket_tts_generate'){
+  if(!token||busy||!device.online||!device.capabilities.includes(action))return;
+  if(action==='pocket_tts_generate'){
+   const clip=pocketTtsText.trim();
+   if(!clip||clip.length>800){setNotice('Keep the speech clip between 1 and 800 characters.');return}
+   if(!confirm('Generate this short speech clip locally on the computer? The model cache and WAV output are kept in the approved D: data folder. No TTS API is called.'))return;
+  }
+  setBusy('pocket-tts-'+device.id);setNotice('');setPocketTtsResult(null);
+  try{
+   const payload=action==='pocket_tts_generate'?{text:pocketTtsText.trim(),voice:pocketTtsVoice,language:pocketTtsLanguage}:{};
+   const d=await read(await fetch('/api/magnanimous/local-bridge/tasks',{method:'POST',headers:headers(true),body:JSON.stringify({device_id:device.id,action,payload})}));
+   setPocketTtsTaskId(d.id);setPocketTtsDeviceName(device.name);
+   if(d.requires_confirmation){
+    if(!confirm('Confirm local Pocket TTS WAV generation? This creates one bounded audio file in the approved local output folder.')){
+     await read(await fetch(`/api/magnanimous/local-bridge/tasks/${encodeURIComponent(d.id)}/cancel`,{method:'POST',headers:headers(true)}));
+     setPocketTtsTaskId('');
+     setNotice('Pocket TTS task cancelled. No speech audio was generated.');return;
+    }
+    await read(await fetch(d.confirmation_endpoint,{method:'POST',headers:headers(true)}));
+   }
+   setNotice(`Pocket TTS ${action==='pocket_tts_status'?'hardware check':'audio generation'} queued on ${device.name}. Check the task result when the Local Bridge finishes.`);
+  }catch(e:any){setNotice(e?.message||'Could not queue the local Pocket TTS task.')}finally{setBusy('')}
+ }
+
+ async function readPocketTtsResult(){
+  if(!pocketTtsTaskId||busy)return;
+  setBusy('read-pocket-tts');
+  try{
+   const d=await read(await fetch(`/api/magnanimous/local-bridge/tasks/${encodeURIComponent(pocketTtsTaskId)}`,{headers:headers(),cache:'no-store'}));
+   const task=d.task||d;
+   const result=task.result||{};
+   setPocketTtsResult({status:task.status||'unknown',result,error:task.error||''});
+   if(task.status==='completed'){
+    if(result.installed!==undefined){
+     setNotice(`Pocket TTS check on ${pocketTtsDeviceName}: ${result.status||'checked'}; AVX2 ${result.avx2_available?'available':'not detected'}; binary ${result.installed?'found':'not installed'}.`);
+    }else if(result.file_name){
+     setNotice(`Local WAV clip created: ${result.file_name} (${result.duration_seconds}s). It remains on ${pocketTtsDeviceName}; use an approved OBS/Streamer.bot playback action.`);
+    }else setNotice(`Pocket TTS task completed on ${pocketTtsDeviceName}.`);
+   }else if(task.status==='failed')setNotice(`Pocket TTS task failed: ${String(task.error||'See task result').slice(0,400)}`);
+   else setNotice(`Pocket TTS task is ${task.status||'still running'} on ${pocketTtsDeviceName}.`);
+  }catch(e:any){setNotice(e?.message||'Could not read the Pocket TTS task result.')}finally{setBusy('')}
  }
 
  async function revoke(device:Device){
@@ -182,6 +231,40 @@ export default function LocalBridgePage(){
     {!d.capabilities.includes('heimdall_detect')&&<p>USB detection is unavailable until a reviewed Heimdall CLI is installed locally and your Local Bridge agent is updated.</p>}
    </div>)}
    {heimdallTaskId&&<button disabled={Boolean(busy)} onClick={readHeimdallResult}>CHECK TASK RESULT</button>}
+  </section>
+
+  <section className="card" aria-label="Local Pocket TTS voice engine">
+   <small>FREE LOCAL AI VOICE • NO GPU API • D-DRIVE STORAGE</small><h2>Pocket TTS home voice</h2>
+   <p>Check the paired computer before installing or using anything. The current official Windows binary requires AVX2. The bridge keeps model cache and generated WAV clips under D:\\MagnanimousData\\PocketTTS; it does not install or download the binary automatically, and does not use C: for voice files.</p>
+   <label>Words for the local test clip
+    <textarea maxLength={800} rows={3} value={pocketTtsText} onChange={e=>setPocketTtsText(e.target.value)} />
+   </label>
+   <div className="grid" style={{marginTop:8}}>
+    <label>Voice
+     <select value={pocketTtsVoice} onChange={e=>setPocketTtsVoice(e.target.value)}>
+      {['alba','anna','azelma','caro_davy','charles','cosette','eponine','eve','fantine','george','jane','jean','javert','marius','mary','michael','paul','vera'].map(v=><option key={v} value={v}>{v}</option>)}
+     </select>
+    </label>
+    <label>Language
+     <select value={pocketTtsLanguage} onChange={e=>setPocketTtsLanguage(e.target.value)}>
+      <option value="english">English</option><option value="french_24l">French</option><option value="german">German</option><option value="portuguese">Portuguese</option><option value="italian">Italian</option><option value="spanish">Spanish</option>
+     </select>
+    </label>
+   </div>
+   {activeDevices.length===0?<p>Pair an owner-controlled computer to check this local engine.</p>:activeDevices.map(d=><div key={d.id} style={{borderTop:'1px solid #173b49',paddingTop:12,marginTop:12}}>
+    <b>{d.name}</b> <span>{d.online?'Online':'Offline'}</span>
+    <div className="actions">
+     <button onClick={()=>runPocketTts(d,'pocket_tts_status')} disabled={!d.online||!d.capabilities.includes('pocket_tts_status')||Boolean(busy)}>{busy==='pocket-tts-'+d.id?'QUEUING…':'1. CHECK CPU / POCKET TTS'}</button>
+     <button className="primary" onClick={()=>runPocketTts(d,'pocket_tts_generate')} disabled={!d.online||!d.capabilities.includes('pocket_tts_generate')||Boolean(busy)}>{busy==='pocket-tts-'+d.id?'QUEUING…':'2. GENERATE LOCAL WAV CLIP'}</button>
+    </div>
+    {!d.capabilities.includes('pocket_tts_generate')&&<p>Clip generation appears only after the approved Pocket TTS binary is present on D: and AVX2 is verified. Status check remains read-only.</p>}
+   </div>)}
+   {pocketTtsTaskId&&<div style={{marginTop:12}}>
+    <button disabled={Boolean(busy)} onClick={readPocketTtsResult}>CHECK POCKET TTS TASK RESULT</button>
+    <small>Task {pocketTtsTaskId}</small>
+   </div>}
+   {pocketTtsResult&&<pre style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere',fontSize:10,color:'#a9c8d3'}}>{JSON.stringify(pocketTtsResult,null,2)}</pre>}
+   <p>Current language models do not include Filipino or Cebuano. This feature creates a local WAV clip; continuous live PCM output and automatic OBS playback are not yet connected.</p>
   </section>
 
   <section className="grid">
