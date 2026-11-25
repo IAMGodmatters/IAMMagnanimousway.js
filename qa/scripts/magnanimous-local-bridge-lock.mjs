@@ -36,6 +36,17 @@ assert.equal(LOCAL_BRIDGE_POLICY.netwalk_scope_authorization_required,true);
 assert.equal(LOCAL_BRIDGE_ACTIONS.apply_patch.confirmation,true);
 assert.equal(LOCAL_BRIDGE_ACTIONS.git_commit.confirmation,true);
 assert.equal(LOCAL_BRIDGE_ACTIONS.git_create_branch.confirmation,true);
+assert(page.includes('Pocket TTS home voice'),'Local Bridge owner page must expose the local speech engine panel');
+assert(page.includes('runPocketTts(device'),'Local Bridge must queue only its approved Pocket TTS actions');
+assert(page.includes("action:'pocket_tts_status'")||page.includes("action,payload"),'Local Bridge must expose a read-only Pocket TTS status task');
+assert(page.includes('pocket_tts_generate'),'Local Bridge page must expose the Pocket TTS generator capability');
+assert(page.includes('CHECK CPU / POCKET TTS'),'Local Bridge must include a CPU and binary readiness check');
+assert(page.includes('GENERATE LOCAL WAV CLIP'),'Local Bridge must expose local WAV generation');
+assert(page.includes('D:\\\\MagnanimousData'),'Local Bridge must direct Windows model/cache output to the D data drive');
+assert(page.includes('AVX2'),'Local Bridge must disclose the Windows AVX2 requirement');
+assert(page.includes('Filipino or Cebuano'),'Local Bridge must disclose that current Pocket TTS lacks Filipino/Cebuano models');
+assert(page.includes('This feature creates a local WAV clip'),'Local Bridge must not claim continuous live PCM streaming is operational');
+
 assert.equal(LOCAL_BRIDGE_ACTIONS.health.auto,true);
 assert.equal(LOCAL_BRIDGE_ACTIONS.pocket_tts_status.auto,true);
 assert.equal(LOCAL_BRIDGE_ACTIONS.pocket_tts_status.confirmation,false);
