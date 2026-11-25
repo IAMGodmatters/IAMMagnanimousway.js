@@ -16,6 +16,29 @@ $ObsRoot = Join-Path $Root 'runtime\obs'
 $ObsExe = Join-Path $ObsRoot 'bin\64bit\obs64.exe'
 $Chromium = Join-Path $Root 'runtime\browser\chrome.exe'
 $ModelProcess = $null
+
+function Get-LoopbackJson {
+  param(
+    [Parameter(Mandatory=$true)][string]$Uri,
+    [int]$TimeoutMilliseconds = 2500
+  )
+  $request = [System.Net.HttpWebRequest]::Create($Uri)
+  $request.Method = 'GET'
+  $request.Proxy = $null
+  $request.Timeout = $TimeoutMilliseconds
+  $response = $request.GetResponse()
+  try {
+    $reader = New-Object System.IO.StreamReader($response.GetResponseStream())
+    try {
+      $body = $reader.ReadToEnd()
+      return ($body | ConvertFrom-Json)
+    } finally {
+      $reader.Dispose()
+    }
+  } finally {
+    $response.Dispose()
+  }
+}
 $env:MAGNANIMOUS_LOCAL_MODEL_ENABLED = 'false'
 $env:HF_HOME = Join-Path $Cache 'huggingface'
 $env:TRANSFORMERS_CACHE = Join-Path $Cache 'transformers'
@@ -74,7 +97,7 @@ if ($ModelServer -and (Test-Path $ModelServer) -and (Test-Path $ModelFile)) {
   do {
     Start-Sleep -Milliseconds 750
     try {
-      $response = Invoke-RestMethod -Uri 'http://127.0.0.1:9931/v1/models' -TimeoutSec 2
+      $response = Get-LoopbackJson -Uri 'http://127.0.0.1:9931/v1/models' -TimeoutMilliseconds 2500
       if ($response.data -and $ModelProcess -and -not $ModelProcess.HasExited) {
         $env:MAGNANIMOUS_LOCAL_MODEL_ENABLED = 'true'
         Write-Host 'Local model ready. Prompts stay on this device.'
@@ -106,20 +129,21 @@ try {
   $HostProcess = Start-Process -FilePath $Node -ArgumentList $HostArguments -WorkingDirectory $Root -WindowStyle Hidden -PassThru -RedirectStandardOutput $HostLog -RedirectStandardError $HostErrorLog
   $deadline = (Get-Date).AddSeconds(20)
   $ready = $false
+  $lastHealthError = ''
   do {
     Start-Sleep -Milliseconds 500
     if ($HostProcess.HasExited) { break }
     try {
-      $health = Invoke-RestMethod -Uri ('http://127.0.0.1:' + $Port + '/api/health') -TimeoutSec 2
+      $health = Get-LoopbackJson -Uri ('http://127.0.0.1:' + $Port + '/api/health') -TimeoutMilliseconds 2500
       if ($health.ok -and $health.mode -eq 'offline-portable') { $ready = $true; break }
-    } catch {}
+    } catch { $lastHealthError = $_.Exception.Message }
   } while ((Get-Date) -lt $deadline)
 
   if (-not $ready) {
     if ($HostProcess -and -not $HostProcess.HasExited) { Stop-Process -Id $HostProcess.Id -Force }
     $detail = ''
     if (Test-Path $HostErrorLog) { $detail = (Get-Content -Path $HostErrorLog -Tail 8 -ErrorAction SilentlyContinue) -join ' ' }
-    throw "Magnanimous local host did not pass its health check. $detail"
+    throw "Magnanimous local host did not pass its health check. $lastHealthError $detail"
   }
 
   if ($LaunchOBS) {
