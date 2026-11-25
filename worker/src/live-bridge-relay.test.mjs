@@ -12,7 +12,8 @@ test('normalizes approved platform events and strips unsafe fields',()=>{
  assert.deepEqual(event.tags,{source:'chat',safe:true});
 });
 
-test('accepts Facebook and TikTok event envelopes without granting provider authority',()=>{
+test('recognizes platform event schemas but denies platform authority until an adapter is authorized',()=>{
+ assert.equal(isRelayProviderAllowed('manual',['manual','obs','game','browser']),true);
  for(const provider of ['facebook','tiktok','youtube','twitch','zoom']){
   const event=normalizeRelayEvent({protocolVersion:1,eventId:provider+'-1',provider,type:'audience.follow',occurredAt:new Date(NOW).toISOString()},NOW);
   assert.equal(event?.provider,provider);
