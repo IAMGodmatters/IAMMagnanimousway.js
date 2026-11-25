@@ -2121,14 +2121,26 @@ def action_pocket_tts_status(config, payload):
     executable = _pocket_tts_executable(root)
     avx2 = _pocket_tts_avx2_available()
     installed = bool(executable)
-    compatible = installed and (platform.system().lower() != "windows" or avx2)
+    machine = platform.machine().lower()
+    native_arch = machine in {"arm64", "aarch64"}
+    x86_arch = machine in {"amd64", "x86_64"}
+    compatible = bool(installed and ((x86_arch and avx2) or native_arch))
     version = ""
     if executable and compatible:
         try:
             result = subprocess.run(
                 [str(executable), "--version"],
                 capture_output=True, text=True, timeout=5, shell=False,
-                env={**os.environ, "HF_HOME": str(root / "cache"), "HF_HUB_CACHE": str(root / "cache" / "hub")},
+                env={
+                    **os.environ,
+                    "HF_HOME": str(root / "cache"),
+                    "HF_HUB_CACHE": str(root / "cache" / "hub"),
+                    "HUGGINGFACE_HUB_CACHE": str(root / "cache" / "hub"),
+                    "XDG_CACHE_HOME": str(root / "cache"),
+                    "OMP_NUM_THREADS": "2",
+                    "MKL_NUM_THREADS": "2",
+                    "OPENBLAS_NUM_THREADS": "2",
+                },
             )
             version = ((result.stdout or result.stderr or "").strip())[:200]
         except Exception:
@@ -2141,6 +2153,7 @@ def action_pocket_tts_status(config, payload):
         "cpu_architecture": platform.machine(),
         "cpu_model": platform.processor()[:200],
         "avx2_available": avx2,
+        "native_architecture_supported": bool(native_arch or x86_arch),
         "required_instruction_set": "AVX2 on Windows x86-64 v4.0.1 build",
         "binary": executable.name if executable else "",
         "version": version,
@@ -2151,7 +2164,7 @@ def action_pocket_tts_status(config, payload):
         "cache_must_not_use_c_drive": os.name == "nt",
         "supported_languages": ["english", "french_24l", "german", "german_24l", "portuguese", "portuguese_24l", "italian", "italian_24l", "spanish", "spanish_24l"],
         "default_voice": "alba",
-        "status": "ready" if compatible else ("cpu_incompatible" if installed and os.name == "nt" and not avx2 else ("not_installed" if not installed else "not_supported")),
+        "status": "ready" if compatible else ("cpu_incompatible" if installed and x86_arch and not avx2 else ("not_installed" if not installed else "not_supported")),
         "read_only": True,
     }
 
@@ -2163,8 +2176,11 @@ def action_pocket_tts_generate(config, payload):
         raise RuntimeError("Pocket TTS storage is not configured. On Windows, connect the D: drive or configure MAGNANIMOUS_POCKET_TTS_HOME to a non-C: data drive.")
     if not executable:
         raise RuntimeError("Pocket TTS v4.0.1 is not installed in the approved D: data directory. Use the hardware check before installing the official binary.")
-    if os.name == "nt" and not _pocket_tts_avx2_available():
-        raise RuntimeError("The installed Pocket TTS v4.0.1 Windows binary requires AVX2, which this computer or its OS does not report. Generation was stopped to avoid an illegal-instruction crash.")
+    machine = platform.machine().lower()
+    native_arch = machine in {"arm64", "aarch64"}
+    x86_arch = machine in {"amd64", "x86_64"}
+    if not ((x86_arch and _pocket_tts_avx2_available()) or native_arch):
+        raise RuntimeError("This Pocket TTS binary requires a supported x86-64 AVX2 or native ARM64 CPU. The local computer did not pass the architecture/CPU check, so generation was stopped safely.")
     text = str(payload.get("text") or "").strip()
     if not text or len(text) > 800 or "\x00" in text:
         raise RuntimeError("Speech text must contain 1–800 characters.")
@@ -2177,13 +2193,20 @@ def action_pocket_tts_generate(config, payload):
         raise RuntimeError("Unsupported Pocket TTS language. Filipino and Cebuano are not currently supported by this model.")
     voice = str(payload.get("voice") or "alba").strip().lower()
     allowed_voices = {
-        "alba", "anna", "azelma", "bill_boerst", "caro_davy", "charles",
-        "cosette", "eponine", "eve", "fantine", "george", "jane", "jean",
-        "javert", "marius", "mary", "michael", "paul", "peter_yearsley",
-        "stuart_bell", "vera", "giovanni", "lola", "juergen", "rafael", "estelle"
+        "english": {"alba", "anna", "azelma", "bill_boerst", "caro_davy", "charles", "cosette", "eponine", "eve", "fantine", "george", "jane", "jean", "javert", "marius", "mary", "michael", "paul", "peter_yearsley", "stuart_bell"},
+        "french_24l": {"estelle"},
+        "german": {"juergen"},
+        "german_24l": {"juergen"},
+        "portuguese": {"rafael"},
+        "portuguese_24l": {"rafael"},
+        "italian": {"giovanni"},
+        "italian_24l": {"giovanni"},
+        "spanish": {"lola"},
+        "spanish_24l": {"lola"},
     }
-    if voice not in allowed_voices:
-        raise RuntimeError("Voice must be selected from the built-in Pocket TTS voice list. Unapproved voice URLs and paths are blocked.")
+    voices_for_language = allowed_voices.get(language, set())
+    if voice not in voices_for_language:
+        raise RuntimeError("Choose a built-in voice for the selected language: alba (English), estelle (French), juergen (German), rafael (Portuguese), giovanni (Italian), or lola (Spanish).")
     usage = shutil.disk_usage(root)
     if usage.free < 1_500_000_000:
         raise RuntimeError("Pocket TTS needs at least 1.5 GB free on the selected data drive before loading or downloading its model.")
