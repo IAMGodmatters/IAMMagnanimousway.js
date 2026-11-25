@@ -42,7 +42,7 @@ jobs:
           fi
           END="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           START="$(date -u -d "$HOURS hours ago" +%Y-%m-%dT%H:%M:%SZ)"
-          QUERY='query WorkerResourceDiagnosis($accountTag: String!, $start: Time!, $end: Time!) {
+          QUERY='query WorkerResourceDiagnosis($accountTag: string!, $start: Time!, $end: Time!) {
             viewer {
               accounts(filter: {accountTag: $accountTag}) {
                 workersInvocationsAdaptive(
