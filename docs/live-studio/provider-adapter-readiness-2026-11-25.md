@@ -159,6 +159,6 @@ Each adapter must implement:
 
 ## Current Magnanimous status
 
-The portable Creator Studio has a local event normalizer, bounded review-only show director, OBS local control foundation, and a durable event journal under development in PR #1018. The online provider adapters are not represented as connected or production-ready merely because the vendor APIs are documented. TikTok LIVE remains approval-gated; YouTube, Meta and Twitch still need their authorized adapter implementations and real account tests; Zoom RTMS is a separately funded option.
+The portable Creator Studio has a local event normalizer, bounded review-only show director, OBS local control and scene/output event intake, and an encrypted durable event journal under development in PR #1018. The event-journal key is derived from the unlocked encrypted workspace key and is wiped when the workspace locks. The online provider adapters are not represented as connected or production-ready merely because the vendor APIs are documented. TikTok LIVE remains approval-gated; YouTube, Meta and Twitch still need their authorized adapter implementations and real account tests; Zoom RTMS is a separately funded option.
 
 This document is a research and implementation contract, not evidence that a provider account has been connected or a public broadcast has been completed.
