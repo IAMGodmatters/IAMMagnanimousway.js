@@ -161,6 +161,8 @@ export class DurableLiveEventJournal {
         this.pending.set(key, record.event);
       } else if (record.op === 'ack' && typeof record.key === 'string') {
         this.pending.delete(record.key);
+      } else if (record.op === 'claim' && typeof record.deliveryId === 'string' && Array.isArray(record.keys) && Number.isFinite(record.expiresAt)) {
+        // Delivery leases are intentionally not restored after a host restart; pending events are redelivered.
       } else {
         this.recovery.malformedLines++;
         this.storageFailed = true;
