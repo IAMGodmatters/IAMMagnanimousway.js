@@ -151,6 +151,13 @@
         <div class="panel-heading"><div><small>INTERACTIVE SHOW INPUT</small><h2>Audience & game events</h2></div><span class="spark">✦</span></div>
         <p class="muted">Unlock the encrypted workspace to receive and recover events. Viewer messages are encrypted on this USB drive. Nothing triggers a scene, game action, payment or moderation decision automatically.</p>
         <div class="status-row"><span id="liveQueueStatus" class="status">Checking local event queue…</span></div>
+        <label for="gameIntegrationToken">Temporary local game / app integration token</label>
+        <input id="gameIntegrationToken" type="password" autocomplete="off" readonly placeholder="Unlock workspace, then reveal token">
+        <div class="actions">
+          <button id="gameIntegrationTokenButton" class="secondary" disabled>Reveal local integration token</button>
+          <button id="gameIntegrationTokenHideButton" class="quiet" disabled>Hide token</button>
+        </div>
+        <p class="muted">Use this token only in a trusted local app that can send an HTTP POST event. It resets when you lock the workspace or close the Creator. Never put it in a public webpage, stream overlay or cloud log. This connection accepts game events only; it cannot control gameplay.</p>
         <label for="liveTestType">Local test event</label>
         <select id="liveTestType">
           <option value="chat.message">Viewer message</option>
