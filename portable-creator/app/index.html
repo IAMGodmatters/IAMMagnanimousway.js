@@ -105,6 +105,40 @@
         <div id="bridgeCommandList" class="live-event-list"><p class="muted">No pending remote commands.</p></div>
         <p class="muted">Only an approved OBS scene change is currently executable. Overlay, audio-cue and host-speech commands remain disabled until their local engines are installed and verified.</p>
       </article>
+      <article class="panel ai-host-panel">
+        <div class="panel-heading"><div><small>MAGNANIMOUS LIVE HOST</small><h2>AI host & show director</h2></div><span class="spark">✦</span></div>
+        <p class="muted">Prepare a disclosed virtual host, write a show script, and turn reviewed audience or game events into the next spoken line. Local AI stays on this computer. No viewer message can issue a command.</p>
+        <div class="host-stage">
+          <div class="host-avatar" aria-hidden="true"><span>✦</span></div>
+          <div><strong>MAGNANIMOUS HOST</strong><small id="hostStageStatus">Ready for rehearsal</small><span class="host-disclosure">AI-generated host • Not a real person</span></div>
+        </div>
+        <label for="hostPersona">Host style</label>
+        <select id="hostPersona">
+          <option value="warm">Warm and welcoming</option>
+          <option value="energetic">Energetic game-show host</option>
+          <option value="teacher">Patient educator</option>
+          <option value="calm">Calm conversation host</option>
+          <option value="storyteller">Creative storyteller</option>
+        </select>
+        <label for="hostTopic">Show topic / game</label>
+        <input id="hostTopic" maxlength="240" placeholder="Example: English word challenge while playing a game">
+        <label for="hostScript">Host script and talking points</label>
+        <textarea id="hostScript" rows="7" maxlength="12000" placeholder="Write the opening, key points, game rules, audience questions and closing. You can also load a saved script from the creator workspace."></textarea>
+        <div class="actions">
+          <button id="hostGenerateButton" class="primary">✦ Generate next host line</button>
+          <button id="hostUseScriptButton" class="quiet">Use next script section</button>
+        </div>
+        <label for="hostLine">Next host line</label>
+        <textarea id="hostLine" rows="4" maxlength="2400" placeholder="Your reviewed host line appears here. Edit it before speaking."></textarea>
+        <div class="actions">
+          <button id="hostSpeakButton" class="secondary">Speak line</button>
+          <button id="hostStopButton" class="quiet">Stop voice</button>
+          <button id="hostAddCueButton" class="quiet">Add to rehearsal notes</button>
+        </div>
+        <div class="status-row"><span id="hostVoiceStatus" class="status warning">Checking device voice support…</span></div>
+        <div id="hostMessage" class="message" role="status"></div>
+        <p class="muted">Voice uses the browser/device speech engine when available; available voices and languages vary by computer. For OBS, capture this computer's audio and test levels. The preview avatar is not yet a broadcast-ready 3-D/2-D avatar source.</p>
+      </article>
       <article class="panel live-events-panel">
         <div class="panel-heading"><div><small>INTERACTIVE SHOW INPUT</small><h2>Audience & game events</h2></div><span class="spark">✦</span></div>
         <p class="muted">Unlock the encrypted workspace to receive and recover events. Viewer messages are encrypted on this USB drive. Nothing triggers a scene, game action, payment or moderation decision automatically.</p>
