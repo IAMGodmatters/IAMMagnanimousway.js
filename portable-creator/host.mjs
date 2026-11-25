@@ -52,6 +52,10 @@ function restoreLiveEvents(){
  try{
   const result=liveEvents.restore(liveEventJournal.load());
   liveEventsRestored=true;liveEventJournalError='';liveEventJournalWarning='';
+  if(liveEventJournal.needsCompaction()){
+   try{liveEventJournal.compact(liveEvents.queue,liveEvents.snapshotSeen());}
+   catch(error){liveEventJournalWarning=String(error?.message||'The encrypted event journal needs compaction.').slice(0,240);}
+  }
   console.log('Recovered '+result.restored+' live events; acknowledged '+result.acknowledged+'.');
   return result;
  }catch(error){
