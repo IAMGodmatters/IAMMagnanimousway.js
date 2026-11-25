@@ -205,11 +205,11 @@ function cleanLiveViewerText(value: string) {
   }
 
   function startTakeover() {
-    if (!takeoverConsent || !autoSpeak || takeoverActive) return;
+    if (!takeoverConsent || !autoSpeak || takeoverActive || busy || speaking) return;
     primeNaturalSpeech(true);
     takeoverRef.current = true;
     takeoverDeadlineRef.current = Date.now() + takeoverDuration * 60_000;
-    takeoverGreetingRef.current = true;
+    takeoverGreetingRef.current = Boolean(welcomeText.trim());
     setTakeoverActive(true);
     setTakeoverEndsAt(takeoverDeadlineRef.current);
     setTakeoverSeconds(takeoverDuration * 60);
