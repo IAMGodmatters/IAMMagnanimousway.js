@@ -150,8 +150,12 @@ export default function TikTokLiveHost() {
           }
           return;
         }
-        if (payload.id === 'magnanimous-live-events' && payload.status === 'ok') {
-          setBridgeStatus('CONNECTED • READ ONLY');
+        if (payload.id === 'magnanimous-live-events') {
+          if (payload.status === 'ok') setBridgeStatus('CONNECTED • READ ONLY');
+          else {
+            setBridgeStatus('SUBSCRIPTION FAILED');
+            setNotice('Streamer.bot did not accept the selected event subscriptions. Check the installed version and available event names.');
+          }
           return;
         }
         if (payload.event?.source && payload.event?.type) {
@@ -175,6 +179,7 @@ export default function TikTokLiveHost() {
     };
     socket.onclose = () => {
       if (bridgeRef.current === socket) bridgeRef.current = null;
+      setBridgePassword('');
       setBridgeStatus('DISCONNECTED');
     };
   }
