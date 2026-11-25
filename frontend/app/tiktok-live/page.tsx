@@ -642,6 +642,14 @@ export default function TikTokLiveHost() {
               <div className="techLinks"><a href="https://github.com/met4citizen/TalkingHead" target="_blank" rel="noreferrer">TalkingHead source and MIT license</a><a href="https://github.com/met4citizen/HeadAudio" target="_blank" rel="noreferrer">HeadAudio real-time lip-sync</a><a href="https://github.com/met4citizen/MPFB" target="_blank" rel="noreferrer">MPFB open-source character creator</a></div>
               <b className="techStatus">NATIVE IMPLEMENTATION CANDIDATE • NOT YET CONNECTED</b>
             </article>
+            <article className="techCard">
+              <span className="techTag">PHILIPPINE LANGUAGE ROUTER • EXPERIMENTAL</span>
+              <h3>Filipino + Cebuano local voices</h3>
+              <p>For Filipino/Tagalog, an MIT-licensed SpeechT5 ONNX model can run in the browser through Transformers.js using WebGPU or WASM. For Cebuano, an MIT-licensed SpeechT5 fine-tune exists, but its model card reports variable output and speaker-embedding sensitivity; it is not yet a verified live-stream voice.</p>
+              <p className="techNote">Do not use the available Piper Tagalog or Meta MMS Tagalog/Cebuano checkpoints for monetized streams without a license change: their published licenses are non-commercial. The local voice router should select a model by language, verify the asset license, and fall back to the system voice when no production-safe model passes the quality test.</p>
+              <div className="techLinks"><a href="https://huggingface.co/internetoftim/speecht5_tts-pld-fil-ONNX" target="_blank" rel="noreferrer">Filipino SpeechT5 ONNX • MIT</a><a href="https://huggingface.co/Splintir/speecht5_tts-pld-ceb-v2" target="_blank" rel="noreferrer">Cebuano SpeechT5 • MIT, experimental</a><a href="https://huggingface.co/facebook/mms-tts-ceb" target="_blank" rel="noreferrer">MMS Cebuano • non-commercial license</a></div>
+              <b className="techStatus">LANGUAGE-SPECIFIC ROUTING • NOT YET CONNECTED</b>
+            </article>
             <article className="techCard recommended">
               <span className="techTag">TOP FREE CPU VOICE CANDIDATE • MULTILINGUAL</span>
               <h3>Kyutai Pocket TTS</h3>
