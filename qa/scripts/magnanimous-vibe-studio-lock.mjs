@@ -122,7 +122,9 @@ assert.ok(runtime.includes('Check that the required Vibe Studio migrations are a
 const filesClient=read('frontend/app/vibe-studio/files/VibeStudioFilesClient.tsx');
 assert.ok(filesClient.includes('function inlineScriptJson(value:unknown)'),'Preview must use a dedicated safe inline-JSON serializer.');
 assert.ok(filesClient.includes("let output=String(html||'');"),'Preview must preserve user HTML and any existing CSP instead of regex-stripping source text.');
-assert.ok(filesClient.includes("output=output.replace(/<head\\b[^>]*>/i,match=>match+csp)"),'The restrictive CSP must be inserted into the actual document head.');
+assert.ok(filesClient.includes("const doctypeMatch=output.match(/^\\uFEFF?\\s*<!doctype\\b[^>]*>/i);"),'Preview CSP must be placed before any user-authored markup.');
+assert.ok(filesClient.includes("if(doctypeMatch)output=output.slice(0,doctypeMatch[0].length)+csp+output.slice(doctypeMatch[0].length);"),'The restrictive CSP must immediately follow an existing doctype before source markup.');
+assert.ok(filesClient.includes("else output='<!doctype html>'+csp+output;"),'Documents without a doctype must receive a safe doctype and CSP before source markup.');
 assert.ok(filesClient.includes("function insertBeforeLastClosingTag(source:string,tag:'body'|'html',insertion:string)"),'Preview must use a closing-tag-aware insertion helper.');
 assert.ok(filesClient.includes("source.matchAll(/<\\/body\\s*>/gi)"),'Preview must insert before the final body close, not a matching string inside inline JavaScript.');
 assert.ok(filesClient.includes("output=output.replace(/<html\\b[^>]*>/i,match=>match+'<head></head>')"),'Documents without a head must receive a head without nesting a second html document.');
