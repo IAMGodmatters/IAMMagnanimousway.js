@@ -459,10 +459,10 @@ async function queueMonitor(env,row){
 export async function scheduledNativeWeb(env){
  if(!env?.DB)return{ok:false,processed:0,queued:0};
  await ensureSchema(env);
- const {results:pending=[]}=await env.DB.prepare("SELECT * FROM magnanimous_web_monitors WHERE status='active' AND last_task_id IS NOT NULL LIMIT 100").all();
+ const {results:pending=[]}=await env.DB.prepare("SELECT * FROM magnanimous_web_monitors WHERE status='active' AND last_task_id IS NOT NULL LIMIT 10").all();
  let processed=0,queued=0;
  for(const row of pending){try{if(await settleMonitor(env,row))processed++}catch(error){console.error('native web monitor settlement failed',row.id,error)}}
- const {results:due=[]}=await env.DB.prepare("SELECT * FROM magnanimous_web_monitors WHERE status='active' AND last_task_id IS NULL AND next_run_at<=? ORDER BY next_run_at ASC LIMIT 40").bind(now()).all();
+ const {results:due=[]}=await env.DB.prepare("SELECT * FROM magnanimous_web_monitors WHERE status='active' AND last_task_id IS NULL AND next_run_at<=? ORDER BY next_run_at ASC LIMIT 5").bind(now()).all();
  for(const row of due){try{if(await queueMonitor(env,row))queued++}catch(error){console.error('native web monitor queue failed',row.id,error)}}
  return{ok:true,processed,queued};
 }
