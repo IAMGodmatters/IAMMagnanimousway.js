@@ -31,10 +31,17 @@ assert(!/\b(?:innerHTML|outerHTML|insertAdjacentHTML|eval|Function)\b/.test(app)
 const creatorArchitecture=read('docs/live-studio/universal-creator-architecture.md');
 const onlineRelay=read('worker/src/live-bridge-relay.js');
 const bridgePage=read('frontend/app/tiktok-live/bridge/page.tsx');
+const liveRuntime=read('portable-creator/live-event-runtime.mjs');
+const liveJournal=read('portable-creator/live-event-journal.mjs');
+const providerReadiness=read('docs/live-studio/provider-adapter-readiness-2026-11-25.md');
 
 execFileSync(process.execPath,['--check',path.join(ROOT,'portable-creator/host.mjs')],{cwd:ROOT,stdio:'inherit'});
 execFileSync(process.execPath,['--check',path.join(ROOT,'portable-creator/app/app.js')],{cwd:ROOT,stdio:'inherit'});
 execFileSync(process.execPath,['--check',path.join(ROOT,'portable-creator/obs-client.mjs')],{cwd:ROOT,stdio:'inherit'});
+execFileSync(process.execPath,['--check',path.join(ROOT,'portable-creator/live-event-runtime.mjs')],{cwd:ROOT,stdio:'inherit'});
+execFileSync(process.execPath,['--check',path.join(ROOT,'portable-creator/live-event-journal.mjs')],{cwd:ROOT,stdio:'inherit'});
+execFileSync(process.execPath,['--test',path.join(ROOT,'portable-creator/live-event-runtime.test.mjs')],{cwd:ROOT,stdio:'inherit'});
+execFileSync(process.execPath,['--test',path.join(ROOT,'portable-creator/live-event-journal.test.mjs')],{cwd:ROOT,stdio:'inherit'});
 execFileSync(process.execPath,[path.join(ROOT,'qa/scripts/portable-obs-client.test.mjs')],{cwd:ROOT,stdio:'inherit'});
 execFileSync(process.execPath,['--check',path.join(ROOT,'portable-creator/game-event-integration.mjs')],{cwd:ROOT,stdio:'inherit'});
 execFileSync(process.execPath,[path.join(ROOT,'portable-creator/game-event-integration.test.mjs')],{cwd:ROOT,stdio:'inherit'});
@@ -110,6 +117,14 @@ checks.push(
  ['OBS host routes require the existing same-origin mutation guard',host.includes("url.pathname==='/api/obs/connect'")&&host.includes("url.pathname==='/api/obs/scene'")&&host.includes("url.pathname==='/api/obs/recording/start'")&&host.includes("allowedRequest(req,req.method!=='GET'")],
  ['OBS scene changes are validated against the current scene list',read('portable-creator/obs-client.mjs').includes('That scene is not in the current OBS scene list.')&&read('portable-creator/obs-client.mjs').includes("this.request('SetCurrentProgramScene'")],
  ['OBS controls require explicit user actions and disclose local-only scope',html.includes('Connect to OBS')&&html.includes('Start recording')&&html.includes('does not start a public livestream')],
+ ['LIVE event delivery uses expiring leases and exact provider-scoped acknowledgements',liveRuntime.includes('claim(limit=10)')&&liveRuntime.includes('acknowledge(deliveryId,eventKeys)')&&liveRuntime.includes('not_leased')&&liveRuntime.includes('persistence_error')],
+ ['LIVE event acknowledgement is persisted only after local rendering',app.includes("renderLiveEvents(events,data.reviewCues||[])")&&app.includes("'/api/live/events/ack'")&&host.includes("url.pathname==='/api/live/events/ack'")&&host.includes('liveEvents.acknowledge(body.deliveryId,body.eventKeys)')],
+ ['unacknowledged LIVE events are redelivered after host restart or lease expiry',liveRuntime.includes('lease.expiresAt>now')&&liveRuntime.includes('leaseMs=30_000')&&liveRuntime.includes('this.leases.clear()')&&readme.includes('available again after restart or lease expiry')],
+ ['LIVE event records are AES-256-GCM encrypted with a workspace-derived key',liveJournal.includes("createCipheriv('aes-256-gcm'")&&host.includes("createHmac('sha256',vaultKey).update('magnanimous-live-event-journal-v1')")&&readme.includes('never written as plaintext')],
+ ['LIVE journal compaction preserves seen IDs and deduplication history',host.includes('liveEventJournal.compact(liveEvents.queue,liveEvents.snapshotSeen())')&&liveJournal.includes("kind:'seen'")],
+ ['LIVE journal rejects malformed complete records and preserves truncated-tail recovery',liveJournal.includes('malformed complete record')&&liveJournal.includes('truncatedTail')&&liveJournal.includes('rewriteEncrypted(records)')],
+ ['current LIVE provider readiness research is included in the release contract',providerReadiness.includes('2026-11-25')&&providerReadiness.includes('TikTok LIVE remains approval-gated')],
+ ['provider integrations remain disabled until explicit authorization and real account tests',providerReadiness.includes('Keep it disabled until a live account test and policy review pass')&&providerReadiness.includes('no TikTok, Facebook, YouTube, Twitch or game adapter is connected')],
  ['OBS recording and scene controls are exposed in the UI',app.includes("'/api/obs/recording/start'")&&app.includes("'/api/obs/scene'")&&app.includes('refreshObsScenes')],
  ['OBS can add a transparent local AI host avatar source to a selected scene',host.includes("url.pathname==='/api/obs/host-avatar'")&&host.includes('createHostAvatarSource')&&app.includes("api('/api/obs/host-avatar'")&&html.includes('Add AI host avatar to this scene')],
  ['OBS avatar source rejects all non-loopback URLs and is fixed to the local avatar route',read('portable-creator/obs-client.mjs').includes("target.hostname!=='127.0.0.1'")&&read('portable-creator/obs-client.mjs').includes("target.pathname!=='/avatar.html'")&&read('portable-creator/obs-client.mjs').includes("inputKind:'browser_source'")],
