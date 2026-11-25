@@ -14,7 +14,7 @@ export function createLiveBridgeClient(endpoint:string,pairingToken:string,handl
  socket.onmessage=message=>{let e:Envelope;try{e=JSON.parse(String(message.data)) as Envelope;}catch{handlers.onError?.('The bridge sent an unreadable message; it was ignored.');return;}
  if(e?.kind==='ready'&&e.protocolVersion===1){retryCount=0;status('connected');return;}
  if(e?.kind==='event'){const event=normalizeLiveEvent(e.event);if(event)handlers.onEvent?.(event);else handlers.onError?.('An invalid or unsupported bridge event was ignored.');return;}
- if(e?.kind==='error'){handlers.onError?.(typeof e.message==='string'?e.message.slice(0,240):'The bridge reported an error.');if(e.code==='AUTH_FAILED'||e.code==='PAIRING_REVOKED'){fatal=true;status('error');socket?.close(4001,'Pairing rejected');}}
+ if(e?.kind==='error'){handlers.onError?.(typeof e.message==='string'?e.message.slice(0,240):'The bridge reported an error.');if(e.code==='AUTH_FAILED'||e.code==='PAIRING_REVOKED'||e.code==='LOCAL_STORAGE_BLOCKED'){fatal=true;status('error');socket?.close(4001,'Pairing rejected');}}
  };
  socket.onerror=()=>handlers.onError?.('The live bridge connection encountered a network error.');
  socket.onclose=()=>{socket=null;if(!stopped&&!fatal)scheduleRetry();else status('disconnected');};
