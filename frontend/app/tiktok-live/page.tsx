@@ -543,7 +543,7 @@ export default function TikTokLiveHost() {
           </label>
           <section className="eventBus" aria-label="Local app and game event connection">
             <div className="directorHead"><small>LOCAL MULTI-APP EVENT BRIDGE</small><b>Connect Streamer.bot on this computer</b></div>
-            <p>Stream events from Twitch, YouTube, OBS, Streamlabs, StreamElements, MIDI, speech-to-text and Streamer.bot custom triggers into Magnanimous. Only creator-configured actions with the approved name prefix can run, and each requires a separate operator confirmation. Viewer comments and AI-generated text cannot trigger local actions.</p>
+            <p>Stream events from Twitch, YouTube, OBS, Streamlabs, StreamElements, Crowd Control game effects, VTube Studio model events, controller/input events, MIDI, speech-to-text and Streamer.bot custom triggers into Magnanimous. Only creator-configured actions with the approved name prefix can run, and each requires a separate operator confirmation. Viewer comments and AI-generated text cannot trigger local actions.</p>
             <p className="directorNote">TikTok comments are entered manually in this version. TikTok's published LIVE developer scope currently documents daily statistics for partner creators, not a general public live-chat subscription. Magnanimous does not scrape TikTok or use unofficial chat endpoints. Other supported platforms and local apps can flow through Streamer.bot when their integrations are enabled.</p>
             <label className="field">Local WebSocket address
               <input value={streamerBotUrl} onChange={event => setStreamerBotUrl(event.target.value)} placeholder="ws://127.0.0.1:8080/" />
