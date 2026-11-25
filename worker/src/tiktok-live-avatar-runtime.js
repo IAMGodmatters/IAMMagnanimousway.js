@@ -7,7 +7,6 @@ const MAX_IDLE_SECONDS=30;
 const MAX_MONTHLY_SESSIONS=20;
 const MAX_PENDING_AGE_SECONDS=180;
 const SIMLI_SESSION_URL='https://api.simli.ai/compose/token';
-const SIMLI_ICE_URL='https://api.simli.ai/compose/ice';
 
 function monthKey(date=new Date()){return date.toISOString().slice(0,7)}
 function now(){return Math.floor(Date.now()/1000)}
@@ -113,23 +112,18 @@ export async function handleTikTokLiveAvatar(request,env){
 
   let session;
   try{
-   // Current Simli API v2: retrieve temporary P2P ICE credentials with
-   // GET /compose/ice, then mint a short-lived token with POST /compose/token.
-   // Both calls stay server-side and use the x-simli-api-key header.
+   // Current Simli browser SDK uses a short-lived Compose token and LiveKit
+   // transport by default. P2P ICE credentials are unnecessary in LiveKit mode.
+   // The provider key stays server-side; the browser receives only the token.
    const apiKey=String(env.SIMLI_API_KEY);
-   const ice=await providerRequest(SIMLI_ICE_URL,apiKey,{method:'GET'});
-   if(!ice.ok||!Array.isArray(ice.data)||ice.data.length===0){
-    await env.DB.prepare("UPDATE tiktok_live_avatar_sessions SET state='failed',updated_at=? WHERE id=?").bind(now(),reservationId).run();
-    return json({code:'SIMLI_ICE_UNAVAILABLE',detail:'Simli did not return valid ICE server credentials. No avatar session was created.'},502);
-   }
-
    session=await providerRequest(SIMLI_SESSION_URL,apiKey,{body:{
-    faceId:String(env.SIMLI_FACE_ID),
-    apiVersion:'v2',
-    handleSilence:true,
-    maxSessionLength:MAX_SESSION_SECONDS,
-    maxIdleTime:MAX_IDLE_SECONDS,
-    audioInputFormat:'pcm16'
+    config:{
+     faceId:String(env.SIMLI_FACE_ID),
+     handleSilence:false,
+     maxSessionLength:MAX_SESSION_SECONDS,
+     maxIdleTime:MAX_IDLE_SECONDS,
+     audioInputFormat:'pcm16'
+    }
    }});
    if(!session.ok||!session.data?.session_token){
     await env.DB.prepare("UPDATE tiktok_live_avatar_sessions SET state='failed',updated_at=? WHERE id=?").bind(now(),reservationId).run();
@@ -139,9 +133,8 @@ export async function handleTikTokLiveAvatar(request,env){
    await env.DB.prepare("UPDATE tiktok_live_avatar_sessions SET state='issued',updated_at=? WHERE id=?").bind(now(),reservationId).run();
    return json({
     provider:'simli',
-    transport_mode:'webrtc',
+    transport_mode:'livekit',
     session_token:session.data.session_token,
-    ice_config:ice.data,
     warnings:Array.isArray(session.data.warnings)?session.data.warnings:[],
     max_session_length_seconds:MAX_SESSION_SECONDS,
     max_idle_time_seconds:MAX_IDLE_SECONDS,
