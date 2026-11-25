@@ -33,7 +33,7 @@ const checks=[
  ['static paths are confined to the portable app folder and allowlisted MIME types',host.includes('path.resolve(APP,relative)')&&host.includes('target.startsWith(APP+path.sep)')&&host.includes('Object.hasOwn(MIME,ext)')],
  ['creator frontend uses same-origin fetch only and no external CDNs',!(/https?:\/\//i.test(app+html+css))&&app.includes('fetch(path')],
  ['saved project display uses text nodes rather than injecting user content as HTML',app.includes('document.createElement')&&app.includes('title.textContent=project.title')&&!app.includes('innerHTML=project.content')],
- ['UI describes offline generation and network-required broadcasting honestly',html.includes('Offline means local creation, not live broadcasting.')&&html.includes('requires a network connection')],
+ ['UI describes offline generation and network-required broadcasting honestly',html.includes('Offline means local creation, not live broadcasting.')&&html.includes('network connection')&&manifest.capabilities.onlineBroadcast.includes('network connection')&&manifest.capabilities.zoomMeeting.includes('network connection')],
  ['Windows launcher writes caches/data under its own USB root',launcher.includes('$Root = [System.IO.Path]::GetFullPath($PSScriptRoot)')&&launcher.includes('$Data = Join-Path $Root')&&!/C:\\\\Users|C:\\\\ProgramData/i.test(launcher)],
  ['Windows launcher makes no automatic downloads or installs',!/(Invoke-WebRequest|Start-BitsTransfer|winget install|choco install|Install-Package)/i.test(launcher)],
  ['Windows launcher verifies local Node and local model health before enabling AI',launcher.includes('& $Node --version')&&launcher.includes('/v1/models')&&launcher.includes("MAGNANIMOUS_LOCAL_MODEL_ENABLED = 'true'")],
