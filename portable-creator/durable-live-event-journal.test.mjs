@@ -10,8 +10,13 @@ function fixture(t, options = {}) {
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   let now = 1_800_000_000_000;
   const filePath = path.join(dir, 'events.jsonl');
-  const create = () => new DurableLiveEventJournal({ filePath, now: () => now, ...options });
-  return { create, filePath, advance: ms => { now += ms; }, now: () => now };
+  const key = Buffer.alloc(32, 0x4d);
+  const create = () => {
+    const journal = new DurableLiveEventJournal({ filePath, now: () => now, ...options });
+    assert.equal(journal.unlock(key).status, 'unlocked');
+    return journal;
+  };
+  return { create, filePath, key, advance: ms => { now += ms; }, now: () => now };
 }
 const makeEvent = (eventId, provider = 'manual') => ({
   protocolVersion: 1, eventId, provider, type: 'chat.message',
@@ -104,4 +109,39 @@ test('compaction preserves active in-process delivery leases', t => {
   assert.equal(journal.ingest(makeEvent('compact-3')).status, 'accepted');
   const next = journal.claim(2);
   assert.deepEqual(next.events.map(event => event.eventId), ['compact-3']);
+});
+
+test('encrypts event content at rest and reopens only with the workspace-derived key', t => {
+  const f = fixture(t);
+  let journal = f.create();
+  assert.equal(journal.ingest(makeEvent('private-1')).status, 'accepted');
+  const raw = fs.readFileSync(f.filePath, 'utf8');
+  assert.equal(raw.includes('Hello Magnanimous'), false);
+  assert.equal(raw.includes('QA viewer'), false);
+  journal.lock();
+  assert.equal(journal.status().locked, true);
+  journal = f.create();
+  assert.equal(journal.status().queued, 1);
+  const wrong = new DurableLiveEventJournal({ filePath: f.filePath });
+  const opened = wrong.unlock(Buffer.alloc(32, 0x21));
+  assert.equal(opened.status, 'storage_error');
+  assert.equal(wrong.status().storageReady, false);
+  assert.equal(wrong.status().recovery.authenticationError, true);
+  assert.equal(fs.readFileSync(f.filePath, 'utf8'), raw, 'Wrong-key recovery must not rewrite or destroy the journal.');
+});
+
+test('does not report a duplicate after an event write fails', t => {
+  const f = fixture(t);
+  const journal = f.create();
+  const originalOpen = fs.openSync;
+  fs.openSync = function(file, ...args) {
+    if (String(file) === f.filePath) throw new Error('simulated USB write failure');
+    return originalOpen.call(this, file, ...args);
+  };
+  try {
+    assert.equal(journal.ingest(makeEvent('disk-failure-1')).status, 'storage_error');
+  } finally {
+    fs.openSync = originalOpen;
+  }
+  assert.equal(journal.ingest(makeEvent('disk-failure-1')).status, 'storage_error');
 });
