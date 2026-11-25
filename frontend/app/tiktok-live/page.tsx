@@ -217,7 +217,7 @@ export default function TikTokLiveHost() {
               </label>
             </div>
             <label className="field">Viewer comment or game moment
-              <textarea value={viewerComment} onChange={event => setViewerComment(event.target.value)} rows={4} placeholder="Paste a viewer question, game event, score update or audience prediction here…" />
+              <textarea value={viewerComment} onChange={event => setViewerComment(event.target.value)} rows={4} placeholder="Paste or type a viewer question, game event, score update or audience prediction here…" />
             </label>
             <label className="toggle"><input type="checkbox" checked={autoSpeak} onChange={event => setAutoSpeak(event.target.checked)} /> Automatically speak each AI answer</label>
             <button className="primary answerButton" type="submit" disabled={busy || !viewerComment.trim()}>{busy ? 'Magnanimous is answering…' : '✦ Answer comment with Magnanimous AI'}</button>
