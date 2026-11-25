@@ -60,6 +60,7 @@ export class MagnanimousLiveBridgeRoom {
    if(request.headers.get('Upgrade')?.toLowerCase()!=='websocket')return json({detail:'WebSocket upgrade required.'},426);
    const pair=await this.state.storage.get('pair');
    if(!pair||(Date.now()>pair.pairExpiresAt&&!pair.sessionExpiresAt)||(pair.sessionExpiresAt&&Date.now()>pair.sessionExpiresAt))return json({detail:'The pairing code or bridge session expired. Create a new bridge pair.'},410);
+   if(this.state.getWebSockets().length>=4)return json({detail:'This bridge room has reached its connection safety limit.'},429);
    const origin=request.headers.get('Origin');
    if(origin&&origin!==url.origin)return json({detail:'Cross-origin bridge connections are not allowed.'},403);
    const pairSocket=new WebSocketPair();
@@ -85,7 +86,7 @@ export class MagnanimousLiveBridgeRoom {
    const sessionExpiresAt=pair.sessionExpiresAt||Date.now()+SESSION_TTL_MS;
    if(Date.now()>sessionExpiresAt){ws.close(4001,'Bridge session expired');return;}
    if(!pair.sessionExpiresAt){pair.sessionExpiresAt=sessionExpiresAt;await this.state.storage.put('pair',pair);await this.state.storage.setAlarm(sessionExpiresAt);}
-   ws.serializeAttachment({...attachment,role,authenticated:true,allowedProviders:pair.allowedProviders||[],seen:[],sessionExpiresAt});
+   ws.serializeAttachment({...attachment,role,authenticated:true,allowedProviders:pair.allowedProviders||[],seen:[],sessionExpiresAt,windowStartedAt:Date.now(),windowCount:0});
    const existing=this.findRole(role,ws);
    if(existing){try{existing.close(4001,'Replaced by a newer connection');}catch{}}
    const browser=this.findRole('browser'),companion=this.findRole('companion');
@@ -94,6 +95,11 @@ export class MagnanimousLiveBridgeRoom {
    return;
   }
   if(Date.now()>attachment.sessionExpiresAt){ws.close(4001,'Bridge session expired');return;}
+  const now=Date.now(),windowStartedAt=Number(attachment.windowStartedAt)||now;
+  const windowCount=now-windowStartedAt>=60_000?0:Number(attachment.windowCount)||0;
+  const limit=attachment.role==='browser'?30:120;
+  if(windowCount>=limit){ws.close(4429,'Bridge message rate limit reached');return;}
+  ws.serializeAttachment({...attachment,windowStartedAt:windowCount===0?now:windowStartedAt,windowCount:windowCount+1});
   if(envelope?.kind==='ping'){ws.send(JSON.stringify({kind:'pong'}));return;}
   if(attachment.role==='companion'&&envelope?.kind==='event'&&envelope.protocolVersion===1){
    const event=normalizeRelayEvent(envelope.event);
