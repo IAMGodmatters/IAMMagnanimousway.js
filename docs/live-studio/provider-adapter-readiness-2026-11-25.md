@@ -138,7 +138,7 @@ Each adapter must implement:
 - cursor/continuation persistence where the provider supports replay;
 - explicit gap status where the provider does not replay missed events;
 - rate limits, bounded queues, exponential backoff and circuit breakers;
-- durable local event acceptance and delivery acknowledgements;
+- encrypted durable local event acceptance (workspace-derived AES-GCM key) and delivery acknowledgements;
 - read-only mode by default;
 - separate approval gates for chat writes, moderation, scene changes, broadcast start/stop, payments and destructive actions;
 - an operator-visible action receipt and audit trail.
