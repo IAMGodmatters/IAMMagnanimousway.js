@@ -103,5 +103,9 @@ export class LiveEventJournal{
   try{fs.writeSync(fd,payload,null,'utf8');fs.fsyncSync(fd);}finally{fs.closeSync(fd);}
  }
  appendEvent(event){this.append([{kind:'event',event}]);}
- appendAcks(events){this.append([{kind:'ack',keys:events.map(event=>String(event.provider)+':'+String(event.eventId))}]);}
+ appendAcks(events){
+  const keys=events.map(event=>String(event.provider)+':'+String(event.eventId)),records=[];
+  for(let i=0;i<keys.length;i+=100)records.push({kind:'ack',keys:keys.slice(i,i+100)});
+  this.append(records);
+ }
 }
