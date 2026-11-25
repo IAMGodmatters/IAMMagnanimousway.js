@@ -5,6 +5,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { ObsWebSocketClient } from './obs-client.mjs';
 import { LiveEventRuntime } from './live-event-runtime.mjs';
+import { LiveEventJournal } from './live-event-journal.mjs';
 import { createReviewCues } from './live-show-director.mjs';
 
 const args=process.argv.slice(2);
@@ -28,10 +29,17 @@ let chatWindow=Date.now();
 let chatCount=0;
 let serverPort=PORT;
 let obsClient=null;
+let bridgeSocket=null;
+let bridgeStatus='disconnected';
+let bridgeError='';
+const pendingBridgeCommands=[];
 const OBS_PORT=4455;
-const liveEvents=new LiveEventRuntime();
 
 fs.mkdirSync(DATA,{recursive:true});
+const liveEventJournal=new LiveEventJournal(path.join(DATA,'live-events.jsonl'));
+const liveEvents=new LiveEventRuntime({onAccept:event=>liveEventJournal.appendEvent(event),onConsume:events=>liveEventJournal.appendAcks(events)});
+const liveEventRecovery=liveEvents.restore(liveEventJournal.load());
+console.log('Recovered '+liveEventRecovery.restored+' live events; acknowledged '+liveEventRecovery.acknowledged+'.');
 
 function securityHeaders(res,type='application/json; charset=utf-8'){
  res.setHeader('content-type',type);
@@ -127,6 +135,48 @@ async function modelStatus(){
  }catch{return {ready:false,reason:'The local model runtime is not responding.'};}
  finally{clearTimeout(timeout);}
 }
+function safeBridgeCommand(value){
+ if(!value||typeof value!=='object'||typeof value.commandId!=='string'||!/^[A-Za-z0-9._:-]{1,160}$/.test(value.commandId))return null;
+ if(value.action==='scene.set'&&typeof value.sceneName==='string'&&value.sceneName.trim())return{commandId:value.commandId,action:'scene.set',sceneName:value.sceneName.trim().slice(0,80)};
+ if(value.action==='overlay.show'||value.action==='overlay.hide'){if(typeof value.overlayId==='string'&&value.overlayId.trim())return{commandId:value.commandId,action:value.action,overlayId:value.overlayId.trim().slice(0,80)};}
+ if(value.action==='audio.cue'&&typeof value.cueId==='string'&&value.cueId.trim())return{commandId:value.commandId,action:'audio.cue',cueId:value.cueId.trim().slice(0,80)};
+ if(value.action==='host.speak'&&typeof value.text==='string'&&value.text.trim())return{commandId:value.commandId,action:'host.speak',text:value.text.trim().slice(0,500)};
+ return null;
+}
+function closeBridge(){
+ const socket=bridgeSocket;bridgeSocket=null;bridgeStatus='disconnected';bridgeError='';
+ if(socket){try{socket.close(1000,'Operator disconnected');}catch{}}
+}
+function bridgeSnapshot(){
+ return{status:bridgeStatus,connected:bridgeStatus==='connected',error:bridgeError,pendingCommands:pendingBridgeCommands.map(({commandId,action,sceneName,overlayId,cueId,text,receivedAt})=>({commandId,action,sceneName,overlayId,cueId,text,receivedAt}))};
+}
+function connectBridge(endpoint,token){
+ if(typeof WebSocket!=='function')throw new Error('Online bridge requires Node.js 22 or newer. Offline creation remains available.');
+ const url=new URL(endpoint);
+ if(url.protocol!=='wss:'||url.hostname!=='iammagnanimousway.com'||url.username||url.password||url.search||url.hash||!/^\/api\/live-bridge\/ws\/[0-9a-f-]{36}$/i.test(url.pathname))throw new Error('Use the official secure Magnanimous live-bridge address.');
+ if(typeof token!=='string'||token.length!==43||!/^[A-Za-z0-9_-]{43}$/.test(token))throw new Error('The companion pairing token is invalid or expired.');
+ closeBridge();
+ bridgeStatus='connecting';bridgeError='';
+ const socket=new WebSocket(url.toString());bridgeSocket=socket;
+ socket.addEventListener('open',()=>{if(bridgeSocket!==socket)return;socket.send(JSON.stringify({kind:'auth',protocolVersion:1,token}));});
+ socket.addEventListener('message',message=>{
+  if(bridgeSocket!==socket)return;
+  let envelope;try{envelope=JSON.parse(String(message.data));}catch{bridgeError='The online relay sent an unreadable message.';return;}
+  if(envelope?.kind==='ready'&&envelope.protocolVersion===1){bridgeStatus='connected';bridgeError='';return;}
+  if(envelope?.kind==='waiting'){bridgeStatus='connecting';return;}
+  if(envelope?.kind==='event'&&envelope.protocolVersion===1){const result=liveEvents.ingest(envelope.event);if(result.status==='persistence_error')bridgeError='A received event could not be saved to the USB recovery journal.';return;}
+  if(envelope?.kind==='command'&&envelope.protocolVersion===1){
+   const command=safeBridgeCommand(envelope.command);
+   if(!command){bridgeError='An unsupported remote command was rejected.';return;}
+   if(pendingBridgeCommands.length>=20){bridgeError='The local approval queue is full; no command was executed.';return;}
+   if(!pendingBridgeCommands.some(item=>item.commandId===command.commandId))pendingBridgeCommands.push({...command,receivedAt:new Date().toISOString()});
+   return;
+  }
+  if(envelope?.kind==='error'){bridgeError=String(envelope.message||'The online relay reported an error.').slice(0,240);if(envelope.code==='AUTH_FAILED'||envelope.code==='PAIRING_REVOKED')closeBridge();}
+ });
+ socket.addEventListener('close',()=>{if(bridgeSocket===socket){bridgeSocket=null;bridgeStatus='disconnected';}});
+ socket.addEventListener('error',()=>{if(bridgeSocket===socket){bridgeStatus='error';bridgeError='The secure online bridge connection failed.';}});
+}
 function safeProject(value){
  const title=String(value?.title||'Untitled project').replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,120)||'Untitled project';
  const content=String(value?.content||'').replace(/\u0000/g,'').slice(0,MAX_PROJECT_TEXT);
@@ -207,6 +257,27 @@ async function handleApi(req,res,url){
   try{const result=await obsClient.stopRecording();return json(res,200,{ok:true,recording:false,outputPath:String(result.outputPath||'')});}
   catch(error){return json(res,502,{detail:error.message||'OBS could not stop recording.'});}
  }
+ if(req.method==='GET'&&url.pathname==='/api/bridge/status'){
+  return json(res,200,bridgeSnapshot());
+ }
+ if(req.method==='POST'&&url.pathname==='/api/bridge/connect'){
+  const body=await readJson(req);
+  try{connectBridge(String(body.endpoint||''),String(body.token||''));return json(res,202,{ok:true,status:bridgeStatus});}
+  catch(error){return json(res,400,{detail:error.message});}
+ }
+ if(req.method==='POST'&&url.pathname==='/api/bridge/disconnect'){
+  closeBridge();pendingBridgeCommands.length=0;return json(res,200,{ok:true,status:bridgeStatus});
+ }
+ if(req.method==='POST'&&url.pathname==='/api/bridge/command/review'){
+  const body=await readJson(req),commandId=String(body.commandId||''),index=pendingBridgeCommands.findIndex(item=>item.commandId===commandId);
+  if(index<0)return json(res,404,{detail:'The pending command was not found or has expired.'});
+  if(body.approved!==true){pendingBridgeCommands.splice(index,1);return json(res,200,{ok:true,approved:false});}
+  const command=pendingBridgeCommands[index];
+  if(command.action!=='scene.set')return json(res,409,{detail:'This command type is not implemented locally. No action was taken.'});
+  if(!obsClient?.connected)return json(res,409,{detail:'Connect to OBS locally before approving a scene change.'});
+  try{const result=await obsClient.setProgramScene(command.sceneName);pendingBridgeCommands.splice(index,1);return json(res,200,{ok:true,approved:true,sceneName:result.sceneName||command.sceneName});}
+  catch(error){return json(res,502,{detail:error.message||'OBS did not confirm the scene change.'});}
+ }
  if(req.method==='GET'&&url.pathname==='/api/live/events/status'){
   return json(res,200,liveEvents.status());
  }
@@ -214,7 +285,11 @@ async function handleApi(req,res,url){
   const body=await readJson(req);
   if(body.event?.provider!=='manual')return json(res,403,{status:'provider_untrusted',detail:'Browser intake accepts operator-entered manual events only; provider adapters must authenticate in the local companion.'});
   const result=liveEvents.ingest(body.event);
-  if(result.status==='accepted')return json(res,202,result);
+  if(result.status==='accepted'){
+   const accepted=liveEvents.queue.at(-1);
+   if(accepted&&bridgeSocket?.readyState===1){try{bridgeSocket.send(JSON.stringify({kind:'event',protocolVersion:1,event:accepted}));}catch{}}
+   return json(res,202,result);
+  }
   if(result.status==='duplicate')return json(res,200,result);
   if(result.status==='rate_limited')return json(res,429,result);
   if(result.status==='queue_full')return json(res,503,result);
@@ -284,6 +359,7 @@ server.listen(PORT,'127.0.0.1',()=>{
  console.log('Local-only mode. No remote network listener is open.');
 });
 function close(){
+ closeBridge();
  if(obsClient)obsClient.disconnect();
  obsClient=null;
  lockVault();
