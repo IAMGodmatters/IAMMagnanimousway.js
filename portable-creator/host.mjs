@@ -151,6 +151,7 @@ function unlockVault(passphrase){
 }
 function lockVault(){
  closeBridge();
+ pendingBridgeCommands.length=0;
  liveEvents.clear();liveEventsRestored=false;liveEventJournalError='';liveEventJournalWarning='';
  gameIntegrationToken=null;
  if(vaultKey)vaultKey.fill(0);
