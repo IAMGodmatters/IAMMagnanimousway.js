@@ -258,7 +258,7 @@ async function handleApi(req,res,url){
   if(!vaultKey)return json(res,423,{detail:'Unlock the encrypted workspace before sending host state to the OBS avatar.'});
   const body=await readJson(req);
   if(body.type==='line'&&typeof body.text==='string'){
-   const text=body.text.replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,240);
+   const text=body.text.replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,240);
    if(!text)return json(res,400,{detail:'A non-empty host line is required.'});
    broadcastAvatarState({type:'line',text});
    return json(res,200,{ok:true});
