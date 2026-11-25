@@ -96,7 +96,6 @@ export class DurableLiveEventJournal {
       fs.closeSync(fd);
       fd = undefined;
       fs.renameSync(temp, this.filePath);
-      this.leases.clear();
     } catch {
       if (fd !== undefined) fs.closeSync(fd);
       try { fs.rmSync(temp, { force: true }); } catch {}
