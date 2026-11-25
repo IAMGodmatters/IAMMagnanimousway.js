@@ -86,7 +86,7 @@ test('compacts encrypted journal to only unacknowledged events',()=>{
  assert.equal(records[0].kind,'event');
  assert.equal(records[0].event.eventId,'second');
  assert.equal(records[1].kind,'seen');
- const recovered=new LiveEventRuntime();
+ const recovered=new LiveEventRuntime({now:()=>NOW});
  recovered.restore(records);
  assert.equal(recovered.ingest(first).status,'duplicate','Compaction must preserve deduplication IDs for acknowledged events.');
  assert.equal(recovered.status().queued,1);
