@@ -11,6 +11,7 @@ function fixture(t, options = {}) {
   let now = 1_800_000_000_000;
   const filePath = path.join(dir, 'events.jsonl');
   const key = Buffer.alloc(32, 0x4d);
+  t.after(() => key.fill(0));
   const create = () => {
     const journal = new DurableLiveEventJournal({ filePath, now: () => now, ...options });
     assert.equal(journal.unlock(key).status, 'unlocked');
@@ -29,6 +30,7 @@ test('persists accepted events and deduplication across process restart', t => {
   let journal = f.create();
   assert.equal(journal.ingest(makeEvent('persist-1')).status, 'accepted');
   assert.equal(journal.ingest(makeEvent('persist-1')).status, 'duplicate');
+  journal.lock();
   journal = f.create();
   assert.equal(journal.status().queued, 1);
   const delivery = journal.claim(10);
@@ -48,6 +50,7 @@ test('redelivers an unacknowledged claimed event after a host restart', t => {
   journal.ingest(makeEvent('restart-lease-1'));
   const first = journal.claim(1);
   assert.ok(first.deliveryId);
+  journal.lock();
   journal = f.create();
   assert.equal(journal.status().queued, 1);
   assert.equal(journal.status().storageReady, true);
@@ -86,6 +89,7 @@ test('recovers complete records after a truncated trailing write', t => {
   const f = fixture(t);
   let journal = f.create();
   journal.ingest(makeEvent('recover-1'));
+  journal.lock();
   fs.appendFileSync(f.filePath, '{"version":1,"cipher":"aes-256-gcm","iv":"broken');
   journal = f.create();
   assert.equal(journal.status().queued, 1);
