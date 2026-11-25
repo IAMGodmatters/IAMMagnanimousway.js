@@ -50,13 +50,13 @@
         <label for="prompt">Describe what you want to create</label>
         <textarea id="prompt" rows="5" maxlength="6000" placeholder="Example: Create a 30-minute faceless live show about learning English. Include a welcome, audience questions, a simple game and a closing."></textarea>
         <div class="actions">
-          <button id="generateButton" class="primary" disabled>✦ Create with local AI</button>
-          <span id="generateStatus" class="muted">Add a compatible local model to enable AI generation.</span>
+          <button id="generateButton" class="primary" disabled>✦ Create an offline draft</button>
+          <span id="generateStatus" class="muted">Works offline; add a compatible local model for generative AI.</span>
         </div>
         <label for="outputTitle">Project title</label>
         <input id="outputTitle" maxlength="120" value="My first Magnanimous project">
         <label for="output">Your creation</label>
-        <textarea id="output" rows="10" placeholder="Your generated work will appear here. You can also write and save your own content while offline."></textarea>
+        <textarea id="output" rows="10" placeholder="Your draft will appear here. Save it encrypted or export a Markdown copy."></textarea>
         <div class="actions">
           <button id="saveButton" class="secondary" disabled>Save encrypted to USB</button>
           <button id="exportButton" class="quiet" disabled>Export a copy</button>
