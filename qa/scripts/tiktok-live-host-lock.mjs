@@ -76,6 +76,8 @@ const checks = [
   ['game adapters reject anti-cheat bypass and process injection', host.includes('Do not inject code, read protected game memory, bypass anti-cheat')],
   ['event bridge research includes Twitch, YouTube and OBS official sources', research.includes('dev.twitch.tv/docs/eventsub/handling-websocket-events') && research.includes('liveChatMessages/streamList') && research.includes('obsproject/obs-websocket')],
   ['Cloudflare resource diagnostic is read-only and analytics-scoped', cloudDiagnostic.includes('Account Analytics:Read') && cloudDiagnostic.includes('workersInvocationsAdaptive') && cloudDiagnostic.includes('No Worker configuration, deployment, plan, or billing setting was changed')],
+  ['Cloudflare resource diagnostic measures D1 daily row usage through official D1 Analytics', cloudDiagnostic.includes('d1AnalyticsAdaptiveGroups') && cloudDiagnostic.includes('rowsRead rowsWritten readQueries writeQueries') && cloudDiagnostic.includes('5000000 free-tier daily rows') && cloudDiagnostic.includes('100000 free-tier daily rows')],
+  ['D1 analytics uses the UTC daily reset boundary and remains read-only', cloudDiagnostic.includes('TODAY="$(date -u +%Y-%m-%d)"') && cloudDiagnostic.includes('date_geq: $start, date_leq: $end') && cloudDiagnostic.includes('adaptive analytics estimates') && cloudDiagnostic.includes('Avoid nonessential materialization/cleanup writes')],
   ['frontier research lists dated primary sources', research.includes('25 November 2026') && research.includes('deepmind.google') && research.includes('seller-ph.tiktok.com')],
   ['Social Hub links to the host control room', social.includes('href="/tiktok-live"')],
 ];
