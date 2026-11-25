@@ -39,6 +39,7 @@ const checks = [
   ['AI host output is cleaned and bounded before browser speech', host.includes('cleanLiveHostText') && host.includes('.slice(0, 700)')],
   ['autonomous viewer comments cannot invoke Magnanimous tools or actions', host.includes('use_tools: false') && host.includes('Do not pretend to be a human')],
   ['paired event bridge relays only normalized events into the host queue', host.includes('normalizeLiveEvent(payload.event)') && host.includes("new BroadcastChannel('magnanimous-live-events-v1')") && host.includes('liveEventToHostPrompt')],
+  ['AI host discovers an already-paired companion tab without storing bridge tokens', host.includes("kind: 'request-status'") && bridgeUi.includes('statusRef.current') && bridgeUi.includes("kind:'request-status'") && !host.includes('localStorage.setItem')],
   ['event bridge page sends authenticated companion events to the host tab', bridgeUi.includes("new BroadcastChannel('magnanimous-live-events-v1')") && bridgeUi.includes("postMessage({kind:'event',event})") && bridgeUi.includes('onEvent:event=>')],
   ['autonomous queue is capped for companion events as well as typed comments', host.includes('queuedCommentsRef.current.length >= 25') && host.includes('The live event queue is full (25 items)')],
 
