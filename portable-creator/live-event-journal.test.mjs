@@ -70,11 +70,16 @@ test('compacts encrypted journal to only unacknowledged events',()=>{
  const first=event('first'),second=event('second');
  journal.appendEvent(first);journal.appendEvent(second);journal.appendAcks([first]);
  assert.equal(journal.load().length,3);
- journal.compact([second]);
+ journal.compact([second],['manual:first','manual:second']);
  const records=journal.load();
- assert.equal(records.length,1);
+ assert.equal(records.length,2);
  assert.equal(records[0].kind,'event');
  assert.equal(records[0].event.eventId,'second');
+ assert.equal(records[1].kind,'seen');
+ const recovered=new LiveEventRuntime();
+ recovered.restore(records);
+ assert.equal(recovered.ingest(first).status,'duplicate','Compaction must preserve deduplication IDs for acknowledged events.');
+ assert.equal(recovered.status().queued,1);
  assert.equal(journal.needsCompaction(),false);
  fs.rmSync(dir,{recursive:true,force:true});
 });
