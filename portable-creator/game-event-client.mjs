@@ -2,8 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 const TOKEN=/^[A-Za-z0-9_-]{43}$/;
 const LOOPBACK_ENDPOINT='http://127.0.0.1:3219/api/integrations/game/event';
-const CONTROL=/[<>\u0000-\u001f\u007f]/g;
-const clean=(value,max)=>typeof value==='string'?value.replace(CONTROL,' ').trim().slice(0,max):'';
+const clean=(value,max)=>typeof value==='string'?Array.from(value,char=>{const code=char.charCodeAt(0);return code===60||code===62||code<=31||code===127?' ':char;}).join('').trim().slice(0,max):'';
 
 /**
  * Send a small, authenticated game/app event to the local Magnanimous Creator.
