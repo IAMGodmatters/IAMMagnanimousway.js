@@ -70,7 +70,7 @@ export class MagnanimousLiveBridgeRoom {
    if(socketMatch[1].toLowerCase()!==String((await this.state.storage.get('pair'))?.pairId||'').toLowerCase())return json({detail:'Bridge room not found.'},404);
    if(request.headers.get('Upgrade')?.toLowerCase()!=='websocket')return json({detail:'WebSocket upgrade required.'},426);
    const pair=await this.state.storage.get('pair');
-   if(!pair||(Date.now()>pair.pairExpiresAt&&!pair.sessionExpiresAt)||(pair.sessionExpiresAt&&Date.now()>pair.sessionExpiresAt))return json({detail:'The pairing code or bridge session expired. Create a new bridge pair.'},410);
+   if(!pair||Date.now()>pair.pairExpiresAt||(pair.sessionExpiresAt&&Date.now()>pair.sessionExpiresAt))return json({detail:'The pairing code or bridge session expired. Create a new bridge pair.'},410);
    if(this.state.getWebSockets().length>=4)return json({detail:'This bridge room has reached its connection safety limit.'},429);
    const origin=request.headers.get('Origin');
    if(origin&&(origin!==url.origin||origin!==pair.expectedOrigin))return json({detail:'Cross-origin bridge connections are not allowed.'},403);
@@ -90,7 +90,7 @@ export class MagnanimousLiveBridgeRoom {
   if(!attachment.authenticated){
    if(envelope?.kind!=='auth'||envelope.protocolVersion!==1||typeof envelope.token!=='string'||envelope.token.length<32||envelope.token.length>256){ws.close(4001,'Authentication required');return;}
    const pair=await this.state.storage.get('pair');
-   if(!pair||(Date.now()>pair.pairExpiresAt&&!pair.sessionExpiresAt)||(pair.sessionExpiresAt&&Date.now()>pair.sessionExpiresAt)){ws.send(JSON.stringify({kind:'error',code:'PAIRING_REVOKED',message:'The pairing code or bridge session expired. Create a new pair.'}));ws.close(4001,'Pairing expired');return;}
+   if(!pair||Date.now()>pair.pairExpiresAt||(pair.sessionExpiresAt&&Date.now()>pair.sessionExpiresAt)){ws.send(JSON.stringify({kind:'error',code:'PAIRING_REVOKED',message:'The pairing code or bridge session expired. Create a new pair.'}));ws.close(4001,'Pairing expired');return;}
    const supplied=await hash(envelope.token);
    const role=sameHex(supplied,pair.browserHash)?'browser':sameHex(supplied,pair.companionHash)?'companion':null;
    if(!role){ws.send(JSON.stringify({kind:'error',code:'AUTH_FAILED',message:'The companion pairing token is invalid.'}));ws.close(4001,'Invalid pairing token');return;}
