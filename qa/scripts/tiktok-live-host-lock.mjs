@@ -23,7 +23,7 @@ const checks = [
   ['TikTok AIGC permission is distinguished from the separate LIVE narration rule', host.includes('permits AIGC in compliant content generally') && host.includes('TikTok Shop LIVE')],
   ['frontier technology acquisition panel is visible', host.includes('The newest live-host technology you can acquire') && host.includes('frontier')],
   ['Gemini Live Avatar enterprise and reconnect limits are disclosed', host.includes('Gemini Enterprise') && host.includes('context compression') && host.includes('session resumption')],
-  ['HeadTTS local neural speech path and limits are disclosed', host.includes('HeadTTS + Kokoro 82M') && host.includes('WebGPU or WASM') && host.includes('English-only') && host.includes('24 kHz') && host.includes('PCM16 16 kHz')],
+  ['HeadTTS local neural speech path and limits are disclosed', host.includes('HeadTTS + Kokoro 82M') && host.includes('WebGPU or WASM') && host.includes('English-only') && host.includes('24 kHz') && host.includes('16 kHz') && host.includes('phoneme timing and viseme data')],
   ['Simli low-cost avatar path is disclosed as a separate renderer', host.includes('Simli Trinity-2 + Magnanimous') && host.includes('50 free minutes/month') && host.includes('150 ms') && host.includes('separate TTS audio stream')],
   ['technology grid has no literal newline escape text', !host.includes('techGrid">\\n')],
   ['Tavus BYO LLM/audio option and plan costs are disclosed', host.includes('Tavus CVI + Bring Your Own LLM/Audio') && host.includes('$59/month') && host.includes('$0.37/minute on Basic') && host.includes('$0.32/minute on Starter')],
