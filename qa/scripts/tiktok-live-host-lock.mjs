@@ -52,7 +52,7 @@ const checks = [
   ['frontier research accurately interprets non-interactive LIVE guidance', research.includes('recorded or computer-generated voices used instead of live interaction') && research.includes('does not state a blanket ban on every use of AI voice')],
   ['Streamer.bot local app/game event bridge is surfaced', host.includes('Streamer.bot Local Event Bus') && host.includes('127.0.0.1') && host.includes('enable authentication') && host.includes('Crowd Control')],
   ['read-only Streamer.bot WebSocket connector is implemented', host.includes('function connectLocalBridge()') && host.includes("request: 'Subscribe'") && host.includes('Twitch') && host.includes('YouTube') && host.includes('CrowdControl')],
-  ['local bridge credentials remain in page memory only', host.includes('sha256Base64') && host.includes('password + payload.authentication.salt') && host.includes('setBridgePassword(\'\')') && !host.includes("localStorage.setItem('streamerbot")],
+  ['local bridge credentials remain in page memory only', host.includes('sha256Base64') && host.includes('bridgePassword + payload.authentication.salt') && host.includes('setBridgePassword(\'\')') && !host.includes("localStorage.setItem('streamerbot")],
   ['local bridge blocks non-loopback WebSocket endpoints', host.includes("['127.0.0.1', 'localhost', '[::1]']") && host.includes('only localhost / 127.0.0.1')],
   ['local bridge cannot execute actions or arbitrary commands', !host.includes("request: 'DoAction'") && !host.includes("request: 'ExecuteCodeTrigger'")],
   ['cross-platform live and game event architecture is visible', host.includes('A live world the host can understand and participate in') && host.includes('Unity/Unreal project event adapters') && host.includes('moderator override')],
