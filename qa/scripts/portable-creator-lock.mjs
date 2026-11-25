@@ -14,7 +14,7 @@ const css=read('portable-creator/app/styles.css');
 const launcher=read('portable-creator/launch-windows.ps1');
 const manifest=JSON.parse(read('portable-creator/manifest.json'));
 const readme=read('portable-creator/README.md');
-const creatorArchitecture=read('docs/live-studio/universal-creator-architecture.md');
+const creatorArchitecture=read('docs/live-studio/universal-creator-architecture.md');\nconst providerReadiness=read('docs/live-studio/provider-adapter-readiness-2026-11-25.md');
 
 execFileSync(process.execPath,['--check',path.join(ROOT,'portable-creator/host.mjs')],{cwd:ROOT,stdio:'inherit'});
 execFileSync(process.execPath,['--check',path.join(ROOT,'portable-creator/app/app.js')],{cwd:ROOT,stdio:'inherit'});
@@ -56,7 +56,7 @@ const checks=[
  ['YouTube and Twitch use their official live event transports',creatorArchitecture.includes('liveChatMessages.streamList')&&creatorArchitecture.includes('Twitch EventSub WebSocket')],
  ['Zoom Meeting SDK bot restriction and RTMS alternative are documented',creatorArchitecture.includes('does not support bots or AI notetakers')&&creatorArchitecture.includes('RTMS')],
  ['OBS local WebSocket authentication and portability boundaries are documented',creatorArchitecture.includes('OBS WebSocket')&&creatorArchitecture.includes('authentication password')&&creatorArchitecture.includes('OBS Portable configuration is Windows-specific')&&creatorArchitecture.includes('All media paths must be portable')],
- ['game adapters prohibit process injection and anti-cheat bypass',creatorArchitecture.includes('does not read game memory, inject code, defeat anti-cheat')],
+ ['game adapters prohibit process injection and anti-cheat bypass',creatorArchitecture.includes('does not read game memory, inject code, defeat anti-cheat')],\n ['current provider readiness research is part of the portable contract',providerReadiness.includes('2026-11-25')&&providerReadiness.includes('This document is a research and implementation contract')],\n ['YouTube adapter prefers streamList and persists continuation tokens',providerReadiness.includes('liveChatMessages.streamList')&&providerReadiness.includes('nextPageToken')&&providerReadiness.includes('5 units')],\n ['Meta adapter distinguishes Page broadcast creation from live comment reading',providerReadiness.includes('/{page_id}/live_videos')&&providerReadiness.includes('/{live-video-id}/comments')&&providerReadiness.includes('reverse-chronological')],\n ['Twitch adapter separates read-chat and write-chat scopes and reports event gaps',providerReadiness.includes('user:read:chat')&&providerReadiness.includes('user:write:chat')&&providerReadiness.includes('not replayed')],\n ['TikTok LIVE remains gated on exact reviewed capabilities rather than reverse-engineered sessions',providerReadiness.includes('apps integrating with APIs and SDKs in Live are reviewed')&&providerReadiness.includes('Do not scrape private WebSockets')],\n ['Zoom RTMS is gated by authorization and funded credits',providerReadiness.includes('RTMS use requires account credits')&&providerReadiness.includes('explicit funded budget')],\n ['OBS media paths are not falsely described as portable',providerReadiness.includes('scene media files are not automatically portable')&&providerReadiness.includes('not supported on macOS or Linux')],
  ['offline and online delivery are distinct capabilities',creatorArchitecture.includes('Offline mode separates **local creation** from **Internet delivery**')],
 ];
 checks.push(
