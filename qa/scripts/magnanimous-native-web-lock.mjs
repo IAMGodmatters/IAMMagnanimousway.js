@@ -58,7 +58,7 @@ for(const needle of [
  'browser_session_end',
  'Local/private browser targets are blocked',
  'Password/secret fields cannot be filled from a remote task',
- 'BROWSER_DIR = APP_DIR / "browser-profiles"',
+ 'BROWSER_DIR = Path(os.environ.get("MAGNANIMOUS_BROWSER_PROFILE_HOME") or (APP_DIR / "browser-profiles")).expanduser().resolve()',
  'provider_dependency": False',
  '"extract_elements"',
  'Screenshot exceeds the safe bridge result size.'
