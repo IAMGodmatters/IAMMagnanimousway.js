@@ -170,6 +170,26 @@ test('authenticated companion cannot spoof a platform event without adapter auth
 
 
 
+
+test('revokes only the owner tenant pair and closes both sockets',async()=>{
+ const pair={pairId:'room-1',tenantId:'tenant-1',userId:'user-1'};
+ const values=new Map([['pair',pair]]);
+ const messages=[],closed=[];
+ const browser={deserializeAttachment:()=>({authenticated:true,role:'browser'}),send:value=>messages.push(JSON.parse(value)),close:(code,reason)=>closed.push({code,reason})};
+ const companion={deserializeAttachment:()=>({authenticated:true,role:'companion'}),send:value=>messages.push(JSON.parse(value)),close:(code,reason)=>closed.push({code,reason})};
+ const state={storage:{get:async key=>values.get(key),delete:async key=>values.delete(key)},getWebSockets:()=>[browser,companion]};
+ const room=new MagnanimousLiveBridgeRoom(state,{});
+ const denied=await room.fetch(new Request('https://bridge.internal/internal/revoke',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({tenantId:'other',userId:'user-1'})}));
+ assert.equal(denied.status,403);
+ assert.ok(values.has('pair'));
+ const response=await room.fetch(new Request('https://bridge.internal/internal/revoke',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({tenantId:'tenant-1',userId:'user-1'})}));
+ assert.equal(response.status,200);
+ assert.equal((await response.json()).revoked,true);
+ assert.equal(values.has('pair'),false);
+ assert.equal(closed.length,2);
+ assert.ok(messages.every(message=>message.code==='PAIRING_REVOKED'));
+});
+
 test('binds browser and companion pairing tokens to their distinct WebSocket origins',async()=>{
  const browserToken='b'.repeat(43),companionToken='c'.repeat(43);
  const pair={pairId:'room-1',tenantId:'tenant-1',userId:'user-1',browserHash:crypto.createHash('sha256').update(browserToken).digest('hex'),companionHash:crypto.createHash('sha256').update(companionToken).digest('hex'),expectedOrigin:'https://iammagnanimousway.com',allowedProviders:['manual','obs','game','browser'],pairExpiresAt:Date.now()+600000,sessionExpiresAt:0};
