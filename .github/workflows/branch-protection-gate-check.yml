@@ -9,9 +9,11 @@ on:
 
 permissions:
   contents: read
+  administration: read
 
 jobs:
   verify-production-protection-gate:
+    name: branch-protection-gate-verification
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
