@@ -3,6 +3,7 @@ const branch = process.env.GITHUB_REF_NAME || '';
 const workflow = process.env.GITHUB_WORKFLOW || '';
 const repo = process.env.GITHUB_REPOSITORY || 'IAMGodmatters/IAMMagnanimousway.js';
 const token = process.env.GITHUB_TOKEN || '';
+const rulesetToken = process.env.GITHUB_RULESET_READ_TOKEN || '';
 
 if (!inActions || branch !== 'main' || workflow !== 'Build and Deploy I AM') {
   console.log('Main branch protection gate: skipped outside the production deployment workflow.');
@@ -21,8 +22,13 @@ const headers = {
   'X-GitHub-Api-Version': '2022-11-28',
 };
 
-async function github(path) {
-  const response = await fetch(`https://api.github.com${path}`, { headers });
+async function github(path, useRulesetToken = false) {
+  const requestHeaders = useRulesetToken && !rulesetToken
+    ? { Accept: headers.Accept, 'User-Agent': headers['User-Agent'], 'X-GitHub-Api-Version': headers['X-GitHub-Api-Version'] }
+    : useRulesetToken
+      ? { ...headers, Authorization: `Bearer ${rulesetToken}` }
+      : headers;
+  const response = await fetch(`https://api.github.com${path}`, { headers: requestHeaders });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
     throw new Error(`GitHub API ${response.status} for ${path}: ${body?.message || 'request failed'}`);
@@ -36,13 +42,13 @@ try {
     throw new Error('GitHub does not report main as protected.');
   }
 
-  const rulesets = await github(`/repos/${repo}/rulesets`);
+  const rulesets = await github(`/repos/${repo}/rulesets`, true);
   const candidate = Array.isArray(rulesets)
     ? rulesets.find(item => item?.name === 'Protect main' && item?.target === 'branch' && item?.enforcement === 'active')
     : null;
   if (!candidate?.id) throw new Error('No active Protect main branch ruleset was found.');
 
-  const ruleset = await github(`/repos/${repo}/rulesets/${candidate.id}`);
+  const ruleset = await github(`/repos/${repo}/rulesets/${candidate.id}`, true);
   const rules = Array.isArray(ruleset?.rules) ? ruleset.rules : [];
   const byType = new Map(rules.map(rule => [rule.type, rule]));
   if (!byType.has('deletion') || !byType.has('non_fast_forward')) {
