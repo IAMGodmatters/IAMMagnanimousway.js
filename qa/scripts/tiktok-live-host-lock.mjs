@@ -6,6 +6,7 @@ const social = fs.readFileSync(new URL('frontend/app/social-hub/page.tsx', root)
 const research = fs.readFileSync(new URL('docs/research/tiktok-live-ai-host-frontier-technology-2026-11-25.md', root), 'utf8');
 const cloudDiagnostic = fs.readFileSync(new URL('.github/workflows/cloudflare-worker-resource-diagnostic.yml', root), 'utf8');
 const avatarRuntime = fs.readFileSync(new URL('worker/src/tiktok-live-avatar-runtime.js', root), 'utf8');
+const avatarUsage = avatarRuntime.slice(avatarRuntime.indexOf('async function usage'), avatarRuntime.indexOf('export async function handleTikTokLiveAvatar'));
 const avatarMigration = fs.readFileSync(new URL('worker/migrations/0113_tiktok_live_avatar_sessions.sql', root), 'utf8');
 const operations = fs.readFileSync(new URL('worker/src/operations-entrypoint.js', root), 'utf8');
 const security = fs.readFileSync(new URL('worker/src/security-entrypoint.js', root), 'utf8');
@@ -71,6 +72,8 @@ const checks = [
   ['Simli sessions are provider-capped at 120 seconds and 30 idle seconds', avatarRuntime.includes('MAX_SESSION_SECONDS=120') && avatarRuntime.includes('MAX_IDLE_SECONDS=30')],
   ['failed Simli requests consume the monthly reservation budget', avatarRuntime.includes("state IN ('pending','issued','ended','expired','failed')") && avatarRuntime.includes("state='failed'")],
   ['Simli free-tier usage has a conservative 20-session reservation ceiling', avatarRuntime.includes('MAX_MONTHLY_SESSIONS=20') && avatarRuntime.includes('SIMLI_MONTHLY_TRIAL_LIMIT')],
+  ['Simli usage GET path is read-only and does not spend D1 row writes', avatarUsage.includes('SELECT COUNT(*)') && !avatarUsage.includes('UPDATE tiktok_live_avatar_sessions')],
+  ['expired avatar reservations are reclaimed only when starting a new session', avatarRuntime.includes("state='expired',updated_at=? WHERE tenant_id=? AND usage_month=? AND state='issued'") && avatarRuntime.includes('never write on usage GETs')],
   ['Simli D1 ledger does not store credentials or provider session tokens', avatarMigration.includes('session_seconds') && !/api_key|session_token/i.test(avatarMigration)],
   ['Simli session route is wired into Worker operations', operations.includes('handleTikTokLiveAvatar') && operations.includes('await handleTikTokLiveAvatar(request,env)')],
   ['Simli secret route bypasses the standalone API proxy', security.includes("url.pathname.startsWith('/api/tiktok-live/avatar/')")],
