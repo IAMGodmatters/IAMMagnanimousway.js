@@ -161,7 +161,7 @@ function unlockVault(passphrase){
  }
 }
 function lockVault(){
- broadcastAvatarState({type:'locked'});
+ if(vaultKey)broadcastAvatarState({type:'locked'});
  closeBridge();
  pendingBridgeCommands.length=0;
  liveEvents.clear();liveEventsRestored=false;liveEventJournalError='';liveEventJournalWarning='';
