@@ -1,6 +1,7 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { CSSProperties, FormEvent } from 'react';
 import { postMagnanimousChat } from '../../lib/magnanimous-chat-transport';
 import { primeNaturalSpeech, speakTextNaturally, stopNaturalSpeech } from '../../lib/natural-speech';
 import { configurePersonaVoice } from '../../lib/persona-voice';
@@ -161,7 +162,7 @@ export default function TikTokLiveHost() {
             <div className="hostName">MAGNANIMOUS</div>
             <div className="hostRole">YOUR AI LIVE CO-HOST</div>
             <div className="equalizer" aria-label={speaking ? 'Voice playing' : 'Voice idle'}>
-              {Array.from({ length: 32 }, (_, index) => <i key={index} style={{ '--bar': `${speaking ? 10 + ((index * 19) % 38) : 5 + ((index * 7) % 8)}px` } as React.CSSProperties} />)}
+              {Array.from({ length: 32 }, (_, index) => <i key={index} style={{ '--bar': `${speaking ? 10 + ((index * 19) % 38) : 5 + ((index * 7) % 8)}px` } as CSSProperties} />)}
             </div>
             <div className="disclosure">AI-GENERATED HOST • LIVE HUMAN MODERATION</div>
             <div className="spokenReply">{hostReply}</div>
