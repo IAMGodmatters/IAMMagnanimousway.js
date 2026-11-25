@@ -246,8 +246,8 @@ function cleanLiveViewerText(value: string) {
       }
       if (!automatic || takeoverRef.current) {
         setNotice(error?.name === 'AbortError'
-          ? 'Magnanimous AI took too long. The comment has been preserved; retry when ready.'
-          : error?.message || 'Magnanimous AI could not answer this comment. The automatic queue has paused.');
+          ? (source === 'show-rundown' ? 'Magnanimous AI took too long. The show segment has been preserved; retry when ready.' : 'Magnanimous AI took too long. The comment has been preserved; retry when ready.')
+          : error?.message || (source === 'show-rundown' ? 'Magnanimous AI could not prepare this show segment. The automatic queue has paused.' : 'Magnanimous AI could not answer this comment. The automatic queue has paused.'));
       }
       setStatus(takeoverRef.current ? 'AI TAKEOVER ACTIVE · QUEUE PAUSED' : 'PREVIEW READY');
     } finally {
@@ -340,7 +340,7 @@ function cleanLiveViewerText(value: string) {
   function skipFailedQueuedComment() {
     setFailedQueuedComment(null);
     setTakeoverPaused(false);
-    setNotice('The failed comment was skipped. Magnanimous will continue with the remaining queue.');
+    setNotice('The failed item was skipped. Magnanimous will continue with the remaining queue.');
   }
 
   useEffect(() => {
@@ -476,7 +476,7 @@ function cleanLiveViewerText(value: string) {
               <button type="button" className="stop" onClick={() => stopTakeover()} disabled={!takeoverActive}>STOP AI TAKEOVER</button>
             </div>
             <small>{queuedComments.length} comment(s) waiting in the local queue. The local queue is capped at 25 comments. When takeover is off, each comment requires a separate operator action.</small>
-            {failedQueuedComment && <div className="takeoverFailure" role="alert"><b>Automatic answer paused</b><p>The comment “{failedQueuedComment.text}” could not be answered and has been preserved.</p><div><button type="button" className="secondary" onClick={retryFailedQueuedComment}>Retry comment</button><button type="button" className="quiet" onClick={skipFailedQueuedComment}>Skip and continue</button></div></div>}
+            {failedQueuedComment && <div className="takeoverFailure" role="alert"><b>Automatic answer paused</b><p>{failedQueuedComment.source === 'show-rundown' ? 'The show segment' : 'The comment'} “{failedQueuedComment.text}” could not be completed and has been preserved.</p><div><button type="button" className="secondary" onClick={retryFailedQueuedComment}>Retry comment</button><button type="button" className="quiet" onClick={skipFailedQueuedComment}>Skip and continue</button></div></div>}
             <p className="takeoverBoundary">TikTok does not provide a connected comment feed in this studio. You must still paste or type viewer comments here. AI takeover automatically answers and speaks queued comments; it does not start/end the broadcast, moderate viewers, send TikTok chat messages, spend money, or change account settings.</p>
           </section>
           <form onSubmit={answerComment}>
