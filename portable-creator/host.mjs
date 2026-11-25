@@ -236,6 +236,7 @@ function safeProject(value){
 }
 async function handleApi(req,res,url){
  if(req.method==='GET'&&url.pathname==='/api/avatar/events'){
+  if(avatarClients.size>=8)return json(res,429,{detail:'The local avatar stream has reached its connection limit.'});
   securityHeaders(res,'text/event-stream; charset=utf-8');
   res.setHeader('connection','keep-alive');
   res.setHeader('x-accel-buffering','no');
