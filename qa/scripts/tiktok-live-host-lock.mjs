@@ -40,7 +40,7 @@ const checks = [
 
   ['bridge UI uses the provider-neutral client', bridgeUi.includes('createLiveBridgeClient') && bridgeUi.includes('LiveEvent')],
   ['event bridge relays only bounded host speech commands between same-origin tabs', bridgeUi.includes("new BroadcastChannel('magnanimous-live-host-bridge-v1')") && bridgeUi.includes("data.type!=='host.speak'") && bridgeUi.includes(".slice(0,500)") && bridgeUi.includes("type:'host.speak.result'")],
-  ['event bridge reports connection status to the online AI host', bridgeUi.includes("data.type==='bridge.status.request'") && bridgeUi.includes("type:'bridge.status'") && bridgeUi.includes("statusRef.current==='connected'")],
+  ['event bridge reports connection status to the online AI host', /data\.type\s*===\s*['\"]bridge\.status\.request['\"]/.test(bridgeUi) && /postMessage\(\{\s*type:\s*['\"]bridge\.status['\"]/.test(bridgeUi) && /statusRef\.current\s*===\s*['\"]connected['\"]/.test(bridgeUi) && /hostChannelRef\.current\?\.postMessage/.test(bridgeUi)],
 
   ['bridge UI truthfully discloses that the companion and adapters are not deployed', bridgeUi.includes('Provider account adapters and public broadcasting are not yet connected.')],
   ['bridge UI rejects provider passwords and uses temporary revocable pairing credentials', bridgeUi.includes('Do not enter TikTok, Google, Meta, Twitch, Zoom, OBS or game-account passwords') && bridgeUi.includes('temporary pairing credentials') && bridgeUi.includes('Revoke pairing')],
