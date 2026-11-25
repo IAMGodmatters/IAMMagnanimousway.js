@@ -164,3 +164,22 @@ This repository does not bundle third-party binaries or model weights. The packa
 
 Do not treat a successful local build as proof that every device, camera, game, driver or streaming account is compatible.
 \n## Magnanimous show director\n\nThe local show director turns validated audience and game events into bounded review cues (welcome, reply prompt, game commentary, poll update, thank-you and production notes). Cues are review-only; they never directly control a game, post, moderate, spend money or trigger a scene change. A separate `host.speak` command can send a short line to the local AI-host panel, but the operator must approve it locally before the selected device voice speaks. Viewer text is untrusted content, not an instruction to the AI. Cues expire after 45 seconds by default and are generated only for events the operator pulls from the local queue.\n\n## Cross-device reality\n\nA USB SSD can carry the Magnanimous workspace, models, media and Windows OBS Portable files, but it cannot make one binary or one OBS profile work unchanged on every operating system. OBS Portable Mode is Windows-only and its media references need relative/common paths. The launcher must detect the OS/architecture, use the matching native runtime, and keep project files portable. Public streaming and Zoom meetings still need network access.\n
+
+## Connect a trusted game or local app
+
+After unlocking the encrypted workspace, reveal the temporary **game event token** in the local Creator. A trusted local Node.js game/app integration can use `game-event-client.mjs`:
+
+```js
+import { sendLocalGameEvent } from './game-event-client.mjs';
+
+await sendLocalGameEvent({
+  token: process.env.MAGNANIMOUS_GAME_TOKEN,
+  gameName: 'Your game or app',
+  actorName: 'Game event',
+  text: 'A round has started. Ask the audience to predict the winner.'
+});
+```
+
+Keep the token in the local process environment or a protected secret store; never commit it, put it in a public game script, or send it to a browser overlay. The helper has a fixed `127.0.0.1` destination and will not forward the bearer token to an arbitrary URL. The Creator validates, deduplicates, rate-limits and encrypts events before they enter the local show queue. When the online bridge is connected, approved event types can be relayed to the web host. The AI host sees an event only after the operator pulls it into the show director.
+
+This is an event-integration contract, not a universal plug-in for every game. A specific game still needs a permitted API, plugin, webhook or operator cue. It does not read process memory, inject input, bypass anti-cheat or control gameplay. The online browser host currently supports operator-entered game moments; automatic game telemetry from every title is not connected yet.
