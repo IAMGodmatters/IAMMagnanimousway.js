@@ -59,6 +59,9 @@ jobs:
         run: node qa/scripts/product-contract-locks.mjs
 
       - name: Verify 13-layer offline security-review evidence
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: node qa/scripts/security-procurement-evidence.mjs
 
       - name: Inventory 13 production engineering domains without live probes
