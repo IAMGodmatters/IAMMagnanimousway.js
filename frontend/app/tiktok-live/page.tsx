@@ -16,13 +16,6 @@ async function read(response: Response) {
   catch { return { detail: raw.startsWith('<') ? 'The Magnanimous service returned a webpage instead of an answer.' : raw || `Request failed (${response.status}).` }; }
 }
 
-async function sha256Base64(value: string): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
-  let binary = '';
-  new Uint8Array(digest).forEach(byte => { binary += String.fromCharCode(byte); });
-  return btoa(binary);
-}
-
 function isAllowedLocalEventUrl(value: string): boolean {
   try {
     const url = new URL(value);
