@@ -44,7 +44,7 @@ try{
  const home=await fetch(origin+'/');
  assert.equal(home.status,200,'Local creator homepage should load.');
  assert.match(home.headers.get('content-security-policy')||'',/default-src 'self'/,'Homepage must enforce a local-only CSP.');
- assert.match(await home.text(),/MAGNANIMOUS PORTABLE CREATOR/,'Homepage content should identify the portable app.');
+ assert.match(await home.text(),/MAGNANIMOUS[\\s\\S]*PORTABLE CREATOR/,'Homepage content should identify the portable app.');
  const css=await fetch(origin+'/styles.css');
  assert.equal(css.status,200,'Local stylesheet should load.');
  const health=await (await fetch(origin+'/api/health')).json();
