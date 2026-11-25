@@ -14,12 +14,12 @@ const css=read('portable-creator/app/styles.css');
 const launcher=read('portable-creator/launch-windows.ps1');
 const manifest=JSON.parse(read('portable-creator/manifest.json'));
 const readme=read('portable-creator/README.md');
-const uiIds=[...html.matchAll(/\\bid="([^"]+)"/g)].map(match=>match[1]);
-const uiSelectors=[...app.matchAll(/\\$\\('([^']+)'\\)/g)].map(match=>match[1]);
+const uiIds=[...html.matchAll(/\bid="([^"]+)"/g)].map(match=>match[1]);
+const uiSelectors=[...app.matchAll(/\$\('([^']+)'\)/g)].map(match=>match[1]);
 const missingUiSelectors=[...new Set(uiSelectors.filter(id=>!uiIds.includes(id)))];
 assert.equal(new Set(uiIds).size,uiIds.length,'Portable Creator HTML IDs must be unique.');
 assert.deepEqual(missingUiSelectors,[],'Every Portable Creator JavaScript selector must resolve to an HTML element.');
-assert(!/\\b(?:innerHTML|outerHTML|insertAdjacentHTML|eval|Function)\\b/.test(app),'Portable Creator must not inject HTML or evaluate dynamic code.');
+assert(!/\b(?:innerHTML|outerHTML|insertAdjacentHTML|eval|Function)\b/.test(app),'Portable Creator must not inject HTML or evaluate dynamic code.');
 
 const creatorArchitecture=read('docs/live-studio/universal-creator-architecture.md');
 const onlineRelay=read('worker/src/live-bridge-relay.js');
