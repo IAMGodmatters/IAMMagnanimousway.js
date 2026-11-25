@@ -24,13 +24,13 @@ export function normalizeLocalGameEvent(input) {
   const eventId = typeof input.eventId === 'string' ? input.eventId.trim() : '';
   const occurredAt = typeof input.occurredAt === 'string' ? input.occurredAt : '';
   const text = typeof input.text === 'string'
-    ? input.text.replace(/[\\u0000-\\u001f\\u007f]/g, ' ').trim().slice(0, 500)
+    ? input.text.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 500)
     : '';
   const gameName = typeof input.gameName === 'string'
-    ? input.gameName.replace(/[\\u0000-\\u001f\\u007f]/g, ' ').trim().slice(0, 80)
+    ? input.gameName.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 80)
     : '';
   const actorName = typeof input.actorName === 'string'
-    ? input.actorName.replace(/[<>\\u0000-\\u001f\\u007f]/g, '').trim().slice(0, 48)
+    ? input.actorName.replace(/[<>\u0000-\u001f\u007f]/g, '').trim().slice(0, 48)
     : 'Game integration';
   if (input.protocolVersion !== 1 || !/^[A-Za-z0-9._:-]{1,160}$/.test(eventId)) return null;
   if (!occurredAt || !Number.isFinite(Date.parse(occurredAt)) || !text) return null;
