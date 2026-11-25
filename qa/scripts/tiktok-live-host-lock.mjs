@@ -3,6 +3,7 @@ import fs from 'node:fs';
 const root = new URL('../..', import.meta.url);
 const host = fs.readFileSync(new URL('frontend/app/tiktok-live/page.tsx', root), 'utf8');
 const social = fs.readFileSync(new URL('frontend/app/social-hub/page.tsx', root), 'utf8');
+const research = fs.readFileSync(new URL('docs/research/tiktok-live-ai-host-frontier-technology-2026-11-25.md', root), 'utf8');
 
 const checks = [
   ['host uses Magnanimous native chat transport', host.includes('postMagnanimousChat') && host.includes('${api}/api/chat')],
@@ -14,7 +15,15 @@ const checks = [
   ['host clearly discloses AI identity', host.includes('AI-GENERATED HOST') && host.includes('Do not pretend to be a human')],
   ['host truthfully discloses that this is not a TikTok broadcast', host.includes('It is not a TikTok broadcast')],
   ['viewer comments are manually entered by the operator', host.includes('Paste or type a viewer') && host.includes('LIVE HUMAN MODERATION')],
-  ['TikTok Shop AI-narration restriction is visible in the host guidance', host.includes('Do not use this AI-voice host to sell products on TikTok Shop LIVE')],
+  ['TikTok Shop AIGC permission is distinguished from non-interactive LIVE restrictions', host.includes('currently allows AI-generated content') && host.includes('computer-generated voices') && host.includes('real human host present')],
+  ['frontier technology acquisition panel is visible', host.includes('The newest live-host technology you can acquire') && host.includes('frontier')],
+  ['Gemini Live Avatar short-session limitation is disclosed', host.includes('few minutes') && host.includes('not hours')],
+  ['GPT-Live-1 voice-only limitation and price are disclosed', host.includes('GPT-Live-1') && host.includes('$0.05 per live-voice minute') && host.includes('not a rendered avatar')],
+  ['HeyGen LiveAvatar free-tier limits are disclosed', host.includes('10 credits per month') && host.includes('maximum two-minute session')],
+  ['no paid provider is activated by default', host.includes('Nothing below is activated, billed, or connected') && host.includes('NOT CONNECTED')],
+  ['official live chat and stream access boundary is documented', research.includes('smb.creator_data.read') && research.includes('not a general-purpose permission to read live chat comments')],
+  ['no-spend and Magnanimous-brain architecture is documented', research.includes('Magnanimous owns the intelligence') && research.includes('Do not silently buy minutes')],
+  ['frontier research lists dated primary sources', research.includes('25 November 2026') && research.includes('deepmind.google') && research.includes('seller-ph.tiktok.com')],
   ['Social Hub links to the host control room', social.includes('href="/tiktok-live"')],
 ];
 
