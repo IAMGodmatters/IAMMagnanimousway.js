@@ -5,6 +5,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { ObsWebSocketClient } from './obs-client.mjs';
 import { LiveEventRuntime } from './live-event-runtime.mjs';
+import { createReviewCues } from './live-show-director.mjs';
 
 const args=process.argv.slice(2);
 function arg(name,fallback){const i=args.indexOf(name);return i>=0?args[i+1]:fallback;}
@@ -222,7 +223,8 @@ async function handleApi(req,res,url){
  if(req.method==='POST'&&url.pathname==='/api/live/events/consume'){
   const body=await readJson(req);
   const limit=Number.isInteger(body.limit)?Math.max(1,Math.min(50,body.limit)):10;
-  return json(res,200,{events:liveEvents.consume(limit),...liveEvents.status()});
+  const events=liveEvents.consume(limit);
+  return json(res,200,{events,reviewCues:createReviewCues(events),...liveEvents.status()});
  }
  if(req.method==='POST'&&url.pathname==='/api/chat'){
   const body=await readJson(req),prompt=String(body.prompt||'').trim();
