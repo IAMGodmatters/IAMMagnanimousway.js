@@ -48,7 +48,7 @@ const checks=[
  ['TikTok developer access is explicitly review-gated',creatorArchitecture.includes('TikTok\'s developer documentation says API access requires an app submission and approval')],
  ['YouTube and Twitch use their official live event transports',creatorArchitecture.includes('liveChatMessages.streamList')&&creatorArchitecture.includes('Twitch EventSub WebSocket')],
  ['Zoom Meeting SDK bot restriction and RTMS alternative are documented',creatorArchitecture.includes('does not support bots or AI notetakers')&&creatorArchitecture.includes('RTMS')],
- ['OBS local WebSocket authentication and portability boundaries are documented',creatorArchitecture.includes('OBS WebSocket')&&creatorArchitecture.includes('authentication password')&&creatorArchitecture.includes('scene media references')],
+ ['OBS local WebSocket authentication and portability boundaries are documented',creatorArchitecture.includes('OBS WebSocket')&&creatorArchitecture.includes('authentication password')&&creatorArchitecture.includes('OBS Portable configuration is Windows-specific')&&creatorArchitecture.includes('All media paths must be portable')],
  ['game adapters prohibit process injection and anti-cheat bypass',creatorArchitecture.includes('does not read game memory, inject code, defeat anti-cheat')],
  ['offline and online delivery are distinct capabilities',creatorArchitecture.includes('Offline mode separates **local creation** from **Internet delivery**')],
 ];
