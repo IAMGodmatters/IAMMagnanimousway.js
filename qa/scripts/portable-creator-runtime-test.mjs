@@ -13,6 +13,7 @@ const temp=fs.mkdtempSync(path.join(os.tmpdir(),'magnanimous-portable-'));
 const target=path.join(temp,'portable');
 fs.mkdirSync(path.join(target,'app'),{recursive:true});
 fs.copyFileSync(path.join(SOURCE,'host.mjs'),path.join(target,'host.mjs'));
+fs.copyFileSync(path.join(SOURCE,'obs-client.mjs'),path.join(target,'obs-client.mjs'));
 for(const file of ['index.html','app.js','styles.css'])fs.copyFileSync(path.join(SOURCE,'app',file),path.join(target,'app',file));
 
 function freePort(){
