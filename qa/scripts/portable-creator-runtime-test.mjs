@@ -101,7 +101,7 @@ try{
  const gameTokenData=await tokenReveal.json();
  assert.match(gameTokenData.token,/^[A-Za-z0-9_-]{43}$/,'Game token must be 256-bit base64url.');
  assert.equal(gameTokenData.storage,'memory-only','Game token must never be persisted to disk.');
- const gameEvent={eventId:'local-game-'+Date.now(),occurredAt:new Date().toISOString(),gameName:'QA Game',actorName:'QA Game Event',text:'A level was completed'};
+ const gameEvent={protocolVersion:1,eventId:'local-game-'+Date.now(),occurredAt:new Date().toISOString(),gameName:'QA Game',actorName:'QA Game Event',text:'A level was completed'};
  const localGamePost=(token,event)=>fetch(origin+'/api/integrations/game/event',{method:'POST',headers:{authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify({event})});
  assert.equal((await localGamePost('A'.repeat(43),gameEvent)).status,401,'Invalid local integration token must be rejected.');
  assert.equal((await post(origin+'/api/integrations/game/event','https://attacker.example',{event:gameEvent})).status,403,'Cross-origin local game integration requests must be rejected.');
