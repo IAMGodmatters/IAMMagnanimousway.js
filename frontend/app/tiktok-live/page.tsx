@@ -8,8 +8,6 @@ import { configurePersonaVoice } from '../../lib/persona-voice';
 
 const api = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 type Line = { id: number; role: 'viewer' | 'host'; text: string };
-type LocalEvent = { id: number; source: string; type: string; timestamp: string; summary: string };
-
 async function read(response: Response) {
   const raw = await response.text();
   try { return JSON.parse(raw); }
@@ -44,22 +42,6 @@ async function sha256Base64(value: string): Promise<string> {
 }
 
 const SENSITIVE_EVENT_FIELD = /(password|token|secret|cookie|authorization|email|phone|mobile|address|refresh|api.?key|access.?key|user.?id|broadcaster.?id|channel.?id)/i;
-function cleanEventText(value: string): string {
-  return value
-    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/gi, '[email redacted]')
-    .replace(/(password|token|secret|cookie|authorization|api[_-]?key)=([^\\s&]+)/gi, '$1=[redacted]')
-    .slice(0, 140);
-}
-function summarizeLocalEvent(data: Record<string, unknown>): string {
-  return Object.entries(data).slice(0, 8).map(([key, value]) => {
-    const safe = SENSITIVE_EVENT_FIELD.test(key) ? '[redacted]' :
-      typeof value === 'string' ? cleanEventText(value) :
-      typeof value === 'number' || typeof value === 'boolean' ? String(value) :
-      '[structured data]';
-    return key.slice(0, 48) + ': ' + safe;
-  }).join(' • ').slice(0, 560);
-}
-
 const WELCOME = 'Welcome, everyone. This is Magnanimous AI, an openly disclosed AI co-host. I am here to share useful information, answer your questions, and keep the conversation respectful. Add your question in the comments and the host operator will bring it into the conversation.';
 
 export default function TikTokLiveHost() {
@@ -82,11 +64,6 @@ export default function TikTokLiveHost() {
   const [status, setStatus] = useState('PREVIEW ONLY');
   const [notice, setNotice] = useState('');
   const [welcomeText, setWelcomeText] = useState(WELCOME);
-  const [bridgeUrl, setBridgeUrl] = useState('ws://127.0.0.1:8080/');
-  const [bridgePassword, setBridgePassword] = useState('');
-  const [bridgeStatus, setBridgeStatus] = useState('DISCONNECTED');
-  const [bridgeEvents, setBridgeEvents] = useState<LocalEvent[]>([]);
-  const bridgeRef = useRef<WebSocket | null>(null);
 
   const topicInstruction = useMemo(() => {
     if (topic === 'Faith & Scripture') return 'You are speaking in a Christian ministry and Bible-learning context. When relevant, use the King James Version (KJV), distinguish Scripture from your own explanation, and never invent a verse or claim a quotation is Scripture unless accurate.';
@@ -97,7 +74,8 @@ export default function TikTokLiveHost() {
 
   useEffect(() => () => {
     stopNaturalSpeech();
-    bridgeRef.current?.close(1000, 'Magnanimous host closed');
+    streamerBotSocket.current?.close(1000, 'Magnanimous host page closed');
+    streamerBotSocket.current = null;
   }, []);
 
   function speak(text: string) {
@@ -222,113 +200,6 @@ export default function TikTokLiveHost() {
     }
   }
 
-  async function connectLocalBridge() {
-    if (bridgeRef.current?.readyState === WebSocket.OPEN || bridgeRef.current?.readyState === WebSocket.CONNECTING) return;
-    let endpoint: URL;
-    try { endpoint = new URL(bridgeUrl); } catch { setNotice('Enter a valid local WebSocket address.'); return; }
-    if (!['ws:', 'wss:'].includes(endpoint.protocol) || !['127.0.0.1', 'localhost', '[::1]'].includes(endpoint.hostname)) {
-      setNotice('For safety, this browser connector accepts only localhost / 127.0.0.1 WebSocket addresses.');
-      return;
-    }
-    setNotice('');
-    setBridgeStatus('CONNECTING');
-    const socket = new WebSocket(endpoint.toString());
-    bridgeRef.current = socket;
-    let subscribed = false;
-    const subscribe = () => {
-      if (subscribed || socket.readyState !== WebSocket.OPEN) return;
-      subscribed = true;
-      socket.send(JSON.stringify({
-        request: 'Subscribe',
-        id: 'magnanimous-live-events',
-        events: {
-          Twitch: ['ChatMessage', 'Follow', 'Cheer', 'Sub', 'ReSub', 'GiftSub', 'GiftBomb', 'Raid', 'RewardRedemption', 'PresentViewers'],
-          YouTube: ['Message', 'SuperChat', 'SuperSticker', 'NewSubscriber', 'NewSponsor', 'PollStarted', 'PollUpdated', 'PollClosed', 'BroadcastStarted', 'BroadcastEnded'],
-          Kick: ['ChatMessage', 'Follow', 'Subscription', 'RewardRedemption', 'StreamOnline', 'StreamOffline', 'ViewerCountUpdate'],
-          OBS: ['Connected', 'Disconnected', 'RecordingStarted', 'RecordingStopped', 'SceneChanged', 'StreamingStarted', 'StreamingStopped', 'Event', 'VendorEvent'],
-          VTubeStudio: ['Connected', 'Disconnected', 'HotkeyTriggered', 'ItemEvent', 'ModelAnimation', 'ModelClicked', 'ModelLoaded', 'ModelUnloaded', 'TrackingStatusChanged', 'BackgroundChanged', 'ModelConfigChanged'],
-          StreamDeck: ['Action', 'Connected', 'Disconnected', 'Info'],
-          Voicemod: ['Connected', 'Disconnected', 'SoundboardChanged', 'VoiceLoaded'],
-          CrowdControl: ['CoinExchange', 'EffectRequest', 'EffectSuccess', 'EffectFailure', 'GameSessionStart', 'GameSessionEnd', 'TimedEffectStarted', 'TimedEffectEnded', 'TimedEffectUpdated'],
-          Inputs: ['InputKeyPress', 'InputMouseClick'],
-          MIDI: ['Message'],
-          Custom: ['Event', 'CodeEvent'],
-          StreamElements: ['Connected', 'Disconnected', 'Tip', 'Merch'],
-          Streamlabs: ['Connected', 'Disconnected', 'Donation', 'CharityDonation', 'Merchandise']
-        }
-      }));
-    };
-    socket.onopen = () => setBridgeStatus('AUTHENTICATING');
-    socket.onmessage = async message => {
-      try {
-        const payload = JSON.parse(String(message.data));
-        if (payload.request === 'Hello') {
-          if (payload.authentication?.salt && payload.authentication?.challenge) {
-            if (!bridgePassword) {
-              setBridgeStatus('PASSWORD REQUIRED');
-              setNotice('Streamer.bot requires a password. Enter the local WebSocket password, then reconnect.');
-              socket.close(1008, 'Local authentication required');
-              return;
-            }
-            const secret = await sha256Base64(bridgePassword + payload.authentication.salt);
-            const authentication = await sha256Base64(secret + payload.authentication.challenge);
-            socket.send(JSON.stringify({ request: 'Authenticate', id: 'magnanimous-live-auth', authentication }));
-          } else {
-            subscribe();
-          }
-          return;
-        }
-        if (payload.id === 'magnanimous-live-auth') {
-          if (payload.status === 'ok') subscribe();
-          else {
-            setBridgeStatus('AUTHENTICATION FAILED');
-            setNotice('Streamer.bot rejected the local password. Check it in Streamer.bot and reconnect.');
-            socket.close(1008, 'Authentication failed');
-          }
-          return;
-        }
-        if (payload.id === 'magnanimous-live-events') {
-          if (payload.status === 'ok') setBridgeStatus('CONNECTED • READ ONLY');
-          else {
-            setBridgeStatus('SUBSCRIPTION FAILED');
-            setNotice('Streamer.bot did not accept the selected event subscriptions. Check the installed version and available event names.');
-          }
-          return;
-        }
-        if (payload.event?.source && payload.event?.type) {
-          const source = String(payload.event.source).slice(0, 40);
-          const type = String(payload.event.type).slice(0, 60);
-          const data = payload.data && typeof payload.data === 'object' ? payload.data : {};
-          const summary = summarizeLocalEvent(data);
-          const eventLine = { id: Date.now() + Math.random(), source, type, timestamp: String(payload.timeStamp || new Date().toISOString()), summary };
-          setBridgeEvents(items => [...items.slice(-19), eventLine]);
-        }
-      } catch {
-        setNotice('A local event could not be parsed. The connection remains read-only.');
-      }
-    };
-    socket.onerror = () => {
-      setBridgeStatus('CONNECTION ERROR');
-      setNotice('Could not connect to Streamer.bot. Check that it is running, the WebSocket server is enabled, and the local address/port are correct.');
-    };
-    socket.onclose = () => {
-      if (bridgeRef.current === socket) bridgeRef.current = null;
-      setBridgePassword('');
-      setBridgeStatus('DISCONNECTED');
-    };
-  }
-
-  function disconnectLocalBridge() {
-    bridgeRef.current?.close(1000, 'Operator disconnected');
-    bridgeRef.current = null;
-    setBridgeStatus('DISCONNECTED');
-    setBridgePassword('');
-  }
-
-  function useBridgeEvent(item: LocalEvent) {
-    setViewerComment('Live event from ' + item.source + ' (' + item.type + '). ' + item.summary + '. Give the audience a short, engaging response or ask a useful follow-up.');
-  }
-
   function disconnectStreamerBot() {
     const socket = streamerBotSocket.current;
     streamerBotSocket.current = null;
@@ -424,20 +295,28 @@ export default function TikTokLiveHost() {
 
       if (packet?.id === 'magnanimous-get-events' && authenticated) {
         const available = packet.events && typeof packet.events === 'object' ? packet.events : {};
-        const requested: Record<string, string[]> = {
-          Twitch: ['ChatMessage', 'Follow', 'Cheer', 'Sub', 'ReSub', 'GiftSub', 'GiftBomb', 'Raid', 'RewardRedemption', 'HypeTrainStart', 'HypeTrainUpdate', 'HypeTrainLevelUp', 'HypeTrainEnd', 'PollCreated', 'PollUpdated', 'PollCompleted', 'PredictionCreated', 'PredictionUpdated', 'PredictionCompleted', 'PredictionCanceled', 'PredictionLocked', 'CharityDonation'],
-          youTube: ['Message', 'SuperChat', 'SuperSticker', 'NewSponsor', 'MembershipGift', 'GiftMembershipReceived', 'BroadcastStarted', 'BroadcastEnded'],
-          obs: ['Connected', 'Disconnected'],
-          general: ['Custom'],
-          streamlabs: ['Donation', 'Merchandise'],
-          streamElements: ['Tip', 'Merch'],
-          midi: ['Message'],
-          speechToText: ['Dictation', 'Command'],
-        };
+        const requested: Array<{ category: string; names: string[] }> = [
+          { category: 'twitch', names: ['ChatMessage', 'Follow', 'Cheer', 'Sub', 'ReSub', 'GiftSub', 'GiftBomb', 'Raid', 'RewardRedemption', 'HypeTrainStart', 'HypeTrainUpdate', 'HypeTrainLevelUp', 'HypeTrainEnd', 'PollCreated', 'PollUpdated', 'PollCompleted', 'PredictionCreated', 'PredictionUpdated', 'PredictionCompleted', 'PredictionCanceled', 'PredictionLocked', 'CharityDonation'] },
+          { category: 'youTube', names: ['Message', 'SuperChat', 'SuperSticker', 'NewSponsor', 'MembershipGift', 'GiftMembershipReceived', 'BroadcastStarted', 'BroadcastEnded', 'PollStarted', 'PollUpdated', 'PollClosed'] },
+          { category: 'kick', names: ['ChatMessage', 'Follow', 'Subscription', 'RewardRedemption', 'StreamOnline', 'StreamOffline', 'ViewerCountUpdate'] },
+          { category: 'obs', names: ['Connected', 'Disconnected', 'RecordingStarted', 'RecordingStopped', 'SceneChanged', 'StreamingStarted', 'StreamingStopped', 'Event', 'VendorEvent'] },
+          { category: 'vTubeStudio', names: ['Connected', 'Disconnected', 'HotkeyTriggered', 'ItemEvent', 'ModelAnimation', 'ModelClicked', 'ModelLoaded', 'ModelUnloaded', 'TrackingStatusChanged', 'BackgroundChanged', 'ModelConfigChanged'] },
+          { category: 'streamDeck', names: ['Action', 'Connected', 'Disconnected', 'Info'] },
+          { category: 'voicemod', names: ['Connected', 'Disconnected', 'SoundboardChanged', 'VoiceLoaded'] },
+          { category: 'crowdControl', names: ['CoinExchange', 'EffectRequest', 'EffectSuccess', 'EffectFailure', 'GameSessionStart', 'GameSessionEnd', 'TimedEffectStarted', 'TimedEffectEnded', 'TimedEffectUpdated'] },
+          { category: 'inputs', names: ['InputControllerAxis', 'InputControllerButton', 'InputControllerHat', 'InputKeyPress', 'InputMouseClick'] },
+          { category: 'midi', names: ['Message'] },
+          { category: 'general', names: ['Custom'] },
+          { category: 'streamElements', names: ['Tip', 'Merch'] },
+          { category: 'streamlabs', names: ['Donation', 'CharityDonation', 'Merchandise'] },
+          { category: 'speechToText', names: ['Dictation', 'Command', 'Log'] },
+        ];
         const selected: Record<string, string[]> = {};
-        for (const [category, names] of Object.entries(requested)) {
-          const providerNames = Array.isArray(available[category]) ? available[category].map((item: unknown) => String(item)) : [];
-          const matches = names.filter(name => providerNames.includes(name));
+        for (const requestedCategory of requested) {
+          const category = Object.keys(available).find(key => key.toLowerCase() === requestedCategory.category.toLowerCase());
+          if (!category || !Array.isArray(available[category])) continue;
+          const providerNames = available[category].map((item: unknown) => String(item));
+          const matches = requestedCategory.names.filter(name => providerNames.includes(name));
           if (matches.length) selected[category] = matches;
         }
         if (!Object.keys(selected).length) {
@@ -680,18 +559,6 @@ export default function TikTokLiveHost() {
           <li><b>Bring comments in safely.</b> Read comments in TikTok yourself, then paste or type a question into this control room. Magnanimous will answer and, when auto-speak is on, speak the response through the browser audio.</li>
           <li><b>Disclose the AI host.</b> Keep the visible AI-generated label. Do not use another person's face or voice without permission.</li>
         </ol>
-        <section className="localBridge" aria-labelledby="local-bridge-title">
-          <div className="localBridgeHead"><div><small>LOCAL APP + GAME CONNECTION</small><h3 id="local-bridge-title">Connect Streamer.bot</h3><p>Receive local events from OBS, VTube Studio, Stream Deck, Voicemod, MIDI, keyboard/mouse inputs, Crowd Control and supported chat/alert platforms. This connector is read-only: Magnanimous can understand an event and prepare a response, but cannot trigger game or OBS actions yet.</p></div><b className={bridgeStatus.includes('CONNECTED') ? 'bridgeOnline' : 'bridgeOffline'}>{bridgeStatus}</b></div>
-          <label className="field">Local WebSocket address
-            <input value={bridgeUrl} onChange={event => setBridgeUrl(event.target.value)} placeholder="ws://127.0.0.1:8080/" />
-          </label>
-          <label className="field">Streamer.bot WebSocket password (kept only in this page's memory)
-            <input type="password" autoComplete="off" value={bridgePassword} onChange={event => setBridgePassword(event.target.value)} placeholder="Enter local password if authentication is enabled" />
-          </label>
-          <div className="bridgeActions"><button className="primary" type="button" onClick={connectLocalBridge} disabled={bridgeStatus === 'CONNECTED • READ ONLY' || bridgeStatus === 'CONNECTING'}>Connect local events</button><button className="secondary" type="button" onClick={disconnectLocalBridge}>Disconnect</button></div>
-          <p className="techNote">Set Streamer.bot to bind to 127.0.0.1, enable Authentication and Enforce, and use a strong password. Never expose port 8080 publicly. Events stay in this page until you press Use as host topic; summaries redact common credential/contact fields before that. The local password is not sent to Magnanimous cloud services or saved to browser storage. Local-network browser permission and WebSocket policy may still vary by browser.</p>
-          <div className="bridgeFeed"><b>Recent local events</b>{bridgeEvents.length === 0 ? <p className="empty">No events received yet. Connect Streamer.bot, then test with an OBS scene change, VTube Studio hotkey, Stream Deck action, or approved game event.</p> : bridgeEvents.slice().reverse().map(item => <article key={item.id}><span>{item.source} • {item.type}</span><p>{item.summary || 'Event received'}</p><button type="button" onClick={() => useBridgeEvent(item)}>Use as host topic</button></article>)}</div>
-        </section>
         <section className="frontier" aria-labelledby="frontier-title">
           <div className="frontierHead">
             <small>FRONTIER TECHNOLOGY • RESEARCH CHECKED 25 NOVEMBER 2026</small>
@@ -812,7 +679,7 @@ export default function TikTokLiveHost() {
         .hostName{margin-top:28px;font-size:clamp(28px,4vw,43px);font-weight:900;letter-spacing:.12em;text-align:center;text-shadow:0 3px 18px #000}.hostRole{font-size:9px;letter-spacing:.24em;color:#d8bd79;margin-top:8px}.equalizer{height:50px;display:flex;align-items:center;justify-content:center;gap:4px;margin-top:28px}.equalizer i{display:block;width:4px;height:7px;border-radius:4px;background:linear-gradient(0deg,#d6ac57,#78e6f3);opacity:.9;transition:height .15s ease}.speaking .equalizer i{animation:bars .42s ease-in-out infinite alternate}@keyframes bars{to{transform:scaleY(.35)}}.disclosure{position:absolute;bottom:12%;font-size:8px;letter-spacing:.15em;color:#9fc5d1;text-align:center}.spokenReply{position:absolute;bottom:4%;left:8%;right:8%;font-size:9px;line-height:1.4;color:#c7dce3;text-align:center;max-height:8%;overflow:hidden;text-overflow:ellipsis}
         .stageActions{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:13px 0 5px}.primary,.secondary,.stop{border:0;border-radius:10px;padding:11px 13px;font-weight:800;font-size:11px;cursor:pointer}.primary{background:linear-gradient(110deg,#dcb75e,#8ee9f1);color:#07131b}.secondary{background:#123140;color:#c9f7ff;border:1px solid #2e6375}.stop{background:#311e25;color:#ffb9c2;border:1px solid #6c3944}.stageHint{color:#7893a2;font-size:10px;text-align:center;line-height:1.5}
         .console{padding:18px}.consoleHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:17px}.consoleHead h2{font-size:22px;margin:6px 0 0}.eventBus{border:1px solid #315163;border-radius:12px;background:#08131b;padding:12px;margin:12px 0}.eventBus>p{font-size:9px;line-height:1.5;color:#809aa8}.eventBusActions{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.eventState{font-size:8px;color:#d7b971;letter-spacing:.08em}.eventState.on{color:#92eeb7}.eventFeed{border-top:1px solid #244253;margin-top:10px;padding-top:10px}.eventFeedHead{display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#bfe4ee}.eventFeedHead button{background:transparent;border:0;color:#84e0f1;font-size:8px}.eventFeed article{background:#101e28;border:1px solid #2a495b;border-radius:9px;padding:9px;margin:7px 0}.eventFeed article small{font-size:8px;color:#8ddbe8}.eventFeed article p{font-size:10px;color:#e0f0f5;margin:5px 0}.eventFeed article button{font-size:8px;padding:7px 10px;min-height:30px}.director{border:1px solid #315163;border-radius:12px;background:#071019;padding:12px;margin:12px 0}.directorHead{display:flex;flex-direction:column;gap:5px}.directorHead small{font-size:8px;color:#d8ba72;letter-spacing:.15em}.directorHead b{font-size:12px;color:#dff6ff}.director button{margin:4px 5px 4px 0}.directorNote{font-size:9px;line-height:1.5;color:#809aa8}.creativePlan{margin-top:10px;border:1px solid #475b41;border-radius:9px;background:#13190f;padding:10px}.creativePlan b{color:#e5c878;font-size:10px}.creativePlan p{color:#d8e2d0;white-space:pre-wrap;font-size:10px;line-height:1.5}.safe{font-size:8px;color:#85e6b4;border:1px solid #326b54;border-radius:30px;padding:6px 8px}.field{display:block;color:#a7bdc8;font-size:10px;font-weight:700;margin:12px 0}.field select,.field textarea{display:block;width:100%;margin-top:7px;background:#050d13;color:#e9f8ff;border:1px solid #2b4b5b;border-radius:10px;padding:11px;font:inherit;font-size:12px;resize:vertical}.toggle{display:flex;align-items:center;gap:8px;color:#9eb3bd;font-size:10px;margin:10px 0}.toggle input{accent-color:#77dff1}.answerButton{width:100%;margin-top:7px}.primary:disabled{opacity:.45;cursor:not-allowed}.notice{background:#2a1d0e;color:#f1d59a;padding:10px;border:1px solid #6c5228;border-radius:9px;font-size:10px;line-height:1.5;margin-top:12px}.conversationHead{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #203b4b;margin-top:18px;padding-top:13px;color:#d4e7ee;font-size:11px}.conversationHead button{background:transparent;border:0;color:#79d9ea;font-size:9px;cursor:pointer}.conversation{max-height:380px;overflow:auto;margin-top:8px}.conversation article{padding:10px 12px;border-radius:10px;margin:7px 0}.conversation article.viewer{background:#112b39}.conversation article.host{background:#151a22;border:1px solid #3a4a51}.conversation article small{font-size:8px;letter-spacing:.13em;color:#80dfee}.conversation article p,.empty{font-size:11px;line-height:1.5;color:#d8e9ef;white-space:pre-wrap;margin:5px 0 0}.empty{color:#829ba8;padding:12px}
-        .setup{max-width:1440px;margin:18px auto 0;background:#08121a;border:1px solid #203b4b;border-radius:18px;padding:21px}.setup h2{margin:5px 0 14px;font-size:24px}.setup ol{padding-left:20px;color:#a4b8c2;font-size:11px;line-height:1.65}.setup li{margin:7px 0;padding-left:4px}.setup li b{color:#e8cd84}.frontier{margin-top:18px;border:1px solid #254557;border-radius:16px;background:#07131c;padding:18px}.frontierHead h2{font-size:clamp(23px,3vw,32px);margin:6px 0}.frontierHead p{max-width:900px;color:#8ea9b8;font-size:11px;line-height:1.6}.frontierHead small{color:#70dfef;letter-spacing:.16em;font-size:9px}.techGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:13px}.techCard{border:1px solid #244353;border-radius:12px;background:#0a1a24;padding:14px;display:flex;flex-direction:column;min-width:0}.techCard.recommended{border-color:#a58a4b;background:linear-gradient(145deg,#1d1b11,#0a1a24)}.techTag{font-size:8px;letter-spacing:.12em;color:#7bdff0;font-weight:900}.techCard h3{font-size:16px;margin:8px 0}.techCard p,.techCard li{color:#9eb4bf;font-size:10px;line-height:1.6}.techCard ul{padding-left:17px;margin:0 0 9px}.techNote{border-left:2px solid #ac8744;padding-left:9px}.techLinks{display:flex;flex-wrap:wrap;gap:12px;margin:7px 0 10px}.techLinks a{color:#83e1f1;font-size:9px;text-decoration:underline;text-underline-offset:3px}.techStatus{color:#91e6b2;font-size:8px;letter-spacing:.1em;margin-top:auto;padding-top:6px}.localBridge{margin-top:16px;padding:16px;border:1px solid #315266;border-radius:14px;background:#0b1720}.localBridgeHead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.localBridge small{font-size:9px;letter-spacing:.15em;color:#71dfef}.localBridge h3{font-size:20px;margin:5px 0}.localBridgeHead p{max-width:780px;color:#9eb4bf;font-size:10px;line-height:1.6}.bridgeOnline,.bridgeOffline{font-size:8px;letter-spacing:.1em;border-radius:20px;padding:7px 9px;white-space:nowrap}.bridgeOnline{color:#8ee8b5;border:1px solid #367354}.bridgeOffline{color:#d5bd80;border:1px solid #6a5a34}.localBridge .field input{display:block;width:100%;margin-top:7px;background:#050d13;color:#e9f8ff;border:1px solid #2b4b5b;border-radius:10px;padding:11px;font:inherit;font-size:12px}.bridgeActions{display:flex;gap:8px;flex-wrap:wrap}.bridgeFeed{margin-top:13px;border-top:1px solid #254253;padding-top:12px}.bridgeFeed>b{font-size:11px;color:#e8d49a}.bridgeFeed article{padding:10px;margin-top:7px;background:#0d202b;border-radius:9px}.bridgeFeed article span{font-size:9px;color:#78d9eb}.bridgeFeed article p{font-size:10px;color:#b3c5ce;margin:6px 0}.bridgeFeed article button{background:transparent;border:1px solid #356174;color:#91e6f1;border-radius:7px;padding:6px 9px;font-size:9px}.interactiveLayer{margin-top:14px;border:1px solid #315266;border-radius:13px;background:linear-gradient(145deg,#0e1c27,#09131b);padding:16px}.interactiveLayer>small{color:#71dfef;letter-spacing:.15em;font-size:9px}.interactiveLayer h3{font-size:20px;margin:7px 0}.interactiveLayer>p{font-size:10px;line-height:1.65;color:#9eb4bf}.interactiveGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:12px 0}.interactiveGrid>div{padding:11px;border:1px solid #284657;border-radius:9px;background:#0b1a23;display:flex;flex-direction:column;gap:6px}.interactiveGrid b{font-size:11px;color:#e7cd8a}.interactiveGrid span{font-size:9px;line-height:1.5;color:#9cb3bf}.interactiveLayer .techNote{border-left:2px solid #ac8744;padding-left:9px}.interactiveLayer .techLinks{display:flex;flex-wrap:wrap;gap:12px}.interactiveLayer .techLinks a{color:#83e1f1;font-size:9px;text-decoration:underline;text-underline-offset:3px}.techDecision{margin-top:13px;border:1px solid #50603a;border-radius:10px;background:#16190f;color:#c4d1ab;padding:13px;font-size:10px;line-height:1.6}.techDecision b{color:#efce7c}.policy{background:#171b12;border:1px solid #58633a;border-radius:10px;padding:14px;color:#d2ddb9;font-size:11px;line-height:1.6;margin-top:14px}.policy b{color:#f1d184}.policy p{margin:8px 0}.policy .techLinks{margin-bottom:0}.footLinks{display:flex;flex-wrap:wrap;gap:16px;border-top:1px solid #203b4b;margin-top:16px;padding-top:14px}.footLinks a{color:#7adff1;text-decoration:none;font-size:10px}
+        .setup{max-width:1440px;margin:18px auto 0;background:#08121a;border:1px solid #203b4b;border-radius:18px;padding:21px}.setup h2{margin:5px 0 14px;font-size:24px}.setup ol{padding-left:20px;color:#a4b8c2;font-size:11px;line-height:1.65}.setup li{margin:7px 0;padding-left:4px}.setup li b{color:#e8cd84}.frontier{margin-top:18px;border:1px solid #254557;border-radius:16px;background:#07131c;padding:18px}.frontierHead h2{font-size:clamp(23px,3vw,32px);margin:6px 0}.frontierHead p{max-width:900px;color:#8ea9b8;font-size:11px;line-height:1.6}.frontierHead small{color:#70dfef;letter-spacing:.16em;font-size:9px}.techGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:13px}.techCard{border:1px solid #244353;border-radius:12px;background:#0a1a24;padding:14px;display:flex;flex-direction:column;min-width:0}.techCard.recommended{border-color:#a58a4b;background:linear-gradient(145deg,#1d1b11,#0a1a24)}.techTag{font-size:8px;letter-spacing:.12em;color:#7bdff0;font-weight:900}.techCard h3{font-size:16px;margin:8px 0}.techCard p,.techCard li{color:#9eb4bf;font-size:10px;line-height:1.6}.techCard ul{padding-left:17px;margin:0 0 9px}.techNote{border-left:2px solid #ac8744;padding-left:9px}.techLinks{display:flex;flex-wrap:wrap;gap:12px;margin:7px 0 10px}.techLinks a{color:#83e1f1;font-size:9px;text-decoration:underline;text-underline-offset:3px}.techStatus{color:#91e6b2;font-size:8px;letter-spacing:.1em;margin-top:auto;padding-top:6px}.interactiveLayer{margin-top:14px;border:1px solid #315266;border-radius:13px;background:linear-gradient(145deg,#0e1c27,#09131b);padding:16px}.interactiveLayer>small{color:#71dfef;letter-spacing:.15em;font-size:9px}.interactiveLayer h3{font-size:20px;margin:7px 0}.interactiveLayer>p{font-size:10px;line-height:1.65;color:#9eb4bf}.interactiveGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:12px 0}.interactiveGrid>div{padding:11px;border:1px solid #284657;border-radius:9px;background:#0b1a23;display:flex;flex-direction:column;gap:6px}.interactiveGrid b{font-size:11px;color:#e7cd8a}.interactiveGrid span{font-size:9px;line-height:1.5;color:#9cb3bf}.interactiveLayer .techNote{border-left:2px solid #ac8744;padding-left:9px}.interactiveLayer .techLinks{display:flex;flex-wrap:wrap;gap:12px}.interactiveLayer .techLinks a{color:#83e1f1;font-size:9px;text-decoration:underline;text-underline-offset:3px}.techDecision{margin-top:13px;border:1px solid #50603a;border-radius:10px;background:#16190f;color:#c4d1ab;padding:13px;font-size:10px;line-height:1.6}.techDecision b{color:#efce7c}.policy{background:#171b12;border:1px solid #58633a;border-radius:10px;padding:14px;color:#d2ddb9;font-size:11px;line-height:1.6;margin-top:14px}.policy b{color:#f1d184}.policy p{margin:8px 0}.policy .techLinks{margin-bottom:0}.footLinks{display:flex;flex-wrap:wrap;gap:16px;border-top:1px solid #203b4b;margin-top:16px;padding-top:14px}.footLinks a{color:#7adff1;text-decoration:none;font-size:10px}
         @media(max-width:960px){.interactiveGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.techGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.workspace{grid-template-columns:1fr}.stage{max-height:720px}.intro{grid-template-columns:1fr}.console{max-width:none}}@media(max-width:560px){.interactiveGrid{grid-template-columns:1fr}.techGrid{grid-template-columns:1fr}.livePage{padding:14px 12px 40px}.topbar{font-size:8px}.intro{margin-top:25px}.intro h1{font-size:54px}.workspace{grid-template-columns:minmax(0,1fr)}.stageColumn,.console{padding:11px}.stage{width:min(100%,390px)}.stageLabel{font-size:7px}.consoleHead h2{font-size:19px}}
       `}</style>
     </main>
