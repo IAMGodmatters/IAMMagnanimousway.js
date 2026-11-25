@@ -86,6 +86,23 @@ Separately confirmed local mutations:
 
 The bridge intentionally does not expose a generic shell, arbitrary process execution, raw operating-system input events, or unrestricted filesystem access. Browser work uses a dedicated **Magnanimous Native Browser** capability instead of a generic remote-control endpoint. Office, media, and other device-specific operations still use capability-scoped tools where available.
 
+## OBS Studio local production adapter (Windows-first)
+
+The OBS adapter runs inside the already-paired Magnanimous Local Bridge. It does not add an inbound listener and does not send the OBS password, host, or port to Magnanimous cloud services.
+
+1. In OBS Studio 28 or newer, open **Tools → WebSocket Server Settings**, enable the WebSocket server, keep password authentication enabled, and use the local default port 4455 unless you have a specific reason to change it.
+2. Start the paired Local Bridge agent on this Windows computer.
+3. Run `python bridge_agent.py obs-configure` from the trusted Local Bridge folder. Enter the OBS password into the hidden prompt. The agent proves the OBS v5 challenge-response handshake before saving anything.
+4. Select the exact scene names that Magnanimous may switch to and exact existing media inputs that may be restarted as approved audio cues. Blank selections disable that class of action.
+5. The password is protected with Windows DPAPI for the current Windows user profile. It is not included in the task payload, browser, URL, logs, or heartbeat. The companion always connects only to `127.0.0.1`.
+6. Magnanimous can inspect OBS status, list scenes and read stream/recording status. A program-scene change or approved media cue requires a separate confirmed task; the local agent re-checks the allowlist and current OBS scene/input before acting.
+
+To remove this local credential, run `python bridge_agent.py obs-forget` and type `FORGET OBS` at the prompt. Revoking the paired Local Bridge device also prevents further remote tasks.
+
+**Not exposed:** broadcast start/stop, recording start/stop, account or chat moderation, arbitrary source creation, arbitrary file playback, process execution, shell commands, or any remote OBS password/endpoint field. The media cue action only restarts a locally approved OBS media input.
+
+This first credential-store implementation is Windows-specific because it uses DPAPI. The desktop adapter requires OBS's authenticated WebSocket server; it does not install OBS, the WebSocket server, virtual-camera drivers, models or other binaries. Online streaming still needs an Internet connection and platform authorization.
+ 
 ## Magnanimous Native Browser
 
 The Windows activation now attempts to install **Playwright 1.63.0 + Chromium** locally. When that succeeds, the paired computer advertises these Magnanimous-owned capabilities:
