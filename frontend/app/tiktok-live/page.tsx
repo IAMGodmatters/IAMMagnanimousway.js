@@ -8,6 +8,7 @@ import { configurePersonaVoice } from '../../lib/persona-voice';
 
 const api = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 type Line = { id: number; role: 'viewer' | 'host'; text: string };
+type ApprovedAction = { id: string; name: string };
 async function read(response: Response) {
   const raw = await response.text();
   try { return JSON.parse(raw); }
