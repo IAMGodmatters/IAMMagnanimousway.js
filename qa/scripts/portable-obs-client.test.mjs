@@ -38,6 +38,7 @@ assert.equal(connected.connected,true);
 assert.equal(FakeWebSocket.last.url,'ws://127.0.0.1:4455');
 const identify=FakeWebSocket.last.sent.find(packet=>packet.op===1);
 assert.equal(identify.d.authentication,expectedAuth('test-password'));
+assert.equal(identify.d.eventSubscriptions,0,'The adapter must not subscribe to unneeded OBS events.');
 const scenes=await client.getScenes();
 assert.deepEqual(scenes.scenes.map(scene=>scene.sceneName),['Starting Soon','Main Show']);
 assert.equal(scenes.currentProgramSceneName,'Starting Soon');
