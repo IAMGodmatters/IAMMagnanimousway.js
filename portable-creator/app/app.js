@@ -15,7 +15,7 @@ const hostBroadcast=typeof BroadcastChannel==='function'?new BroadcastChannel('m
 async function api(path,options={}){
  const response=await fetch(path,{...options,cache:'no-store',headers:{'content-type':'application/json',...(options.headers||{})}});
  const data=await response.json().catch(()=>({detail:'The local service returned an invalid response.'}));
- if(!response.ok)throw new Error(data.detail||'The local operation failed.');
+ if(!response.ok){const error=new Error(data.detail||'The local operation failed.');error.status=response.status;throw error;}
  return data;
 }
 function message(id,text,kind='info'){const el=$(id);el.textContent=text;el.className='message '+kind;}
@@ -411,8 +411,15 @@ async function acknowledgeLiveEvents(){
   const actions=$('liveEventList').querySelector('.actions');if(actions)actions.remove();
   await refreshLiveQueue();
  }catch(error){
-  if(button)button.disabled=false;
-  message('liveEventMessage',error.message,'error');
+  if(error.status===409){
+   state.pendingLiveDelivery=null;
+   $('livePullButton').disabled=false;
+   const actions=$('liveEventList').querySelector('.actions');if(actions)actions.remove();
+   message('liveEventMessage','That review lease expired. The events remain queued; pull them again to receive a fresh review receipt.','warning');
+  }else{
+   if(button)button.disabled=false;
+   message('liveEventMessage',error.message,'error');
+  }
  }
 }
 async function refresh(){
