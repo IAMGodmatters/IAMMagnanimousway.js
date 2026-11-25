@@ -35,6 +35,7 @@ export default function TikTokLiveHost() {
   const [status, setStatus] = useState('PREVIEW ONLY');
   const [notice, setNotice] = useState('');
   const [welcomeText, setWelcomeText] = useState(WELCOME);
+  const [scriptSectionIndex, setScriptSectionIndex] = useState(0);
   const [gameName, setGameName] = useState('');
   const [gameEventType, setGameEventType] = useState('moment');
   const [gameContext, setGameContext] = useState('');
@@ -78,6 +79,25 @@ export default function TikTokLiveHost() {
     setLines(items => [...items, { id: Date.now(), role: 'host', text: welcomeText.trim() }]);
     setHostReply(welcomeText.trim());
     speak(welcomeText.trim());
+  }
+
+  function useNextScriptCue() {
+    const sections = hostScript.split(/\n\s*\n/).map(section => section.trim()).filter(Boolean);
+    if (!sections.length) {
+      setNotice('Add your show script first. Separate sections with a blank line so the host can advance one cue at a time.');
+      return;
+    }
+    const index = scriptSectionIndex % sections.length;
+    const cue = sections[index].replace(/^#{1,4}\s*/gm, '').slice(0, 2400);
+    setScriptSectionIndex((index + 1) % sections.length);
+    setViewerComment('HOST SCRIPT CUE: Deliver this approved section naturally, then invite the audience to respond.\n\n' + cue);
+    setNotice('Loaded script cue ' + (index + 1) + ' of ' + sections.length + '. Review it, then ask Magnanimous AI to deliver it.');
+  }
+
+  function queueGameMoment(moment: string) {
+    setTopic('Gaming & Interactive');
+    setViewerComment('[OPERATOR GAME MOMENT] ' + moment + '. React as a disclosed AI co-host, keep commentary friendly, and invite viewers to predict or vote on what happens next.');
+    setNotice('Game moment added. This is an operator-entered cue; automatic game-screen capture is not connected yet.');
   }
 
   async function answerComment(event?: FormEvent) {
@@ -198,8 +218,21 @@ export default function TikTokLiveHost() {
             <textarea value={welcomeText} onChange={event => setWelcomeText(event.target.value)} rows={4} />
           </label>
           <label className="field">Show script and approved talking points
-            <textarea value={hostScript} onChange={event => setHostScript(event.target.value)} rows={6} maxLength={6000} placeholder="Paste your show script, lesson outline, game-show rules, talking points, audience questions and closing. Magnanimous will use this as the host's approved show context." />
+            <textarea value={hostScript} onChange={event => { setHostScript(event.target.value); setScriptSectionIndex(0); }} rows={6} maxLength={6000} placeholder="Paste your show script, lesson outline, game-show rules, talking points, audience questions and closing. Magnanimous will use this as the host's approved show context." />
           </label>
+          <div className="cueTools">
+            <button type="button" className="secondary" onClick={useNextScriptCue} disabled={!hostScript.trim()}>▶ Next script cue</button>
+            <span>Advances one blank-line-separated section at a time.</span>
+          </div>
+          <div className="gameCuePanel">
+            <b>GAME DIRECTOR · QUICK MOMENTS</b>
+            <p>Tap a moment to give Magnanimous a cue while you play. Game capture is not connected yet.</p>
+            <div className="gameCues">
+              {['Round started','Player scored','Level completed','Boss encounter','Unexpected game moment','Audience prediction time'].map(moment => (
+                <button type="button" key={moment} onClick={() => queueGameMoment(moment)}>{moment}</button>
+              ))}
+            </div>
+          </div>
           <form onSubmit={answerComment}>
             <div className="gameCue">
               <b>GAME &amp; APP CO-HOST CONTEXT</b>
@@ -252,7 +285,7 @@ export default function TikTokLiveHost() {
         .portrait{position:relative;width:64%;aspect-ratio:1;border-radius:50%;overflow:hidden;border:2px solid rgba(229,196,109,.78);box-shadow:0 0 0 10px rgba(229,196,109,.07),0 0 60px rgba(60,196,225,.18);background:linear-gradient(140deg,#173b4c,#111b29);z-index:1}.portrait img{position:relative;z-index:2;width:100%;height:100%;object-fit:cover}.portraitFallback{position:absolute;inset:0;display:grid;place-items:center;font-size:100px;color:#e5c36d;font-family:Georgia,serif}.voiceHalo{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(255,255,255,.3);pointer-events:none;z-index:3}.speaking .voiceHalo{animation:halo .85s infinite alternate}@keyframes halo{to{inset:-8px;box-shadow:0 0 36px rgba(78,221,245,.5)}}
         .hostName{margin-top:28px;font-size:clamp(28px,4vw,43px);font-weight:900;letter-spacing:.12em;text-align:center;text-shadow:0 3px 18px #000}.hostRole{font-size:9px;letter-spacing:.24em;color:#d8bd79;margin-top:8px}.equalizer{height:50px;display:flex;align-items:center;justify-content:center;gap:4px;margin-top:28px}.equalizer i{display:block;width:4px;height:7px;border-radius:4px;background:linear-gradient(0deg,#d6ac57,#78e6f3);opacity:.9;transition:height .15s ease}.speaking .equalizer i{animation:bars .42s ease-in-out infinite alternate}@keyframes bars{to{transform:scaleY(.35)}}.disclosure{position:absolute;bottom:12%;font-size:8px;letter-spacing:.15em;color:#9fc5d1;text-align:center}.spokenReply{position:absolute;bottom:4%;left:8%;right:8%;font-size:9px;line-height:1.4;color:#c7dce3;text-align:center;max-height:8%;overflow:hidden;text-overflow:ellipsis}
         .stageActions{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:13px 0 5px}.primary,.secondary,.stop{border:0;border-radius:10px;padding:11px 13px;font-weight:800;font-size:11px;cursor:pointer}.primary{background:linear-gradient(110deg,#dcb75e,#8ee9f1);color:#07131b}.secondary{background:#123140;color:#c9f7ff;border:1px solid #2e6375}.stop{background:#311e25;color:#ffb9c2;border:1px solid #6c3944}.stageHint{color:#7893a2;font-size:10px;text-align:center;line-height:1.5}
-        .console{padding:18px}.consoleHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:17px}.consoleHead h2{font-size:22px;margin:6px 0 0}.safe{font-size:8px;color:#85e6b4;border:1px solid #326b54;border-radius:30px;padding:6px 8px}.field{display:block;color:#a7bdc8;font-size:10px;font-weight:700;margin:12px 0}.field select,.field textarea{display:block;width:100%;margin-top:7px;background:#050d13;color:#e9f8ff;border:1px solid #2b4b5b;border-radius:10px;padding:11px;font:inherit;font-size:12px;resize:vertical}.toggle{display:flex;align-items:center;gap:8px;color:#9eb3bd;font-size:10px;margin:10px 0}.toggle input{accent-color:#77dff1}.answerButton{width:100%;margin-top:7px}.primary:disabled{opacity:.45;cursor:not-allowed}.notice{background:#2a1d0e;color:#f1d59a;padding:10px;border:1px solid #6c5228;border-radius:9px;font-size:10px;line-height:1.5;margin-top:12px}.conversationHead{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #203b4b;margin-top:18px;padding-top:13px;color:#d4e7ee;font-size:11px}.conversationHead button{background:transparent;border:0;color:#79d9ea;font-size:9px;cursor:pointer}.conversation{max-height:380px;overflow:auto;margin-top:8px}.conversation article{padding:10px 12px;border-radius:10px;margin:7px 0}.conversation article.viewer{background:#112b39}.conversation article.host{background:#151a22;border:1px solid #3a4a51}.conversation article small{font-size:8px;letter-spacing:.13em;color:#80dfee}.conversation article p,.empty{font-size:11px;line-height:1.5;color:#d8e9ef;white-space:pre-wrap;margin:5px 0 0}.empty{color:#829ba8;padding:12px}
+        .console{padding:18px}.consoleHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:17px}.consoleHead h2{font-size:22px;margin:6px 0 0}.safe{font-size:8px;color:#85e6b4;border:1px solid #326b54;border-radius:30px;padding:6px 8px}.field{display:block;color:#a7bdc8;font-size:10px;font-weight:700;margin:12px 0}.field select,.field textarea{display:block;width:100%;margin-top:7px;background:#050d13;color:#e9f8ff;border:1px solid #2b4b5b;border-radius:10px;padding:11px;font:inherit;font-size:12px;resize:vertical}.toggle{display:flex;align-items:center;gap:8px;color:#9eb3bd;font-size:10px;margin:10px 0}.toggle input{accent-color:#77dff1}.cueTools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 14px}.cueTools span,.gameCuePanel p{font-size:9px;color:#829ba8}.gameCuePanel{border:1px solid #2b4b5b;border-radius:12px;padding:12px;margin:12px 0;background:#071018}.gameCuePanel>b{font-size:9px;letter-spacing:.13em;color:#e2c477}.gameCuePanel p{margin:6px 0 10px}.gameCues{display:flex;flex-wrap:wrap;gap:6px}.gameCues button{border:1px solid #31566a;border-radius:8px;background:#102936;color:#cceaf1;padding:8px 9px;font-size:9px;cursor:pointer}.gameCues button:hover{border-color:#e2c477;color:#fff}.answerButton{width:100%;margin-top:7px}.primary:disabled{opacity:.45;cursor:not-allowed}.notice{background:#2a1d0e;color:#f1d59a;padding:10px;border:1px solid #6c5228;border-radius:9px;font-size:10px;line-height:1.5;margin-top:12px}.conversationHead{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #203b4b;margin-top:18px;padding-top:13px;color:#d4e7ee;font-size:11px}.conversationHead button{background:transparent;border:0;color:#79d9ea;font-size:9px;cursor:pointer}.conversation{max-height:380px;overflow:auto;margin-top:8px}.conversation article{padding:10px 12px;border-radius:10px;margin:7px 0}.conversation article.viewer{background:#112b39}.conversation article.host{background:#151a22;border:1px solid #3a4a51}.conversation article small{font-size:8px;letter-spacing:.13em;color:#80dfee}.conversation article p,.empty{font-size:11px;line-height:1.5;color:#d8e9ef;white-space:pre-wrap;margin:5px 0 0}.empty{color:#829ba8;padding:12px}
         .setup{max-width:1440px;margin:18px auto 0;background:#08121a;border:1px solid #203b4b;border-radius:18px;padding:21px}.setup h2{margin:5px 0 14px;font-size:24px}.setup ol{padding-left:20px;color:#a4b8c2;font-size:11px;line-height:1.65}.setup li{margin:7px 0;padding-left:4px}.setup li b{color:#e8cd84}.policy{background:#2b1b12;border:1px solid #714d2d;border-radius:10px;padding:13px;color:#f2d39a;font-size:11px;line-height:1.55;margin-top:14px}.footLinks{display:flex;flex-wrap:wrap;gap:16px;border-top:1px solid #203b4b;margin-top:16px;padding-top:14px}.footLinks a{color:#7adff1;text-decoration:none;font-size:10px}
         @media(max-width:960px){.workspace{grid-template-columns:1fr}.stage{max-height:720px}.intro{grid-template-columns:1fr}.console{max-width:none}}@media(max-width:560px){.livePage{padding:14px 12px 40px}.topbar{font-size:8px}.intro{margin-top:25px}.intro h1{font-size:54px}.workspace{grid-template-columns:minmax(0,1fr)}.stageColumn,.console{padding:11px}.stage{width:min(100%,390px)}.stageLabel{font-size:7px}.consoleHead h2{font-size:19px}}
       `}</style>
