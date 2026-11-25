@@ -56,7 +56,7 @@ const checks=[
  ['online companion accepts only official Magnanimous WSS bridge endpoints',host.includes("url.protocol!=='wss:'")&&host.includes("url.hostname!=='iammagnanimousway.com'")&&host.includes('/api/live-bridge/ws/')],
  ['online companion token remains memory-only and is not logged or stored',host.includes('new WebSocket(url.toString())')&&host.includes('token}')&&!host.includes('oauthRefreshToken')&&html.includes('Temporary companion token')],
  ['online bridge commands enter a local approval queue before any execution',host.includes('pendingBridgeCommands.push')&&host.includes('/api/bridge/command/review')&&app.includes('Local approval required')],
- ['only an approved OBS scene change is executable from the remote bridge',host.includes("command.action!=='scene.set'")&&host.includes('obsClient.setProgramScene')&&html.includes('only an approved OBS scene change')],
+ ['only an approved OBS scene change is executable from the remote bridge',host.includes("command.action!=='scene.set'")&&host.includes('obsClient.setProgramScene')&&html.toLowerCase().includes('only an approved obs scene change')],
  ['platform events are rejected until an account adapter explicitly authorizes them',onlineRelay.includes('LOCAL_COMPANION_PROVIDERS')&&onlineRelay.includes('isRelayProviderAllowed(event.provider,attachment.allowedProviders)')&&onlineRelay.includes('PROVIDER_NOT_AUTHORIZED')],
  ['runtime binaries and model weights are not checked into the portable source',!exists('portable-creator/runtime')&&!exists('portable-creator/models/magnanimous.gguf')],
  ['universal creator architecture distinguishes documented APIs from deployed connectors',creatorArchitecture.includes('does not mean the Magnanimous connector is already authorized or connected')],
