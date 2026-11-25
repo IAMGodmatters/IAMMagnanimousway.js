@@ -116,12 +116,27 @@ try {
     }
   }
 
+  $browserProfile = Join-Path $Data 'browser-profile'
+  $browserCache = Join-Path $Cache 'browser'
+  New-Item -ItemType Directory -Path $browserProfile,$browserCache -Force | Out-Null
   if (Test-Path $Chromium) {
-    $browserProfile = Join-Path $Data 'browser-profile'
-    New-Item -ItemType Directory -Path $browserProfile -Force | Out-Null
-    Start-Process -FilePath $Chromium -ArgumentList @("--user-data-dir=$browserProfile",'--app=http://127.0.0.1:'+ $Port,'--no-first-run','--disable-sync')
+    Start-Process -FilePath $Chromium -ArgumentList @("--user-data-dir=$browserProfile","--disk-cache-dir=$browserCache",'--app=http://127.0.0.1:'+ $Port,'--no-first-run','--disable-sync')
   } else {
-    Start-Process -FilePath ('http://127.0.0.1:' + $Port)
+    $systemEdge = $null
+    $edgeCandidates = @()
+    if (${env:ProgramFiles(x86)}) { $edgeCandidates += (Join-Path ${env:ProgramFiles(x86)} 'Microsoft\Edge\Application\msedge.exe') }
+    if ($env:ProgramFiles) { $edgeCandidates += (Join-Path $env:ProgramFiles 'Microsoft\Edge\Application\msedge.exe') }
+    $systemEdge = $edgeCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+    if (-not $systemEdge) {
+      $edgeCommand = Get-Command msedge.exe -ErrorAction SilentlyContinue
+      if ($edgeCommand) { $systemEdge = $edgeCommand.Source }
+    }
+    if ($systemEdge) {
+      Start-Process -FilePath $systemEdge -ArgumentList @("--user-data-dir=$browserProfile","--disk-cache-dir=$browserCache",'--app=http://127.0.0.1:'+ $Port,'--no-first-run','--disable-sync')
+    } else {
+      Write-Warning 'No bundled Chromium or system Edge was found. The default browser may store its profile on the system drive.'
+      Start-Process -FilePath ('http://127.0.0.1:' + $Port)
+    }
   }
   Write-Host ''
   Write-Host ('Magnanimous Portable Creator is running at http://127.0.0.1:' + $Port)
