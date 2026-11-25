@@ -21,14 +21,36 @@ export default function LiveEventBridgePage() {
   const [target,setTarget]=useState('');
   const [speech,setSpeech]=useState('');
   const clientRef=useRef<ReturnType<typeof createLiveBridgeClient>|null>(null);
+  const hostChannelRef=useRef<BroadcastChannel|null>(null);
 
-  useEffect(()=>()=>{clientRef.current?.disconnect();clientRef.current=null;},[]);
+  useEffect(()=>{
+    if(typeof BroadcastChannel!=='function')return;
+    const channel=new BroadcastChannel('magnanimous-live-host-bridge-v1');
+    hostChannelRef.current=channel;
+    channel.addEventListener('message',event=>{
+      const data=event.data;
+      if(!data||typeof data!=='object'||data.type!=='host.speak'||typeof data.text!=='string')return;
+      const text=data.text.replace(/[\\u0000-\\u001f\\u007f]/g,' ').trim().slice(0,500);
+      if(!text)return;
+      const commandId=globalThis.crypto?.randomUUID?.()||String(Date.now());
+      const sent=clientRef.current?.sendCommand({commandId,action:'host.speak',text})||false;
+      channel.postMessage({type:'host.speak.result',ok:sent});
+    });
+    return ()=>{
+      channel.close();hostChannelRef.current=null;
+      clientRef.current?.disconnect();clientRef.current=null;
+    };
+  },[]);
+
+  useEffect(()=>{
+    hostChannelRef.current?.postMessage({type:'bridge.status',connected:status==='connected'});
+  },[status]);
 
   function startClient(targetEndpoint:string,targetToken:string) {
     clientRef.current?.disconnect();
     const client=createLiveBridgeClient(targetEndpoint,targetToken,{
       onStatus:setStatus,
-      onEvent:event=>setEvents(current=>[event,...current.filter(item=>item.eventId!==event.eventId)].slice(0,50)),
+      onEvent:event=>{setEvents(current=>[event,...current.filter(item=>item.eventId!==event.eventId)].slice(0,50));hostChannelRef.current?.postMessage({type:'live.event',event});},
       onError:setError,
     });
     clientRef.current=client;
