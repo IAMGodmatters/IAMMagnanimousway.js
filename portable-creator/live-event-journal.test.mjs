@@ -152,3 +152,18 @@ test('repairs a partial failed append before accepting a later event',()=>{
  assert.equal(records[0].event.eventId,'after-repair');
  fs.rmSync(dir,{recursive:true,force:true});
 });
+
+test('wrong-key recovery cannot erase a complete encrypted record missing only its final newline',()=>{
+ const dir=temporary(),file=path.join(dir,'events.jsonl'),journal=journalFor(file);
+ journal.appendEvent(event('trailing-complete'));
+ const size=fs.statSync(file).size;
+ fs.truncateSync(file,size-1);
+ const before=fs.readFileSync(file,'utf8');
+ const wrong=new LiveEventJournal(file,{keyProvider:()=>Buffer.alloc(32,9)});
+ assert.throws(()=>wrong.load(),/could not be unlocked or verified/);
+ assert.equal(fs.readFileSync(file,'utf8'),before,'A wrong key must never rewrite a syntactically complete trailing record.');
+ const recovered=journal.load();
+ assert.equal(recovered[0].event.eventId,'trailing-complete');
+ assert.ok(fs.readFileSync(file,'utf8').endsWith('\n'),'Successful recovery should rewrite the journal with a complete line ending.');
+ fs.rmSync(dir,{recursive:true,force:true});
+});
