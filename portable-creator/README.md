@@ -61,6 +61,20 @@ To open the optional portable OBS folder, start the launcher with `-LaunchOBS`. 
 
 This control path is local production only. It does not start a public livestream, connect a social account, or join Zoom. A real OBS hardware smoke test remains required before describing it as operational on a particular computer.
 
+## Local live-event runtime
+
+The portable host now exposes a bounded, loopback-only event intake for future authorized platform and game adapters:
+
+- `GET /api/live/events/status` reports queue depth, capacity and deduplication state.
+- `POST /api/live/events/ingest` accepts a protocol-version-1 event in a JSON `event` field.
+- `POST /api/live/events/consume` returns a bounded batch (1–50 events) for the local operator/host runtime.
+
+Browser intake accepts operator-entered `manual` events only; provider-labelled events must arrive through a future authenticated local companion adapter. The runtime validates provider, event type, event ID and timestamp; removes control characters; bounds viewer text and tags; strips credential-like tag names; deduplicates provider event IDs; applies a per-provider rate limit; and returns backpressure when the queue is full. It does not silently discard already accepted events.
+
+Queue and deduplication state are transient in memory and are cleared when the host exits. They are not a substitute for durable project storage. The endpoints are a local event-processing foundation only: no TikTok, Facebook, YouTube, Twitch or game adapter is connected by this change. Public broadcasting, account control, moderation and payments are not exposed.
+
+The portable UI includes an operator-controlled event review panel to pull and inspect a bounded batch. Browser intake accepts manual events only; it cannot impersonate a TikTok, Facebook, YouTube, Twitch or game adapter. The portable runtime QA suite copies this module into an isolated temporary host and exercises event ingestion, duplicate rejection, spoofed-provider rejection and bounded consumption. Unit tests cover validation, sanitization, rate limits, queue backpressure and cleanup.
+
 ## Broadcast and Zoom boundaries
 
 Offline mode can prepare the show, assets, script, overlays and avatar plan. It cannot transmit to TikTok, Facebook, YouTube, Twitch or Zoom without a network connection. The online LIVE Studio uses the provider-neutral event bridge and separate authorized adapters.

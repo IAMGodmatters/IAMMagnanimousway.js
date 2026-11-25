@@ -21,6 +21,8 @@ function updateControls(){
  $('obsSwitchButton').disabled=!state.obsConnected||!$('obsSceneSelect').value;
  $('obsStartRecordButton').disabled=!state.obsConnected||state.obsRecording;
  $('obsStopRecordButton').disabled=!state.obsConnected||!state.obsRecording;
+ $('livePullButton').disabled=false;
+ $('liveSendButton').disabled=!$('liveTestText').value.trim();
 }
 function updateGenerationStatus(){
  $('modelStatus').textContent=state.modelReady?'Local AI ready: '+state.modelName:'Offline draft builder ready • Local AI not installed';
@@ -142,6 +144,36 @@ async function setObsRecording(start){
  }catch(error){message('obsMessage',error.message,'error');}
  updateControls();
 }
+function renderLiveEvents(events){
+ const list=$('liveEventList');list.replaceChildren();
+ if(!events.length){const empty=document.createElement('p');empty.className='muted';empty.textContent='No events in this batch. Connect an authorized provider adapter later, or send a local test event.';list.append(empty);return;}
+ for(const event of events){
+  const item=document.createElement('article');item.className='live-event';
+  const meta=document.createElement('strong');meta.textContent=event.provider+' · '+event.type;
+  const actor=document.createElement('small');actor.textContent=event.actorName||event.actorId||'Viewer';
+  const body=document.createElement('p');body.textContent=event.text||'(No message text)';
+  item.append(meta,actor,body);list.append(item);
+ }
+}
+async function refreshLiveQueue(){
+ try{const data=await api('/api/live/events/status');$('liveQueueStatus').textContent=data.queued+' queued · '+data.capacity+' capacity';$('liveQueueStatus').className='status '+(data.queued?'ready':'');}
+ catch(error){$('liveQueueStatus').textContent='Local event queue unavailable';}
+}
+async function sendLocalEvent(){
+ const text=$('liveTestText').value.trim(),type=$('liveTestType').value;
+ if(!text){message('liveEventMessage','Enter a short test event first.','error');return;}
+ $('liveSendButton').disabled=true;
+ const event={protocolVersion:1,eventId:'manual-'+Date.now()+'-'+Math.random().toString(36).slice(2,8),provider:'manual',type,occurredAt:new Date().toISOString(),actorName:'Local test',text,tags:{source:'operator-test',category:type==='game.event'?'game':'audience'}};
+ try{await api('/api/live/events/ingest',{method:'POST',body:JSON.stringify({event})});message('liveEventMessage','Local test event added to the queue. Pull it when ready.','success');await refreshLiveQueue();}
+ catch(error){message('liveEventMessage',error.message,'error');}
+ finally{updateControls();}
+}
+async function pullLiveEvents(){
+ $('livePullButton').disabled=true;
+ try{const data=await api('/api/live/events/consume',{method:'POST',body:JSON.stringify({limit:20})});renderLiveEvents(data.events||[]);$('liveQueueStatus').textContent=data.queued+' queued · '+data.capacity+' capacity';message('liveEventMessage',(data.events||[]).length+' event(s) pulled from the local queue.','success');}
+ catch(error){message('liveEventMessage',error.message,'error');}
+ finally{$('livePullButton').disabled=false;await refreshLiveQueue();}
+}
 async function refresh(){
  try{
   const data=await api('/api/health');
@@ -232,6 +264,9 @@ $('obsRefreshButton').addEventListener('click',()=>refreshObsStatus());
 $('obsSwitchButton').addEventListener('click',switchObsScene);
 $('obsStartRecordButton').addEventListener('click',()=>setObsRecording(true));
 $('obsStopRecordButton').addEventListener('click',()=>setObsRecording(false));
+$('livePullButton').addEventListener('click',pullLiveEvents);
+$('liveSendButton').addEventListener('click',sendLocalEvent);
+$('liveTestText').addEventListener('input',updateControls);
 $('obsSceneSelect').addEventListener('change',updateControls);
 $('unlockButton').addEventListener('click',unlock);
 $('lockButton').addEventListener('click',lock);
@@ -241,3 +276,4 @@ $('exportButton').addEventListener('click',exportCopy);
 $('output').addEventListener('input',updateControls);
 $('prompt').addEventListener('input',updateControls);
 refresh();
+refreshLiveQueue();

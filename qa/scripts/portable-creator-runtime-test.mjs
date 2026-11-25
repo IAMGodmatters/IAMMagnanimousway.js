@@ -4,17 +4,25 @@ import os from 'node:os';
 import path from 'node:path';
 import net from 'node:net';
 import http from 'node:http';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const SOURCE=path.join(ROOT,'portable-creator');
+const eventTests=spawnSync(process.execPath,['--test',path.join(SOURCE,'live-event-runtime.test.mjs')],{encoding:'utf8'});
+if(eventTests.status!==0){console.error(eventTests.stdout||'');console.error(eventTests.stderr||'');throw new Error('Portable live-event runtime unit tests failed.');}
+console.log(eventTests.stdout.trim());
+
 const temp=fs.mkdtempSync(path.join(os.tmpdir(),'magnanimous-portable-'));
 const target=path.join(temp,'portable');
 fs.mkdirSync(path.join(target,'app'),{recursive:true});
 fs.copyFileSync(path.join(SOURCE,'host.mjs'),path.join(target,'host.mjs'));
 fs.copyFileSync(path.join(SOURCE,'obs-client.mjs'),path.join(target,'obs-client.mjs'));
+fs.copyFileSync(path.join(SOURCE,'live-event-runtime.mjs'),path.join(target,'live-event-runtime.mjs'));
 for(const file of ['index.html','app.js','styles.css'])fs.copyFileSync(path.join(SOURCE,'app',file),path.join(target,'app',file));
+const appSyntax=spawnSync(process.execPath,['--check',path.join(target,'app','app.js')],{encoding:'utf8'});
+if(appSyntax.status!==0){console.error(appSyntax.stderr||'');throw new Error('Portable creator browser script syntax check failed.');}
+
 
 function freePort(){
  return new Promise((resolve,reject)=>{
@@ -47,11 +55,30 @@ try{
  assert.equal(home.status,200,'Local creator homepage should load.');
  assert.match(home.headers.get('content-security-policy')||'',/default-src 'self'/,'Homepage must enforce a local-only CSP.');
  assert.ok((await home.text()).includes('<title>Magnanimous Portable Creator</title>'),'Homepage title should identify the portable app.');
+ const homepage=await (await fetch(origin+'/')).text();
+ assert.ok(homepage.includes('id="livePullButton"'),'Audience/game event review control should be present.');
+ assert.ok(homepage.includes('id="liveEventList"'),'Audience/game event list should be present.');
+
  const css=await fetch(origin+'/styles.css');
  assert.equal(css.status,200,'Local stylesheet should load.');
  const health=await (await fetch(origin+'/api/health')).json();
  assert.equal(health.mode,'offline-portable');
  assert.equal(health.model.ready,false,'Local generation must remain disabled when no runtime is installed.');
+ const eventStatus=await (await fetch(origin+'/api/live/events/status')).json();
+ assert.equal(eventStatus.queued,0,'Live event queue should start empty.');
+ const liveEvent={protocolVersion:1,eventId:'runtime-'+Date.now(),provider:'manual',type:'chat.message',occurredAt:new Date().toISOString(),actorName:'QA viewer',text:'Hello Magnanimous'};
+ const spoofedEvent=await post(origin+'/api/live/events/ingest',origin,{event:{...liveEvent,eventId:'spoof-'+Date.now(),provider:'tiktok'}});
+ assert.equal(spoofedEvent.status,403,'Browser intake must reject provider-labelled events without authenticated companion adapters.');
+ const acceptedEvent=await post(origin+'/api/live/events/ingest',origin,{event:liveEvent});
+ assert.equal(acceptedEvent.status,202,'Valid local live event should be accepted.');
+ const duplicateEvent=await post(origin+'/api/live/events/ingest',origin,{event:liveEvent});
+ assert.equal(duplicateEvent.status,200,'Repeated provider event should be deduplicated.');
+ const spoofedProvider=await post(origin+'/api/live/events/ingest',origin,{event:{...liveEvent,eventId:liveEvent.eventId+'-spoof',provider:'tiktok'}});
+ assert.equal(spoofedProvider.status,403,'Browser intake must not impersonate a platform adapter.');
+ const consumedEvents=await post(origin+'/api/live/events/consume',origin,{limit:1});
+ const consumedData=await consumedEvents.json();
+ assert.equal(consumedData.events.length,1,'Operator consumer should receive one bounded event.');
+ assert.equal(consumedData.events[0].text,'Hello Magnanimous');
  const obsStatus=await (await fetch(origin+'/api/obs/status')).json();
  assert.equal(obsStatus.connected,false,'OBS must remain disconnected until the operator pairs it.');
  assert.equal((await fetch(origin+'/api/obs/scenes')).status,409,'OBS scene reads must fail closed before local pairing.');
