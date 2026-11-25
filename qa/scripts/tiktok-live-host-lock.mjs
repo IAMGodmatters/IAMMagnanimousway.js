@@ -24,7 +24,7 @@ const checks = [
   ['live event contract supports TikTok, YouTube, Twitch, OBS and games', ['tiktok', 'youtube', 'twitch', 'obs', 'game'].every(provider => eventContract.includes("'" + provider + "'"))],
   ['untrusted provider events are normalized and bounded', eventContract.includes('normalizeLiveEvent') && eventContract.includes('cleanText(v.text,500)') && eventContract.includes('slice(0,max)') && eventContract.includes('7*86400000')],
   ['sensitive credentials are excluded from event tags', eventContract.includes('token|secret|password|cookie|authorization|credential')],
-  ['bridge permits secure remote or loopback-only local transport', bridgeClient.includes("url.protocol!=='wss:'") && bridgeClient.includes("url.protocol==='ws:'&&loopback")],
+  ['browser pairing tokens can only reach the official Magnanimous WSS host and pairing path', bridgeClient.includes("url.protocol!=='wss:'") && bridgeClient.includes("url.hostname!=='iammagnanimousway.com'") && bridgeClient.includes('pairPath.test(url.pathname)') && bridgeClient.includes("url.port&&url.port!=='443'")],
   ['pairing credentials are sent in the message body, not URL parameters', bridgeClient.includes("kind:'auth'") && bridgeClient.includes('token')],
   ['bridge reconnect attempts are bounded', bridgeClient.includes('retryCount>=5')],
   ['bridge commands are allowlisted and do not expose destructive controls', eventContract.includes('normalizeLiveBridgeCommand') && !eventContract.includes("'broadcast.start'")],
@@ -32,7 +32,7 @@ const checks = [
   ['LIVE Host links to the event bridge control room', host.includes('href="/tiktok-live/bridge"')],
   ['bridge UI uses the provider-neutral client', bridgeUi.includes('createLiveBridgeClient') && bridgeUi.includes('LiveEvent')],
   ['bridge UI truthfully discloses that the companion and adapters are not deployed', bridgeUi.includes('Provider account adapters and public broadcasting are not yet connected.')],
-  ['bridge UI rejects provider passwords and uses temporary revocable pairing credentials', bridgeUi.includes('Do not enter TikTok, Google, Meta, Twitch, Zoom, OBS or game-account passwords') && bridgeUi.includes('temporary pairing credentials') && bridgeUi.includes('Revoke pairing')],
+  ['bridge UI rejects provider passwords and uses temporary revocable pairing credentials', bridgeUi.includes('Do not enter TikTok, Google, Meta, Twitch, Zoom, OBS or game-account passwords') && bridgeUi.includes('one-time pairing tokens') && bridgeUi.includes('Revoke pairing')],
   ['bridge UI never persists pairing tokens', bridgeUi.includes('never saved in browser storage') && !bridgeUi.includes('localStorage')],
   ['bridge UI bounds the event feed', bridgeUi.includes('.slice(0,50)')],
 ];
