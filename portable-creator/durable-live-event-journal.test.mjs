@@ -42,6 +42,21 @@ test('persists accepted events and deduplication across process restart', t => {
   assert.equal(journal.ingest(makeEvent('persist-1')).status, 'duplicate');
 });
 
+test('redelivers an unacknowledged claimed event after a host restart', t => {
+  const f = fixture(t);
+  let journal = f.create();
+  journal.ingest(makeEvent('restart-lease-1'));
+  const first = journal.claim(1);
+  assert.ok(first.deliveryId);
+  journal = f.create();
+  assert.equal(journal.status().queued, 1);
+  assert.equal(journal.status().storageReady, true);
+  const retry = journal.claim(1);
+  assert.notEqual(retry.deliveryId, first.deliveryId);
+  assert.equal(retry.events[0].eventId, 'restart-lease-1');
+  assert.equal(journal.acknowledge(retry.deliveryId, retry.eventKeys).status, 'acknowledged');
+});
+
 test('uses expiring delivery leases and safely redelivers unacknowledged events', t => {
   const f = fixture(t, { leaseMs: 5_000 });
   let journal = f.create();
