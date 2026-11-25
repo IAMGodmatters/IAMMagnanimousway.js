@@ -36,6 +36,9 @@ let bridgeError='';
 let gameIntegrationToken=null;
 const pendingBridgeCommands=[];
 const avatarClients=new Set();
+let avatarLocked=true;
+let avatarLastLine='';
+let avatarSpeaking=false;
 const OBS_PORT=4455;
 
 fs.mkdirSync(DATA,{recursive:true});
@@ -83,8 +86,12 @@ function send(res,status,data,type){
 }
 function json(res,status,data){send(res,status,data,'application/json; charset=utf-8');}
 function broadcastAvatarState(state){
- const payload=JSON.stringify(state);
- const frame='data: '+payload+'\n\n';
+ if(state.type==='locked'){avatarLocked=true;avatarLastLine='';avatarSpeaking=false;}
+ else if(state.type==='ready'){avatarLocked=false;avatarSpeaking=false;}
+ else if(state.type==='line'&&typeof state.text==='string'){avatarLocked=false;avatarLastLine=state.text;avatarSpeaking=false;}
+ else if(state.type==='speaking'){avatarLocked=false;avatarSpeaking=true;}
+ else if(state.type==='stopped'){avatarLocked=false;avatarSpeaking=false;}
+ const frame='data: '+JSON.stringify(state)+'\n\n';
  for(const client of avatarClients){
   if(client.destroyed||client.writableEnded){avatarClients.delete(client);continue;}
   try{client.write(frame);}catch{avatarClients.delete(client);}
@@ -241,7 +248,8 @@ async function handleApi(req,res,url){
   res.setHeader('connection','keep-alive');
   res.setHeader('x-accel-buffering','no');
   res.statusCode=200;
-  res.write('data: '+JSON.stringify({type:vaultKey?'ready':'locked'})+'\n\n');
+  const initialStates=avatarLocked?[{type:'locked'}]:[...(avatarLastLine?[{type:'line',text:avatarLastLine}]:[]),{type:avatarSpeaking?'speaking':'ready'}];
+  for(const state of initialStates)res.write('data: '+JSON.stringify(state)+'\n\n');
   avatarClients.add(res);
   res.on('close',()=>avatarClients.delete(res));
   return;
