@@ -166,7 +166,9 @@ async function handleApi(req,res,url){
   catch{return json(res,200,{connected:Boolean(obsClient?.connected),recording:false,statusUnavailable:true});}
  }
  if(req.method==='POST'&&url.pathname==='/api/obs/connect'){
-  const body=await readJson(req),password=String(body.password||'');
+  const body=await readJson(req);
+  if(body.password!==undefined&&typeof body.password!=='string')return json(res,400,{detail:'OBS password must be text.'});
+  const password=body.password||'';
   if(password.length>512)return json(res,400,{detail:'OBS password is too long.'});
   if(obsClient)obsClient.disconnect();
   const candidate=new ObsWebSocketClient({port:OBS_PORT});
