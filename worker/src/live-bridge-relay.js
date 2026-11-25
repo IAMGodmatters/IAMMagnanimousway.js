@@ -57,9 +57,10 @@ export class MagnanimousLiveBridgeRoom {
    const pair=await this.state.storage.get('pair');
    if(!pair||Date.now()>pair.pairExpiresAt)return json({detail:'The pairing code expired. Create a new bridge pair.'},410);
    const origin=request.headers.get('Origin');
-   if(origin&&origin!==url.origin)return json({detail:'Cross-origin bridge connections are not allowed.'},403);
+   const expectedOrigin=request.headers.get('x-bridge-origin')||url.origin;
+   if(origin&&origin!==expectedOrigin)return json({detail:'Cross-origin bridge connections are not allowed.'},403);
    const pairSocket=new WebSocketPair();
-   const client=pairSocket[0],server=pairSocket[1];
+   const [client,server]=Object.values(pairSocket);
    this.state.acceptWebSocket(server);
    server.serializeAttachment({pairId:pair.pairId,tenantId:pair.tenantId,role:null,authenticated:false,seen:[],sessionExpiresAt:0});
    return new Response(null,{status:101,webSocket:client});
@@ -152,7 +153,9 @@ export async function handleLiveBridgeRelay(request,env,user=null){
   if(url.protocol!=='https:')return json({detail:'Secure HTTPS/WSS is required.'},400);
   if(!env.LIVE_BRIDGE_ROOMS)return json({detail:'The online bridge service is not configured on this deployment.'},503);
   const id=env.LIVE_BRIDGE_ROOMS.idFromName(match[1]);
-  return env.LIVE_BRIDGE_ROOMS.get(id).fetch(new Request('https://bridge.internal/connect',{method:'GET',headers:request.headers}));
+  const headers=new Headers(request.headers);
+  headers.set('x-bridge-origin',url.origin);
+  return env.LIVE_BRIDGE_ROOMS.get(id).fetch(new Request('https://bridge.internal/connect',{method:'GET',headers}));
  }
  return null;
 }
