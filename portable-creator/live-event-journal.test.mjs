@@ -52,6 +52,22 @@ test('journal rejects an oversized append without changing existing data',()=>{
 });
 
 
+
+test('migrates the earlier plaintext JSONL journal to encrypted records without losing events',()=>{
+ const dir=temporary(),file=path.join(dir,'events.jsonl');
+ const legacy=[{version:1,kind:'event',event:event('legacy-event')},{version:1,kind:'ack',keys:['manual:older-event']}];
+ fs.writeFileSync(file,legacy.map(record=>JSON.stringify(record)).join('\n')+'\n');
+ const journal=journalFor(file);
+ const records=journal.load();
+ assert.equal(records.length,2);
+ assert.equal(records[0].event.eventId,'legacy-event');
+ assert.equal(records[1].kind,'ack');
+ const encrypted=fs.readFileSync(file,'utf8');
+ assert.equal(encrypted.includes('legacy-event'),false);
+ assert.equal(JSON.parse(encrypted.trim().split('\n')[0]).cipher,'aes-256-gcm');
+ fs.rmSync(dir,{recursive:true,force:true});
+});
+
 test('journal ciphertext does not expose viewer text and requires the workspace key',()=>{
  const dir=temporary(),file=path.join(dir,'events.jsonl'),journal=journalFor(file);
  journal.appendEvent(event('private-viewer',{text:'private viewer message'}));
