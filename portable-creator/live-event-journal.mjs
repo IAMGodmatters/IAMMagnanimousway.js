@@ -22,8 +22,10 @@ export class LiveEventJournal{
   try{
    const cipher=crypto.createCipheriv('aes-256-gcm',key,iv);
    const plain=Buffer.from(JSON.stringify({version:1,...record}),'utf8');
-   const ciphertext=Buffer.concat([cipher.update(plain),cipher.final()]);
-   return JSON.stringify({version:1,cipher:'aes-256-gcm',iv:iv.toString('hex'),tag:cipher.getAuthTag().toString('hex'),ciphertext:ciphertext.toString('base64')});
+   try{
+    const ciphertext=Buffer.concat([cipher.update(plain),cipher.final()]);
+    return JSON.stringify({version:1,cipher:'aes-256-gcm',iv:iv.toString('hex'),tag:cipher.getAuthTag().toString('hex'),ciphertext:ciphertext.toString('base64')});
+   }finally{plain.fill(0);}
   }finally{key.fill(0);}
  }
  decode(envelope){
@@ -34,19 +36,20 @@ export class LiveEventJournal{
   try{
    const decipher=crypto.createDecipheriv('aes-256-gcm',key,iv);
    decipher.setAuthTag(tag);
-   const plain=Buffer.concat([decipher.update(ciphertext),decipher.final()]).toString('utf8');
-   const record=JSON.parse(plain);
-   if(record?.version!==1)return null;
-   if(record.kind==='event'&&record.event&&typeof record.event==='object')return record;
-   if(record.kind==='ack'&&Array.isArray(record.keys))return record;
-   return null;
+   const plain=Buffer.concat([decipher.update(ciphertext),decipher.final()]);
+   try{
+    const record=JSON.parse(plain.toString('utf8'));
+    if(record?.version!==1)return null;
+    if(record.kind==='event'&&record.event&&typeof record.event==='object')return record;
+    if(record.kind==='ack'&&Array.isArray(record.keys))return record;
+    return null;
+   }finally{plain.fill(0);}
   }catch{
    throw new Error('The encrypted live-event journal could not be unlocked or verified with this workspace key.');
   }finally{key.fill(0);}
  }
  load(){
   if(!fs.existsSync(this.filePath))return[];
-  this.getKey();
   const source=fs.readFileSync(this.filePath,'utf8'),records=[];
   for(const line of source.split(/\r?\n/)){
    if(!line||Buffer.byteLength(line,'utf8')>MAX_RECORD_BYTES)continue;
