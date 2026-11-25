@@ -84,9 +84,8 @@ try {
   }
 
   const bypass = Array.isArray(ruleset.bypass_actors) ? ruleset.bypass_actors : [];
-  const alwaysBypass = bypass.filter(actor => actor?.bypass_mode === 'always');
-  if (alwaysBypass.length) {
-    throw new Error('The main ruleset still grants always-on bypass access to ' + alwaysBypass.map(actor => actor.actor_type + ':' + actor.actor_id).join(', ') + '. Remove routine bypass actors.');
+  if (bypass.length) {
+    throw new Error('The main ruleset still has bypass actors: ' + bypass.map(actor => actor.actor_type + ':' + actor.actor_id + ' (' + actor.bypass_mode + ')').join(', ') + '. Remove bypass actors so checks cannot be skipped.');
   }
 
   const conditions = ruleset.conditions?.ref_name?.include || [];
@@ -98,6 +97,6 @@ try {
 } catch (error) {
   console.error('::error::PRODUCTION DEPLOYMENT BLOCKED: main branch protection is incomplete.');
   console.error(error instanceof Error ? error.message : String(error));
-  console.error('Update GitHub Settings → Rules → Protect main to require pull requests and the named security checks, then remove always-on admin/integration bypass.');
+  console.error('Update GitHub Settings → Rules → Protect main to require pull requests and the named security checks, remove all bypass actors, and—if the repository is private—add GITHUB_RULESET_READ_TOKEN as a repository Actions secret using a fine-grained token limited to this repository with Administration: read only.');
   process.exit(1);
 }
