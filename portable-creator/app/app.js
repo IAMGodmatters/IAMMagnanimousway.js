@@ -21,9 +21,9 @@ function updateControls(){
  $('obsSwitchButton').disabled=!state.obsConnected||!$('obsSceneSelect').value;
  $('obsStartRecordButton').disabled=!state.obsConnected||state.obsRecording;
  $('obsStopRecordButton').disabled=!state.obsConnected||!state.obsRecording;
- $('livePullButton').disabled=false;
- $('liveSendButton').disabled=!$('liveTestText').value.trim();
- $('bridgeConnectButton').disabled=state.bridgeConnected||state.bridgeStatus==='connecting';
+ $('livePullButton').disabled=!state.vaultUnlocked;
+ $('liveSendButton').disabled=!state.vaultUnlocked||!$('liveTestText').value.trim();
+ $('bridgeConnectButton').disabled=!state.vaultUnlocked||state.bridgeConnected||state.bridgeStatus==='connecting';
  $('bridgeDisconnectButton').disabled=state.bridgeStatus==='disconnected';
 }
 function updateGenerationStatus(){
@@ -162,7 +162,7 @@ function renderLiveEvents(events,cues=[]){
  }
 }
 async function refreshLiveQueue(){
- try{const data=await api('/api/live/events/status');$('liveQueueStatus').textContent=data.queued+' queued · '+data.capacity+' capacity';$('liveQueueStatus').className='status '+(data.queued?'ready':'');}
+ try{const data=await api('/api/live/events/status');$('liveQueueStatus').textContent=data.journalError?'Recovery journal verification failed':data.recoveryLocked?'Unlock the encrypted workspace to recover saved events':!state.vaultUnlocked?'Unlock the encrypted workspace to use live events':data.queued+' queued · '+data.capacity+' capacity';$('liveQueueStatus').className='status '+(data.queued?'ready':'warning');}
  catch(error){$('liveQueueStatus').textContent='Local event queue unavailable';}
 }
 function renderBridgeCommands(commands){
@@ -251,8 +251,8 @@ async function unlock(){
   const result=await api('/api/vault/unlock',{method:'POST',body:JSON.stringify({passphrase})});
   $('passphrase').value='';
   state.vaultUnlocked=true;
-  message('vaultMessage',result.created?'Your encrypted workspace has been created on this USB drive.':'Your encrypted workspace is unlocked.','success');
-  await loadProjects();updateControls();
+  message('vaultMessage',result.journal?.error?'Workspace unlocked, but the encrypted event journal needs recovery: '+result.journal.error:result.created?'Your encrypted workspace has been created on this USB drive.':'Your encrypted workspace is unlocked.','success');
+  await loadProjects();updateControls();await refreshLiveQueue();await refreshBridgeStatus();
  }catch(error){message('vaultMessage',error.message,'error');}
  finally{$('unlockButton').disabled=false;}
 }
