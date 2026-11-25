@@ -58,10 +58,10 @@ To open the optional portable OBS folder, start the launcher with `-LaunchOBS`. 
 
 1. Sign in to the online Magnanimous platform and open **LIVE Event Bridge**.
 2. Choose **Create secure pair**. The online service issues separate browser and companion tokens; the initial pairing window is ten minutes.
-3. Copy the companion token into the local Portable Creator's **Connect to Magnanimous Live Studio** panel, together with the secure WSS address.
+3. Unlock the encrypted workspace, then copy the companion token into the local Portable Creator's **Connect to Magnanimous Live Studio** panel, together with the secure WSS address.
 4. The local process connects outbound to `wss://iammagnanimousway.com`. It does not open a LAN port or expose OBS.
-5. Incoming normalized audience/game events are written to the local recovery journal. Remote production commands are placed in a local approval queue. A scene change requires OBS to be connected and a second approval on the local computer.
-6. Disconnect locally or revoke/expire the pairing. Tokens are not written to disk and are cleared when the local process exits.
+5. Incoming normalized audience/game events are encrypted with a subkey derived from the workspace key before they are written to the local recovery journal. Remote production commands are placed in a local approval queue. A scene change requires OBS to be connected and a second approval on the local computer.
+6. Locking the workspace disconnects the bridge and clears the in-memory event queue; unacknowledged events remain encrypted on USB and are restored after the next unlock. Disconnect locally or revoke/expire the pairing. Tokens are not written to disk and are cleared when the local process exits.
 
 The relay is a transport, not a social-platform adapter. New pairs authorize only local/manual, OBS, game and browser events. TikTok, Facebook, YouTube, Twitch and Zoom are schema-supported but explicitly denied until a separate official account adapter is authorized. This connection does not itself fetch platform chat, start a broadcast or transmit audio/video. Those require separate official account authorization and provider adapters. The local companion currently executes only approved OBS scene changes; overlay, audio-cue and host-speech commands are rejected until their local engines are implemented.
 
