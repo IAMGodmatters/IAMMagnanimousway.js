@@ -251,13 +251,13 @@ async function unlock(){
   const result=await api('/api/vault/unlock',{method:'POST',body:JSON.stringify({passphrase})});
   $('passphrase').value='';
   state.vaultUnlocked=true;
-  message('vaultMessage',result.journal?.error?'Workspace unlocked, but the encrypted event journal needs recovery: '+result.journal.error:result.created?'Your encrypted workspace has been created on this USB drive.':'Your encrypted workspace is unlocked.','success');
+  message('vaultMessage',result.journal?.error?'Workspace unlocked, but the encrypted event journal needs recovery: '+result.journal.error:result.created?'Your encrypted workspace has been created on this USB drive.':'Your encrypted workspace is unlocked.',result.journal?.error?'warning':'success');
   await loadProjects();updateControls();await refreshLiveQueue();await refreshBridgeStatus();
  }catch(error){message('vaultMessage',error.message,'error');}
  finally{$('unlockButton').disabled=false;}
 }
 async function lock(){
- try{await api('/api/vault/lock',{method:'POST',body:'{}'});state.vaultUnlocked=false;state.projects=[];$('projectList').replaceChildren();const p=document.createElement('p');p.className='muted';p.textContent='Unlock the workspace to see your projects.';$('projectList').append(p);updateControls();message('vaultMessage','Workspace locked. The encryption key was cleared from memory.','success');}
+ try{await api('/api/vault/lock',{method:'POST',body:'{}'});state.vaultUnlocked=false;state.bridgeConnected=false;state.bridgeStatus='disconnected';state.pendingBridgeCommands=[];renderBridgeCommands([]);state.projects=[];$('projectList').replaceChildren();const p=document.createElement('p');p.className='muted';p.textContent='Unlock the workspace to see your projects.';$('projectList').append(p);updateControls();message('vaultMessage','Workspace locked. The online bridge disconnected and the encryption key was cleared from memory.','success');await refreshLiveQueue();}
  catch(error){message('vaultMessage',error.message,'error');}
 }
 async function loadProjects(){
