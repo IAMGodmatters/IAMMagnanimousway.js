@@ -86,6 +86,18 @@ test('Durable Object room stores only token hashes and rejects duplicate initial
  assert.equal(duplicate.status,409);
 });
 
+
+test('limits authenticated browser message rate',async()=>{
+ const now=Date.now();
+ let attachment={authenticated:true,role:'browser',sessionExpiresAt:now+60_000,windowStartedAt:now,windowCount:0};
+ let closed=0;
+ const socket={deserializeAttachment:()=>attachment,serializeAttachment:value=>{attachment=value;},send(){},close:code=>{closed=code;}};
+ const state={storage:{get:async()=>null},getWebSockets:()=>[socket]};
+ const room=new MagnanimousLiveBridgeRoom(state,{});
+ for(let i=0;i<31;i++)await room.webSocketMessage(socket,JSON.stringify({kind:'ping'}));
+ assert.equal(closed,4429);
+});
+
 test('pair endpoint fails closed when the online bridge namespace is absent',async()=>{
  const request=new Request('https://iammagnanimousway.com/api/live-bridge/pair',{method:'POST'});
  const response=await handleLiveBridgeRelay(request,{}, {id:'user-1',tenant_id:'tenant-1'});
