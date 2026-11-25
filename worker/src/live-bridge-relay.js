@@ -1,7 +1,7 @@
 const TOKEN_TTL_MS = 10 * 60 * 1000;
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const MAX_MESSAGE_BYTES = 16 * 1024;
-const PROVIDERS = new Set(['tiktok','facebook','youtube','twitch','obs','game','browser']);
+const PROVIDERS = new Set(['tiktok','facebook','youtube','twitch','zoom','obs','game','browser']);
 const EVENT_TYPES = new Set(['chat.message','chat.deleted','audience.follow','audience.subscription','audience.gift','audience.poll_vote','game.event','obs.scene_changed','system.notice']);
 const EVENT_ID = /^[A-Za-z0-9._:-]{1,160}$/;
 const CONTROL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
