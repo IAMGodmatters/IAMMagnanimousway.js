@@ -173,7 +173,7 @@ function connectBridge(endpoint,token){
    if(!pendingBridgeCommands.some(item=>item.commandId===command.commandId))pendingBridgeCommands.push({...command,receivedAt:new Date().toISOString()});
    return;
   }
-  if(envelope?.kind==='error'){bridgeError=String(envelope.message||'The online relay reported an error.').slice(0,240);if(envelope.code==='AUTH_FAILED'||envelope.code==='PAIRING_REVOKED')closeBridge();}
+  if(envelope?.kind==='error'){bridgeError=String(envelope.message||'The online relay reported an error.').slice(0,240);if(envelope.code==='AUTH_FAILED'||envelope.code==='PAIRING_REVOKED'){const failed=bridgeSocket;bridgeSocket=null;bridgeStatus='error';try{failed?.close(4001,'Pairing rejected');}catch{}}}
  });
  socket.addEventListener('close',event=>{if(bridgeSocket===socket){bridgeSocket=null;bridgeStatus='disconnected';if(event.code!==1000)bridgeError='The online relay closed the connection ('+event.code+'). Create a fresh pair if the token expired.';}});
  socket.addEventListener('error',()=>{if(bridgeSocket===socket){bridgeStatus='error';bridgeError='The secure online bridge connection failed.';}});
