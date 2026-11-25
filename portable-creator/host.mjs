@@ -211,6 +211,7 @@ async function handleApi(req,res,url){
  }
  if(req.method==='POST'&&url.pathname==='/api/live/events/ingest'){
   const body=await readJson(req);
+  if(body.event?.provider!=='manual')return json(res,403,{status:'provider_untrusted',detail:'Browser intake accepts operator-entered manual events only; provider adapters must authenticate in the local companion.'});
   const result=liveEvents.ingest(body.event);
   if(result.status==='accepted')return json(res,202,result);
   if(result.status==='duplicate')return json(res,200,result);
