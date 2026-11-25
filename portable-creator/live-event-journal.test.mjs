@@ -65,6 +65,16 @@ test('journal rejects an oversized append without changing existing data',()=>{
 
 
 
+
+test('chunks large durable acknowledgement batches into decryptable records',()=>{
+ const dir=temporary(),journal=journalFor(path.join(dir,'events.jsonl'));
+ journal.appendAcks(Array.from({length:200},(_,i)=>({provider:'manual',eventId:'batch-'+i})));
+ const records=journal.load();
+ assert.equal(records.length,2);
+ assert.equal(records.reduce((sum,record)=>sum+record.keys.length,0),200);
+ fs.rmSync(dir,{recursive:true,force:true});
+});
+
 test('compacts encrypted journal to only unacknowledged events',()=>{
  const dir=temporary(),file=path.join(dir,'events.jsonl'),journal=journalFor(file);
  const first=event('first'),second=event('second');
