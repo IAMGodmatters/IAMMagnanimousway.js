@@ -4,6 +4,11 @@ const root = new URL('../..', import.meta.url);
 const host = fs.readFileSync(new URL('frontend/app/tiktok-live/page.tsx', root), 'utf8');
 const social = fs.readFileSync(new URL('frontend/app/social-hub/page.tsx', root), 'utf8');
 
+const eventContract = fs.readFileSync(new URL('frontend/lib/live-studio/event-contract.ts', root), 'utf8');
+const bridgeClient = fs.readFileSync(new URL('frontend/lib/live-studio/bridge-client.ts', root), 'utf8');
+const bridgeDocs = fs.readFileSync(new URL('docs/live-studio/bridge-protocol.md', root), 'utf8');
+const bridgeUi = fs.readFileSync(new URL('frontend/app/tiktok-live/bridge/page.tsx', root), 'utf8');
+
 const checks = [
   ['host uses Magnanimous native chat transport', host.includes('postMagnanimousChat') && host.includes('${api}/api/chat')],
   ['host retains Magnanimous knowledge context', host.includes('use_knowledge: true')],
@@ -16,6 +21,20 @@ const checks = [
   ['viewer comments are manually entered by the operator', host.includes('Paste or type a viewer') && host.includes('LIVE HUMAN MODERATION')],
   ['TikTok Shop AI-narration restriction is visible in the host guidance', host.includes('Do not use this AI-voice host to sell products on TikTok Shop LIVE')],
   ['Social Hub links to the host control room', social.includes('href="/tiktok-live"')],
+  ['live event contract supports TikTok, YouTube, Twitch, OBS and games', ['tiktok', 'youtube', 'twitch', 'obs', 'game'].every(provider => eventContract.includes("'" + provider + "'"))],
+  ['untrusted provider events are normalized and bounded', eventContract.includes('normalizeLiveEvent') && eventContract.includes('cleanText(v.text,500)') && eventContract.includes('slice(0,max)') && eventContract.includes('7*86400000')],
+  ['sensitive credentials are excluded from event tags', eventContract.includes('token|secret|password|cookie|authorization|credential')],
+  ['bridge permits secure remote or loopback-only local transport', bridgeClient.includes("url.protocol!=='wss:'") && bridgeClient.includes("url.protocol==='ws:'&&loopback")],
+  ['pairing credentials are sent in the message body, not URL parameters', bridgeClient.includes("kind:'auth'") && bridgeClient.includes('token')],
+  ['bridge reconnect attempts are bounded', bridgeClient.includes('retryCount>=5')],
+  ['bridge commands are allowlisted and do not expose destructive controls', eventContract.includes('normalizeLiveBridgeCommand') && !eventContract.includes("'broadcast.start'")],
+  ['bridge protocol documents provider consent and tenant isolation', bridgeDocs.includes('tenant authorization') && bridgeDocs.includes('official OAuth')],
+  ['LIVE Host links to the event bridge control room', host.includes('href="/tiktok-live/bridge"')],
+  ['bridge UI uses the provider-neutral client', bridgeUi.includes('createLiveBridgeClient') && bridgeUi.includes('LiveEvent')],
+  ['bridge UI truthfully discloses that the companion and adapters are not deployed', bridgeUi.includes('companion server and platform adapters are not deployed yet')],
+  ['bridge UI rejects provider passwords and uses a one-time pairing token', bridgeUi.includes('Do not enter TikTok, Google, Twitch, OBS or game-account passwords') && bridgeUi.includes('One-time pairing token')],
+  ['bridge UI never persists pairing tokens', bridgeUi.includes('never saved in browser storage') && !bridgeUi.includes('localStorage')],
+  ['bridge UI bounds the event feed', bridgeUi.includes('.slice(0,50)')],
 ];
 
 const failures = checks.filter(([, ok]) => !ok);
