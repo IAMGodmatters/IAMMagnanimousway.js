@@ -10,7 +10,7 @@ A Windows-first, offline-first creator workspace designed to live on an external
 - Stores saved projects in an AES-256-GCM encrypted vault on the removable drive. The passphrase is not stored by the app; the key is held in memory only while the vault is unlocked.
 - Does not download binaries or models, enable telemetry, open a LAN listener, run shell commands from the browser, or connect to external providers.
 - Can optionally start a portable OBS installation. The local creator includes an authenticated OBS WebSocket v5 control adapter for scene listing, scene switching and recording start/stop. OBS must already be installed/running with its WebSocket server enabled; this adapter does not install OBS or drivers.
-- OBS pairing is restricted to `127.0.0.1:4455`. The password is sent only to the local host for the OBS challenge handshake, is not stored in the vault or browser storage, and is not forwarded to any cloud service. Scene switching and recording require explicit operator clicks.
+- OBS pairing is restricted to `127.0.0.1:4455`. The password is sent only to the local host for the OBS challenge handshake, is not stored in the vault or browser storage, and is not forwarded to any cloud service. The adapter subscribes only to scene and output state events and places scene/stream/recording changes into the durable review queue. Scene switching and recording still require explicit operator clicks.
 
 This is a working local creator foundation, not yet the finished cross-platform USB broadcast appliance. The first Windows build requires compatible runtime binaries and an optional, separately licensed model to be placed in the documented folders.
 
