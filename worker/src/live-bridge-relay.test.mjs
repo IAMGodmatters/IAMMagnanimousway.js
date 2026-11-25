@@ -1,4 +1,5 @@
 import test from 'node:test';
+import crypto from 'node:crypto';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {handleLiveBridgeRelay,isRelayProviderAllowed,MagnanimousLiveBridgeRoom,normalizeRelayCommand,normalizeRelayEvent} from './live-bridge-relay.js';
@@ -167,6 +168,31 @@ test('authenticated companion cannot spoof a platform event without adapter auth
  assert.equal(socket.messages.at(-1)?.code,'PROVIDER_NOT_AUTHORIZED');
 });
 
+
+
+test('binds browser and companion pairing tokens to their distinct WebSocket origins',async()=>{
+ const browserToken='b'.repeat(43),companionToken='c'.repeat(43);
+ const pair={pairId:'room-1',tenantId:'tenant-1',userId:'user-1',browserHash:crypto.createHash('sha256').update(browserToken).digest('hex'),companionHash:crypto.createHash('sha256').update(companionToken).digest('hex'),expectedOrigin:'https://iammagnanimousway.com',allowedProviders:['manual','obs','game','browser'],pairExpiresAt:Date.now()+600000,sessionExpiresAt:0};
+ const makeRoom=origin=>{
+  const values=new Map([['pair',pair]]);
+  let attachment={pairId:'room-1',tenantId:'tenant-1',origin,expectedOrigin:pair.expectedOrigin,authenticated:false};
+  let closed=0;const messages=[];
+  const socket={deserializeAttachment:()=>attachment,serializeAttachment:value=>{attachment=value;},send:value=>messages.push(JSON.parse(value)),close:code=>{closed=code;}};
+  const state={storage:{get:async key=>values.get(key),put:async(key,value)=>values.set(key,value),setAlarm:async()=>{}},getWebSockets:()=>[socket]};
+  return{room:new MagnanimousLiveBridgeRoom(state,{}),socket,get attachment(){return attachment;},get closed(){return closed;},messages};
+ };
+ const wrongBrowser=makeRoom('https://attacker.example');
+ await wrongBrowser.room.webSocketMessage(wrongBrowser.socket,JSON.stringify({kind:'auth',protocolVersion:1,token:browserToken}));
+ assert.equal(wrongBrowser.closed,4003);
+ assert.equal(wrongBrowser.messages[0].code,'ORIGIN_ROLE_MISMATCH');
+ const wrongCompanion=makeRoom('https://iammagnanimousway.com');
+ await wrongCompanion.room.webSocketMessage(wrongCompanion.socket,JSON.stringify({kind:'auth',protocolVersion:1,token:companionToken}));
+ assert.equal(wrongCompanion.closed,4003);
+ const localCompanion=makeRoom(null);
+ await localCompanion.room.webSocketMessage(localCompanion.socket,JSON.stringify({kind:'auth',protocolVersion:1,token:companionToken}));
+ assert.equal(localCompanion.attachment.role,'companion');
+ assert.equal(localCompanion.closed,0);
+});
 
 test('forwards sanitized local storage failures to the browser operator',async()=>{
  const browserMessages=[];
