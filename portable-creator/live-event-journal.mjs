@@ -18,17 +18,21 @@ export class LiveEventJournal{
   return key;
  }
  encode(record){
-  const iv=crypto.randomBytes(12),cipher=crypto.createCipheriv('aes-256-gcm',this.getKey(),iv);
-  const plain=Buffer.from(JSON.stringify({version:1,...record}),'utf8');
-  const ciphertext=Buffer.concat([cipher.update(plain),cipher.final()]);
-  return JSON.stringify({version:1,cipher:'aes-256-gcm',iv:iv.toString('hex'),tag:cipher.getAuthTag().toString('hex'),ciphertext:ciphertext.toString('base64')});
+  const key=this.getKey(),iv=crypto.randomBytes(12);
+  try{
+   const cipher=crypto.createCipheriv('aes-256-gcm',key,iv);
+   const plain=Buffer.from(JSON.stringify({version:1,...record}),'utf8');
+   const ciphertext=Buffer.concat([cipher.update(plain),cipher.final()]);
+   return JSON.stringify({version:1,cipher:'aes-256-gcm',iv:iv.toString('hex'),tag:cipher.getAuthTag().toString('hex'),ciphertext:ciphertext.toString('base64')});
+  }finally{key.fill(0);}
  }
  decode(envelope){
   if(envelope?.version!==1||envelope?.cipher!=='aes-256-gcm'||typeof envelope.iv!=='string'||typeof envelope.tag!=='string'||typeof envelope.ciphertext!=='string')return null;
   const iv=Buffer.from(envelope.iv,'hex'),tag=Buffer.from(envelope.tag,'hex'),ciphertext=Buffer.from(envelope.ciphertext,'base64');
   if(iv.length!==12||tag.length!==16||ciphertext.length>MAX_RECORD_BYTES)throw new Error('The encrypted live-event journal contains an invalid record.');
+  const key=this.getKey();
   try{
-   const decipher=crypto.createDecipheriv('aes-256-gcm',this.getKey(),iv);
+   const decipher=crypto.createDecipheriv('aes-256-gcm',key,iv);
    decipher.setAuthTag(tag);
    const plain=Buffer.concat([decipher.update(ciphertext),decipher.final()]).toString('utf8');
    const record=JSON.parse(plain);
@@ -36,10 +40,9 @@ export class LiveEventJournal{
    if(record.kind==='event'&&record.event&&typeof record.event==='object')return record;
    if(record.kind==='ack'&&Array.isArray(record.keys))return record;
    return null;
-  }catch(error){
-   if(String(error?.message||'').includes('Unlock the encrypted workspace'))throw error;
+  }catch{
    throw new Error('The encrypted live-event journal could not be unlocked or verified with this workspace key.');
-  }
+  }finally{key.fill(0);}
  }
  load(){
   if(!fs.existsSync(this.filePath))return[];
