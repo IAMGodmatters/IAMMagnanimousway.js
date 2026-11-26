@@ -7,7 +7,7 @@ type Envelope={kind:'event';event:unknown}|{kind:'ready';protocolVersion:1}|{kin
 function validBridgeUrl(raw:string):URL {
  let url:URL;try{url=new URL(raw);}catch{throw new Error('Enter a valid secure Magnanimous bridge address.');}
  const loopback=['localhost','127.0.0.1','[::1]'].includes(url.hostname);
- const local=url.protocol==='ws:'&&loopback&&!url.port?.includes('0')&&!url.username&&!url.password&&!url.search&&!url.hash;
+ const local=url.protocol==='ws:'&&loopback&&Boolean(url.port)&&Number(url.port)>=1024&&Number(url.port)<=65535&&!url.username&&!url.password&&!url.search&&!url.hash;
  const remote=url.protocol==='wss:'&&url.hostname==='iammagnanimousway.com'&&(!url.port||url.port==='443')&&/^\/api\/live-bridge\/ws\/[0-9a-f-]{36}$/i.test(url.pathname)&&!url.username&&!url.password&&!url.search&&!url.hash;
  if(!local&&!remote)throw new Error('Use the official wss://iammagnanimousway.com live-bridge address, or ws:// only for a local loopback companion.');
  return url;
