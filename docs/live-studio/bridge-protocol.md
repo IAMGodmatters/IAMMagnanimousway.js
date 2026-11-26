@@ -23,7 +23,8 @@ Outgoing commands currently support only local-owner-approved scene selection (`
 ## Reliability and privacy
 - Pairing tokens remain in memory and never enter browser storage, URLs or logs.
 - Remote bridges require TLS, short-lived pairing, revocation, tenant authorization, replay protection, event deduplication, bounded queues and audit logs.
-- Reconnect attempts are bounded; after five attempts the operator must retry.
+- Both browser and local companion sides send ping/pong heartbeats. The browser closes a stale socket after a 45-second pong deadline and reconnects with exponential backoff capped at 30 seconds; retries continue while the pair/session remains valid.
+- Authentication failure, revocation, expiry and explicit operator disconnect stop automatic reconnect. A new pair is required after credentials expire.
 - Minimize events before adding them to Magnanimous context. Raw provider payload retention requires explicit creator settings.
 - AI hosts remain disclosed. Viewer text is untrusted and cannot grant tools, account, moderation, payment or deployment permissions.
 
