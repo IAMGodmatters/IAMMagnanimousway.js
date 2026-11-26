@@ -33,24 +33,13 @@ let serverPort=PORT;
 let obsClient=null;
 let bridgeSocket=null;
 let bridgeHeartbeat=null;
-let bridgeReconnectTimer=null;
-let bridgeReconnectCount=0;
 let bridgeStatus='disconnected';
 let bridgeError='';
-let bridgeEndpoint='';
-let bridgeToken='';
-let bridgeClosing=true;
 let gameIntegrationToken=null;
 const pendingBridgeCommands=[];
 const approvedBridgeCommands=new Map();
 const bridgeReceiptOutbox=new Map();
-const pendingBridgeReceiptAcks=new Map();
-let bridgeSocket=null;
-let bridgeHeartbeat=null;
-let bridgeStatus='disconnected';
-let bridgeError='';
-const pendingBridgeCommands=[];
-const approvedBridgeCommands=new Map();
+const bridgeReceiptConfirmations=new Map();
 const OBS_PORT=4455;
 fs.mkdirSync(DATA,{recursive:true});
 let liveEventsRestored=false;
@@ -172,7 +161,6 @@ function unlockVault(passphrase){
  }
 }
 function lockVault(){
- closeBridge();
  gameIntegrationToken=null;
  closeBridge('workspace_locked');
  liveEvents.clear();liveEventsRestored=false;liveEventJournalError='';liveEventJournalWarning='';
