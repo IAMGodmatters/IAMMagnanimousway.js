@@ -106,7 +106,25 @@ export async function listLiveEventInbox(pendingOnly = false): Promise<LiveEvent
     .map(item => item.event);
 }
 
-/** Mark an event as accepted into the Host interface; the bridge then acknowledges it to the relay. */
+/** Check the durable Host-completion receipt so reconnects do not enqueue an event twice. */
+export async function isLiveEventDelivered(provider: LiveEvent['provider'], eventId: string): Promise<boolean> {
+  const db = await openDatabase();
+  return await new Promise<boolean>((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const request = tx.objectStore(STORE_NAME).get(provider + ':' + eventId);
+    let delivered = false;
+    request.onsuccess = () => {
+      const record = request.result as StoredEvent | undefined;
+      delivered = Boolean(record && Number.isFinite(record.deliveredAt) && record.deliveredAt > 0);
+    };
+    request.onerror = () => reject(request.error || new Error('The event completion receipt could not be read.'));
+    tx.oncomplete = () => resolve(delivered);
+    tx.onerror = () => reject(tx.error || new Error('The event completion receipt lookup failed.'));
+    tx.onabort = () => reject(tx.error || new Error('The event completion receipt lookup was cancelled.'));
+  });
+}
+
+/** Mark an event only after Magnanimous has completed its Host response; the bridge then acknowledges the relay. */
 export async function markLiveEventDelivered(provider: LiveEvent['provider'], eventId: string): Promise<void> {
   const db = await openDatabase();
   await new Promise<void>((resolve, reject) => {
