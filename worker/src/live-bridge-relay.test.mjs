@@ -170,7 +170,7 @@ function makeRoomForAuth(role,origin){
  const pair={pairId:'room-1',tenantId:'tenant-1',userId:'user-1',browserHash:tokenHash(browserToken),companionHash:tokenHash(companionToken),allowedProviders:['manual','obs','game','browser'],pairExpiresAt:Date.now()+600000,sessionExpiresAt:0};
  const socket=makeSocket({pairId:'room-1',tenantId:'tenant-1',expectedOrigin:'https://iammagnanimousway.com',origin,role:null,authenticated:false,seen:[],sessionExpiresAt:0});
  const state={storage:{get:async()=>pair,put:async(_key,value)=>{Object.assign(pair,value);},setAlarm:async()=>{}},getWebSockets:()=>[socket]};
- return {room:new MagnanimousLiveBridgeRoom(state,{}),socket,token:role==='browser'?browserToken:companionToken};
+ return {room:new MagnanimousLiveBridgeRoom(state,{}),socket,token:role==='browser'?browserToken:companionToken,pair};
 }
 
 test('browser pairing token cannot authenticate without the official browser origin',async()=>{
@@ -201,21 +201,18 @@ test('official browser and originless local companion tokens authenticate only t
 });
 
 test('pairing tokens expire after ten minutes while an already authenticated session may continue',async()=>{
- const originalNow=Date.now,startedAt=originalNow();
- const {room,socket,token}=makeRoomForAuth('browser','https://iammagnanimousway.com');
+ const {room,socket,token,pair}=makeRoomForAuth('browser','https://iammagnanimousway.com');
  const auth=JSON.stringify({kind:'auth',protocolVersion:1,token});
- try{
-  await room.webSocketMessage(socket,auth);
-  assert.equal(socket.attachment.authenticated,true);
-  assert.ok(socket.attachment.sessionExpiresAt>startedAt+10*60_000);
-  Date.now=()=>startedAt+10*60_000+1;
-  await room.webSocketMessage(socket,JSON.stringify({kind:'ping'}));
-  assert.equal(socket.messages.at(-1)?.kind,'pong','An already authenticated connection may continue within its session window.');
-  socket.serializeAttachment({...socket.attachment,authenticated:false,role:null});
-  await room.webSocketMessage(socket,auth);
-  assert.equal(socket.closed?.code,4001,'The original pairing token must not establish a new connection after ten minutes.');
-  assert.equal(socket.messages.at(-1)?.code,'PAIRING_REVOKED');
- }finally{Date.now=originalNow;}
+ await room.webSocketMessage(socket,auth);
+ assert.equal(socket.attachment.authenticated,true);
+ assert.ok(socket.attachment.sessionExpiresAt>Date.now()+10*60_000);
+ pair.pairExpiresAt=Date.now()-1;
+ await room.webSocketMessage(socket,JSON.stringify({kind:'ping'}));
+ assert.equal(socket.messages.at(-1)?.kind,'pong','An already authenticated connection may continue within its session window.');
+ socket.serializeAttachment({...socket.attachment,authenticated:false,role:null});
+ await room.webSocketMessage(socket,auth);
+ assert.equal(socket.closed?.code,4001,'The original pairing token must not establish a new connection after ten minutes.');
+ assert.equal(socket.messages.at(-1)?.code,'PAIRING_REVOKED');
 });
 
 test('authenticated companion cannot spoof a platform event without adapter authorization',async()=>{
@@ -304,7 +301,7 @@ test('forwards sanitized local storage failures to the browser operator',async()
 
 test('limits authenticated browser message rate',async()=>{
  const now=Date.now();
- let attachment={authenticated:true,role:'browser',sessionExpiresAt:now+60_000,windowStartedAt:now,windowCount:0};
+ let attachment={authenticated:true,role:'browser',sessionExpiresAt:now+60*60_000,windowStartedAt:now,windowCount:0};
  let closed=0;
  const socket={deserializeAttachment:()=>attachment,serializeAttachment:value=>{attachment=value;},send(){},close:code=>{closed=code;}};
  const state={storage:{get:async()=>null},getWebSockets:()=>[socket]};
