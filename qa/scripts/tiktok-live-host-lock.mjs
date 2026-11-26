@@ -11,6 +11,8 @@ const bridgeUi = fs.readFileSync(new URL('frontend/app/tiktok-live/bridge/page.t
 const eventInbox = fs.readFileSync(new URL('frontend/lib/live-studio/event-inbox.ts', root), 'utf8');
 const relay = fs.readFileSync(new URL('worker/src/live-bridge-relay.js', root), 'utf8');
 const portableHost = fs.readFileSync(new URL('portable-creator/host.mjs', root), 'utf8');
+const wrangler = fs.readFileSync(new URL('worker/wrangler.jsonc', root), 'utf8');
+const security = fs.readFileSync(new URL('worker/src/security-entrypoint.js', root), 'utf8');
 const bridgeCloseStart = portableHost.indexOf("socket.addEventListener('close'");
 const bridgeCloseEnd = portableHost.indexOf("socket.addEventListener('error'", bridgeCloseStart);
 const bridgeCloseHandler = bridgeCloseStart >= 0 && bridgeCloseEnd > bridgeCloseStart ? portableHost.slice(bridgeCloseStart, bridgeCloseEnd) : '';
@@ -74,6 +76,7 @@ const checks = [
   ['companion approval waits for a durable relay receipt before OBS or speech execution', portableHost.includes("if(!await sendBridgeCommandReceipt(commandId,'approved'))") && portableHost.indexOf("if(!await sendBridgeCommandReceipt(commandId,'approved'))") < portableHost.indexOf("obsClient.setProgramScene(command.sceneName)")],
   ['network interruption preserves approved local completion receipts for reconnect', bridgeCloseHandler.includes('pendingBridgeCommands.length=0') && !bridgeCloseHandler.includes('approvedBridgeCommands.clear()')],
   ['relay confirms command receipts only after the durable ledger write', relay.indexOf("await this.state.storage.put('commands',ledger.slice(-50));") < relay.indexOf("kind:'command.receipt.confirmed'") && relay.includes("kind:'command.receipt.confirmed'")],
+  ['production live bridge remains disabled until owner verifies and enables its usage budget', wrangler.includes('"LIVE_BRIDGE_ENABLED": "false"') && security.includes("env.LIVE_BRIDGE_ENABLED==='true'")],
 
 ];
 
