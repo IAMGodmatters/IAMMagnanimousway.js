@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createLiveBridgeClient, type LiveBridgeCommandReceipt, type LiveBridgeStatus } from '../../../lib/live-studio/bridge-client';
 import type { LiveEvent } from '../../../lib/live-studio/event-contract';
 
-type CommandAction = 'scene.set' | 'overlay.show' | 'overlay.hide' | 'audio.cue' | 'host.speak';
+type CommandAction = 'scene.set' | 'host.speak';
 function newCommandId(){return globalThis.crypto?.randomUUID?.()||('cmd-'+Date.now()+'-'+Math.random().toString(36).slice(2,12));}
 
 export default function LiveEventBridgePage() {
@@ -64,6 +64,19 @@ export default function LiveEventBridgePage() {
   },[]);
 
   useEffect(()=>{
+    if(!pairId)return;
+    const activePairId=pairId;
+    const revokeOnExit=()=>{
+      void fetch('/api/live-bridge/revoke',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({pairId:activePairId}),cache:'no-store',keepalive:true}).catch(()=>{});
+    };
+    window.addEventListener('pagehide',revokeOnExit);
+    return ()=>{
+      window.removeEventListener('pagehide',revokeOnExit);
+      revokeOnExit();
+    };
+  },[pairId]);
+
+  useEffect(()=>{
     statusRef.current=status;
     hostChannelRef.current?.postMessage({type:'bridge.status',connected:status==='connected'});
     legacyChannelRef.current?.postMessage({kind:'status',status});
@@ -103,10 +116,10 @@ export default function LiveEventBridgePage() {
   async function createPair() {
     setPairBusy(true);setError('');setNotice('');
     try {
+      if(pairId){await revokePairId(pairId);setPairId('');}
       const response=await fetch('/api/live-bridge/pair',{method:'POST',headers:{'content-type':'application/json'},body:'{}',cache:'no-store'});
       const data=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(data.detail||'Sign in to Magnanimous before creating a bridge pair.');
-      if(pairId){await revokePairId(pairId);setPairId('');}
       setPairId(data.pairId);
       setReceipts([]);
       setEndpoint(data.endpoint);
@@ -219,13 +232,10 @@ export default function LiveEventBridgePage() {
           <label>Action
             <select value={action} onChange={e=>setAction(e.target.value as CommandAction)}>
               <option value="scene.set">Switch OBS scene</option>
-              <option value="overlay.show" disabled>Show overlay (not available yet)</option>
-              <option value="overlay.hide" disabled>Hide overlay (not available yet)</option>
-              <option value="audio.cue" disabled>Play audio cue (not available yet)</option>
               <option value="host.speak">Ask host to speak</option>
             </select>
           </label>
-          {needsTarget?<label>{action==='scene.set'?'Scene name':action.startsWith('overlay.')?'Overlay ID':'Audio cue ID'}
+          {needsTarget?<label>Scene name
             <input value={target} onChange={e=>setTarget(e.target.value)} placeholder="Enter the exact name or ID" />
           </label>:<label>Words for the AI host
             <textarea value={speech} onChange={e=>setSpeech(e.target.value)} rows={4} maxLength={500} placeholder="Write what Magnanimous should say…" />
