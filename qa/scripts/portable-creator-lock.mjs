@@ -130,6 +130,13 @@ checks.push(
  ['full platform QA executes the bridge relay tests and syntax-checks the Worker module',workflow.includes('worker/src/live-bridge-relay.test.mjs')&&workflow.includes('node --check worker/src/live-bridge-relay.js')],
  ['relay regression suite covers offline delivery, duplicate IDs, receipt state transitions and reconnect recovery',bridgeRelayTests.includes('offline')&&bridgeRelayTests.includes('DUPLICATE_COMMAND')&&bridgeRelayTests.includes('INVALID_COMMAND_TRANSITION')&&bridgeRelayTests.includes('browser reconnect receives the latest non-expired local command receipt')]
 );
+checks.push(
+ ['AI Host emergency stop is allowed only as a local host-speech cancellation command',bridgeRelay.includes("input.action==='host.stop'")&&bridgeRelayTests.includes("action:'host.stop'")&&host.includes("value.action==='host.stop'")&&!bridgeRelay.includes("input.action==='broadcast.stop'")],
+ ['USB companion consumes AI Host stop requests, cancels device speech and confirms the stop receipt',host.includes('bridgeStopRequest={commandId:command.commandId,issuedAt:Date.now()}')&&app.includes("data.stopRequest?.commandId")&&app.includes('window.speechSynthesis.cancel()')&&app.includes("outcome:'completed'")],
+ ['local Creator exposes a separate stop control and stops its local autonomous voice when requested',html.includes('id="bridgeStopSpeechButton"')&&app.includes('async function stopDeviceSpeech()')&&app.includes("stopLiveAutonomy('operator_emergency_stop')")],
+ ['stale companion speech and stop reservations expire instead of remaining active indefinitely',host.includes('now-Number(item.approvedAt)>5*60_000')&&host.includes('bridgeStopRequest=null')],
+ ['AI Host STOP sends the narrow host.stop action to the paired bridge',aiHost.includes("type: 'host.stop'")&&aiHost.includes('host.stop.receipt')&&bridgePage.includes("action:'host.stop'")],
+);
 const failures=checks.filter(([,ok])=>!ok);
 for(const [name,ok] of checks)console.log(`${ok?'PASS':'FAIL'} ${name}`);
 if(failures.length){console.error(`Portable creator contract failed: ${failures.length} check(s).`);process.exit(1);}
