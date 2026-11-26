@@ -208,6 +208,16 @@ function closeBridge(){
  pendingBridgeCommands.length=0;approvedBridgeCommands.clear();
  if(socket){try{socket.close(1000,'Operator disconnected');}catch{}}
 }
+const BRIDGE_COMMAND_TTL_MS=4*60_000;
+function prunePendingBridgeCommands(now=Date.now()){
+ for(let index=pendingBridgeCommands.length-1;index>=0;index--){
+  const item=pendingBridgeCommands[index],receivedAt=Date.parse(item.receivedAt);
+  if(!Number.isFinite(receivedAt)||now-receivedAt>BRIDGE_COMMAND_TTL_MS){
+   pendingBridgeCommands.splice(index,1);
+   sendBridgeCommandReceipt(item.commandId,'failed');
+  }
+ }
+}
 function bridgeSnapshot(){
  return{status:bridgeStatus,connected:bridgeStatus==='connected',error:bridgeError,pendingCommands:pendingBridgeCommands.map(({commandId,action,sceneName,overlayId,cueId,text,receivedAt})=>({commandId,action,sceneName,overlayId,cueId,text,receivedAt}))};
 }
@@ -239,7 +249,7 @@ function connectBridge(endpoint,token){
     if(typeof commandId==='string')sendBridgeCommandReceipt(commandId,'failed');
     return;
    }
-   if(pendingBridgeCommands.some(item=>item.commandId===command.commandId)){sendBridgeCommandReceipt(command.commandId,'received');return;}
+   if(pendingBridgeCommands.some(item=>item.commandId===command.commandId)||approvedBridgeCommands.has(command.commandId)){sendBridgeCommandReceipt(command.commandId,'received');return;}
    if(pendingBridgeCommands.length>=20){bridgeError='The local approval queue is full; no command was executed.';sendBridgeCommandReceipt(command.commandId,'rejected');return;}
    pendingBridgeCommands.push({...command,receivedAt:new Date().toISOString()});
    sendBridgeCommandReceipt(command.commandId,'received');
@@ -381,6 +391,7 @@ async function handleApi(req,res,url){
   closeBridge();pendingBridgeCommands.length=0;approvedBridgeCommands.clear();return json(res,200,{ok:true,status:bridgeStatus});
  }
  if(req.method==='POST'&&url.pathname==='/api/bridge/command/review'){
+  prunePendingBridgeCommands();
   const body=await readJson(req),commandId=String(body.commandId||''),index=pendingBridgeCommands.findIndex(item=>item.commandId===commandId);
   if(index<0)return json(res,404,{detail:'The pending command was not found or has expired.'});
   if(body.approved!==true){
@@ -395,16 +406,16 @@ async function handleApi(req,res,url){
    for(const [id,item] of approvedBridgeCommands){if(Date.now()-item.approvedAt>5*60_000){approvedBridgeCommands.delete(id);sendBridgeCommandReceipt(id,'failed');}}
    if(approvedBridgeCommands.size>=20)return json(res,429,{detail:'Too many approved host lines are awaiting local voice playback.'});
    pendingBridgeCommands.splice(index,1);
+   if(!sendBridgeCommandReceipt(commandId,'approved'))return json(res,503,{detail:'The approval receipt could not reach the online relay. No speech was started.'});
    approvedBridgeCommands.set(commandId,{action:'host.speak',approvedAt:Date.now()});
-   sendBridgeCommandReceipt(commandId,'approved');
    return json(res,200,{ok:true,approved:true,action:'host.speak',commandId,speechText});
   }
   if(command.action!=='scene.set')return json(res,409,{detail:'This command type is not implemented locally. No action was taken.'});
   if(!obsClient?.connected)return json(res,409,{detail:'Connect to OBS locally before approving a scene change.'});
+  pendingBridgeCommands.splice(index,1);
+  if(!sendBridgeCommandReceipt(commandId,'approved'))return json(res,503,{detail:'The approval receipt could not reach the online relay. No OBS scene change was performed.'});
   try{
    const result=await obsClient.setProgramScene(command.sceneName);
-   pendingBridgeCommands.splice(index,1);
-   sendBridgeCommandReceipt(commandId,'approved');
    sendBridgeCommandReceipt(commandId,'completed');
    return json(res,200,{ok:true,approved:true,commandId,sceneName:result.sceneName||command.sceneName});
   }catch(error){
