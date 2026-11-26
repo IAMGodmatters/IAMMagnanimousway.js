@@ -97,6 +97,13 @@ export default function TikTokLiveHost() {
       if (payload?.kind !== 'event') return;
       const event = normalizeLiveEvent(payload.event);
       if (!event) return;
+      const hostPrompt = takeoverRef.current ? liveEventToHostPrompt(event) : '';
+      // Apply backpressure before marking the event seen or delivered. A full
+      // queue must leave the event pending in IndexedDB and on the relay.
+      if (takeoverRef.current && hostPrompt && queuedCommentsRef.current.length >= 25) {
+        setNotice('The live event queue is full (25 items). Magnanimous is keeping this event pending and will retry when a slot opens.');
+        return;
+      }
       const eventKey = event.provider + ':' + event.eventId;
       if (seenBridgeEventIdsRef.current.has(eventKey)) {
         void markLiveEventDelivered(event.provider, event.eventId)
@@ -109,21 +116,16 @@ export default function TikTokLiveHost() {
         const oldest = seenBridgeEventIdsRef.current.values().next().value;
         if (oldest) seenBridgeEventIdsRef.current.delete(oldest);
       }
+      if (takeoverRef.current && hostPrompt) {
+        const item = { id: Date.now() + Math.floor(Math.random() * 1000), text: hostPrompt, source: event.provider + ' · ' + event.type };
+        const next = [...queuedCommentsRef.current, item];
+        queuedCommentsRef.current = next;
+        setQueuedComments(next);
+      }
       setBridgeEvents(items => [event, ...items.filter(item => item.provider !== event.provider || item.eventId !== event.eventId)].slice(0, 12));
       void markLiveEventDelivered(event.provider, event.eventId)
         .then(() => channel.postMessage({ kind: 'event.receipt', provider: event.provider, eventId: event.eventId }))
         .catch(() => setNotice('The event is displayed, but its durable receipt could not be saved. The bridge will retry it.'));
-      if (!takeoverRef.current) return;
-      const hostPrompt = liveEventToHostPrompt(event);
-      if (!hostPrompt) return;
-      if (queuedCommentsRef.current.length >= 25) {
-        setNotice('The live event queue is full (25 items). Magnanimous will not discard existing events.');
-        return;
-      }
-      const item = { id: Date.now() + Math.floor(Math.random() * 1000), text: hostPrompt, source: event.provider + ' · ' + event.type };
-      const next = [...queuedCommentsRef.current, item];
-      queuedCommentsRef.current = next;
-      setQueuedComments(next);
     };
     channel.postMessage({ kind: 'request-status' });
     return () => channel.close();
