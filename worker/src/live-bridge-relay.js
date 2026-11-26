@@ -110,8 +110,13 @@ export class MagnanimousLiveBridgeRoom {
    const existing=this.findRole(role,ws);
    if(existing){try{existing.close(4001,'Replaced by a newer connection');}catch{}}
    const browser=this.findRole('browser'),companion=this.findRole('companion');
-   if(browser&&companion){browser.send(JSON.stringify({kind:'ready',protocolVersion:1}));companion.send(JSON.stringify({kind:'ready',protocolVersion:1}));}
-   else ws.send(JSON.stringify({kind:'waiting',protocolVersion:1,detail:'Waiting for the other approved device.'}));
+   if(browser&&companion){
+    browser.send(JSON.stringify({kind:'ready',protocolVersion:1}));
+    companion.send(JSON.stringify({kind:'ready',protocolVersion:1}));
+    const storedReceipts=await this.state.storage.get('commands');
+    const recentReceipts=Array.isArray(storedReceipts)?storedReceipts.filter(item=>item&&Number(item.expiresAt)>Date.now()&&item.status!=='sent').slice(-50):[];
+    for(const item of recentReceipts)browser.send(JSON.stringify({kind:'command.receipt',protocolVersion:1,receipt:{commandId:item.commandId,status:item.status}}));
+   }else ws.send(JSON.stringify({kind:'waiting',protocolVersion:1,detail:'Waiting for the other approved device.'}));
    return;
   }
   if(Date.now()>attachment.sessionExpiresAt){ws.close(4001,'Bridge session expired');return;}
