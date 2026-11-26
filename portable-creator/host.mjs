@@ -185,10 +185,20 @@ function safeBridgeCommand(value){
  if(value.action==='host.speak'&&typeof value.text==='string'&&value.text.trim())return{commandId:value.commandId,action:'host.speak',text:value.text.trim().slice(0,500)};
  return null;
 }
-function sendBridgeCommandReceipt(commandId,status){
+function bridgeReceiptKey(commandId,status){return commandId+'\\u0000'+status;}
+async function sendBridgeCommandReceipt(commandId,status,timeoutMs=2500){
  if(!/^[A-Za-z0-9._:-]{1,160}$/.test(String(commandId||''))||!['received','approved','rejected','completed','failed'].includes(status))return false;
- if(!bridgeSocket||bridgeSocket.readyState!==1)return false;
- try{bridgeSocket.send(JSON.stringify({kind:'command.receipt',protocolVersion:1,receipt:{commandId,status}}));return true;}catch{return false;}
+ const socket=bridgeSocket;
+ if(!socket||socket.readyState!==1)return false;
+ const key=bridgeReceiptKey(commandId,status);
+ return await new Promise(resolve=>{
+  const existing=bridgeReceiptConfirmations.get(key);
+  if(existing){resolve(false);return;}
+  const timer=setTimeout(()=>{bridgeReceiptConfirmations.delete(key);resolve(false);},Math.max(500,Math.min(5000,timeoutMs)));
+  bridgeReceiptConfirmations.set(key,{resolve,value:false,timer});
+  try{socket.send(JSON.stringify({kind:'command.receipt',protocolVersion:1,receipt:{commandId,status}}));}
+  catch{clearTimeout(timer);bridgeReceiptConfirmations.delete(key);resolve(false);}
+ });
 }
 function queueBridgeCommandReceipt(commandId,status){
  if(!/^[A-Za-z0-9._:-]{1,160}$/.test(String(commandId||''))||!['completed','failed'].includes(status))return false;
@@ -201,16 +211,19 @@ function flushBridgeReceiptOutbox(){
  if(!bridgeSocket||bridgeSocket.readyState!==1)return;
  for(const [commandId,item] of bridgeReceiptOutbox){
   if(Date.now()-item.createdAt>5*60_000){bridgeReceiptOutbox.delete(commandId);continue;}
-  if(!sendBridgeCommandReceipt(commandId,item.status))break;
-  bridgeReceiptOutbox.delete(commandId);
+  void sendBridgeCommandReceipt(commandId,item.status).then(confirmed=>{
+   if(confirmed)bridgeReceiptOutbox.delete(commandId);
+  });
+  break;
  }
 }
 function clearBridgeHeartbeat(){if(bridgeHeartbeat)clearInterval(bridgeHeartbeat);bridgeHeartbeat=null;}
 function closeBridge(reason='operator_disconnect'){
  clearBridgeHeartbeat();
- for(const command of pendingBridgeCommands)sendBridgeCommandReceipt(command.commandId,'rejected');
+ for(const [key,pending] of bridgeReceiptConfirmations){clearTimeout(pending.timer);pending.resolve(false);bridgeReceiptConfirmations.delete(key);}
+ for(const command of pendingBridgeCommands)void sendBridgeCommandReceipt(command.commandId,'rejected');
  const socket=bridgeSocket;bridgeSocket=null;bridgeStatus='disconnected';bridgeError='';
- for(const [commandId] of approvedBridgeCommands)sendBridgeCommandReceipt(commandId,'failed');
+ for(const [commandId] of approvedBridgeCommands)void sendBridgeCommandReceipt(commandId,'failed');
  pendingBridgeCommands.length=0;approvedBridgeCommands.clear();bridgeReceiptOutbox.clear();
  if(socket){try{socket.close(1000,String(reason).slice(0,80));}catch{}}
 }
@@ -224,7 +237,7 @@ function pruneBridgeCommands(now=Date.now()){
  }
  for(const [commandId,item] of approvedBridgeCommands){
   if(!Number.isFinite(item.approvedAt)||now-item.approvedAt>5*60_000){
-   approvedBridgeCommands.delete(commandId);sendBridgeCommandReceipt(commandId,'failed');
+   approvedBridgeCommands.delete(commandId);void sendBridgeCommandReceipt(commandId,'failed');
   }
  }
 }
@@ -256,14 +269,19 @@ function connectBridge(endpoint,token){
    return;
   }
   if(envelope?.kind==='pong')return;
+  if(envelope?.kind==='command.receipt.confirmed'&&envelope.protocolVersion===1){
+   const receipt=envelope.receipt,key=receipt&&bridgeReceiptKey(receipt.commandId,receipt.status),pending=typeof key==='string'?bridgeReceiptConfirmations.get(key):null;
+   if(pending){clearTimeout(pending.timer);bridgeReceiptConfirmations.delete(key);pending.resolve(true);}
+   return;
+  }
   if(envelope?.kind==='waiting'){bridgeStatus='connecting';return;}
   if(envelope?.kind==='command'&&envelope.protocolVersion===1){
    const command=safeBridgeCommand(envelope.command);
-   if(!command){const id=envelope.command?.commandId;if(typeof id==='string')sendBridgeCommandReceipt(id,'failed');return;}
-   if(pendingBridgeCommands.some(item=>item.commandId===command.commandId)||approvedBridgeCommands.has(command.commandId)){sendBridgeCommandReceipt(command.commandId,'received');return;}
-   if(pendingBridgeCommands.length>=20){bridgeError='The local approval queue is full; no command was executed.';sendBridgeCommandReceipt(command.commandId,'rejected');return;}
+   if(!command){const id=envelope.command?.commandId;if(typeof id==='string')void sendBridgeCommandReceipt(id,'failed');return;}
+   if(pendingBridgeCommands.some(item=>item.commandId===command.commandId)||approvedBridgeCommands.has(command.commandId)){void void sendBridgeCommandReceipt(command.commandId,'received');return;}
+   if(pendingBridgeCommands.length>=20){bridgeError='The local approval queue is full; no command was executed.';void sendBridgeCommandReceipt(command.commandId,'rejected');return;}
    pendingBridgeCommands.push({...command,receivedAt:new Date().toISOString()});
-   sendBridgeCommandReceipt(command.commandId,'received');return;
+   void void sendBridgeCommandReceipt(command.commandId,'received');return;
   }
   if(envelope?.kind==='error'){
    bridgeError=String(envelope.message||'The online relay reported an error.').slice(0,240);
