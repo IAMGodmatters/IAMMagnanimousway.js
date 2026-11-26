@@ -98,7 +98,7 @@ export default function LiveEventBridgePage() {
     if(!pairId)return;
     setPairBusy(true);setError('');
     try{
-      const token=typeof window!=='undefined'?(localStorage.getItem('iam_account_token')||localStorage.getItem('odin_admin_token')||''):'';
+      const token=typeof window!=='undefined'?(localStorage.getItem('iam_account_token')||''):'';
       const headers:Record<string,string>={'content-type':'application/json'};
       if(token)headers.Authorization='Bearer '+token;
       const response=await fetch('/api/live-bridge/revoke',{method:'POST',headers,body:JSON.stringify({pairId}),cache:'no-store'});
