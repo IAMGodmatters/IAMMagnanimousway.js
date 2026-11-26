@@ -32,7 +32,7 @@ const checks = [
   ['live event contract supports TikTok, YouTube, Twitch, OBS and games', ['tiktok', 'youtube', 'twitch', 'obs', 'game'].every(provider => eventContract.includes("'" + provider + "'"))],
   ['untrusted provider events are normalized and bounded', eventContract.includes('normalizeLiveEvent') && eventContract.includes('cleanText(v.text,500)') && eventContract.includes('slice(0,max)') && eventContract.includes('7*86400000')],
   ['sensitive credentials are excluded from event tags', eventContract.includes('token|secret|password|cookie|authorization|credential')],
-  ['bridge permits secure remote or loopback-only local transport', bridgeClient.includes("url.protocol!=='wss:'") && bridgeClient.includes("url.protocol==='ws:'&&loopback")],
+  ['browser pairing accepts only the official TLS-protected Magnanimous relay endpoint', bridgeClient.includes("url.protocol!=='wss:'") && bridgeClient.includes("url.hostname!=='iammagnanimousway.com'") && bridgeClient.includes("'/api/live-bridge/ws/'") && bridgeClient.includes('url.pathname.slice(prefix.length)')],
   ['pairing credentials are sent in the message body, not URL parameters', bridgeClient.includes("kind:'auth'") && bridgeClient.includes('token')],
   ['bridge reconnect attempts are bounded', bridgeClient.includes('retryCount>=5')],
   ['bridge commands are allowlisted and do not expose destructive controls', eventContract.includes('normalizeLiveBridgeCommand') && !eventContract.includes("'broadcast.start'")],
