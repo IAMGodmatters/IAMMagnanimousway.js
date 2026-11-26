@@ -205,7 +205,7 @@ export default function LiveEventBridgePage() {
               <option value="host.speak">Ask host to speak</option>
             </select>
           </label>
-          {needsTarget?<label>{action==='scene.set'?'Scene name':action.startsWith('overlay.')?'Overlay ID':'Audio cue ID'}
+          {needsTarget?<label>Scene name
             <input value={target} onChange={e=>setTarget(e.target.value)} placeholder="Enter the exact name or ID" />
           </label>:<label>Words for the AI host
             <textarea value={speech} onChange={e=>setSpeech(e.target.value)} rows={4} maxLength={500} placeholder="Write what Magnanimous should say…" />
