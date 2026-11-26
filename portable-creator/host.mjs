@@ -43,6 +43,7 @@ let bridgeClosing=true;
 let gameIntegrationToken=null;
 const pendingBridgeCommands=[];
 const approvedBridgeCommands=new Map();
+const bridgeReceiptOutbox=new Map();
 const pendingBridgeReceiptAcks=new Map();
 let bridgeSocket=null;
 let bridgeHeartbeat=null;
@@ -201,12 +202,28 @@ function sendBridgeCommandReceipt(commandId,status){
  if(!bridgeSocket||bridgeSocket.readyState!==1)return false;
  try{bridgeSocket.send(JSON.stringify({kind:'command.receipt',protocolVersion:1,receipt:{commandId,status}}));return true;}catch{return false;}
 }
+function queueBridgeCommandReceipt(commandId,status){
+ if(!/^[A-Za-z0-9._:-]{1,160}$/.test(String(commandId||''))||!['completed','failed'].includes(status))return false;
+ bridgeReceiptOutbox.set(commandId,{status,createdAt:Date.now()});
+ while(bridgeReceiptOutbox.size>50)bridgeReceiptOutbox.delete(bridgeReceiptOutbox.keys().next().value);
+ flushBridgeReceiptOutbox();
+ return true;
+}
+function flushBridgeReceiptOutbox(){
+ if(!bridgeSocket||bridgeSocket.readyState!==1)return;
+ for(const [commandId,item] of bridgeReceiptOutbox){
+  if(Date.now()-item.createdAt>5*60_000){bridgeReceiptOutbox.delete(commandId);continue;}
+  if(!sendBridgeCommandReceipt(commandId,item.status))break;
+  bridgeReceiptOutbox.delete(commandId);
+ }
+}
 function clearBridgeHeartbeat(){if(bridgeHeartbeat)clearInterval(bridgeHeartbeat);bridgeHeartbeat=null;}
 function closeBridge(reason='operator_disconnect'){
  clearBridgeHeartbeat();
  for(const command of pendingBridgeCommands)sendBridgeCommandReceipt(command.commandId,'rejected');
  const socket=bridgeSocket;bridgeSocket=null;bridgeStatus='disconnected';bridgeError='';
- pendingBridgeCommands.length=0;approvedBridgeCommands.clear();
+ for(const [commandId] of approvedBridgeCommands)sendBridgeCommandReceipt(commandId,'failed');
+ pendingBridgeCommands.length=0;approvedBridgeCommands.clear();bridgeReceiptOutbox.clear();
  if(socket){try{socket.close(1000,String(reason).slice(0,80));}catch{}}
 }
 const BRIDGE_COMMAND_TTL_MS=4*60_000;
@@ -247,6 +264,7 @@ function connectBridge(endpoint,token){
    bridgeStatus='connected';bridgeError='';clearBridgeHeartbeat();
    bridgeHeartbeat=setInterval(()=>{if(bridgeSocket===socket&&socket.readyState===1){try{socket.send(JSON.stringify({kind:'ping'}));}catch{clearBridgeHeartbeat();bridgeStatus='error';bridgeError='The online bridge heartbeat failed.';try{socket.close(4000,'Heartbeat send failed');}catch{}}}},20000);
    for(const event of liveEvents.queue.slice(-100)){try{socket.send(JSON.stringify({kind:'event',protocolVersion:1,event}));}catch{break;}}
+   flushBridgeReceiptOutbox();
    return;
   }
   if(envelope?.kind==='pong')return;
@@ -442,10 +460,10 @@ async function handleApi(req,res,url){
   pendingBridgeCommands.splice(index,1);
   try{
    const result=await obsClient.setProgramScene(command.sceneName);
-   sendBridgeCommandReceipt(commandId,'completed');
+   queueBridgeCommandReceipt(commandId,'completed');
    return json(res,200,{ok:true,approved:true,commandId,sceneName:result.sceneName||command.sceneName});
   }catch(error){
-   sendBridgeCommandReceipt(commandId,'failed');
+   queueBridgeCommandReceipt(commandId,'failed');
    return json(res,502,{detail:error.message||'OBS did not confirm the scene change.'});
   }
  }
@@ -454,8 +472,8 @@ async function handleApi(req,res,url){
   if(!/^[A-Za-z0-9._:-]{1,160}$/.test(commandId)||!['completed','failed'].includes(outcome))return json(res,400,{detail:'A valid command ID and playback outcome are required.'});
   const approved=approvedBridgeCommands.get(commandId);
   if(!approved)return json(res,404,{detail:'The approved host command was not found or its receipt window expired.'});
-  if(Date.now()-approved.approvedAt>5*60_000){approvedBridgeCommands.delete(commandId);sendBridgeCommandReceipt(commandId,'failed');return json(res,410,{detail:'The local voice completion receipt expired.'});}
-  if(!sendBridgeCommandReceipt(commandId,outcome))return json(res,503,{detail:'The completion receipt could not reach the online relay. Keep the bridge connected and retry.'});
+  if(Date.now()-approved.approvedAt>5*60_000){approvedBridgeCommands.delete(commandId);queueBridgeCommandReceipt(commandId,'failed');return json(res,410,{detail:'The local voice completion receipt expired.'});}
+  queueBridgeCommandReceipt(commandId,outcome);
   approvedBridgeCommands.delete(commandId);
   return json(res,200,{ok:true,status:outcome});
  }
