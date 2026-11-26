@@ -379,3 +379,20 @@ test('pair endpoint fails closed when the online bridge namespace is absent',asy
  const response=await handleLiveBridgeRelay(request,{}, {id:'user-1',tenant_id:'tenant-1'});
  assert.equal(response.status,503);
 });
+
+test('terminal command receipts cannot be reopened and expired command receipts are rejected',async()=>{
+ const browser=makeSocket({authenticated:true,role:'browser',sessionExpiresAt:Date.now()+60000,windowStartedAt:Date.now(),windowCount:0});
+ const companion=makeSocket({authenticated:true,role:'companion',sessionExpiresAt:Date.now()+60000,windowStartedAt:Date.now(),windowCount:0});
+ const values=new Map([['commands',[
+  {commandId:'terminal-command-1',action:'host.speak',status:'completed',createdAt:Date.now(),expiresAt:Date.now()+300000},
+  {commandId:'expired-command-1',action:'scene.set',status:'received',createdAt:Date.now()-400000,expiresAt:Date.now()-1}
+ ]]]);
+ const state={storage:{get:async key=>values.get(key),put:async(key,value)=>values.set(key,value)},getWebSockets:()=>[browser,companion]};
+ const room=new MagnanimousLiveBridgeRoom(state,{});
+ await room.webSocketMessage(companion,JSON.stringify({kind:'command.receipt',protocolVersion:1,receipt:{commandId:'terminal-command-1',status:'approved'}}));
+ assert.equal(companion.messages.at(-1)?.code,'INVALID_COMMAND_TRANSITION');
+ assert.equal(values.get('commands')[0].status,'completed');
+ await room.webSocketMessage(companion,JSON.stringify({kind:'command.receipt',protocolVersion:1,receipt:{commandId:'expired-command-1',status:'completed'}}));
+ assert.equal(companion.messages.at(-1)?.code,'UNKNOWN_COMMAND_RECEIPT');
+ assert.equal(values.get('commands').length,2,'Expired receipt rejection must not rewrite the durable ledger.');
+});
