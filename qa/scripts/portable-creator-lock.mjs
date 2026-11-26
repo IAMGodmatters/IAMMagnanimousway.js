@@ -137,6 +137,11 @@ checks.push(
  ['stale companion speech and stop reservations expire instead of remaining active indefinitely',host.includes('now-Number(item.approvedAt)>5*60_000')&&host.includes('bridgeStopRequest=null')],
  ['AI Host STOP sends the narrow host.stop action to the paired bridge',aiHost.includes("type: 'host.stop'")&&aiHost.includes('host.stop.receipt')&&bridgePage.includes("action:'host.stop'")],
 );
+checks.push(
+ ['bridge UI lists only commands supported by the live relay',bridgePage.includes("type CommandAction = 'scene.set' | 'host.speak'")&&!bridgePage.includes('overlay.show')&&!bridgePage.includes('audio.cue')],
+ ['bridge page teardown attempts same-origin pair revocation without persisting tokens',bridgePage.includes("'/api/live-bridge/revoke'")&&bridgePage.includes("keepalive:true")&&bridgePage.includes('pagehide')],
+ ['Cloudflare free-tier deployment gate is documented for SQLite Durable Objects',readme.includes('Workers Free')&&readme.includes('100,000 Durable Object requests per day')&&readme.includes('do not upgrade or deploy to a paid plan')],
+);
 const failures=checks.filter(([,ok])=>!ok);
 for(const [name,ok] of checks)console.log(`${ok?'PASS':'FAIL'} ${name}`);
 if(failures.length){console.error(`Portable creator contract failed: ${failures.length} check(s).`);process.exit(1);}
