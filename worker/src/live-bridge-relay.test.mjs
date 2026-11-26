@@ -305,6 +305,22 @@ test('relays command receipts only for commands issued by the browser and enforc
  assert.equal(browser.messages.at(-1)?.code,'MESSAGE_NOT_ALLOWED');
 });
 
+test('browser reconnect receives the latest non-expired local command receipt',async()=>{
+ const browserToken='B'.repeat(43),companionToken='C'.repeat(43),expectedOrigin='https://iammagnanimousway.com';
+ const pair={pairId:'room-reconnect',tenantId:'tenant-1',userId:'user-1',browserHash:tokenHash(browserToken),companionHash:tokenHash(companionToken),expectedOrigin,allowedProviders:['manual','obs','game','browser'],pairExpiresAt:Date.now()+600000,sessionExpiresAt:Date.now()+600000};
+ const browser=makeSocket({pairId:pair.pairId,tenantId:pair.tenantId,expectedOrigin,origin:expectedOrigin,authenticated:false,seen:[],sessionExpiresAt:0});
+ const companion=makeSocket({pairId:pair.pairId,tenantId:pair.tenantId,expectedOrigin,origin:null,authenticated:false,seen:[],sessionExpiresAt:0});
+ const values=new Map([['pair',pair],['commands',[{commandId:'reconnect-command-1',action:'host.speak',status:'approved',createdAt:Date.now(),expiresAt:Date.now()+300000}]]]);
+ const state={storage:{get:async key=>values.get(key),put:async(key,value)=>values.set(key,value),setAlarm:async()=>{}},getWebSockets:()=>[browser,companion]};
+ const room=new MagnanimousLiveBridgeRoom(state,{});
+ await room.webSocketMessage(browser,JSON.stringify({kind:'auth',protocolVersion:1,token:browserToken}));
+ assert.equal(browser.attachment.authenticated,true);
+ await room.webSocketMessage(companion,JSON.stringify({kind:'auth',protocolVersion:1,token:companionToken}));
+ assert.ok(browser.messages.some(message=>message.kind==='command.receipt'&&message.receipt.commandId==='reconnect-command-1'&&message.receipt.status==='approved'));
+ assert.ok(browser.messages.some(message=>message.kind==='ready'));
+ assert.ok(companion.messages.some(message=>message.kind==='ready'));
+});
+
 test('browser command is recorded before delivery and can receive a local queue receipt',async()=>{
  const browser=makeSocket({authenticated:true,role:'browser',sessionExpiresAt:Date.now()+60000,windowStartedAt:Date.now(),windowCount:0});
  const companion=makeSocket({authenticated:true,role:'companion',sessionExpiresAt:Date.now()+60000,windowStartedAt:Date.now(),windowCount:0});
