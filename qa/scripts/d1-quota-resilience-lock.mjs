@@ -81,7 +81,7 @@ add('standalone provider outage fallback runs before response headers are forwar
 add('customer chat stays on the standalone session and memory data plane',!securityEntry.includes("if(url.pathname==='/api/chat')return null;")&&securityEntry.includes("const standaloneDataPlanePath=url.pathname.startsWith('/api/')"));
 add('Cloudflare production config keeps Worker and D1 authoritative without a required paid standalone origin',!wrangler.includes('MAGNANIMOUS_STANDALONE_API_ORIGIN'));
 add('continuous-learning API follows the standalone data plane instead of remaining D1-pinned',!securityEntry.includes("url.pathname.startsWith('/api/magnanimous/training')")&&securityEntry.includes("const standaloneDataPlanePath=url.pathname.startsWith('/api/')"));
-add('continuous-learning scheduler runs on standalone and Cloudflare only as fallback',operations.includes('function continuousLearningRunsLocally(env)')&&operations.includes("runtime==='standalone-node'||!standalone")&&operations.includes('if(continuousLearningRunsLocally(env))scheduledTasks.push(runContinuousLearningCycle'));
+add('continuous-learning scheduler runs on standalone and Cloudflare only as fallback',operations.includes('function continuousLearningRunsLocally(env)')&&operations.includes("runtime==='standalone-node'||!standalone")&&operations.includes("if(continuousLearningRunsLocally(env))add(runContinuousLearningCycle(env,{source:'cron'})")&&standaloneServer.includes('app.scheduled('));
 add('standalone runtime invokes scheduled work every 15 minutes',standaloneServer.includes('MAGNANIMOUS_SCHEDULE_INTERVAL_MS || 900000')&&standaloneServer.includes('app.scheduled('));
 
 const compatTablesStart=adminCompat.indexOf('async function ensureTables');
