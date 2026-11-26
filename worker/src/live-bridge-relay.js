@@ -43,9 +43,9 @@ const COMMAND_TERMINAL_STATUSES=new Set(['rejected','completed','failed']);
 const COMMAND_TRANSITIONS={sent:new Set(['received','rejected','failed']),received:new Set(['approved','rejected','failed']),approved:new Set(['completed','failed'])};
 const relayEventKey=(provider,eventId)=>provider+':'+eventId;
 export function isBridgePairExpired(pair,now=Date.now()){
- if(!pair||!Number.isFinite(Number(pair.pairExpiresAt)))return true;
- const sessionExpiresAt=Number(pair.sessionExpiresAt);
- return Number.isFinite(sessionExpiresAt)&&sessionExpiresAt>0?now>sessionExpiresAt:now>Number(pair.pairExpiresAt);
+ // Pairing tokens are single-window credentials. Existing authenticated sockets
+ // use their own sessionExpiresAt attachment and may continue after token expiry.
+ return !pair||!Number.isFinite(Number(pair.pairExpiresAt))||now>Number(pair.pairExpiresAt);
 }
 export function normalizeRelayCommandReceipt(input){
  if(!input||typeof input!=='object'||Array.isArray(input)||typeof input.commandId!=='string'||!EVENT_ID.test(input.commandId)||!COMMAND_RECEIPT_STATUSES.has(input.status))return null;
