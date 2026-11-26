@@ -40,3 +40,6 @@
 .bridge-command .actions button{flex:1 1 130px}
 .bridge-command .actions button:disabled{opacity:.5;cursor:wait}
 @media(max-width:600px){.companion-bridge-panel .actions button{flex:1 1 100%}.bridge-command .actions button{flex:1 1 100%}}
+#bridgeStopSpeechButton{border:1px solid #a94e4e;background:#371a1b;color:#ffd0cc;font-weight:900}
+#bridgeStopSpeechButton:not(:disabled){box-shadow:0 0 0 1px rgba(255,125,125,.12)}
+#bridgeStopSpeechButton:disabled{opacity:.45;cursor:not-allowed}
