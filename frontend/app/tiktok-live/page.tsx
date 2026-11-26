@@ -88,15 +88,17 @@ export default function TikTokLiveHost() {
       if (!payload || typeof payload !== 'object') return;
       if (payload.type === 'bridge.status' && typeof payload.connected === 'boolean') {
         setBridgeStatus(payload.connected ? 'connected' : 'disconnected');
-        if (!payload.connected && useCompanionVoice) setCompanionVoiceStatus('Companion disconnected · browser voice remains available');
+        if (!payload.connected) { setCompanionVoiceStatus('Companion disconnected · browser voice remains available'); setSpeaking(false); }
         return;
       }
       if (payload.type === 'host.speak.result') {
         if (payload.ok === true) {
+          setSpeaking(true);
           setCompanionVoiceStatus('Request sent · waiting for local owner approval');
           setStatus(takeoverRef.current ? 'AI TAKEOVER · COMPANION APPROVAL' : 'COMPANION APPROVAL REQUIRED');
           setNotice('Magnanimous sent the host line to the paired USB Creator. The local owner must approve it before the companion speaks.');
         } else {
+          setSpeaking(false);
           setCompanionVoiceStatus('Request not delivered · check the companion bridge');
           setNotice('The paired companion did not accept the speech request. Use browser voice or reconnect the bridge.');
         }
@@ -109,6 +111,7 @@ export default function TikTokLiveHost() {
           : payload.status === 'completed' ? 'Completed · companion voice finished'
           : 'Failed · companion could not complete speech';
         setCompanionVoiceStatus(label);
+        if (payload.status === 'completed' || payload.status === 'rejected' || payload.status === 'failed') setSpeaking(false);
         if (payload.status === 'completed') setStatus(takeoverRef.current ? 'AI TAKEOVER ACTIVE · READY' : 'PREVIEW READY');
         else if (payload.status === 'rejected' || payload.status === 'failed') setNotice('Companion voice '+payload.status+'. Browser voice is still available.');
       }
@@ -160,6 +163,7 @@ export default function TikTokLiveHost() {
       setCompanionVoiceStatus('Sending host line to companion…');
       companionChannelRef.current.postMessage({ type: 'host.speak', text: cleanLiveHostText(text).slice(0, 500) });
       setSpeaking(false);
+      setSpeaking(true);
       setStatus(takeoverRef.current ? 'AI TAKEOVER · COMPANION REQUEST' : 'COMPANION REQUEST SENT');
       return;
     }
@@ -542,7 +546,7 @@ function cleanLiveViewerText(value: string) {
             </label>
             <label className="toggle"><input type="checkbox" checked={autoSpeak} disabled={takeoverActive} onChange={event => setAutoSpeak(event.target.checked)} /> Automatically speak each AI answer</label>
             <label className="toggle"><input type="checkbox" checked={useCompanionVoice} disabled={takeoverActive} onChange={event => setUseCompanionVoice(event.target.checked)} /> Use paired USB Creator for host voice (local owner approval required)</label>
-            <small className="bridgeStatusNote">COMPANION VOICE · {companionVoiceStatus}</small>
+            <small className="bridgeStatusNote">COMPANION VOICE · {companionVoiceStatus}. The USB Creator's local owner must approve each remote line. Use its controls to reject or stop device speech.</small>
             <button className="primary answerButton" type="submit" disabled={(!takeoverActive && busy) || !viewerComment.trim()}>{takeoverActive ? '＋ Queue comment for AI takeover' : busy ? 'Magnanimous is answering…' : '✦ Answer comment with Magnanimous AI'}</button>
           </form>
           {notice && <div className="notice">{notice}</div>}
