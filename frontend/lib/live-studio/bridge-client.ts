@@ -61,8 +61,10 @@ export function createLiveBridgeClient(endpoint:string,pairingToken:string,handl
       if(envelope?.kind==='event'&&envelope.protocolVersion===1){
         const event=normalizeLiveEvent(envelope.event);
         if(!event){handlers.onError?.('An invalid or unsupported bridge event was ignored and not acknowledged.');return;}
-        Promise.resolve().then(()=>handlers.onEvent?.(event)).catch(error=>{
-          handlers.onError?.(error instanceof Error?error.message:'The browser could not persist the incoming event.');
+        Promise.resolve().then(()=>handlers.onEvent?.(event)).then(()=>{
+          if(socket===active)send({kind:'event.ack',protocolVersion:1,provider:event.provider,eventId:event.eventId});
+        }).catch(error=>{
+          handlers.onError?.(error instanceof Error?error.message:'The browser could not persist the incoming event; the relay will retry it.');
         });
         return;
       }
