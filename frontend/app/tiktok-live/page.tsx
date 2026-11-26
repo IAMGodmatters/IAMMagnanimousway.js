@@ -6,7 +6,7 @@ import { postMagnanimousChat } from '../../lib/magnanimous-chat-transport';
 import { primeNaturalSpeech, speakTextNaturally, stopNaturalSpeech } from '../../lib/natural-speech';
 import { configurePersonaVoice } from '../../lib/persona-voice';
 import { normalizeLiveEvent, type LiveEvent } from '../../lib/live-studio/event-contract';
-import { listLiveEventInbox, markLiveEventDelivered } from '../../lib/live-studio/event-inbox';
+import { isLiveEventDelivered, listLiveEventInbox, markLiveEventDelivered } from '../../lib/live-studio/event-inbox';
 
 const api = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 type Line = { id: number; role: 'viewer' | 'host'; text: string };
