@@ -18,6 +18,8 @@ test('redacts viewer email, phone numbers and pasted credentials before event pe
  const event=normalizeRelayEvent({protocolVersion:1,eventId:'privacy-1',provider:'manual',type:'chat.message',occurredAt:new Date(NOW).toISOString(),actorName:'viewer@example.com',text:'Contact me at viewer@example.com or +1 (415) 555-0198. Bearer abcdefghijklmnopqrstuvwxyz123456'},NOW);
  assert.equal(event.actorName,'[email redacted]');
  assert.equal(event.text,'Contact me at [email redacted] or [phone redacted]. [credential redacted]');
+ const philippines=normalizeRelayEvent({protocolVersion:1,eventId:'privacy-ph-1',provider:'manual',type:'chat.message',occurredAt:new Date(NOW).toISOString(),text:'Reach me at +63 917 123 4567'},NOW);
+ assert.equal(philippines.text,'Reach me at [phone redacted]','Philippine international numbers must be redacted together with the leading +63 country code.');
 });
  
 test('recognizes platform event schemas but denies platform authority until an adapter is authorized',()=>{
