@@ -288,7 +288,7 @@ export async function handleLiveBridgeRelay(request,env,user=null){
   if(!user?.id||!user?.tenant_id)return json({detail:'Sign in to create a live bridge.'},401);
   const origin=request.headers.get('Origin');
   if(origin!==url.origin||url.origin!=='https://iammagnanimousway.com'||(request.headers.get('Sec-Fetch-Site')&&request.headers.get('Sec-Fetch-Site')!=='same-origin'))return json({detail:'Bridge pairing must be initiated from the signed-in Magnanimous website.'},403);
-  if(!env.LIVE_BRIDGE_ROOMS||!env.LIVE_BRIDGE_PAIR_LIMITER?.limit)return json({detail:'The online bridge service is not configured on this deployment.'},503);
+  if(!env.LIVE_BRIDGE_ROOMS)return json({detail:'The online bridge service is not configured on this deployment.'},503);
   if(!await consumePairRateLimit(env,user))return json({detail:'Too many pairing requests. Wait one minute before creating another pair.'},429);
   const pairId=crypto.randomUUID();
   const browserToken=randomToken(),companionToken=randomToken();
