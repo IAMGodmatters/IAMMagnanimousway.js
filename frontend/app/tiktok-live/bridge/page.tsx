@@ -16,6 +16,7 @@ export default function LiveEventBridgePage() {
   const [notice,setNotice]=useState('');
   const [pairId,setPairId]=useState('');
   const [companionToken,setCompanionToken]=useState('');
+  const [showCompanionToken,setShowCompanionToken]=useState(false);
   const [pairBusy,setPairBusy]=useState(false);
   const [receipts,setReceipts]=useState<Array<LiveBridgeCommandReceipt & {updatedAt:string}>>([]);
   const [action,setAction]=useState<CommandAction>('scene.set');
@@ -73,13 +74,19 @@ export default function LiveEventBridgePage() {
   async function createPair(){
     setPairBusy(true);setError('');setNotice('');
     try{
-      const token=typeof window!=='undefined'?(localStorage.getItem('iam_account_token')||localStorage.getItem('odin_admin_token')||''):'';
+      if(pairId){
+        const prior=await fetch('/api/live-bridge/revoke',{method:'POST',headers:{'content-type':'application/json',...(localStorage.getItem('iam_account_token')?{Authorization:'Bearer '+localStorage.getItem('iam_account_token')}:{})},body:JSON.stringify({pairId}),cache:'no-store'});
+        const priorData=await prior.json().catch(()=>({}));
+        if(!prior.ok)throw new Error(priorData.detail||'The previous pair could not be revoked. No new pair was created.');
+        clientRef.current?.disconnect();clientRef.current=null;
+      }
+      const token=typeof window!=='undefined'?(localStorage.getItem('iam_account_token')||''):'';
       const headers:Record<string,string>={'content-type':'application/json'};
       if(token)headers.Authorization='Bearer '+token;
       const response=await fetch('/api/live-bridge/pair',{method:'POST',headers,body:'{}',cache:'no-store'});
       const data=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(data.detail||'Sign in to Magnanimous before creating a bridge pair.');
-      setPairId(data.pairId);setCompanionToken(data.companionToken);
+      setPairId(data.pairId);setCompanionToken(data.companionToken);setShowCompanionToken(false);setReceipts([]);
       setEndpoint(data.endpoint);setPairingToken(data.browserToken);
       startClient(data.endpoint,data.browserToken);
       setNotice('Pair created. Copy the companion token to your USB Creator now. It will only be shown in this browser session.');
@@ -98,7 +105,7 @@ export default function LiveEventBridgePage() {
       const data=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(data.detail||'The bridge pair could not be revoked.');
       clientRef.current?.disconnect();clientRef.current=null;
-      setPairId('');setCompanionToken('');setPairingToken('');setStatus('disconnected');
+      setPairId('');setCompanionToken('');setPairingToken('');setEndpoint('');setReceipts([]);setShowCompanionToken(false);setStatus('disconnected');
       setNotice('The bridge pair has been revoked. Both device credentials are invalid.');
     }catch(cause){setError(cause instanceof Error?cause.message:'The bridge pair could not be revoked.');}
     finally{setPairBusy(false);}
@@ -159,7 +166,7 @@ export default function LiveEventBridgePage() {
       <section className="panel">
         <div className="panelHead"><div><small>01 • PAIR YOUR COMPANION</small><h2>Secure connection</h2></div><span className={connected?'online':'offline'}>{status.toUpperCase()}</span></div>
         <button onClick={createPair} disabled={pairBusy}>{pairBusy?'Creating secure pair…':'Create secure pair'}</button>
-        {companionToken&&<div className="tokenBox"><label>USB companion token (shown once in this session)<input value={companionToken} readOnly type="password" autoComplete="off" /></label><div className="actions"><button className="secondary" onClick={()=>setCompanionToken(companionToken)} disabled={!companionToken}>Reveal token</button><button className="secondary" onClick={copyCompanionToken}>Copy token</button>{pairId&&<button className="danger" onClick={revokePair} disabled={pairBusy}>Revoke pair</button>}</div><p className="hint">Paste this temporary token into the connected USB Creator. Never share it with viewers.</p></div>}
+        {companionToken&&<div className="tokenBox"><label>USB companion token (shown once in this session)<input value={companionToken} readOnly type={showCompanionToken?'text':'password'} autoComplete="off" /></label><div className="actions"><button className="secondary" onClick={()=>setShowCompanionToken(value=>!value)} disabled={!companionToken}>{showCompanionToken?'Hide token':'Reveal token'}</button><button className="secondary" onClick={copyCompanionToken}>Copy token</button>{pairId&&<button className="danger" onClick={revokePair} disabled={pairBusy}>Revoke pair</button>}</div><p className="hint">Paste this temporary token into the connected USB Creator. Never share it with viewers.</p></div>}
         <label>Magnanimous browser WebSocket address
           <input value={endpoint} onChange={e=>setEndpoint(e.target.value)} placeholder="wss://your-approved-companion.example/events" autoComplete="off" />
         </label>
