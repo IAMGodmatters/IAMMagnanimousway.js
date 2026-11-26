@@ -18,6 +18,7 @@ const bridgeCloseEnd = portableHost.indexOf("socket.addEventListener('error'", b
 const bridgeCloseHandler = bridgeCloseStart >= 0 && bridgeCloseEnd > bridgeCloseStart ? portableHost.slice(bridgeCloseStart, bridgeCloseEnd) : '';
 const hostEventReceipt = host.split('async function acknowledgeBridgeEvent')[1]?.split('const topicInstruction')[0] || '';
 const hostEventHandler = host.split("if (payload?.kind !== 'event')")[1]?.split("channel.postMessage({ kind: 'request-status'")[0] || '';
+const hostProcess = host.split('async function processComment')[1]?.split('async function answerComment')[0] || '';
 const bridgeEventHandler = bridgeClient.split("if(envelope?.kind==='event'")[1]?.split("if(envelope?.kind==='event.receipt'")[0] || '';
 
 const checks = [
@@ -61,6 +62,8 @@ const checks = [
   ['event bridge page sends authenticated companion events to the host tab', bridgeUi.includes("new BroadcastChannel('magnanimous-live-events-v1')") && bridgeUi.includes("postMessage({kind:'event',event})") && /onEvent:\s*async\s+event\s*=>/.test(bridgeUi) && bridgeUi.includes('await persistLiveEvent(event)')],
   ['autonomous queue is capped for companion events as well as typed comments', host.includes('queuedCommentsRef.current.length >= 25') && host.includes('The live event queue is full (25 items)')],
   ['AI Host queue backpressure leaves events unacknowledged and retries them when a slot opens', host.includes("if (takeoverRef.current && hostPrompt && queuedCommentsRef.current.length >= 25)") && host.indexOf("if (takeoverRef.current && hostPrompt && queuedCommentsRef.current.length >= 25)") < host.indexOf("seenBridgeEventIdsRef.current.add(eventKey)") && host.indexOf("if (takeoverRef.current && hostPrompt && queuedCommentsRef.current.length >= 25)") < host.indexOf("markLiveEventDelivered(event.provider, event.eventId)") && host.includes("kind: 'retry-pending-events'") && bridgeUi.includes("message.data?.kind==='request-status'||message.data?.kind==='retry-pending-events'")],
+  ['Host sends the relay receipt only after generating the AI answer and persisting completion', hostProcess.indexOf('const answer = cleanLiveHostText') >= 0 && hostProcess.indexOf('await acknowledgeBridgeEvent(delivery)') > hostProcess.indexOf('const answer = cleanLiveHostText') && hostEventReceipt.includes('await markLiveEventDelivered(delivery.provider, delivery.eventId)')],
+  ['pending bridge events are replayable after an owner stops and restarts takeover', host.includes('seenBridgeEventIdsRef.current.clear()') && host.includes("kind: 'retry-pending-events'") && host.includes('await isLiveEventDelivered(event.provider, event.eventId)')],
   ['AI Host does not acknowledge events while merely displayed or queued; it retains completion identity across a failed response', host.includes('if (!takeoverRef.current || !hostPrompt) return;') && host.includes('setFailedQueuedComment({ id: commentId, text: cleanComment, source, delivery })') && host.includes('failedQueuedComment.delivery')],
 
   ['manual speaking controls cannot interrupt autonomous host speech', host.includes('onClick={welcome} disabled={takeoverActive}') && host.includes('onClick={() => speak(hostReply)} disabled={takeoverActive}')],
