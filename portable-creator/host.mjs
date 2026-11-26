@@ -382,18 +382,43 @@ async function handleApi(req,res,url){
  if(req.method==='POST'&&url.pathname==='/api/bridge/command/review'){
   const body=await readJson(req),commandId=String(body.commandId||''),index=pendingBridgeCommands.findIndex(item=>item.commandId===commandId);
   if(index<0)return json(res,404,{detail:'The pending command was not found or has expired.'});
-  if(body.approved!==true){pendingBridgeCommands.splice(index,1);return json(res,200,{ok:true,approved:false});}
+  if(body.approved!==true){
+   pendingBridgeCommands.splice(index,1);
+   sendBridgeCommandReceipt(commandId,'rejected');
+   return json(res,200,{ok:true,approved:false});
+  }
   const command=pendingBridgeCommands[index];
   if(command.action==='host.speak'){
    const speechText=String(command.text||'').replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,500);
    if(!speechText)return json(res,400,{detail:'The host speech request is empty or invalid.'});
+   if(approvedBridgeCommands.size>=20)return json(res,429,{detail:'Too many approved host lines are awaiting local voice playback.'});
    pendingBridgeCommands.splice(index,1);
-   return json(res,200,{ok:true,approved:true,action:'host.speak',speechText});
+   approvedBridgeCommands.set(commandId,{action:'host.speak',approvedAt:Date.now()});
+   sendBridgeCommandReceipt(commandId,'approved');
+   return json(res,200,{ok:true,approved:true,action:'host.speak',commandId,speechText});
   }
   if(command.action!=='scene.set')return json(res,409,{detail:'This command type is not implemented locally. No action was taken.'});
   if(!obsClient?.connected)return json(res,409,{detail:'Connect to OBS locally before approving a scene change.'});
-  try{const result=await obsClient.setProgramScene(command.sceneName);pendingBridgeCommands.splice(index,1);return json(res,200,{ok:true,approved:true,sceneName:result.sceneName||command.sceneName});}
-  catch(error){return json(res,502,{detail:error.message||'OBS did not confirm the scene change.'});}
+  try{
+   const result=await obsClient.setProgramScene(command.sceneName);
+   pendingBridgeCommands.splice(index,1);
+   sendBridgeCommandReceipt(commandId,'approved');
+   sendBridgeCommandReceipt(commandId,'completed');
+   return json(res,200,{ok:true,approved:true,commandId,sceneName:result.sceneName||command.sceneName});
+  }catch(error){
+   pendingBridgeCommands.splice(index,1);
+   sendBridgeCommandReceipt(commandId,'failed');
+   return json(res,502,{detail:error.message||'OBS did not confirm the scene change.'});
+  }
+ }
+ if(req.method==='POST'&&url.pathname==='/api/bridge/command/result'){
+  const body=await readJson(req),commandId=String(body.commandId||''),outcome=String(body.outcome||'');
+  if(!/^[A-Za-z0-9._:-]{1,160}$/.test(commandId)||!['completed','failed'].includes(outcome))return json(res,400,{detail:'A valid command ID and playback outcome are required.'});
+  const approved=approvedBridgeCommands.get(commandId);
+  if(!approved)return json(res,404,{detail:'The approved host command was not found or its receipt window expired.'});
+  approvedBridgeCommands.delete(commandId);
+  sendBridgeCommandReceipt(commandId,outcome);
+  return json(res,200,{ok:true,status:outcome});
  }
  if(req.method==='POST'&&url.pathname==='/api/integrations/game/token'){
   if(!vaultKey)return json(res,423,{detail:'Unlock the encrypted USB workspace before creating a game integration token.'});
