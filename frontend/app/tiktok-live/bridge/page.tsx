@@ -1,74 +1,152 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { createLiveBridgeClient, type LiveBridgeStatus } from '../../../lib/live-studio/bridge-client';
+import { createLiveBridgeClient, type LiveBridgeCommandReceipt, type LiveBridgeStatus } from '../../../lib/live-studio/bridge-client';
 import type { LiveEvent } from '../../../lib/live-studio/event-contract';
 
 type CommandAction = 'scene.set' | 'overlay.show' | 'overlay.hide' | 'audio.cue' | 'host.speak';
+function newCommandId(){return globalThis.crypto?.randomUUID?.()||('cmd-'+Date.now()+'-'+Math.random().toString(36).slice(2,12));}
 
 export default function LiveEventBridgePage() {
   const [endpoint,setEndpoint]=useState('');
   const [pairingToken,setPairingToken]=useState('');
+  const [companionToken,setCompanionToken]=useState('');
+  const [pairId,setPairId]=useState('');
+  const [revokeBusy,setRevokeBusy]=useState(false);
+  const [pairBusy,setPairBusy]=useState(false);
   const [status,setStatus]=useState<LiveBridgeStatus>('disconnected');
   const [events,setEvents]=useState<LiveEvent[]>([]);
+  const [receipts,setReceipts]=useState<Array<LiveBridgeCommandReceipt & {updatedAt:string}>>([]);
   const [error,setError]=useState('');
   const [notice,setNotice]=useState('');
   const [action,setAction]=useState<CommandAction>('scene.set');
   const [target,setTarget]=useState('');
   const [speech,setSpeech]=useState('');
   const clientRef=useRef<ReturnType<typeof createLiveBridgeClient>|null>(null);
-  const channelRef=useRef<BroadcastChannel|null>(null);
-  const statusRef=useRef<LiveBridgeStatus>('disconnected');
-  statusRef.current=status;
+  const hostChannelRef=useRef<BroadcastChannel|null>(null);
+  const legacyChannelRef=useRef<BroadcastChannel|null>(null);
+  const statusRef=useRef<LiveBridgeStatus>(status);
 
   useEffect(()=>{
-    if(typeof BroadcastChannel!=='undefined'){
-      channelRef.current=new BroadcastChannel('magnanimous-live-events-v1');
-      channelRef.current.onmessage=message=>{
-        if(message.data?.kind==='request-status')channelRef.current?.postMessage({kind:'status',status:statusRef.current});
-      };
-    }
-    return ()=>{clientRef.current?.disconnect();clientRef.current=null;channelRef.current?.close();channelRef.current=null;};
+    if(typeof BroadcastChannel!=='function')return;
+    const channel=new BroadcastChannel('magnanimous-live-host-bridge-v1');
+    hostChannelRef.current=channel;
+    const legacyChannel=new BroadcastChannel('magnanimous-live-events-v1');
+    legacyChannelRef.current=legacyChannel;
+    legacyChannel.addEventListener('message',event=>{
+      if(event.data?.kind==='request-status')legacyChannel.postMessage({kind:'status',status:statusRef.current});
+    });
+    channel.addEventListener('message',event=>{
+      const data=event.data;
+      if(!data||typeof data!=='object')return;
+      if(data.type==='bridge.status.request'){channel.postMessage({type:'bridge.status',connected:statusRef.current==='connected'});return;}
+      if(data.type!=='host.speak'||typeof data.text!=='string')return;
+      const text=data.text.replace(/[\\u0000-\\u001f\\u007f]/g,' ').trim().slice(0,500);
+      if(!text)return;
+      const commandId=newCommandId();
+      const sent=clientRef.current?.sendCommand({commandId,action:'host.speak',text})||false;
+      channel.postMessage({type:'host.speak.result',ok:sent,commandId});
+    });
+    return ()=>{
+      channel.close();hostChannelRef.current=null;
+      legacyChannel.close();legacyChannelRef.current=null;
+      clientRef.current?.disconnect();clientRef.current=null;
+    };
   },[]);
+
+  useEffect(()=>{
+    statusRef.current=status;
+    hostChannelRef.current?.postMessage({type:'bridge.status',connected:status==='connected'});
+    legacyChannelRef.current?.postMessage({kind:'status',status});
+  },[status]);
+
+  function startClient(targetEndpoint:string,targetToken:string) {
+    clientRef.current?.disconnect();
+    const client=createLiveBridgeClient(targetEndpoint,targetToken,{
+      onStatus:next=>{setStatus(next);legacyChannelRef.current?.postMessage({kind:'status',status:next});},
+      onEvent:event=>{setEvents(current=>[event,...current.filter(item=>item.eventId!==event.eventId)].slice(0,50));hostChannelRef.current?.postMessage({type:'live.event',event});legacyChannelRef.current?.postMessage({kind:'event',event});},
+      onCommandReceipt:receipt=>{
+        setReceipts(current=>[{...receipt,updatedAt:new Date().toISOString()},...current.filter(item=>item.commandId!==receipt.commandId)].slice(0,20));
+        const labels:Record<LiveBridgeCommandReceipt['status'],string>={received:'USB companion received the command; it is waiting for local owner approval.',approved:'The local owner approved the command.',rejected:'The local owner rejected the command.',completed:'The approved action completed on the local device.',failed:'The local device reported that the action failed.'};
+        setNotice(labels[receipt.status]);
+        hostChannelRef.current?.postMessage({type:'host.speak.receipt',commandId:receipt.commandId,status:receipt.status});
+      },
+      onError:setError,
+    });
+    clientRef.current=client;
+  }
 
   function connect() {
     setError('');setNotice('');
     try {
-      clientRef.current?.disconnect();
-      const client=createLiveBridgeClient(endpoint,pairingToken,{
-        onStatus:next=>{statusRef.current=next;setStatus(next);channelRef.current?.postMessage({kind:'status',status:next});},
-        onEvent:event=>{
-          setEvents(current=>[event,...current.filter(item=>item.eventId!==event.eventId)].slice(0,50));
-          channelRef.current?.postMessage({kind:'event',event});
-        },
-        onError:setError,
-      });
-      clientRef.current=client;
+      startClient(endpoint,pairingToken);
       setPairingToken('');
-      setNotice('Connection requested. Wait for the companion to authenticate and report READY.');
+      setNotice('Connection requested. Wait for the local companion to authenticate and report READY.');
     } catch (cause) {
       setStatus('error');
       setError(cause instanceof Error?cause.message:'The bridge could not be started.');
     }
   }
 
+  async function createPair() {
+    setPairBusy(true);setError('');setNotice('');
+    try {
+      const response=await fetch('/api/live-bridge/pair',{method:'POST',headers:{'content-type':'application/json'},body:'{}',cache:'no-store'});
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(data.detail||'Sign in to Magnanimous before creating a bridge pair.');
+      if(pairId){await revokePairId(pairId);setPairId('');}
+      setPairId(data.pairId);
+      setReceipts([]);
+      setEndpoint(data.endpoint);
+      setPairingToken('');
+      setCompanionToken(data.companionToken);
+      startClient(data.endpoint,data.browserToken);
+      setNotice('Browser side connected. Copy the companion token into Magnanimous Portable Creator within ten minutes.');
+    } catch(cause) {
+      setStatus('error');
+      setError(cause instanceof Error?cause.message:'A secure pairing could not be created.');
+    } finally {setPairBusy(false);}
+  }
+
+  async function copyCompanionToken() {
+    if(!companionToken)return;
+    try {await navigator.clipboard.writeText(companionToken);setNotice('Companion token copied. Paste it only into your local Magnanimous Portable Creator.');}
+    catch {setError('Clipboard access was unavailable. Select and copy the companion token manually.');}
+  }
+
+  async function revokePairId(id:string) {
+    const response=await fetch('/api/live-bridge/revoke',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({pairId:id}),cache:'no-store'});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok)throw new Error(data.detail||'The existing pairing could not be revoked. No new pair was created.');
+  }
+
+  async function revokePair() {
+    if(!pairId)return;
+    setRevokeBusy(true);setError('');setNotice('');
+    try {
+      await revokePairId(pairId);
+      clientRef.current?.disconnect();clientRef.current=null;
+      setPairId('');setPairingToken('');setCompanionToken('');setEndpoint('');setReceipts([]);
+      setStatus('disconnected');
+      setNotice('Pairing revoked. The local companion has lost access and must be paired again.');
+    } catch(cause) {
+      setError(cause instanceof Error?cause.message:'The pairing could not be revoked. Retry before creating another pair.');
+    } finally {setRevokeBusy(false);}
+  }
+
   function disconnect() {
     clientRef.current?.disconnect();
     clientRef.current=null;
-    statusRef.current='disconnected';
     setStatus('disconnected');
-    channelRef.current?.postMessage({kind:'status',status:'disconnected'});
-    setNotice('Disconnected from the companion.');
+    setNotice('Browser connection disconnected. Use Revoke pairing to stop the local companion and invalidate both tokens.');
   }
 
   function sendCommand() {
-    const commandId=globalThis.crypto?.randomUUID?.()||String(Date.now());
-    const payload=action==='scene.set'?{sceneName:target}
-      :action==='overlay.show'||action==='overlay.hide'?{overlayId:target}
-      :action==='audio.cue'?{cueId:target}
-      :{text:speech};
+    if(action!=='scene.set'&&action!=='host.speak'){setNotice('Overlay and audio-cue commands are not enabled yet. No command was sent.');return;}
+    const commandId=newCommandId();
+    const payload=action==='scene.set'?{sceneName:target}:{text:speech};
     const sent=clientRef.current?.sendCommand({commandId,action,...payload})||false;
-    setNotice(sent?'Command sent to the companion. Execution is not confirmed until the companion returns an acknowledgement.':'No command sent. Confirm that the companion is connected and that the command fields are valid.');
+    setNotice(sent?'Command transmitted. Waiting for the local companion to confirm receipt and request your approval.':'No command sent. Confirm that the companion is connected and that the command fields are valid.');
   }
 
   const connected=status==='connected';
@@ -77,7 +155,7 @@ export default function LiveEventBridgePage() {
   return (
     <main className="bridgePage">
       <header className="topbar">
-        <a href="/tiktok-live">← AI Host</a>
+        <a href="/live-studio">← Live Studio</a>
         <span>I AM MAGNANIMOUS WAY™</span>
         <a href="/social-hub">Social Hub →</a>
       </header>
@@ -87,22 +165,29 @@ export default function LiveEventBridgePage() {
         <p>One safe event language for your live audience, OBS scenes, browser sources and supported games. Magnanimous stays the brain; each platform or app is a replaceable connection.</p>
       </section>
       <section className="boundary">
-        <b>Implementation status: bridge client and protocol foundation added; companion server and platform adapters are not deployed yet.</b>
-        <p>This screen becomes operational when a compatible Magnanimous Companion is installed and paired. Do not enter TikTok, Google, Twitch, OBS or game-account passwords here. Use only a short-lived pairing token issued by the companion. Until the companion is available, the existing AI Host's manual comment workflow remains usable.</p>
+        <b>Implementation status: online relay pairing and the local companion connection path are being brought online in stages. Provider account adapters and public broadcasting are not yet connected.</b>
+        <p>Create a secure pair here, then paste the separate companion token into Magnanimous Portable Creator on the computer running OBS. Do not enter TikTok, Google, Meta, Twitch, Zoom, OBS or game-account passwords here. These temporary pairing credentials are held in memory and are not saved in browser storage.</p>
       </section>
       <section className="panel">
         <div className="panelHead"><div><small>01 • PAIR YOUR COMPANION</small><h2>Secure connection</h2></div><span className={connected?'online':'offline'}>{status.toUpperCase()}</span></div>
-        <label>Companion WebSocket address
-          <input value={endpoint} onChange={e=>setEndpoint(e.target.value)} placeholder="wss://your-approved-companion.example/events" autoComplete="off" />
+        <button onClick={createPair} disabled={pairBusy}>{pairBusy?'Creating secure pair…':'Create secure pair'}</button>
+        <p className="hint">Sign in to your Magnanimous account first. A pair is valid for ten minutes and the connected session lasts up to twelve hours.</p>
+        <label>Magnanimous secure WebSocket address
+          <input value={endpoint} onChange={e=>setEndpoint(e.target.value)} placeholder="wss://iammagnanimousway.com/api/live-bridge/ws/00000000-0000-4000-8000-000000000000" autoComplete="off" />
         </label>
-        <label>One-time pairing token
-          <input value={pairingToken} onChange={e=>setPairingToken(e.target.value)} type="password" placeholder="Paste the companion's temporary pairing token" autoComplete="new-password" />
+        <label>Browser pairing token (optional manual entry)
+          <input value={pairingToken} onChange={e=>setPairingToken(e.target.value)} type="password" placeholder="Use Create secure pair above or paste a browser token" autoComplete="new-password" />
         </label>
+        {companionToken&&<label>Companion token — paste into the local USB Creator
+          <input value={companionToken} readOnly type="password" autoComplete="off" />
+          <button className="secondary" onClick={copyCompanionToken}>Copy companion token</button>
+        </label>}
         <div className="actions">
           <button onClick={connect} disabled={!endpoint.trim()||pairingToken.trim().length<16}>Connect companion</button>
-          <button className="secondary" onClick={disconnect} disabled={status==='disconnected'}>Disconnect</button>
+          <button className="secondary" onClick={disconnect} disabled={status==='disconnected'}>Disconnect browser</button>
+          <button className="secondary" onClick={revokePair} disabled={!pairId||revokeBusy}>{revokeBusy?'Revoking…':'Revoke pairing'}</button>
         </div>
-        <p className="hint">Remote connections require WSS. Plain WS is accepted only for localhost / 127.0.0.1. Pairing tokens stay in memory and are never saved in browser storage or placed in the URL.</p>
+        <p className="hint">Remote connections require WSS. The browser and local companion use different temporary tokens. Tokens stay in memory and are never saved in browser storage or placed in the URL.</p>
       </section>
       <section className="grid">
         <div className="panel">
@@ -122,9 +207,9 @@ export default function LiveEventBridgePage() {
           <label>Action
             <select value={action} onChange={e=>setAction(e.target.value as CommandAction)}>
               <option value="scene.set">Switch OBS scene</option>
-              <option value="overlay.show">Show overlay</option>
-              <option value="overlay.hide">Hide overlay</option>
-              <option value="audio.cue">Play approved audio cue</option>
+              <option value="overlay.show" disabled>Show overlay (not available yet)</option>
+              <option value="overlay.hide" disabled>Hide overlay (not available yet)</option>
+              <option value="audio.cue" disabled>Play audio cue (not available yet)</option>
               <option value="host.speak">Ask host to speak</option>
             </select>
           </label>
@@ -133,11 +218,20 @@ export default function LiveEventBridgePage() {
           </label>:<label>Words for the AI host
             <textarea value={speech} onChange={e=>setSpeech(e.target.value)} rows={4} maxLength={500} placeholder="Write what Magnanimous should say…" />
           </label>}
-          <button onClick={sendCommand} disabled={!connected||(needsTarget?!target.trim():!speech.trim())}>Send approved command</button>
-          <p className="hint">The bridge allows only scene selection, overlay visibility, approved audio cues and host speech. It cannot start or stop broadcasts, manage accounts, moderate viewers, spend money, run shell commands or execute arbitrary code.</p>
+          <button onClick={sendCommand} disabled={!connected||(action!=='scene.set'&&action!=='host.speak')||(needsTarget?!target.trim():!speech.trim())}>Send to local approval queue</button>
+          <p className="hint">Currently supported: OBS scene changes and AI host speech after local operator approval. Overlay and audio-cue commands are disabled until their local engines are implemented and verified. The bridge cannot start or stop broadcasts, manage accounts, moderate viewers, spend money, run shell commands or execute arbitrary code.</p>
         </div>
       </section>
       {(error||notice)&&<div className={error?'error':'notice'} role="status">{error||notice}</div>}
+      {receipts.length>0&&<section className="panel receipts" aria-live="polite">
+        <div className="panelHead"><div><small>04 • VERIFIED COMMAND RECEIPTS</small><h2>Live action status</h2></div><span className="count">{receipts.length} / 20</span></div>
+        {receipts.map(receipt=><article key={receipt.commandId}>
+          <strong>{receipt.status.toUpperCase().replace('_',' ')}</strong>
+          <span>{receipt.commandId}</span>
+          <time>{new Date(receipt.updatedAt).toLocaleTimeString()}</time>
+        </article>)}
+        <p className="hint">“Received” means queued for local approval. “Completed” is sent only after OBS confirms a scene change or the device voice reports playback ended.</p>
+      </section>}
       <footer><a href="/tiktok-live">Return to Magnanimous AI Host</a><span>Magnanimous remains the intelligence layer. Connections are optional and revocable.</span></footer>
       <style jsx>{`
         .bridgePage{min-height:100vh;background:#050a11;color:#eef8ff;padding:18px 24px 50px;font-family:Inter,system-ui,sans-serif;background-image:radial-gradient(circle at 15% 8%,rgba(40,192,231,.12),transparent 28%),radial-gradient(circle at 92% 20%,rgba(190,150,58,.09),transparent 24%)}
@@ -147,7 +241,7 @@ export default function LiveEventBridgePage() {
         .panel{background:#08121a;border:1px solid #203b4b;border-radius:16px;padding:18px;margin-top:16px}.panelHead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}.panelHead h2{font-size:21px;margin:5px 0}.online,.offline,.count{font-size:9px;letter-spacing:.1em;padding:6px 9px;border-radius:30px;border:1px solid #345260;color:#a9c2cd}.online{border-color:#34745a;color:#88edb7}
         label{display:block;font-size:11px;color:#a9c0cb;font-weight:700;margin:12px 0}input,select,textarea{display:block;width:100%;margin-top:7px;background:#050d13;color:#e9f8ff;border:1px solid #2b4b5b;border-radius:9px;padding:11px;font:inherit;font-size:12px}textarea{resize:vertical}
         .actions{display:flex;gap:9px;flex-wrap:wrap}button{background:linear-gradient(110deg,#dcb75e,#8ee9f1);color:#07131b;border:0;border-radius:9px;padding:11px 15px;font-size:11px;font-weight:800;cursor:pointer}button.secondary{background:#123140;color:#c9f7ff;border:1px solid #2e6375}button:disabled{opacity:.42;cursor:not-allowed}.hint{font-size:10px;line-height:1.55;color:#7893a2;margin:12px 0 0}
-        .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}.grid .panel{margin:0;min-width:0}.feed{max-height:460px;overflow:auto}.feed article{padding:11px;border:1px solid #254354;border-radius:9px;margin:8px 0;background:#0b1922}.feed article>div{display:flex;justify-content:space-between;gap:8px;color:#7bdff0;font-size:9px}.feed time{color:#829ba8}.feed strong{display:block;margin-top:7px;font-size:11px}.feed article p{font-size:11px;color:#c9dce3;white-space:pre-wrap;margin:5px 0}.empty{color:#829ba8;font-size:11px;padding:12px}.notice,.error{margin-top:16px;padding:12px;border-radius:9px;font-size:11px}.notice{background:#102b24;color:#a5edc8;border:1px solid #326b54}.error{background:#321b20;color:#ffb9c2;border:1px solid #6c3944}footer{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:20px;border-top:1px solid #203b4b;padding-top:14px;color:#7893a2;font-size:10px}
+        .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}.grid .panel{margin:0;min-width:0}.receipts{margin-top:16px}.receipts article{display:grid;grid-template-columns:100px 1fr auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid #203b4b;font-size:10px}.receipts article strong{color:#7de6c4}.receipts article span{color:#91a9b7;overflow-wrap:anywhere}.receipts time{color:#718b98}.feed{max-height:460px;overflow:auto}.feed article{padding:11px;border:1px solid #254354;border-radius:9px;margin:8px 0;background:#0b1922}.feed article>div{display:flex;justify-content:space-between;gap:8px;color:#7bdff0;font-size:9px}.feed time{color:#829ba8}.feed strong{display:block;margin-top:7px;font-size:11px}.feed article p{font-size:11px;color:#c9dce3;white-space:pre-wrap;margin:5px 0}.empty{color:#829ba8;font-size:11px;padding:12px}.notice,.error{margin-top:16px;padding:12px;border-radius:9px;font-size:11px}.notice{background:#102b24;color:#a5edc8;border:1px solid #326b54}.error{background:#321b20;color:#ffb9c2;border:1px solid #6c3944}footer{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:20px;border-top:1px solid #203b4b;padding-top:14px;color:#7893a2;font-size:10px}
         @media(max-width:760px){.bridgePage{padding:14px 12px 38px}.grid{grid-template-columns:1fr}.intro{margin-top:25px}.topbar{font-size:8px}.panel{padding:13px}}
       `}</style>
     </main>
