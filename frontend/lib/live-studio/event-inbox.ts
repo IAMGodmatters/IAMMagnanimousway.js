@@ -37,32 +37,56 @@ function eventKey(event: Pick<LiveEvent, 'provider' | 'eventId'>): string {
   return event.provider + ':' + event.eventId;
 }
 
-/** Persist a normalized event before it is exposed to the AI Host tab or acknowledged to the relay. */
+/** Persist a normalized event before it is exposed to the AI Host tab or acknowledged to the relay.
+ * Never evict an event the Host has not accepted. At capacity, reclaim only delivered
+ * records; if every slot is pending, abort the transaction so the relay can retry.
+ */
 export async function persistLiveEvent(event: LiveEvent): Promise<void> {
   const db = await openDatabase();
   await new Promise<void>((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
     const key = eventKey(event);
+    let failure: Error | null = null;
     const lookup = store.get(key);
     lookup.onsuccess = () => {
-      if (!lookup.result) store.put({ key, event, storedAt: Date.now(), deliveredAt: 0 } satisfies StoredEvent);
+      // A duplicate delivery is safe: keep the original receipt state and avoid a new slot.
+      if (lookup.result) return;
       const all = store.getAll();
       all.onsuccess = () => {
         const records = all.result as StoredEvent[];
         const cutoff = Date.now() - RETENTION_MS;
-        const expired = records.filter(item => !Number.isFinite(item.storedAt) || item.storedAt < cutoff);
-        for (const item of expired) store.delete(item.key);
-        const remaining = records.filter(item => !expired.some(expiredItem => expiredItem.key === item.key))
+        const expired = records.filter(item => !item || !Number.isFinite(item.storedAt) || item.storedAt < cutoff);
+        for (const item of expired) {
+          if (item && typeof item.key === 'string') store.delete(item.key);
+        }
+        const expiredKeys = new Set(expired.map(item => item?.key).filter((value): value is string => typeof value === 'string'));
+        const remaining = records.filter(item => item && typeof item.key === 'string' && !expiredKeys.has(item.key))
           .sort((a, b) => a.storedAt - b.storedAt);
-        for (const item of remaining.slice(0, Math.max(0, remaining.length - MAX_EVENTS))) store.delete(item.key);
+        const slotsToReclaim = Math.max(0, remaining.length - MAX_EVENTS + 1);
+        if (slotsToReclaim > 0) {
+          const delivered = remaining.filter(item => Number.isFinite(item.deliveredAt) && item.deliveredAt > 0);
+          if (delivered.length < slotsToReclaim) {
+            failure = new Error('The local event inbox is full of events not yet accepted by the AI Host. Existing events were preserved; free or acknowledge delivered items before new events can be saved.');
+            tx.abort();
+            return;
+          }
+          for (const item of delivered.slice(0, slotsToReclaim)) store.delete(item.key);
+        }
+        store.put({ key, event, storedAt: Date.now(), deliveredAt: 0 } satisfies StoredEvent);
       };
-      all.onerror = () => reject(all.error || new Error('The event inbox could not be compacted.'));
+      all.onerror = () => {
+        failure = all.error || new Error('The event inbox could not be read for safe compaction.');
+        tx.abort();
+      };
     };
-    lookup.onerror = () => reject(lookup.error || new Error('The event record could not be read.'));
+    lookup.onerror = () => {
+      failure = lookup.error || new Error('The event record could not be read.');
+      tx.abort();
+    };
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error || new Error('The event inbox write failed.'));
-    tx.onabort = () => reject(tx.error || new Error('The event inbox write was cancelled.'));
+    tx.onerror = () => reject(failure || tx.error || new Error('The event inbox write failed.'));
+    tx.onabort = () => reject(failure || tx.error || new Error('The event inbox write was cancelled.'));
   });
 }
 
