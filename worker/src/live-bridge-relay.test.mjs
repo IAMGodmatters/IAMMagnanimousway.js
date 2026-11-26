@@ -276,6 +276,27 @@ test('limits authenticated browser message rate',async()=>{
  assert.equal(closed,4429);
 });
 
+test('browser command reports when the local companion is offline instead of silently dropping it',async()=>{
+ const browser=makeSocket({authenticated:true,role:'browser',sessionExpiresAt:Date.now()+60000,windowStartedAt:Date.now(),windowCount:0});
+ const state={getWebSockets:()=>[browser]};
+ const room=new MagnanimousLiveBridgeRoom(state,{});
+ await room.webSocketMessage(browser,JSON.stringify({kind:'command',protocolVersion:1,command:{commandId:'offline-1',action:'host.speak',text:'Welcome viewers'}}));
+ assert.equal(browser.messages.at(-1)?.kind,'error');
+ assert.equal(browser.messages.at(-1)?.code,'COMMAND_NOT_DELIVERED');
+ assert.match(browser.messages.at(-1)?.message||/./,/not delivered/i);
+});
+
+test('browser command reports a failed companion socket send',async()=>{
+ const browser=makeSocket({authenticated:true,role:'browser',sessionExpiresAt:Date.now()+60000,windowStartedAt:Date.now(),windowCount:0});
+ const companion=makeSocket({authenticated:true,role:'companion',sessionExpiresAt:Date.now()+60000,windowStartedAt:Date.now(),windowCount:0});
+ companion.send=()=>{throw new Error('socket closed');};
+ const state={getWebSockets:()=>[browser,companion]};
+ const room=new MagnanimousLiveBridgeRoom(state,{});
+ await room.webSocketMessage(browser,JSON.stringify({kind:'command',protocolVersion:1,command:{commandId:'failed-send-1',action:'scene.set',sceneName:'Welcome'}}));
+ assert.equal(browser.messages.at(-1)?.code,'COMMAND_NOT_DELIVERED');
+ assert.match(browser.messages.at(-1)?.message||/./,/not delivered/i);
+});
+
 test('pair endpoint fails closed when the online bridge namespace is absent',async()=>{
  const request=new Request('https://iammagnanimousway.com/api/live-bridge/pair',{method:'POST',headers:{Origin:'https://iammagnanimousway.com'}});
  const response=await handleLiveBridgeRelay(request,{}, {id:'user-1',tenant_id:'tenant-1'});
