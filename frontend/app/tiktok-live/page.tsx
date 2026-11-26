@@ -52,6 +52,7 @@ export default function TikTokLiveHost() {
   const [gameEventType, setGameEventType] = useState('moment');
   const [gameContext, setGameContext] = useState('');
   const [localBridgeReady, setLocalBridgeReady] = useState(false);
+  const [bridgeCommandReceipt, setBridgeCommandReceipt] = useState<{ commandId: string; status: 'received' | 'approved' | 'rejected' | 'completed' | 'failed' } | null>(null);
   const [forwardToLocalHost, setForwardToLocalHost] = useState(false);
   const [pendingBridgeEvent, setPendingBridgeEvent] = useState<LiveEvent | null>(null);
   const hostBridgeChannelRef = useRef<BroadcastChannel | null>(null);
@@ -78,6 +79,21 @@ export default function TikTokLiveHost() {
       if (data.type === 'live.event') {
         const normalized = normalizeLiveEvent(data.event);
         if (normalized) setPendingBridgeEvent(normalized);
+      }
+      if (data.type === 'host.speak.receipt') {
+        const statuses = ['received', 'approved', 'rejected', 'completed', 'failed'];
+        if (typeof data.commandId === 'string' && statuses.includes(data.status)) {
+          const status = data.status as 'received' | 'approved' | 'rejected' | 'completed' | 'failed';
+          setBridgeCommandReceipt({ commandId: data.commandId, status });
+          const messages = {
+            received: 'The USB companion received the host line. Waiting for local approval.',
+            approved: 'The local operator approved the host line. Waiting for voice playback.',
+            rejected: 'The local operator rejected the host line. Nothing was spoken.',
+            completed: 'The companion reports that voice playback finished.',
+            failed: 'The companion reports that the host line could not be completed.'
+          };
+          setNotice(messages[status]);
+        }
       }
       if (data.type === 'host.speak.result') {
         setNotice(data.ok === true
@@ -327,6 +343,7 @@ export default function TikTokLiveHost() {
             <button className="primary answerButton" type="submit" disabled={busy || !viewerComment.trim()}>{busy ? 'Magnanimous is answering…' : '✦ Answer comment with Magnanimous AI'}</button>
           </form>
           {notice && <div className="notice">{notice}</div>}
+          {bridgeCommandReceipt && <div className="notice" role="status"><b>USB host receipt · {bridgeCommandReceipt.status.toUpperCase()}</b><br />Command {bridgeCommandReceipt.commandId}</div>}
           <div className="conversationHead"><b>Live conversation preview</b><button type="button" onClick={() => setLines([])}>Clear</button></div>
           <div className="conversation">
             {lines.length === 0 ? <p className="empty">Viewer comments and spoken answers will appear here.</p> : lines.slice(-12).map(line => <article key={line.id} className={line.role}><small>{line.role === 'viewer' ? 'VIEWER COMMENT' : 'MAGNANIMOUS AI'}</small><p>{line.text}</p></article>)}
