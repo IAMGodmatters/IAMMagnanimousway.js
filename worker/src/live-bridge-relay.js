@@ -44,6 +44,10 @@ export function isBridgePairExpired(pair,now=Date.now()){
  const sessionExpiresAt=Number(pair.sessionExpiresAt);
  return Number.isFinite(sessionExpiresAt)&&sessionExpiresAt>0?now>sessionExpiresAt:now>Number(pair.pairExpiresAt);
 }
+export function isBridgePairTokenExpired(pair,now=Date.now()){
+ if(!pair||!Number.isFinite(Number(pair.pairExpiresAt)))return true;
+ return now>Number(pair.pairExpiresAt);
+}
 export function normalizeRelayCommandReceipt(input){
  if(!input||typeof input!=='object'||Array.isArray(input)||typeof input.commandId!=='string'||!EVENT_ID.test(input.commandId)||!COMMAND_RECEIPT_STATUSES.has(input.status))return null;
  return {commandId:input.commandId,status:input.status};
@@ -84,7 +88,7 @@ export class MagnanimousLiveBridgeRoom {
    if(socketMatch[1].toLowerCase()!==String((await this.state.storage.get('pair'))?.pairId||'').toLowerCase())return json({detail:'Bridge room not found.'},404);
    if(request.headers.get('Upgrade')?.toLowerCase()!=='websocket')return json({detail:'WebSocket upgrade required.'},426);
    const pair=await this.state.storage.get('pair');
-   if(isBridgePairExpired(pair))return json({detail:'The pairing code or bridge session expired. Create a new bridge pair.'},410);
+   if(isBridgePairTokenExpired(pair))return json({detail:'The pairing code expired. Create a new bridge pair.'},410);
    if(this.state.getWebSockets().length>=4)return json({detail:'This bridge room has reached its connection safety limit.'},429);
    const origin=request.headers.get('Origin');
    if(origin&&(origin!==url.origin||origin!==pair.expectedOrigin))return json({detail:'Cross-origin bridge connections are not allowed.'},403);
