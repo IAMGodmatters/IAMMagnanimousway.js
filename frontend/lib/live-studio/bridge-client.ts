@@ -1,7 +1,9 @@
 import { normalizeLiveBridgeCommand, normalizeLiveEvent, type LiveBridgeCommand, type LiveEvent } from './event-contract';
 export type LiveBridgeStatus='connecting'|'connected'|'reconnecting'|'disconnected'|'error';
-export type LiveBridgeHandlers={onStatus?:(status:LiveBridgeStatus)=>void;onEvent?:(event:LiveEvent)=>void;onError?:(message:string)=>void};
-type Envelope={kind:'event';event:unknown}|{kind:'ready';protocolVersion:1}|{kind:'error';code?:string;message?:string}|{kind:'pong'};
+export type LiveCommandReceiptStatus='received'|'approved'|'rejected'|'completed'|'failed';
+export type LiveBridgeCommandReceipt={commandId:string;status:LiveCommandReceiptStatus};
+export type LiveBridgeHandlers={onStatus?:(status:LiveBridgeStatus)=>void;onEvent?:(event:LiveEvent)=>void;onCommandReceipt?:(receipt:LiveBridgeCommandReceipt)=>void;onError?:(message:string)=>void};
+type Envelope={kind:'event';event:unknown}|{kind:'ready';protocolVersion:1}|{kind:'command.receipt';protocolVersion:1;receipt:unknown}|{kind:'error';code?:string;message?:string}|{kind:'pong'};
 function validBridgeUrl(raw:string):URL {let url:URL;try{url=new URL(raw);}catch{throw new Error('Enter the official Magnanimous secure bridge address.');}const pairPath=/^\/api\/live-bridge\/ws\/[0-9a-f-]{36}$/i;if(url.protocol!=='wss:'||url.hostname!=='iammagnanimousway.com'||(url.port&&url.port!=='443')||!pairPath.test(url.pathname)||url.username||url.password||url.search||url.hash)throw new Error('For your safety, use only the official wss://iammagnanimousway.com/api/live-bridge/ws/ pairing address.');return url;}
 /** Pairing credentials stay in memory; the companion must bind the token to one tenant and approved adapters. */
 export function createLiveBridgeClient(endpoint:string,pairingToken:string,handlers:LiveBridgeHandlers={}) {
@@ -14,6 +16,14 @@ export function createLiveBridgeClient(endpoint:string,pairingToken:string,handl
  socket.onmessage=message=>{let e:Envelope;try{e=JSON.parse(String(message.data)) as Envelope;}catch{handlers.onError?.('The bridge sent an unreadable message; it was ignored.');return;}
  if(e?.kind==='ready'&&e.protocolVersion===1){retryCount=0;status('connected');return;}
  if(e?.kind==='event'){const event=normalizeLiveEvent(e.event);if(event)handlers.onEvent?.(event);else handlers.onError?.('An invalid or unsupported bridge event was ignored.');return;}
+ if(e?.kind==='command.receipt'&&e.protocolVersion===1){
+  const value=e.receipt as Record<string,unknown>|null;
+  const statuses:LiveCommandReceiptStatus[]=['received','approved','rejected','completed','failed'];
+  if(value&&typeof value.commandId==='string'&&/^[A-Za-z0-9._:-]{1,160}$/.test(value.commandId)&&statuses.includes(value.status as LiveCommandReceiptStatus)){
+   handlers.onCommandReceipt?.({commandId:value.commandId,status:value.status as LiveCommandReceiptStatus});
+  }else handlers.onError?.('The bridge sent an invalid command receipt; it was ignored.');
+  return;
+ }
  if(e?.kind==='error'){handlers.onError?.(typeof e.message==='string'?e.message.slice(0,240):'The bridge reported an error.');if(e.code==='AUTH_FAILED'||e.code==='PAIRING_REVOKED'||e.code==='LOCAL_STORAGE_BLOCKED'){fatal=true;status('error');socket?.close(4001,'Pairing rejected');}}
  };
  socket.onerror=()=>handlers.onError?.('The live bridge connection encountered a network error.');
