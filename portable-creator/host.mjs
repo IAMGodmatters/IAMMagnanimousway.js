@@ -197,6 +197,14 @@ function closeBridge(){
  if(socket){try{socket.close(1000,'Operator disconnected');}catch{}}
 }
 function bridgeSnapshot(){
+ const now=Date.now();
+ for(const [id,item] of approvedBridgeCommands){
+  if(now-Number(item.approvedAt)>5*60_000){
+   approvedBridgeCommands.delete(id);
+   sendBridgeCommandReceipt(id,'failed');
+   if(bridgeStopRequest?.commandId===id)bridgeStopRequest=null;
+  }
+ }
  return{status:bridgeStatus,connected:bridgeStatus==='connected',error:bridgeError,pendingCommands:pendingBridgeCommands.map(({commandId,action,sceneName,text,receivedAt})=>({commandId,action,sceneName,text,receivedAt})),activeSpeechCount:[...approvedBridgeCommands.values()].filter(item=>item.action==='host.speak'&&!item.stopped).length,stopRequest:bridgeStopRequest};
 }
 function validateBridgePairing(endpoint,token){
