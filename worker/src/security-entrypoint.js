@@ -367,8 +367,9 @@ export default {
 
       const policyUrl=new URL(policyRequest.url);
       if(policyUrl.pathname.startsWith('/api/live-bridge/')){
-        const bridgeUser=await currentUser(policyRequest,env).catch(()=>null);
-        const bridgeResponse=await handleLiveBridgeRelay(policyRequest,env,bridgeUser);
+        const bridgeResponse=env.LIVE_BRIDGE_ENABLED==='true'
+          ? await handleLiveBridgeRelay(policyRequest,env,await currentUser(policyRequest,env).catch(()=>null))
+          : new Response(JSON.stringify({detail:'The live bridge is disabled until the owner enables it after verifying the Cloudflare usage plan.'}),{status:503,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
         if(bridgeResponse){
           if(bridgeResponse.status===101)return bridgeResponse;
           const assistantCompleted=await completeAssistantActionPolicy(assistantContext,bridgeResponse,env);
