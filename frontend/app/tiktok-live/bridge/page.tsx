@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { createLiveBridgeClient, type LiveBridgeStatus } from '../../../lib/live-studio/bridge-client';
+import { createLiveBridgeClient, type LiveBridgeCommandReceipt, type LiveBridgeStatus } from '../../../lib/live-studio/bridge-client';
 import type { LiveEvent } from '../../../lib/live-studio/event-contract';
 
 type CommandAction = 'scene.set' | 'overlay.show' | 'overlay.hide' | 'audio.cue' | 'host.speak';
@@ -15,6 +15,7 @@ export default function LiveEventBridgePage() {
   const [pairBusy,setPairBusy]=useState(false);
   const [status,setStatus]=useState<LiveBridgeStatus>('disconnected');
   const [events,setEvents]=useState<LiveEvent[]>([]);
+  const [receipts,setReceipts]=useState<Array<LiveBridgeCommandReceipt & {updatedAt:string}>>([]);
   const [error,setError]=useState('');
   const [notice,setNotice]=useState('');
   const [action,setAction]=useState<CommandAction>('scene.set');
@@ -37,7 +38,7 @@ export default function LiveEventBridgePage() {
       if(!text)return;
       const commandId=globalThis.crypto?.randomUUID?.()||String(Date.now());
       const sent=clientRef.current?.sendCommand({commandId,action:'host.speak',text})||false;
-      channel.postMessage({type:'host.speak.result',ok:sent});
+      channel.postMessage({type:'host.speak.result',ok:sent,commandId});
     });
     return ()=>{
       channel.close();hostChannelRef.current=null;
@@ -55,6 +56,12 @@ export default function LiveEventBridgePage() {
     const client=createLiveBridgeClient(targetEndpoint,targetToken,{
       onStatus:setStatus,
       onEvent:event=>{setEvents(current=>[event,...current.filter(item=>item.eventId!==event.eventId)].slice(0,50));hostChannelRef.current?.postMessage({type:'live.event',event});},
+      onCommandReceipt:receipt=>{
+        setReceipts(current=>[{...receipt,updatedAt:new Date().toISOString()},...current.filter(item=>item.commandId!==receipt.commandId)].slice(0,20));
+        const labels:Record<LiveBridgeCommandReceipt['status'],string>={received:'USB companion received the command; it is waiting for local owner approval.',approved:'The local owner approved the command.',rejected:'The local owner rejected the command.',completed:'The approved action completed on the local device.',failed:'The local device reported that the action failed.'};
+        setNotice(labels[receipt.status]);
+        hostChannelRef.current?.postMessage({type:'host.speak.receipt',commandId:receipt.commandId,status:receipt.status});
+      },
       onError:setError,
     });
     clientRef.current=client;
@@ -129,7 +136,7 @@ export default function LiveEventBridgePage() {
     const commandId=globalThis.crypto?.randomUUID?.()||String(Date.now());
     const payload=action==='scene.set'?{sceneName:target}:{text:speech};
     const sent=clientRef.current?.sendCommand({commandId,action,...payload})||false;
-    setNotice(sent?'Command sent to the companion. Execution is not confirmed until the companion returns an acknowledgement.':'No command sent. Confirm that the companion is connected and that the command fields are valid.');
+    setNotice(sent?'Command transmitted. Waiting for the local companion to confirm receipt and request your approval.':'No command sent. Confirm that the companion is connected and that the command fields are valid.');
   }
 
   const connected=status==='connected';
@@ -206,6 +213,15 @@ export default function LiveEventBridgePage() {
         </div>
       </section>
       {(error||notice)&&<div className={error?'error':'notice'} role="status">{error||notice}</div>}
+      {receipts.length>0&&<section className="panel receipts" aria-live="polite">
+        <div className="panelHead"><div><small>04 • VERIFIED COMMAND RECEIPTS</small><h2>Live action status</h2></div><span className="count">{receipts.length} / 20</span></div>
+        {receipts.map(receipt=><article key={receipt.commandId}>
+          <strong>{receipt.status.toUpperCase().replace('_',' ')}</strong>
+          <span>{receipt.commandId}</span>
+          <time>{new Date(receipt.updatedAt).toLocaleTimeString()}</time>
+        </article>)}
+        <p className="hint">“Received” means queued for local approval. “Completed” is sent only after OBS confirms a scene change or the device voice reports playback ended.</p>
+      </section>}
       <footer><a href="/tiktok-live">Return to Magnanimous AI Host</a><span>Magnanimous remains the intelligence layer. Connections are optional and revocable.</span></footer>
       <style jsx>{`
         .bridgePage{min-height:100vh;background:#050a11;color:#eef8ff;padding:18px 24px 50px;font-family:Inter,system-ui,sans-serif;background-image:radial-gradient(circle at 15% 8%,rgba(40,192,231,.12),transparent 28%),radial-gradient(circle at 92% 20%,rgba(190,150,58,.09),transparent 24%)}
@@ -215,7 +231,7 @@ export default function LiveEventBridgePage() {
         .panel{background:#08121a;border:1px solid #203b4b;border-radius:16px;padding:18px;margin-top:16px}.panelHead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}.panelHead h2{font-size:21px;margin:5px 0}.online,.offline,.count{font-size:9px;letter-spacing:.1em;padding:6px 9px;border-radius:30px;border:1px solid #345260;color:#a9c2cd}.online{border-color:#34745a;color:#88edb7}
         label{display:block;font-size:11px;color:#a9c0cb;font-weight:700;margin:12px 0}input,select,textarea{display:block;width:100%;margin-top:7px;background:#050d13;color:#e9f8ff;border:1px solid #2b4b5b;border-radius:9px;padding:11px;font:inherit;font-size:12px}textarea{resize:vertical}
         .actions{display:flex;gap:9px;flex-wrap:wrap}button{background:linear-gradient(110deg,#dcb75e,#8ee9f1);color:#07131b;border:0;border-radius:9px;padding:11px 15px;font-size:11px;font-weight:800;cursor:pointer}button.secondary{background:#123140;color:#c9f7ff;border:1px solid #2e6375}button:disabled{opacity:.42;cursor:not-allowed}.hint{font-size:10px;line-height:1.55;color:#7893a2;margin:12px 0 0}
-        .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}.grid .panel{margin:0;min-width:0}.feed{max-height:460px;overflow:auto}.feed article{padding:11px;border:1px solid #254354;border-radius:9px;margin:8px 0;background:#0b1922}.feed article>div{display:flex;justify-content:space-between;gap:8px;color:#7bdff0;font-size:9px}.feed time{color:#829ba8}.feed strong{display:block;margin-top:7px;font-size:11px}.feed article p{font-size:11px;color:#c9dce3;white-space:pre-wrap;margin:5px 0}.empty{color:#829ba8;font-size:11px;padding:12px}.notice,.error{margin-top:16px;padding:12px;border-radius:9px;font-size:11px}.notice{background:#102b24;color:#a5edc8;border:1px solid #326b54}.error{background:#321b20;color:#ffb9c2;border:1px solid #6c3944}footer{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:20px;border-top:1px solid #203b4b;padding-top:14px;color:#7893a2;font-size:10px}
+        .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}.grid .panel{margin:0;min-width:0}.receipts{margin-top:16px}.receipts article{display:grid;grid-template-columns:100px 1fr auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid #203b4b;font-size:10px}.receipts article strong{color:#7de6c4}.receipts article span{color:#91a9b7;overflow-wrap:anywhere}.receipts time{color:#718b98}.feed{max-height:460px;overflow:auto}.feed article{padding:11px;border:1px solid #254354;border-radius:9px;margin:8px 0;background:#0b1922}.feed article>div{display:flex;justify-content:space-between;gap:8px;color:#7bdff0;font-size:9px}.feed time{color:#829ba8}.feed strong{display:block;margin-top:7px;font-size:11px}.feed article p{font-size:11px;color:#c9dce3;white-space:pre-wrap;margin:5px 0}.empty{color:#829ba8;font-size:11px;padding:12px}.notice,.error{margin-top:16px;padding:12px;border-radius:9px;font-size:11px}.notice{background:#102b24;color:#a5edc8;border:1px solid #326b54}.error{background:#321b20;color:#ffb9c2;border:1px solid #6c3944}footer{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:20px;border-top:1px solid #203b4b;padding-top:14px;color:#7893a2;font-size:10px}
         @media(max-width:760px){.bridgePage{padding:14px 12px 38px}.grid{grid-template-columns:1fr}.intro{margin-top:25px}.topbar{font-size:8px}.panel{padding:13px}}
       `}</style>
     </main>
