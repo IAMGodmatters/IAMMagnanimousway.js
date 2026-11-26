@@ -38,10 +38,10 @@ test('rejects malformed supplied event timestamps instead of silently replacing 
  assert.equal(normalizeRelayEvent({...base,occurredAt:new Date(NOW).toISOString()},NOW)?.eventId,'event-time-1');
 });
 
-test('an established bridge session survives the initial pairing-token window until session expiry',()=>{
+test('pair-token expiry blocks new sessions even while an existing socket may retain its session lease',()=>{
  const pair={pairExpiresAt:NOW-1,sessionExpiresAt:NOW+60_000};
- assert.equal(isBridgePairExpired(pair,NOW),false);
- assert.equal(isBridgePairExpired(pair,NOW+60_001),true);
+ assert.equal(isBridgePairExpired(pair,NOW),true);
+ assert.equal(isBridgePairExpired({...pair,pairExpiresAt:NOW+60_000},NOW),false);
  assert.equal(isBridgePairExpired({...pair,sessionExpiresAt:0},NOW),true);
  assert.equal(isBridgePairExpired(null,NOW),true);
 });
@@ -309,7 +309,7 @@ test('limits authenticated browser message rate',async()=>{
  const socket={deserializeAttachment:()=>attachment,serializeAttachment:value=>{attachment=value;},send(){},close:code=>{closed=code;}};
  const state={storage:{get:async()=>null},getWebSockets:()=>[socket]};
  const room=new MagnanimousLiveBridgeRoom(state,{});
- for(let i=0;i<11;i++)await room.webSocketMessage(socket,JSON.stringify({kind:'ping'}));
+ for(let i=0;i<121;i++)await room.webSocketMessage(socket,JSON.stringify({kind:'ping'}));
  assert.equal(closed,4429);
 });
 
