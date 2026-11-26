@@ -2,7 +2,7 @@ import test from 'node:test';
 import crypto from 'node:crypto';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {handleLiveBridgeRelay,isRelayProviderAllowed,MagnanimousLiveBridgeRoom,normalizeRelayCommand,normalizeRelayCommandReceipt,normalizeRelayEvent} from './live-bridge-relay.js';
+import {handleLiveBridgeRelay,isRelayProviderAllowed,MagnanimousLiveBridgeRoom,normalizeRelayCommand,normalizeRelayCommandReceipt,normalizeRelayEvent,isBridgePairExpired} from './live-bridge-relay.js';
 
 const NOW=Date.parse('2026-11-25T00:00:00.000Z');
 
@@ -29,6 +29,21 @@ test('rejects spoofed providers, malformed IDs, stale events and invalid chat',(
  assert.equal(normalizeRelayEvent({...base,eventId:'bad id'},NOW),null);
  assert.equal(normalizeRelayEvent({...base,occurredAt:new Date(NOW-8*86400000).toISOString()},NOW),null);
  assert.equal(normalizeRelayEvent({...base,text:'\u0000\u0007'},NOW),null);
+});
+
+test('rejects malformed supplied event timestamps instead of silently replacing them',()=>{
+ const base={protocolVersion:1,eventId:'event-time-1',provider:'manual',type:'game.event',occurredAt:'not-a-date'};
+ assert.equal(normalizeRelayEvent(base,NOW),null);
+ assert.equal(normalizeRelayEvent({...base,occurredAt:null},NOW),null);
+ assert.equal(normalizeRelayEvent({...base,occurredAt:new Date(NOW).toISOString()},NOW)?.eventId,'event-time-1');
+});
+
+test('an established bridge session survives the initial pairing-token window until session expiry',()=>{
+ const pair={pairExpiresAt:NOW-1,sessionExpiresAt:NOW+60_000};
+ assert.equal(isBridgePairExpired(pair,NOW),false);
+ assert.equal(isBridgePairExpired(pair,NOW+60_001),true);
+ assert.equal(isBridgePairExpired({...pair,sessionExpiresAt:0},NOW),true);
+ assert.equal(isBridgePairExpired(null,NOW),true);
 });
 
 test('only approved production commands pass the relay contract',()=>{
