@@ -396,3 +396,57 @@ test('terminal command receipts cannot be reopened and expired command receipts 
  assert.equal(companion.messages.at(-1)?.code,'UNKNOWN_COMMAND_RECEIPT');
  assert.equal(values.get('commands').length,2,'Expired receipt rejection must not rewrite the durable ledger.');
 });
+
+test('Durable Object pair-rate limiter allows five attempts per minute and rejects the sixth',async()=>{
+ const values=new Map();
+ const state={storage:{get:async key=>values.get(key),put:async(key,value)=>values.set(key,value),setAlarm:async()=>{}},getWebSockets:()=>[]};
+ const room=new MagnanimousLiveBridgeRoom(state,{});
+ const request=()=>new Request('https://bridge.internal/internal/rate-limit',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({tenantId:'tenant-a',userId:'user-a'})});
+ for(let i=0;i<5;i++){const response=await room.fetch(request());assert.equal(response.status,200);}
+ const blocked=await room.fetch(request());
+ assert.equal(blocked.status,429);
+ assert.equal(values.get('pair-rate').length,5);
+});
+
+test('Durable event inbox deduplicates, replays pending events, and accepts browser acknowledgements',async()=>{
+ const browser=makeSocket({authenticated:true,role:'browser',sessionExpiresAt:Date.now()+60000,windowStartedAt:Date.now(),windowCount:0});
+ const companion=makeSocket({authenticated:true,role:'companion',allowedProviders:['manual','obs','game','browser'],sessionExpiresAt:Date.now()+60000,windowStartedAt:Date.now(),windowCount:0});
+ const values=new Map();
+ const state={storage:{get:async key=>values.get(key),put:async(key,value)=>values.set(key,value)},getWebSockets:()=>[browser,companion]};
+ const room=new MagnanimousLiveBridgeRoom(state,{});
+ const event={protocolVersion:1,eventId:'game-round-1',provider:'game',type:'game.event',occurredAt:new Date().toISOString(),text:'Round started'};
+ const envelope=JSON.stringify({kind:'event',protocolVersion:1,event});
+ await room.webSocketMessage(companion,envelope);
+ assert.equal(values.get('events').length,1);
+ assert.equal(browser.messages.filter(item=>item.kind==='event').length,1);
+ await room.webSocketMessage(companion,envelope);
+ assert.equal(values.get('events').length,1,'Duplicate source events must not create another durable record.');
+ assert.equal(browser.messages.filter(item=>item.kind==='event').length,2,'An unacknowledged event may be replayed at least once.');
+ await room.webSocketMessage(browser,JSON.stringify({kind:'event.ack',protocolVersion:1,provider:'game',eventId:'game-round-1'}));
+ assert.ok(values.get('events')[0].acknowledgedAt>0);
+ assert.equal(browser.messages.at(-1)?.status,'acknowledged');
+ const before=browser.messages.filter(item=>item.kind==='event').length;
+ await room.webSocketMessage(companion,envelope);
+ assert.equal(browser.messages.filter(item=>item.kind==='event').length,before,'Acknowledged events must never be redelivered.');
+});
+
+test('Reconnect replays unacknowledged events and unapproved commands to their assigned roles',async()=>{
+ const browserToken='B'.repeat(43),companionToken='C'.repeat(43),pairId='replay-room';
+ const pair={pairId,tenantId:'tenant-1',userId:'user-1',browserHash:tokenHash(browserToken),companionHash:tokenHash(companionToken),expectedOrigin:'https://iammagnanimousway.com',allowedProviders:['manual','obs','game','browser'],pairExpiresAt:Date.now()+600000,sessionExpiresAt:Date.now()+600000};
+ const event={protocolVersion:1,eventId:'resume-1',provider:'game',type:'game.event',occurredAt:new Date().toISOString(),text:'Recovered event'};
+ const command={commandId:'resume-command-1',action:'host.speak',text:'Recovered pending speech'};
+ const values=new Map([
+  ['pair',pair],
+  ['events',[{key:'game:resume-1',event,createdAt:Date.now(),expiresAt:Date.now()+86400000,acknowledgedAt:0}]],
+  ['commands',[{commandId:command.commandId,action:command.action,command,status:'received',createdAt:Date.now(),expiresAt:Date.now()+300000}]]
+ ]);
+ const browser=makeSocket({pairId,tenantId:pair.tenantId,expectedOrigin:pair.expectedOrigin,origin:pair.expectedOrigin,authenticated:false,seen:[],sessionExpiresAt:0});
+ const companion=makeSocket({pairId,tenantId:pair.tenantId,expectedOrigin:pair.expectedOrigin,origin:null,authenticated:false,seen:[],sessionExpiresAt:0});
+ const state={storage:{get:async key=>values.get(key),put:async(key,value)=>values.set(key,value),setAlarm:async()=>{}},getWebSockets:()=>[browser,companion]};
+ const room=new MagnanimousLiveBridgeRoom(state,{});
+ await room.webSocketMessage(browser,JSON.stringify({kind:'auth',protocolVersion:1,token:browserToken}));
+ await room.webSocketMessage(companion,JSON.stringify({kind:'auth',protocolVersion:1,token:companionToken}));
+ assert.ok(browser.messages.some(item=>item.kind==='event'&&item.event.eventId==='resume-1'),'Browser should receive the unacknowledged durable event.');
+ assert.ok(companion.messages.some(item=>item.kind==='command'&&item.command.commandId===command.commandId),'Companion should receive the pending command again.');
+ assert.ok(browser.messages.some(item=>item.kind==='command.receipt'&&item.receipt.status==='received'),'Browser should recover its last command receipt.');
+});
