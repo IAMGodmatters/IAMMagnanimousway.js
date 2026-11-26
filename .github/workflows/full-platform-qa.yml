@@ -47,9 +47,9 @@ jobs:
       - name: Run deterministic native unit and integration tests
         run: node qa/scripts/run-native-regression-tests.mjs
 
-      - name: Test portable creator event director and local host
+      - name: Test portable creator event director, game bridge and local host
         run: |
-          node --test portable-creator/live-event-runtime.test.mjs portable-creator/live-show-autonomy.test.mjs
+          node --test portable-creator/live-event-runtime.test.mjs portable-creator/live-show-autonomy.test.mjs portable-creator/game-event-integration.test.mjs portable-creator/game-event-client.test.mjs
           node qa/scripts/portable-creator-runtime-test.mjs
 
       - name: Lock standalone AI, platform, and Shopify boundaries

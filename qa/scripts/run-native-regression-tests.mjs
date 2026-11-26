@@ -14,6 +14,7 @@ const testFiles = [
   'qa/scripts/magnanimous-marketing-skills.test.mjs',
   'qa/scripts/magnanimous-marketing-department-lock.mjs',
   'qa/scripts/tv-companion-lock.mjs',
+  'worker/src/live-bridge-relay.test.mjs',
   'worker/test/magnanimous-model-calibration.test.js',
   'video-gateway/test/security.test.mjs',
   'tools/native-investigation/inspect.test.mjs',

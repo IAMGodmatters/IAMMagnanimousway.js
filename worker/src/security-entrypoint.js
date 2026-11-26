@@ -32,6 +32,8 @@ import { handleMagnanimousRuntimeControl } from './runtime-control.js';
 import { handleMagnanimousReelsProxy } from './reels-proxy.js';
 import { unauthenticatedTelecomRead, telecomReadProxyTimeoutMs, readTelecomProxyBody } from './magnanimous-telecom-edge-guard.js';
 import { standaloneApiReady } from './magnanimous-standalone-health-gate.js';
+import { handleLiveBridgeRelay, MagnanimousLiveBridgeRoom } from './live-bridge-relay.js';
+export { MagnanimousLiveBridgeRoom };
 
 const CANONICAL_HOST='iammagnanimousway.com';
 const WWW_HOST='www.iammagnanimousway.com';
@@ -364,6 +366,17 @@ export default {
       }
 
       const policyUrl=new URL(policyRequest.url);
+      if(policyUrl.pathname.startsWith('/api/live-bridge/')){
+        const bridgeResponse=env.LIVE_BRIDGE_ENABLED==='true'
+          ? await handleLiveBridgeRelay(policyRequest,env,await currentUser(policyRequest,env).catch(()=>null))
+          : new Response(JSON.stringify({detail:'The live bridge is disabled until the owner enables it after verifying the Cloudflare usage plan.'}),{status:503,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
+        if(bridgeResponse){
+          if(bridgeResponse.status===101)return bridgeResponse;
+          const assistantCompleted=await completeAssistantActionPolicy(assistantContext,bridgeResponse,env);
+          const carrierCompleted=await completeCarrierWebhook(carrierContext,assistantCompleted,env);
+          return finalizeResponse(request,await securityPostflight(policyRequest,carrierCompleted,env));
+        }
+      }
       if(policyUrl.pathname.startsWith('/api/magnanimous/tool-foundry')){
         const toolFoundryResponse=await handleMagnanimousToolFoundry(policyRequest,env);
         if(toolFoundryResponse){

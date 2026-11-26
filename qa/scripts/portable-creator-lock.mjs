@@ -82,6 +82,7 @@ checks.push(
  ['AI takeover has a bounded action rate and pending action limit',autonomy.includes('MAX_ACTIONS_PER_MINUTE = 6')&&autonomy.includes('MAX_PENDING_ACTIONS = 12')],
  ['autonomous host never grants moderation, account, payment or broadcast controls',!autonomy.includes("'moderate_chat'")&&!autonomy.includes("'broadcast.start'")&&!autonomy.includes("'payment.create'")],
  ['portable local model event context redacts emails, phone numbers, URLs and credential strings',host.includes('[email removed]')&&host.includes('[phone number removed]')&&host.includes('[sensitive detail removed]')],
+ ['local durable event runtime redacts viewer email, phone and credentials before journal callbacks',eventRuntime.includes('function redactEventText')&&eventRuntime.includes('[email redacted]')&&eventRuntime.includes('[phone redacted]')&&eventRuntime.includes('[credential redacted]')],
  ['portable autonomous browser panel includes a visible owner stop button',html.includes('id="liveAutonomyStart"')&&html.includes('id="liveAutonomyStop"')&&app.includes('operator_emergency_stop')],
  ['portable autonomy decision and timeout scenarios have dedicated automated tests',autonomyTests.includes('emergency stop immediately revokes')&&autonomyTests.includes('control surface disappears')&&autonomyTests.includes('six autonomous actions')],
  ['offline draft planner works without a local model',app.includes('function buildOfflineDraft')&&app.includes("message('creatorMessage','Created with the built-in offline draft planner")],

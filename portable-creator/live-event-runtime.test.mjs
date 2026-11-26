@@ -6,6 +6,24 @@ test('accepts a valid event and returns normalized content',()=>{const q=new Liv
 test('deduplicates repeated provider event IDs',()=>{const q=new LiveEventRuntime({now:()=>1_700_000_000_000});assert.equal(q.ingest(event('evt-1')).status,'accepted');assert.equal(q.ingest(event('evt-1')).status,'duplicate');});
 test('rejects malformed events and stale timestamps',()=>{const q=new LiveEventRuntime({now:()=>1_800_000_000_000});assert.equal(q.ingest(event('bad space')).status,'invalid');assert.equal(q.ingest(event('old')).status,'invalid');});
 test('strips sensitive tags and bounds viewer text',()=>{const q=new LiveEventRuntime({now:()=>1_700_000_000_000});q.ingest(event('evt-1',{text:'x'.repeat(700),tags:{password:'no',topic:'safe'}}));const e=q.consume()[0];assert.equal(e.text.length,500);assert.deepEqual(e.tags,{topic:'safe'});});
+test('redacts viewer email, phone numbers and credentials before local journal acceptance',()=>{
+ let accepted;
+ const q=new LiveEventRuntime({now:()=>1_700_000_000_000,onAccept:value=>{accepted=value;}});
+ const result=q.ingest(event('privacy-local',{
+  actorName:'viewer@example.com',
+  text:'Call +1 (415) 555-0198; email viewer@example.com; Bearer abcdefghijklmnopqrstuvwxyz123456',
+  tags:{topic:'email viewer@example.com',accessToken:'never-store',support:'555-123-4567'}
+ }));
+ assert.equal(result.status,'accepted');
+ const saved=q.consume()[0];
+ assert.equal(saved.actorName,'[email redacted]');
+ assert.equal(saved.text,'Call [phone redacted]; email [email redacted]; [credential redacted]');
+ assert.deepEqual(saved.tags,{topic:'email [email redacted]',support:'[phone redacted]'});
+ assert.equal(accepted.text,saved.text,'The journal callback must receive only redacted content.');
+ const philippines=q.ingest(event('privacy-local-ph',{text:'Contact +63 917 123 4567'}));
+ assert.equal(philippines.status,'accepted');
+ assert.equal(q.consume()[0].text,'Contact [phone redacted]');
+});
 test('applies per-provider rate limits',()=>{const q=new LiveEventRuntime({now:()=>1_700_000_000_000,rateLimitPerMinute:1});assert.equal(q.ingest(event('evt-1')).status,'accepted');assert.equal(q.ingest(event('evt-2')).status,'rate_limited');});
 test('applies queue backpressure without dropping accepted events',()=>{const q=new LiveEventRuntime({now:()=>1_700_000_000_000,maxQueue:1});assert.equal(q.ingest(event('evt-1')).status,'accepted');assert.equal(q.ingest(event('evt-2')).status,'queue_full');assert.equal(q.consume()[0].eventId,'evt-1');});
 test('consumes only the requested bounded batch',()=>{const q=new LiveEventRuntime({now:()=>1_700_000_000_000});for(let i=0;i<12;i++)q.ingest(event('evt-'+i));assert.equal(q.consume(4).length,4);assert.equal(q.status().queued,8);});

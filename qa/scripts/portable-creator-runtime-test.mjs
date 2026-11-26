@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const SOURCE=path.join(ROOT,'portable-creator');
-const eventTests=spawnSync(process.execPath,['--test',path.join(SOURCE,'live-event-runtime.test.mjs'),path.join(SOURCE,'live-event-journal.test.mjs'),path.join(SOURCE,'live-show-autonomy.test.mjs')],{encoding:'utf8'});
+const eventTests=spawnSync(process.execPath,['--test',path.join(SOURCE,'live-event-runtime.test.mjs'),path.join(SOURCE,'live-event-journal.test.mjs'),path.join(SOURCE,'live-show-autonomy.test.mjs'),path.join(SOURCE,'game-event-integration.test.mjs')],{encoding:'utf8'});
 if(eventTests.status!==0){console.error(eventTests.stdout||'');console.error(eventTests.stderr||'');throw new Error('Portable live-event runtime unit tests failed.');}
 console.log(eventTests.stdout.trim());
 
@@ -22,6 +22,8 @@ fs.copyFileSync(path.join(SOURCE,'live-event-runtime.mjs'),path.join(target,'liv
 fs.copyFileSync(path.join(SOURCE,'live-event-journal.mjs'),path.join(target,'live-event-journal.mjs'));
 fs.copyFileSync(path.join(SOURCE,'live-show-director.mjs'),path.join(target,'live-show-director.mjs'));
 fs.copyFileSync(path.join(SOURCE,'live-show-autonomy.mjs'),path.join(target,'live-show-autonomy.mjs'));
+fs.copyFileSync(path.join(SOURCE,'game-event-integration.mjs'),path.join(target,'game-event-integration.mjs'));
+fs.copyFileSync(path.join(SOURCE,'game-event-client.mjs'),path.join(target,'game-event-client.mjs'));
 for(const file of ['index.html','app.js','styles.css'])fs.copyFileSync(path.join(SOURCE,'app',file),path.join(target,'app',file));
 const appSyntax=spawnSync(process.execPath,['--check',path.join(target,'app','app.js')],{encoding:'utf8'});
 if(appSyntax.status!==0){console.error(appSyntax.stderr||'');throw new Error('Portable creator browser script syntax check failed.');}
@@ -66,6 +68,8 @@ try{
  assert.ok(homepage.includes('id="liveEventList"'),'Audience/game event list should be present.');
  assert.ok(homepage.includes('id="liveAutonomyStart"'),'Owner-controlled AI takeover must be visible.');
  assert.ok(homepage.includes('id="liveAutonomyStop"'),'Emergency stop must be visible.');
+ assert.ok(homepage.includes('id="bridgeConnectButton"'),'Online companion connection control must be visible.');
+ assert.ok(homepage.includes('id="bridgeCommandList"'),'Local remote-command approval queue must be visible.');
 
  const css=await fetch(origin+'/styles.css');
  assert.equal(css.status,200,'Local stylesheet should load.');
@@ -76,6 +80,7 @@ try{
  assert.equal(eventStatus.queued,0,'Live event queue should start empty.');
  const lockedEvent={protocolVersion:1,eventId:'locked-'+Date.now(),provider:'manual',type:'chat.message',occurredAt:new Date().toISOString(),text:'must stay locked'};
  assert.equal((await post(origin+'/api/live/events/ingest',origin,{event:lockedEvent})).status,423,'Live events must not be accepted before the encrypted workspace is unlocked.');
+ assert.equal((await post(origin+'/api/bridge/connect',origin,{endpoint:'wss://iammagnanimousway.com/api/live-bridge/ws/00000000-0000-0000-0000-000000000000',token:'A'.repeat(43)})).status,423,'Online bridge must remain unavailable while the encrypted workspace is locked.');
  assert.equal((await fetch(origin+'/api/projects')).status,423,'Project data must remain locked before passphrase entry.');
  const wrongOrigin=await post(origin+'/api/vault/unlock','https://attacker.example',{passphrase:'this-is-a-long-test-passphrase'});
  assert.equal(wrongOrigin.status,403,'Cross-origin state changes must be rejected.');
@@ -88,6 +93,10 @@ try{
  assert.equal(created.status,200,'A new encrypted workspace should be created.');
  const createdData=await created.json();
  assert.equal(createdData.created,true);
+ const bridgeStatus=await (await fetch(origin+'/api/bridge/status')).json();
+ assert.equal(bridgeStatus.workspaceUnlocked,true,'Bridge status must reflect the unlocked local workspace.');
+ assert.equal(bridgeStatus.status,'disconnected','Bridge starts disconnected until the owner connects it.');
+ assert.equal((await post(origin+'/api/bridge/connect',origin,{endpoint:'https://not-secure.example/ws',token:'A'.repeat(43)})).status,400,'Companion pairing must reject non-WSS and non-Magnanimous endpoints.');
  const liveEvent={protocolVersion:1,eventId:'runtime-'+Date.now(),provider:'manual',type:'chat.message',occurredAt:new Date().toISOString(),actorName:'QA viewer',text:'Hello Magnanimous'};
  const spoofedEvent=await post(origin+'/api/live/events/ingest',origin,{event:{...liveEvent,eventId:'spoof-'+Date.now(),provider:'tiktok'}});
  assert.equal(spoofedEvent.status,403,'Browser intake must reject provider-labelled events without authenticated companion adapters.');

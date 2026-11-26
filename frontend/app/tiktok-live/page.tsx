@@ -6,9 +6,12 @@ import { postMagnanimousChat } from '../../lib/magnanimous-chat-transport';
 import { primeNaturalSpeech, speakTextNaturally, stopNaturalSpeech } from '../../lib/natural-speech';
 import { configurePersonaVoice } from '../../lib/persona-voice';
 import { normalizeLiveEvent, type LiveEvent } from '../../lib/live-studio/event-contract';
+import { isLiveEventDelivered, listLiveEventInbox, markLiveEventDelivered } from '../../lib/live-studio/event-inbox';
 
 const api = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 type Line = { id: number; role: 'viewer' | 'host'; text: string };
+type LiveEventReceipt = { provider: LiveEvent['provider']; eventId: string };
+type HostQueueItem = { id: number; text: string; source?: string; delivery?: LiveEventReceipt };
 
 async function read(response: Response) {
   const raw = await response.text();
@@ -52,12 +55,14 @@ export default function TikTokLiveHost() {
   const [takeoverDuration, setTakeoverDuration] = useState(30);
   const [takeoverEndsAt, setTakeoverEndsAt] = useState<number | null>(null);
   const [takeoverSeconds, setTakeoverSeconds] = useState(0);
-  const [queuedComments, setQueuedComments] = useState<Array<{ id: number; text: string; source?: string }>>([]);
+  const [queuedComments, setQueuedComments] = useState<HostQueueItem[]>([]);
   const [bridgeStatus, setBridgeStatus] = useState<'connected' | 'reconnecting' | 'disconnected' | 'error'>('disconnected');
   const [bridgeEvents, setBridgeEvents] = useState<LiveEvent[]>([]);
-  const queuedCommentsRef = useRef<Array<{ id: number; text: string; source?: string }>>([]);
+  const queuedCommentsRef = useRef<HostQueueItem[]>([]);
   const seenBridgeEventIdsRef = useRef(new Set<string>());
-  const [failedQueuedComment, setFailedQueuedComment] = useState<{ id: number; text: string; source?: 'viewer' | 'show-rundown' } | null>(null);
+  const completedBridgeEventIdsRef = useRef(new Set<string>());
+  const hostEventChannelRef = useRef<BroadcastChannel | null>(null);
+  const [failedQueuedComment, setFailedQueuedComment] = useState<HostQueueItem | null>(null);
   const [takeoverPaused, setTakeoverPaused] = useState(false);
   const takeoverRef = useRef(false);
   const takeoverDeadlineRef = useRef<number | null>(null);
@@ -69,6 +74,15 @@ export default function TikTokLiveHost() {
 
   queuedCommentsRef.current = queuedComments;
 
+  async function acknowledgeBridgeEvent(delivery: LiveEventReceipt) {
+    const key = delivery.provider + ':' + delivery.eventId;
+    completedBridgeEventIdsRef.current.add(key);
+    await markLiveEventDelivered(delivery.provider, delivery.eventId);
+    const channel = hostEventChannelRef.current;
+    if (!channel) throw new Error('The Host completion was saved, but the bridge receipt channel is not connected yet.');
+    channel.postMessage({ kind: 'event.receipt', provider: delivery.provider, eventId: delivery.eventId });
+  }
+
   const topicInstruction = useMemo(() => {
     if (topic === 'Faith & Scripture') return 'You are speaking in a Christian ministry and Bible-learning context. When relevant, use the King James Version (KJV), distinguish Scripture from your own explanation, and never invent a verse or claim a quotation is Scripture unless accurate.';
     if (topic === 'AI Education') return 'Teach AI clearly for beginners. Explain terms in plain language, give practical examples, and do not pretend uncertain claims are facts.';
@@ -79,7 +93,16 @@ export default function TikTokLiveHost() {
   useEffect(() => {
     if (typeof BroadcastChannel === 'undefined') return;
     const channel = new BroadcastChannel('magnanimous-live-events-v1');
-    channel.onmessage = message => {
+    hostEventChannelRef.current = channel;
+    void listLiveEventInbox().then(restored => {
+      setBridgeEvents(items => {
+        const merged = [...restored, ...items];
+        const unique = new Map<string, LiveEvent>();
+        for (const event of merged) unique.set(event.provider + ':' + event.eventId, event);
+        return [...unique.values()].slice(-12).reverse();
+      });
+    }).catch(() => setNotice('The local event inbox could not be restored; pending events will remain on the bridge for retry.'));
+    channel.onmessage = async message => {
       const payload = message.data;
       if (payload?.kind === 'status' && ['connected','reconnecting','disconnected','error'].includes(payload.status)) {
         setBridgeStatus(payload.status);
@@ -87,28 +110,61 @@ export default function TikTokLiveHost() {
       }
       if (payload?.kind !== 'event') return;
       const event = normalizeLiveEvent(payload.event);
-      if (!event || seenBridgeEventIdsRef.current.has(event.eventId)) return;
-      seenBridgeEventIdsRef.current.add(event.eventId);
+      if (!event) return;
+      const eventKey = event.provider + ':' + event.eventId;
+      setBridgeEvents(items => [event, ...items.filter(item => item.provider !== event.provider || item.eventId !== event.eventId)].slice(0, 12));
+
+      // A completion receipt means the Host finished handling this event, not
+      // merely that it entered React state. Re-ack after reload without repeating AI.
+      try {
+        if (completedBridgeEventIdsRef.current.has(eventKey) || await isLiveEventDelivered(event.provider, event.eventId)) {
+          await acknowledgeBridgeEvent({ provider: event.provider, eventId: event.eventId });
+          return;
+        }
+      } catch {
+        setNotice('The Host completion receipt could not be checked or acknowledged. The event remains pending for retry.');
+        return;
+      }
+      if (seenBridgeEventIdsRef.current.has(eventKey)) return;
+
+      const hostPrompt = takeoverRef.current ? liveEventToHostPrompt(event) : '';
+      // Without an owner-authorized takeover, keep the event pending in the
+      // durable inbox so it can be replayed when the owner starts the AI Host.
+      if (!takeoverRef.current || !hostPrompt) return;
+
+      // Apply backpressure before marking the event seen or queuing it. A full
+      // queue must leave the event pending in IndexedDB and on the relay.
+      if (queuedCommentsRef.current.length >= 25) {
+        setNotice('The live event queue is full (25 items). Magnanimous is keeping this event pending and will retry when a slot opens.');
+        return;
+      }
+      seenBridgeEventIdsRef.current.add(eventKey);
       if (seenBridgeEventIdsRef.current.size > 500) {
         const oldest = seenBridgeEventIdsRef.current.values().next().value;
         if (oldest) seenBridgeEventIdsRef.current.delete(oldest);
       }
-      setBridgeEvents(items => [event, ...items.filter(item => item.eventId !== event.eventId)].slice(0, 12));
-      if (!takeoverRef.current) return;
-      const hostPrompt = liveEventToHostPrompt(event);
-      if (!hostPrompt) return;
-      if (queuedCommentsRef.current.length >= 25) {
-        setNotice('The live event queue is full (25 items). Magnanimous will not discard existing events.');
-        return;
-      }
-      const item = { id: Date.now() + Math.floor(Math.random() * 1000), text: hostPrompt, source: event.provider + ' · ' + event.type };
+      const item: HostQueueItem = {
+        id: Date.now() + Math.floor(Math.random() * 1000),
+        text: hostPrompt,
+        source: event.provider + ' · ' + event.type,
+        delivery: { provider: event.provider, eventId: event.eventId }
+      };
       const next = [...queuedCommentsRef.current, item];
       queuedCommentsRef.current = next;
       setQueuedComments(next);
     };
     channel.postMessage({ kind: 'request-status' });
-    return () => channel.close();
+    return () => { if (hostEventChannelRef.current === channel) hostEventChannelRef.current = null; channel.close(); };
   }, []);
+
+  // When the autonomous queue has room again, ask the paired bridge tab to
+  // replay any locally persisted events that were deliberately left unacked.
+  useEffect(() => {
+    if (!takeoverActive || takeoverPaused || queuedComments.length >= 25 || typeof BroadcastChannel === 'undefined') return;
+    const channel = new BroadcastChannel('magnanimous-live-events-v1');
+    channel.postMessage({ kind: 'retry-pending-events' });
+    return () => channel.close();
+  }, [takeoverActive, takeoverPaused, queuedComments.length]);
 
   useEffect(() => () => { takeoverRef.current = false; takeoverAbortRef.current?.abort(); stopNaturalSpeech(); }, []);
 
@@ -188,7 +244,7 @@ function cleanLiveViewerText(value: string) {
       .slice(0, 700);
   }
 
-  async function processComment(comment: string, automatic = false, source: 'viewer' | 'show-rundown' = 'viewer') {
+  async function processComment(comment: string, automatic = false, source: 'viewer' | 'show-rundown' = 'viewer', delivery?: LiveEventReceipt) {
     if (automatic && takeoverDeadlineRef.current && Date.now() >= takeoverDeadlineRef.current) {
       stopTakeover('session_expired');
       return;
@@ -237,12 +293,19 @@ function cleanLiveViewerText(value: string) {
       } else {
         setStatus(takeoverRef.current ? 'AI TAKEOVER ACTIVE · REPLY READY' : 'REPLY READY');
       }
+      if (delivery) {
+        try {
+          await acknowledgeBridgeEvent(delivery);
+        } catch {
+          setNotice('Magnanimous prepared the response, but its durable event receipt is still pending. The bridge will retry acknowledgement without dropping the event.');
+        }
+      }
     } catch (error: any) {
       if (!automatic) {
         setLines(items => items.filter(line => line.id !== commentId));
         setViewerComment(cleanComment);
       } else if (takeoverRef.current) {
-        setFailedQueuedComment({ id: commentId, text: cleanComment, source });
+        setFailedQueuedComment({ id: commentId, text: cleanComment, source, delivery });
         setTakeoverPaused(true);
       }
       if (!automatic || takeoverRef.current) {
@@ -284,6 +347,7 @@ function cleanLiveViewerText(value: string) {
     if (!takeoverConsent || !autoSpeak || takeoverActive || busy || speaking) return;
     primeNaturalSpeech(true);
     takeoverRef.current = true;
+    seenBridgeEventIdsRef.current.clear();
     takeoverStartedAtRef.current = Date.now();
     takeoverDeadlineRef.current = takeoverStartedAtRef.current + takeoverDuration * 60_000;
     nextRundownSegmentRef.current = 0;
@@ -304,6 +368,9 @@ function cleanLiveViewerText(value: string) {
 
   function stopTakeover(reason = 'operator_stop') {
     takeoverRef.current = false;
+    // Any queued-but-unprocessed bridge events remain unacknowledged in IndexedDB.
+    // Clear the in-memory dedupe set so a later owner-approved session replays them.
+    seenBridgeEventIdsRef.current.clear();
     takeoverDeadlineRef.current = null;
     takeoverStartedAtRef.current = null;
     nextRundownSegmentRef.current = 0;
@@ -332,7 +399,7 @@ function cleanLiveViewerText(value: string) {
 
   function retryFailedQueuedComment() {
     if (!failedQueuedComment || queuedComments.length >= 25) return;
-    const next = [{ id: Date.now() + Math.floor(Math.random() * 1000), text: failedQueuedComment.text, source: failedQueuedComment.source === 'show-rundown' ? 'show-rundown' : 'retried event' }, ...queuedCommentsRef.current];
+    const next = [{ id: Date.now() + Math.floor(Math.random() * 1000), text: failedQueuedComment.text, source: failedQueuedComment.source === 'show-rundown' ? 'show-rundown' : 'retried event', delivery: failedQueuedComment.delivery }, ...queuedCommentsRef.current];
     queuedCommentsRef.current = next;
     setQueuedComments(next);
     setFailedQueuedComment(null);
@@ -341,9 +408,13 @@ function cleanLiveViewerText(value: string) {
   }
 
   function skipFailedQueuedComment() {
+    const failed = failedQueuedComment;
     setFailedQueuedComment(null);
     setTakeoverPaused(false);
-    setNotice('The failed item was skipped. Magnanimous will continue with the remaining queue.');
+    if (failed?.delivery) {
+      void acknowledgeBridgeEvent(failed.delivery).catch(() => setNotice('The item was skipped by the owner, but its durable skip receipt is still pending.'));
+    }
+    setNotice('The failed item was skipped by the owner. Magnanimous will continue with the remaining queue.');
   }
 
   useEffect(() => {
@@ -354,7 +425,7 @@ function cleanLiveViewerText(value: string) {
     const remaining = queuedCommentsRef.current.slice(1);
     queuedCommentsRef.current = remaining;
     setQueuedComments(remaining);
-    void processComment(next.text, true, next.source === 'show-rundown' ? 'show-rundown' : 'viewer').finally(() => {
+    void processComment(next.text, true, next.source === 'show-rundown' ? 'show-rundown' : 'viewer', next.delivery).finally(() => {
       if (processingQueueId.current === next.id) processingQueueId.current = null;
     });
   }, [takeoverActive, takeoverPaused, busy, speaking, queuedComments]);

@@ -8,6 +8,18 @@ const eventContract = fs.readFileSync(new URL('frontend/lib/live-studio/event-co
 const bridgeClient = fs.readFileSync(new URL('frontend/lib/live-studio/bridge-client.ts', root), 'utf8');
 const bridgeDocs = fs.readFileSync(new URL('docs/live-studio/bridge-protocol.md', root), 'utf8');
 const bridgeUi = fs.readFileSync(new URL('frontend/app/tiktok-live/bridge/page.tsx', root), 'utf8');
+const eventInbox = fs.readFileSync(new URL('frontend/lib/live-studio/event-inbox.ts', root), 'utf8');
+const relay = fs.readFileSync(new URL('worker/src/live-bridge-relay.js', root), 'utf8');
+const portableHost = fs.readFileSync(new URL('portable-creator/host.mjs', root), 'utf8');
+const wrangler = fs.readFileSync(new URL('worker/wrangler.jsonc', root), 'utf8');
+const security = fs.readFileSync(new URL('worker/src/security-entrypoint.js', root), 'utf8');
+const bridgeCloseStart = portableHost.indexOf("socket.addEventListener('close'");
+const bridgeCloseEnd = portableHost.indexOf("socket.addEventListener('error'", bridgeCloseStart);
+const bridgeCloseHandler = bridgeCloseStart >= 0 && bridgeCloseEnd > bridgeCloseStart ? portableHost.slice(bridgeCloseStart, bridgeCloseEnd) : '';
+const hostEventReceipt = host.split('async function acknowledgeBridgeEvent')[1]?.split('const topicInstruction')[0] || '';
+const hostEventHandler = host.split("if (payload?.kind !== 'event')")[1]?.split("channel.postMessage({ kind: 'request-status'")[0] || '';
+const hostProcess = host.split('async function processComment')[1]?.split('async function answerComment')[0] || '';
+const bridgeEventHandler = bridgeClient.split("if(envelope?.kind==='event'")[1]?.split("if(envelope?.kind==='event.receipt'")[0] || '';
 
 const checks = [
   ['host uses Magnanimous native chat transport', host.includes('postMagnanimousChat') && host.includes('${api}/api/chat')],
@@ -24,9 +36,10 @@ const checks = [
   ['live event contract supports TikTok, YouTube, Twitch, OBS and games', ['tiktok', 'youtube', 'twitch', 'obs', 'game'].every(provider => eventContract.includes("'" + provider + "'"))],
   ['untrusted provider events are normalized and bounded', eventContract.includes('normalizeLiveEvent') && eventContract.includes('cleanText(v.text,500)') && eventContract.includes('slice(0,max)') && eventContract.includes('7*86400000')],
   ['sensitive credentials are excluded from event tags', eventContract.includes('token|secret|password|cookie|authorization|credential')],
-  ['bridge permits secure remote or loopback-only local transport', bridgeClient.includes("url.protocol!=='wss:'") && bridgeClient.includes("url.protocol==='ws:'&&loopback")],
+  ['browser pairing accepts only the official TLS-protected Magnanimous relay endpoint', bridgeClient.includes("url.protocol!=='wss:'") && bridgeClient.includes("url.hostname!=='iammagnanimousway.com'") && bridgeClient.includes("'/api/live-bridge/ws/'") && bridgeClient.includes('url.pathname.slice(prefix.length)')],
   ['pairing credentials are sent in the message body, not URL parameters', bridgeClient.includes("kind:'auth'") && bridgeClient.includes('token')],
-  ['bridge reconnect attempts are bounded', bridgeClient.includes('retryCount>=5')],
+  ['browser bridge sends keepalive pings and detects stale connections with pong deadlines', bridgeClient.includes("JSON.stringify({kind:'ping'})") && bridgeClient.includes("envelope?.kind==='pong'") && bridgeClient.includes('setInterval') && bridgeClient.includes('45_000')],
+  ['bridge reconnects with capped backoff until stopped or credentials are revoked', bridgeClient.includes('Math.min(30_000') && bridgeClient.includes('Math.min(retryCount,5)') && bridgeClient.includes('if(stopped||fatal||retryTimer)return;') && !bridgeClient.includes('retryCount>=5')],
   ['bridge commands are allowlisted and do not expose destructive controls', eventContract.includes('normalizeLiveBridgeCommand') && !eventContract.includes("'broadcast.start'")],
   ['bridge protocol documents provider consent and tenant isolation', bridgeDocs.includes('tenant authorization') && bridgeDocs.includes('official OAuth')],
   ['autonomous takeover is opt-in and starts with an explicit owner consent checkbox', host.includes('takeoverConsent') && host.includes('I authorize Magnanimous AI to run this host session') && host.includes('if (!takeoverConsent || !autoSpeak || takeoverActive || busy || speaking) return;')],
@@ -46,16 +59,30 @@ const checks = [
   ['autonomous viewer comments cannot invoke Magnanimous tools or actions', host.includes('use_tools: false') && host.includes('Do not pretend to be a human')],
   ['paired event bridge relays only normalized events into the host queue', host.includes('normalizeLiveEvent(payload.event)') && host.includes("new BroadcastChannel('magnanimous-live-events-v1')") && host.includes('liveEventToHostPrompt')],
   ['AI host discovers an already-paired companion tab without storing bridge tokens', host.includes("kind: 'request-status'") && bridgeUi.includes('statusRef.current') && bridgeUi.includes("message.data?.kind==='request-status'") && !host.includes('localStorage.setItem')],
-  ['event bridge page sends authenticated companion events to the host tab', bridgeUi.includes("new BroadcastChannel('magnanimous-live-events-v1')") && bridgeUi.includes("postMessage({kind:'event',event})") && bridgeUi.includes('onEvent:event=>')],
+  ['event bridge page sends authenticated companion events to the host tab', bridgeUi.includes("new BroadcastChannel('magnanimous-live-events-v1')") && bridgeUi.includes("postMessage({kind:'event',event})") && /onEvent:\s*async\s+event\s*=>/.test(bridgeUi) && bridgeUi.includes('await persistLiveEvent(event)')],
   ['autonomous queue is capped for companion events as well as typed comments', host.includes('queuedCommentsRef.current.length >= 25') && host.includes('The live event queue is full (25 items)')],
+  ['AI Host queue backpressure leaves events unacknowledged and retries them when a slot opens', hostEventHandler.includes('if (queuedCommentsRef.current.length >= 25)') && hostEventHandler.indexOf('if (queuedCommentsRef.current.length >= 25)') < hostEventHandler.indexOf('seenBridgeEventIdsRef.current.add(eventKey)') && !hostEventHandler.includes('markLiveEventDelivered(') && host.includes("kind: 'retry-pending-events'") && bridgeUi.includes("message.data?.kind==='request-status'||message.data?.kind==='retry-pending-events'")],
+  ['Host sends the relay receipt only after generating the AI answer and persisting completion', hostProcess.indexOf('const answer = cleanLiveHostText') >= 0 && hostProcess.indexOf('await acknowledgeBridgeEvent(delivery)') > hostProcess.indexOf('const answer = cleanLiveHostText') && hostEventReceipt.includes('await markLiveEventDelivered(delivery.provider, delivery.eventId)')],
+  ['pending bridge events are replayable after an owner stops and restarts takeover', host.includes('seenBridgeEventIdsRef.current.clear()') && host.includes("kind: 'retry-pending-events'") && host.includes('await isLiveEventDelivered(event.provider, event.eventId)')],
+  ['AI Host does not acknowledge events while merely displayed or queued; it retains completion identity across a failed response', host.includes('if (!takeoverRef.current || !hostPrompt) return;') && host.includes('setFailedQueuedComment({ id: commentId, text: cleanComment, source, delivery })') && host.includes('failedQueuedComment.delivery')],
 
   ['manual speaking controls cannot interrupt autonomous host speech', host.includes('onClick={welcome} disabled={takeoverActive}') && host.includes('onClick={() => speak(hostReply)} disabled={takeoverActive}')],
   ['LIVE Host links to the event bridge control room', host.includes('href="/tiktok-live/bridge"')],
   ['bridge UI uses the provider-neutral client', bridgeUi.includes('createLiveBridgeClient') && bridgeUi.includes('LiveEvent')],
   ['bridge UI truthfully discloses that the companion and adapters are not deployed', bridgeUi.includes('companion server and platform adapters are not deployed yet')],
-  ['bridge UI rejects provider passwords and uses a one-time pairing token', bridgeUi.includes('Do not enter TikTok, Google, Twitch, OBS or game-account passwords') && bridgeUi.includes('One-time pairing token')],
-  ['bridge UI never persists pairing tokens', bridgeUi.includes('never saved in browser storage') && !bridgeUi.includes('localStorage')],
+  ['bridge UI rejects provider passwords and uses a one-time pairing token', bridgeUi.includes('Do not enter TikTok, Google, Twitch, OBS or game-account passwords') && bridgeUi.includes('short-lived pairing token') && bridgeUi.includes('Browser role token (memory only)')],
+  ['bridge UI never persists pairing tokens', bridgeUi.includes('never saved in browser storage') && !/\b(?:localStorage|sessionStorage)\.setItem\s*\(/.test(bridgeUi) && !/\bindexedDB\.open\s*\(/.test(bridgeUi)],
   ['bridge UI bounds the event feed', bridgeUi.includes('.slice(0,50)')],
+  ['local event inbox reclaims only already-delivered events and preserves pending items at capacity', eventInbox.includes('slotsToReclaim') && /remaining\.filter\(item => Number\.isFinite\(item\.deliveredAt\) && item\.deliveredAt > 0\)/.test(eventInbox) && eventInbox.includes('Existing events were preserved')],
+  ['bridge surfaces local inbox write failures without forwarding or acknowledging the event', /onEvent:async event=>\{\s*try\{\s*await persistLiveEvent\(event\);\s*\}catch/.test(bridgeUi) && bridgeUi.includes('It remains unacknowledged so the relay can retry.') && bridgeUi.includes('throw cause;')],
+  ['relay acknowledgement waits for completed AI Host processing and a durable local receipt', bridgeEventHandler.includes('handlers.onEvent?.(event)') && !bridgeEventHandler.includes("kind:'event.ack'") && bridgeUi.includes('clientRef.current?.ackEvent(provider,data.eventId)') && hostEventReceipt.includes('await markLiveEventDelivered(delivery.provider, delivery.eventId)') && hostEventReceipt.includes("kind: 'event.receipt'") && host.includes('await acknowledgeBridgeEvent(delivery)') && host.includes('delivery: { provider: event.provider, eventId: event.eventId }') && hostEventHandler.includes('await isLiveEventDelivered(event.provider, event.eventId)') && !hostEventHandler.includes('markLiveEventDelivered(')],
+  ['relay redacts email, phone and pasted credentials before durable event storage', relay.includes('function redactLiveEventText') && relay.includes('[email redacted]') && relay.includes('[phone redacted]') && relay.includes('[credential redacted]')],
+  ['phone redaction consumes international dialing plus signs instead of leaking them', relay.includes('(^|[^\\w])') && relay.includes("'$1[phone redacted]'" )],
+  ['companion approval waits for a durable relay receipt before OBS or speech execution', portableHost.includes("if(!await sendBridgeCommandReceipt(commandId,'approved'))") && portableHost.indexOf("if(!await sendBridgeCommandReceipt(commandId,'approved'))") < portableHost.indexOf("obsClient.setProgramScene(command.sceneName)")],
+  ['network interruption preserves approved local completion receipts for reconnect', bridgeCloseHandler.includes('pendingBridgeCommands.length=0') && !bridgeCloseHandler.includes('approvedBridgeCommands.clear()')],
+  ['relay confirms command receipts only after the durable ledger write', relay.indexOf("await this.state.storage.put('commands',ledger.slice(-50));") < relay.indexOf("kind:'command.receipt.confirmed'") && relay.includes("kind:'command.receipt.confirmed'")],
+  ['production live bridge remains disabled until owner verifies and enables its usage budget', wrangler.includes('"LIVE_BRIDGE_ENABLED": "false"') && security.includes("env.LIVE_BRIDGE_ENABLED==='true'")],
+
 ];
 
 const failures = checks.filter(([, ok]) => !ok);

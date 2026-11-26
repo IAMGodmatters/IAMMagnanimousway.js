@@ -1,5 +1,5 @@
 const $=id=>document.getElementById(id);
-const state={modelReady:false,vaultUnlocked:false,projects:[],obsConnected:false,obsRecording:false,autonomyActive:false};
+const state={modelReady:false,vaultUnlocked:false,projects:[],obsConnected:false,obsRecording:false,autonomyActive:false,bridgeConnected:false,bridgeStatus:'disconnected',bridgeJournalWarning:false,pendingBridgeCommands:[]};
 let autonomyTimer=null;
 let autonomyHeartbeatTimer=null;
 let autonomyTickBusy=false;
@@ -26,8 +26,10 @@ function updateControls(){
  $('obsSwitchButton').disabled=!state.obsConnected||!$('obsSceneSelect').value;
  $('obsStartRecordButton').disabled=!state.obsConnected||state.obsRecording;
  $('obsStopRecordButton').disabled=!state.obsConnected||!state.obsRecording;
- $('livePullButton').disabled=false;
- $('liveSendButton').disabled=!$('liveTestText').value.trim();
+ $('livePullButton').disabled=!state.vaultUnlocked||Boolean(state.pendingLiveDelivery);
+ $('liveSendButton').disabled=!state.vaultUnlocked||!$('liveTestText').value.trim();
+ $('bridgeConnectButton').disabled=!state.vaultUnlocked||state.bridgeJournalWarning||state.bridgeConnected||state.bridgeStatus==='connecting'||!$('bridgeEndpoint').value.trim()||$('bridgeToken').value.trim().length!==43;
+ $('bridgeDisconnectButton').disabled=state.bridgeStatus==='disconnected';
 }
 function updateAutonomyControls(){
  const speechSelected=$('liveAutonomySpeech').checked;
@@ -283,6 +285,7 @@ async function connectObs(){
   state.obsConnected=Boolean(result.connected);
   message('obsMessage','Connected to OBS locally. Your password was not saved.','success');
   await refreshObsStatus();
+  await refreshBridgeStatus();
   await refreshAutonomyStatus();
   await refreshReviewReceipts();
  }catch(error){$('obsPassword').value='';message('obsMessage',error.message,'error');}
@@ -419,6 +422,79 @@ async function pullLiveEvents(){
  }catch(error){message('liveEventMessage',error.message,'error');}
  finally{$('livePullButton').disabled=false;await refreshLiveQueue();}
 }
+function renderBridgeCommands(commands){
+ const list=$('bridgeCommandList');list.replaceChildren();
+ if(!commands.length){const empty=document.createElement('p');empty.className='muted';empty.textContent='No pending remote commands.';list.append(empty);return;}
+ for(const command of commands){
+  const item=document.createElement('article');item.className='live-event';
+  const title=document.createElement('strong');title.textContent='REMOTE REQUEST · '+command.action;
+  const detail=document.createElement('p');detail.textContent=command.sceneName?'Switch OBS scene to: '+command.sceneName:command.text||'No command details';
+  const received=document.createElement('small');received.textContent='Received '+new Date(command.receivedAt).toLocaleTimeString()+' · Local approval required';
+  const actions=document.createElement('div');actions.className='director-actions';
+  const approve=document.createElement('button');approve.className='secondary';approve.type='button';approve.textContent='Approve';
+  approve.addEventListener('click',()=>reviewBridgeCommand(command.commandId,true));
+  const reject=document.createElement('button');reject.className='quiet';reject.type='button';reject.textContent='Reject';
+  reject.addEventListener('click',()=>reviewBridgeCommand(command.commandId,false));
+  actions.append(approve,reject);item.append(title,detail,received,actions);list.append(item);
+ }
+}
+async function refreshBridgeStatus(){
+ try{
+  const data=await api('/api/bridge/status');
+  state.bridgeConnected=Boolean(data.connected);state.bridgeStatus=String(data.status||'disconnected');
+  state.bridgeJournalWarning=Boolean(data.journalError||data.journalWarning);
+  state.pendingBridgeCommands=data.pendingCommands||[];
+  $('bridgeStatus').textContent=state.bridgeConnected?'Online bridge connected':state.bridgeStatus==='connecting'?'Waiting for online companion':'Online bridge '+state.bridgeStatus;
+  $('bridgeStatus').className='status '+(state.bridgeConnected?'ready':state.bridgeJournalWarning?'warning':'');
+  if(data.journalError)message('bridgeMessage',data.journalError,'error');
+  else if(data.journalWarning)message('bridgeMessage',data.journalWarning,'warning');
+  else if(data.error)message('bridgeMessage',data.error,'warning');
+  renderBridgeCommands(state.pendingBridgeCommands);updateControls();
+ }catch(error){$('bridgeStatus').textContent='Online bridge status unavailable';}
+}
+async function connectBridge(){
+ const endpoint=$('bridgeEndpoint').value.trim(),token=$('bridgeToken').value.trim();
+ if(!endpoint||!token){message('bridgeMessage','Paste the secure address and temporary companion token from the online bridge page.','error');return;}
+ $('bridgeConnectButton').disabled=true;
+ try{
+  await api('/api/bridge/connect',{method:'POST',body:JSON.stringify({endpoint,token})});
+  $('bridgeToken').value='';
+  message('bridgeMessage','Connection requested. Keep this computer online until the bridge reports connected.','success');
+  await refreshBridgeStatus();
+ }catch(error){$('bridgeToken').value='';message('bridgeMessage',error.message,'error');}
+ finally{updateControls();}
+}
+async function disconnectBridge(){
+ try{
+  await api('/api/bridge/disconnect',{method:'POST',body:'{}'});
+  state.bridgeConnected=false;state.bridgeStatus='disconnected';state.pendingBridgeCommands=[];
+  renderBridgeCommands([]);message('bridgeMessage','Online bridge disconnected. Pending local commands were rejected.','success');
+ }catch(error){message('bridgeMessage',error.message,'error');}
+ updateControls();
+}
+async function reportBridgeSpeechResult(commandId,outcome){
+ try{await api('/api/bridge/command/result',{method:'POST',body:JSON.stringify({commandId,outcome})});}
+ catch(error){message('bridgeMessage','Voice playback ended, but its completion receipt could not reach the online host: '+error.message,'warning');}
+}
+async function reviewBridgeCommand(commandId,approved){
+ try{
+  const result=await api('/api/bridge/command/review',{method:'POST',body:JSON.stringify({commandId,approved})});
+  if(approved&&result.action==='host.speak'&&result.speechText){
+   if(!('speechSynthesis' in window)||typeof SpeechSynthesisUtterance==='undefined'){
+    await reportBridgeSpeechResult(commandId,'failed');
+    message('bridgeMessage','This device has no browser speech engine. The approved host line was not spoken.','error');
+   }else{
+    window.speechSynthesis.cancel();
+    const utterance=new SpeechSynthesisUtterance(String(result.speechText).slice(0,500));
+    utterance.onend=()=>{void reportBridgeSpeechResult(commandId,'completed');};
+    utterance.onerror=()=>{void reportBridgeSpeechResult(commandId,'failed');message('bridgeMessage','The device voice could not complete playback.','warning');};
+    window.speechSynthesis.speak(utterance);
+    message('bridgeMessage','Host speech approved locally and playback started.','success');
+   }
+  }else message('bridgeMessage',approved?'Approved command completed locally'+(result.sceneName?' · '+result.sceneName:'')+'.':'Remote command rejected.','success');
+  await refreshBridgeStatus();
+ }catch(error){message('bridgeMessage',error.message,'error');}
+}
 async function refresh(){
  try{
   const data=await api('/api/health');
@@ -441,12 +517,12 @@ async function unlock(){
   $('passphrase').value='';
   state.vaultUnlocked=true;
   message('vaultMessage',result.created?'Your encrypted workspace has been created on this USB drive.':'Your encrypted workspace is unlocked.','success');
-  await loadProjects();updateControls();
+  await loadProjects();await refreshBridgeStatus();updateControls();
  }catch(error){message('vaultMessage',error.message,'error');}
  finally{$('unlockButton').disabled=false;}
 }
 async function lock(){
- try{await api('/api/vault/lock',{method:'POST',body:'{}'});state.vaultUnlocked=false;state.projects=[];$('projectList').replaceChildren();const p=document.createElement('p');p.className='muted';p.textContent='Unlock the workspace to see your projects.';$('projectList').append(p);updateControls();message('vaultMessage','Workspace locked. The encryption key was cleared from memory.','success');}
+ try{await api('/api/vault/lock',{method:'POST',body:'{}'});state.vaultUnlocked=false;state.bridgeConnected=false;state.bridgeStatus='disconnected';state.pendingBridgeCommands=[];state.projects=[];$('projectList').replaceChildren();const p=document.createElement('p');p.className='muted';p.textContent='Unlock the workspace to see your projects.';$('projectList').append(p);updateControls();message('vaultMessage','Workspace locked. The encryption key was cleared from memory.','success');}
  catch(error){message('vaultMessage',error.message,'error');}
 }
 async function loadProjects(){
@@ -503,6 +579,10 @@ function exportCopy(){
  anchor.href=url;anchor.download=safe+'.md';anchor.click();URL.revokeObjectURL(url);
  message('creatorMessage','Exported a separate Markdown copy. Choose the USB drive as the save location.','success');
 }
+$('bridgeConnectButton').addEventListener('click',connectBridge);
+$('bridgeDisconnectButton').addEventListener('click',disconnectBridge);
+$('bridgeEndpoint').addEventListener('input',updateControls);
+$('bridgeToken').addEventListener('input',updateControls);
 $('obsConnectButton').addEventListener('click',connectObs);
 $('obsDisconnectButton').addEventListener('click',disconnectObs);
 $('obsRefreshButton').addEventListener('click',()=>refreshObsStatus());
@@ -527,3 +607,5 @@ $('output').addEventListener('input',updateControls);
 $('prompt').addEventListener('input',updateControls);
 refresh();
 refreshLiveQueue();
+
+setInterval(()=>{if(state.vaultUnlocked)refreshBridgeStatus();},2500);
