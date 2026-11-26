@@ -470,3 +470,32 @@ test('Reconnect replays unacknowledged events and unapproved commands to their a
  assert.ok(companion.messages.some(item=>item.kind==='command'&&item.command.commandId===command.commandId),'Companion should receive the pending command again.');
  assert.ok(browser.messages.some(item=>item.kind==='command.receipt'&&item.receipt.status==='received'),'Browser should recover its last command receipt.');
 });
+
+test('durable event inbox fails closed instead of discarding unacknowledged events at capacity',async()=>{
+ const browser=makeSocket({authenticated:true,role:'browser',sessionExpiresAt:Date.now()+60000,windowStartedAt:Date.now(),windowCount:0});
+ const companion=makeSocket({authenticated:true,role:'companion',allowedProviders:['manual','obs','game','browser'],sessionExpiresAt:Date.now()+60000,windowStartedAt:Date.now(),windowCount:0});
+ const events=Array.from({length:100},(_,index)=>({key:'game:pending-'+index,event:{protocolVersion:1,eventId:'pending-'+index,provider:'game',type:'game.event',occurredAt:new Date().toISOString(),text:'Pending '+index},createdAt:Date.now(),expiresAt:Date.now()+86400000,acknowledgedAt:0}));
+ const values=new Map([['events',events]]);
+ const state={storage:{get:async key=>values.get(key),put:async(key,value)=>values.set(key,value)},getWebSockets:()=>[browser,companion]};
+ const room=new MagnanimousLiveBridgeRoom(state,{});
+ const event={protocolVersion:1,eventId:'overflow-event',provider:'game',type:'game.event',occurredAt:new Date().toISOString(),text:'Must not evict an earlier event'};
+ await room.webSocketMessage(companion,JSON.stringify({kind:'event',protocolVersion:1,event}));
+ assert.equal(values.get('events').length,100);
+ assert.equal(values.get('events').some(item=>item.key==='game:pending-0'),true);
+ assert.equal(values.get('events').some(item=>item.key==='game:overflow-event'),false);
+ assert.equal(companion.messages.at(-1)?.code,'EVENT_QUEUE_FULL');
+});
+
+test('durable event inbox reclaims acknowledged entries before rejecting new events',async()=>{
+ const browser=makeSocket({authenticated:true,role:'browser',sessionExpiresAt:Date.now()+60000,windowStartedAt:Date.now(),windowCount:0});
+ const companion=makeSocket({authenticated:true,role:'companion',allowedProviders:['manual','obs','game','browser'],sessionExpiresAt:Date.now()+60000,windowStartedAt:Date.now(),windowCount:0});
+ const events=Array.from({length:100},(_,index)=>({key:'game:item-'+index,event:{protocolVersion:1,eventId:'item-'+index,provider:'game',type:'game.event',occurredAt:new Date().toISOString(),text:'Item '+index},createdAt:Date.now(),expiresAt:Date.now()+86400000,acknowledgedAt:index===0?Date.now():0}));
+ const values=new Map([['events',events]]);
+ const state={storage:{get:async key=>values.get(key),put:async(key,value)=>values.set(key,value)},getWebSockets:()=>[browser,companion]};
+ const room=new MagnanimousLiveBridgeRoom(state,{});
+ const event={protocolVersion:1,eventId:'new-event',provider:'game',type:'game.event',occurredAt:new Date().toISOString(),text:'New event'};
+ await room.webSocketMessage(companion,JSON.stringify({kind:'event',protocolVersion:1,event}));
+ assert.equal(values.get('events').length,100);
+ assert.equal(values.get('events').some(item=>item.key==='game:item-0'),false);
+ assert.equal(values.get('events').some(item=>item.key==='game:new-event'),true);
+});
