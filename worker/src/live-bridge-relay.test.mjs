@@ -276,6 +276,12 @@ test('limits authenticated browser message rate',async()=>{
  assert.equal(closed,4429);
 });
 
+test('normalizes the narrow host emergency-stop command and rejects unrelated controls',()=>{
+ assert.deepEqual(normalizeRelayCommand({commandId:'stop-1',action:'host.stop'}),{commandId:'stop-1',action:'host.stop'});
+ assert.equal(normalizeRelayCommand({commandId:'bad-1',action:'broadcast.stop'}),null);
+ assert.equal(normalizeRelayCommand({commandId:'bad-2',action:'moderate_chat'}),null);
+});
+
 test('normalizes only bounded, explicit command receipts',()=>{
  assert.deepEqual(normalizeRelayCommandReceipt({commandId:'command-1',status:'received'}),{commandId:'command-1',status:'received'});
  for(const status of ['sent','executing','done','broadcast.started','approved;delete']){
