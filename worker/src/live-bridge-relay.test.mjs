@@ -396,3 +396,10 @@ test('terminal command receipts cannot be reopened and expired command receipts 
  assert.equal(companion.messages.at(-1)?.code,'UNKNOWN_COMMAND_RECEIPT');
  assert.equal(values.get('commands').length,2,'Expired receipt rejection must not rewrite the durable ledger.');
 });
+
+test('role lookup ignores a closing stale socket when a replacement is already connected',()=>{
+ const stale=makeSocket({authenticated:true,role:'companion'});stale.readyState=2;
+ const current=makeSocket({authenticated:true,role:'companion'});current.readyState=1;
+ const room=new MagnanimousLiveBridgeRoom({getWebSockets:()=>[stale,current]},{});
+ assert.equal(room.findRole('companion'),current);
+});
