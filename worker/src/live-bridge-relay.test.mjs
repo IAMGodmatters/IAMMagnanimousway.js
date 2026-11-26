@@ -2,7 +2,7 @@ import test from 'node:test';
 import crypto from 'node:crypto';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {handleLiveBridgeRelay,isRelayProviderAllowed,MagnanimousLiveBridgeRoom,normalizeRelayCommand,normalizeRelayEvent} from './live-bridge-relay.js';
+import {handleLiveBridgeRelay,isRelayProviderAllowed,MagnanimousLiveBridgeRoom,normalizeRelayCommand,normalizeRelayCommandReceipt,normalizeRelayEvent} from './live-bridge-relay.js';
 
 const NOW=Date.parse('2026-11-25T00:00:00.000Z');
 
@@ -276,9 +276,54 @@ test('limits authenticated browser message rate',async()=>{
  assert.equal(closed,4429);
 });
 
+test('normalizes only bounded, explicit command receipts',()=>{
+ assert.deepEqual(normalizeRelayCommandReceipt({commandId:'command-1',status:'received'}),{commandId:'command-1',status:'received'});
+ for(const status of ['sent','executing','done','broadcast.started','approved;delete']){
+  assert.equal(normalizeRelayCommandReceipt({commandId:'command-1',status}),null);
+ }
+ assert.equal(normalizeRelayCommandReceipt({commandId:'bad id',status:'completed'}),null);
+});
+
+test('relays command receipts only for commands issued by the browser and enforces approval order',async()=>{
+ const browser=makeSocket({authenticated:true,role:'browser',sessionExpiresAt:Date.now()+60000,windowStartedAt:Date.now(),windowCount:0});
+ const companion=makeSocket({authenticated:true,role:'companion',sessionExpiresAt:Date.now()+60000,windowStartedAt:Date.now(),windowCount:0});
+ const values=new Map([['commands',[{commandId:'command-42',action:'scene.set',status:'sent',createdAt:Date.now(),expiresAt:Date.now()+300000}]]]);
+ const state={storage:{get:async key=>values.get(key),put:async(key,value)=>values.set(key,value)},getWebSockets:()=>[browser,companion]};
+ const room=new MagnanimousLiveBridgeRoom(state,{});
+ await room.webSocketMessage(companion,JSON.stringify({kind:'command.receipt',protocolVersion:1,receipt:{commandId:'command-42',status:'received'}}));
+ assert.deepEqual(browser.messages.at(-1),{kind:'command.receipt',protocolVersion:1,receipt:{commandId:'command-42',status:'received'}});
+ assert.equal(values.get('commands')[0].status,'received');
+ await room.webSocketMessage(companion,JSON.stringify({kind:'command.receipt',protocolVersion:1,receipt:{commandId:'command-42',status:'completed'}}));
+ assert.equal(companion.messages.at(-1)?.code,'INVALID_COMMAND_TRANSITION');
+ assert.equal(values.get('commands')[0].status,'received');
+ await room.webSocketMessage(companion,JSON.stringify({kind:'command.receipt',protocolVersion:1,receipt:{commandId:'command-42',status:'approved'}}));
+ assert.equal(browser.messages.at(-1)?.receipt.status,'approved');
+ await room.webSocketMessage(companion,JSON.stringify({kind:'command.receipt',protocolVersion:1,receipt:{commandId:'command-42',status:'completed'}}));
+ assert.equal(browser.messages.at(-1)?.receipt.status,'completed');
+ assert.equal(values.get('commands')[0].status,'completed');
+ await room.webSocketMessage(browser,JSON.stringify({kind:'command.receipt',protocolVersion:1,receipt:{commandId:'command-42',status:'failed'}}));
+ assert.equal(browser.messages.at(-1)?.code,'MESSAGE_NOT_ALLOWED');
+});
+
+test('browser command is recorded before delivery and can receive a local queue receipt',async()=>{
+ const browser=makeSocket({authenticated:true,role:'browser',sessionExpiresAt:Date.now()+60000,windowStartedAt:Date.now(),windowCount:0});
+ const companion=makeSocket({authenticated:true,role:'companion',sessionExpiresAt:Date.now()+60000,windowStartedAt:Date.now(),windowCount:0});
+ const values=new Map();
+ const state={storage:{get:async key=>values.get(key),put:async(key,value)=>values.set(key,value)},getWebSockets:()=>[browser,companion]};
+ const room=new MagnanimousLiveBridgeRoom(state,{});
+ await room.webSocketMessage(browser,JSON.stringify({kind:'command',protocolVersion:1,command:{commandId:'new-command-1',action:'host.speak',text:'Hello viewers'}}));
+ assert.equal(companion.messages.at(-1)?.command.commandId,'new-command-1');
+ assert.equal(values.get('commands')[0].status,'sent');
+ await room.webSocketMessage(companion,JSON.stringify({kind:'command.receipt',protocolVersion:1,receipt:{commandId:'new-command-1',status:'received'}}));
+ assert.equal(browser.messages.at(-1)?.receipt.status,'received');
+ await room.webSocketMessage(browser,JSON.stringify({kind:'command',protocolVersion:1,command:{commandId:'new-command-1',action:'host.speak',text:'Duplicate'}}));
+ assert.equal(browser.messages.at(-1)?.code,'DUPLICATE_COMMAND');
+});
+
 test('browser command reports when the local companion is offline instead of silently dropping it',async()=>{
  const browser=makeSocket({authenticated:true,role:'browser',sessionExpiresAt:Date.now()+60000,windowStartedAt:Date.now(),windowCount:0});
- const state={getWebSockets:()=>[browser]};
+ const values=new Map();
+ const state={storage:{get:async key=>values.get(key),put:async(key,value)=>values.set(key,value)},getWebSockets:()=>[browser]};
  const room=new MagnanimousLiveBridgeRoom(state,{});
  await room.webSocketMessage(browser,JSON.stringify({kind:'command',protocolVersion:1,command:{commandId:'offline-1',action:'host.speak',text:'Welcome viewers'}}));
  assert.equal(browser.messages.at(-1)?.kind,'error');
@@ -290,7 +335,8 @@ test('browser command reports a failed companion socket send',async()=>{
  const browser=makeSocket({authenticated:true,role:'browser',sessionExpiresAt:Date.now()+60000,windowStartedAt:Date.now(),windowCount:0});
  const companion=makeSocket({authenticated:true,role:'companion',sessionExpiresAt:Date.now()+60000,windowStartedAt:Date.now(),windowCount:0});
  companion.send=()=>{throw new Error('socket closed');};
- const state={getWebSockets:()=>[browser,companion]};
+ const values=new Map();
+ const state={storage:{get:async key=>values.get(key),put:async(key,value)=>values.set(key,value)},getWebSockets:()=>[browser,companion]};
  const room=new MagnanimousLiveBridgeRoom(state,{});
  await room.webSocketMessage(browser,JSON.stringify({kind:'command',protocolVersion:1,command:{commandId:'failed-send-1',action:'scene.set',sceneName:'Welcome'}}));
  assert.equal(browser.messages.at(-1)?.code,'COMMAND_NOT_DELIVERED');
