@@ -38,8 +38,8 @@ export default function LiveEventBridgePage() {
     if(typeof BroadcastChannel!=='undefined'){
       channelRef.current=new BroadcastChannel('magnanimous-live-events-v1');
       channelRef.current.onmessage=message=>{
-        if(message.data?.kind==='request-status'){
-          channelRef.current?.postMessage({kind:'status',status:statusRef.current});
+        if(message.data?.kind==='request-status'||message.data?.kind==='retry-pending-events'){
+          if(message.data?.kind==='request-status')channelRef.current?.postMessage({kind:'status',status:statusRef.current});
           void replayPendingEventsToHost();
           return;
         }
