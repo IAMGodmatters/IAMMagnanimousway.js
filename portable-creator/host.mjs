@@ -5,6 +5,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { ObsWebSocketClient } from './obs-client.mjs';
 import { LiveEventRuntime } from './live-event-runtime.mjs';
+import { LiveEventJournal } from './live-event-journal.mjs';
 import { createReviewCue, createReviewCues, createReviewLedger } from './live-show-director.mjs';
 import { createLiveShowAutonomy } from './live-show-autonomy.mjs';
 
@@ -30,12 +31,46 @@ let chatCount=0;
 let serverPort=PORT;
 let obsClient=null;
 const OBS_PORT=4455;
-const liveEvents=new LiveEventRuntime();
+fs.mkdirSync(DATA,{recursive:true});
+let liveEventsRestored=false;
+let liveEventJournalError='';
+let liveEventJournalWarning='';
+const liveEventJournal=new LiveEventJournal(path.join(DATA,'live-events.jsonl'),{
+ keyProvider:()=>vaultKey?crypto.createHmac('sha256',vaultKey).update('magnanimous-live-event-journal-v1').digest():null
+});
+const liveEvents=new LiveEventRuntime({
+ leaseMs:120_000,
+ onAccept:event=>liveEventJournal.appendEvent(event),
+ onConsume:events=>{
+  try{liveEventJournal.appendAcks(events);}
+  catch(error){
+   if(String(error?.message||'').includes('safety limit')){
+    liveEventJournal.compact(liveEvents.queue,liveEvents.snapshotSeen());
+    liveEventJournal.appendAcks(events);
+    liveEventJournalWarning='';
+   }else throw error;
+  }
+ }
+});
+function restoreLiveEvents(){
+ if(liveEventsRestored)return{restored:0,acknowledged:0};
+ try{
+  const result=liveEvents.restore(liveEventJournal.load());
+  liveEventsRestored=true;liveEventJournalError='';liveEventJournalWarning='';
+  if(liveEventJournal.needsCompaction()){
+   try{liveEventJournal.compact(liveEvents.queue,liveEvents.snapshotSeen());}
+   catch(error){liveEventJournalWarning=String(error?.message||'The encrypted event journal needs compaction.').slice(0,240);}
+  }
+  console.log('Recovered '+result.restored+' live events; acknowledged '+result.acknowledged+'.');
+  return result;
+ }catch(error){
+  liveEventJournalError=String(error?.message||'The encrypted event journal could not be verified.').slice(0,240);
+  return{restored:0,acknowledged:0,error:liveEventJournalError};
+ }
+}
 const reviewLedger=createReviewLedger();
 const liveAutonomy=createLiveShowAutonomy();
 let autonomyBusy=false;
-
-fs.mkdirSync(DATA,{recursive:true});
 
 function securityHeaders(res,type='application/json; charset=utf-8'){
  res.setHeader('content-type',type);
@@ -116,6 +151,7 @@ function unlockVault(passphrase){
  }
 }
 function lockVault(){
+ liveEvents.clear();liveEventsRestored=false;liveEventJournalError='';liveEventJournalWarning='';
  if(vaultKey)vaultKey.fill(0);
  vaultKey=null;vaultSalt=null;vaultData=null;
 }
@@ -188,8 +224,16 @@ async function handleApi(req,res,url){
  }
  if(req.method==='POST'&&url.pathname==='/api/vault/unlock'){
   const body=await readJson(req);
-  try{return json(res,200,{ok:true,...unlockVault(String(body.passphrase||''))});}
-  catch(error){return json(res,401,{detail:error.message});}
+  try{
+   const unlocked=unlockVault(String(body.passphrase||''));
+   const recovery=restoreLiveEvents();
+   return json(res,200,{ok:true,...unlocked,journal:{
+    recovered:recovery.restored||0,
+    acknowledged:recovery.acknowledged||0,
+    error:recovery.error||'',
+    warning:liveEventJournalWarning
+   }});
+  }catch(error){return json(res,401,{detail:error.message});}
  }
  if(req.method==='POST'&&url.pathname==='/api/vault/lock'){
   lockVault();return json(res,200,{ok:true,locked:true});
@@ -253,9 +297,16 @@ async function handleApi(req,res,url){
   catch(error){return json(res,502,{detail:error.message||'OBS could not stop recording.'});}
  }
  if(req.method==='GET'&&url.pathname==='/api/live/events/status'){
-  return json(res,200,liveEvents.status());
+  return json(res,200,{
+   ...liveEvents.status(),
+   recoveryLocked:!vaultKey&&fs.existsSync(liveEventJournal.filePath),
+   journalError:liveEventJournalError,
+   journalWarning:liveEventJournalWarning
+  });
  }
  if(req.method==='POST'&&url.pathname==='/api/live/events/ingest'){
+  if(!vaultKey)return json(res,423,{detail:'Unlock the encrypted USB workspace before accepting events.'});
+  if(!liveEventsRestored||liveEventJournalError||liveEventJournalWarning)return json(res,503,{detail:liveEventJournalError||liveEventJournalWarning||'The encrypted event journal has not been verified.'});
   const body=await readJson(req);
   if(body.event?.provider!=='manual')return json(res,403,{status:'provider_untrusted',detail:'Browser intake accepts operator-entered manual events only; provider adapters must authenticate in the local companion.'});
   const result=liveEvents.ingest(body.event);
@@ -263,6 +314,7 @@ async function handleApi(req,res,url){
   if(result.status==='duplicate')return json(res,200,result);
   if(result.status==='rate_limited')return json(res,429,result);
   if(result.status==='queue_full')return json(res,503,result);
+  if(result.status==='persistence_error')return json(res,507,result);
   return json(res,400,result);
  }
  if(req.method==='POST'&&url.pathname==='/api/live/autonomy/heartbeat'){
@@ -347,11 +399,30 @@ async function handleApi(req,res,url){
   return json(res,201,result);
  }
  if(req.method==='POST'&&url.pathname==='/api/live/events/consume'){
+  if(!vaultKey)return json(res,423,{detail:'Unlock the encrypted USB workspace before reviewing events.'});
+  if(!liveEventsRestored||liveEventJournalError||liveEventJournalWarning)return json(res,503,{detail:liveEventJournalError||liveEventJournalWarning||'The encrypted event journal has not been verified.'});
   const body=await readJson(req);
   const limit=Number.isInteger(body.limit)?Math.max(1,Math.min(50,body.limit)):10;
-  const events=liveEvents.consume(limit),reviewCues=createReviewCues(events);
+  const delivery=liveEvents.claim(limit),reviewCues=createReviewCues(delivery.events);
   reviewLedger.register(reviewCues);
-  return json(res,200,{events,reviewCues,...liveEvents.status()});
+  return json(res,200,{...delivery,reviewCues,...liveEvents.status()});
+ }
+ if(req.method==='POST'&&url.pathname==='/api/live/events/ack'){
+  if(!vaultKey)return json(res,423,{detail:'Unlock the encrypted USB workspace before acknowledging events.'});
+  if(!liveEventsRestored||liveEventJournalError)return json(res,503,{detail:liveEventJournalError||'The encrypted event journal has not been verified.'});
+  const body=await readJson(req);
+  const result=liveEvents.acknowledge(body.deliveryId,body.eventKeys);
+  if(result.status==='persistence_error'){
+   liveEventJournalWarning=result.detail;
+   return json(res,507,result);
+  }
+  if(result.status==='not_leased')return json(res,409,result);
+  if(result.status==='invalid')return json(res,400,result);
+  if(result.status==='acknowledged'&&liveEventJournal.needsCompaction()){
+   try{liveEventJournal.compact(liveEvents.queue,liveEvents.snapshotSeen());liveEventJournalWarning='';}
+   catch(error){liveEventJournalWarning=String(error?.message||'The encrypted event journal needs compaction.').slice(0,240);}
+  }
+  return json(res,200,{...result,journalWarning:liveEventJournalWarning,...liveEvents.status()});
  }
  if(req.method==='GET'&&url.pathname==='/api/live/cues/receipts'){
   const state=reviewLedger.status();
