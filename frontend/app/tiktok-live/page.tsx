@@ -244,7 +244,7 @@ function cleanLiveViewerText(value: string) {
       .slice(0, 700);
   }
 
-  async function processComment(comment: string, automatic = false, source: 'viewer' | 'show-rundown' = 'viewer') {
+  async function processComment(comment: string, automatic = false, source: 'viewer' | 'show-rundown' = 'viewer', delivery?: LiveEventReceipt) {
     if (automatic && takeoverDeadlineRef.current && Date.now() >= takeoverDeadlineRef.current) {
       stopTakeover('session_expired');
       return;
@@ -293,12 +293,19 @@ function cleanLiveViewerText(value: string) {
       } else {
         setStatus(takeoverRef.current ? 'AI TAKEOVER ACTIVE · REPLY READY' : 'REPLY READY');
       }
+      if (delivery) {
+        try {
+          await acknowledgeBridgeEvent(delivery);
+        } catch {
+          setNotice('Magnanimous prepared the response, but its durable event receipt is still pending. The bridge will retry acknowledgement without dropping the event.');
+        }
+      }
     } catch (error: any) {
       if (!automatic) {
         setLines(items => items.filter(line => line.id !== commentId));
         setViewerComment(cleanComment);
       } else if (takeoverRef.current) {
-        setFailedQueuedComment({ id: commentId, text: cleanComment, source });
+        setFailedQueuedComment({ id: commentId, text: cleanComment, source, delivery });
         setTakeoverPaused(true);
       }
       if (!automatic || takeoverRef.current) {
@@ -340,6 +347,7 @@ function cleanLiveViewerText(value: string) {
     if (!takeoverConsent || !autoSpeak || takeoverActive || busy || speaking) return;
     primeNaturalSpeech(true);
     takeoverRef.current = true;
+    seenBridgeEventIdsRef.current.clear();
     takeoverStartedAtRef.current = Date.now();
     takeoverDeadlineRef.current = takeoverStartedAtRef.current + takeoverDuration * 60_000;
     nextRundownSegmentRef.current = 0;
@@ -360,6 +368,9 @@ function cleanLiveViewerText(value: string) {
 
   function stopTakeover(reason = 'operator_stop') {
     takeoverRef.current = false;
+    // Any queued-but-unprocessed bridge events remain unacknowledged in IndexedDB.
+    // Clear the in-memory dedupe set so a later owner-approved session replays them.
+    seenBridgeEventIdsRef.current.clear();
     takeoverDeadlineRef.current = null;
     takeoverStartedAtRef.current = null;
     nextRundownSegmentRef.current = 0;
@@ -388,7 +399,7 @@ function cleanLiveViewerText(value: string) {
 
   function retryFailedQueuedComment() {
     if (!failedQueuedComment || queuedComments.length >= 25) return;
-    const next = [{ id: Date.now() + Math.floor(Math.random() * 1000), text: failedQueuedComment.text, source: failedQueuedComment.source === 'show-rundown' ? 'show-rundown' : 'retried event' }, ...queuedCommentsRef.current];
+    const next = [{ id: Date.now() + Math.floor(Math.random() * 1000), text: failedQueuedComment.text, source: failedQueuedComment.source === 'show-rundown' ? 'show-rundown' : 'retried event', delivery: failedQueuedComment.delivery }, ...queuedCommentsRef.current];
     queuedCommentsRef.current = next;
     setQueuedComments(next);
     setFailedQueuedComment(null);
@@ -397,9 +408,13 @@ function cleanLiveViewerText(value: string) {
   }
 
   function skipFailedQueuedComment() {
+    const failed = failedQueuedComment;
     setFailedQueuedComment(null);
     setTakeoverPaused(false);
-    setNotice('The failed item was skipped. Magnanimous will continue with the remaining queue.');
+    if (failed?.delivery) {
+      void acknowledgeBridgeEvent(failed.delivery).catch(() => setNotice('The item was skipped by the owner, but its durable skip receipt is still pending.'));
+    }
+    setNotice('The failed item was skipped by the owner. Magnanimous will continue with the remaining queue.');
   }
 
   useEffect(() => {
@@ -410,7 +425,7 @@ function cleanLiveViewerText(value: string) {
     const remaining = queuedCommentsRef.current.slice(1);
     queuedCommentsRef.current = remaining;
     setQueuedComments(remaining);
-    void processComment(next.text, true, next.source === 'show-rundown' ? 'show-rundown' : 'viewer').finally(() => {
+    void processComment(next.text, true, next.source === 'show-rundown' ? 'show-rundown' : 'viewer', next.delivery).finally(() => {
       if (processingQueueId.current === next.id) processingQueueId.current = null;
     });
   }, [takeoverActive, takeoverPaused, busy, speaking, queuedComments]);
