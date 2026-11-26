@@ -204,6 +204,7 @@ export class MagnanimousLiveBridgeRoom {
    }
    ledger[index]={...ledger[index],status:receipt.status,updatedAt:Date.now()};
    await this.state.storage.put('commands',ledger.slice(-50));
+   ws.send(JSON.stringify({kind:'command.receipt.confirmed',protocolVersion:1,receipt}));
    this.sendToRole('browser',{kind:'command.receipt',protocolVersion:1,receipt});
    return;
   }
