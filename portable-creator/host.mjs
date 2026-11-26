@@ -35,6 +35,7 @@ let bridgeStatus='disconnected';
 let bridgeError='';
 let gameIntegrationToken=null;
 const pendingBridgeCommands=[];
+const approvedBridgeCommands=new Map();
 const avatarClients=new Set();
 let avatarLocked=true;
 let avatarLastLine='';
@@ -171,6 +172,7 @@ function lockVault(){
  if(vaultKey)broadcastAvatarState({type:'locked'});
  closeBridge();
  pendingBridgeCommands.length=0;
+ approvedBridgeCommands.clear();
  liveEvents.clear();liveEventsRestored=false;liveEventJournalError='';liveEventJournalWarning='';
  gameIntegrationToken=null;
  if(vaultKey)vaultKey.fill(0);
@@ -195,6 +197,11 @@ function safeBridgeCommand(value){
  if(value.action==='audio.cue'&&typeof value.cueId==='string'&&value.cueId.trim())return{commandId:value.commandId,action:'audio.cue',cueId:value.cueId.trim().slice(0,80)};
  if(value.action==='host.speak'&&typeof value.text==='string'&&value.text.trim())return{commandId:value.commandId,action:'host.speak',text:value.text.trim().slice(0,500)};
  return null;
+}
+function sendBridgeCommandReceipt(commandId,status){
+ if(!/^[A-Za-z0-9._:-]{1,160}$/.test(String(commandId||''))||!['received','approved','rejected','completed','failed'].includes(status))return false;
+ if(!bridgeSocket||bridgeSocket.readyState!==1)return false;
+ try{bridgeSocket.send(JSON.stringify({kind:'command.receipt',protocolVersion:1,receipt:{commandId,status}}));return true;}catch{return false;}
 }
 function closeBridge(){
  const socket=bridgeSocket;bridgeSocket=null;bridgeStatus='disconnected';bridgeError='';
@@ -225,9 +232,16 @@ function connectBridge(endpoint,token){
   if(envelope?.kind==='event'&&envelope.protocolVersion===1){const result=liveEvents.ingest(envelope.event,{bypassRateLimit:true});if(!['accepted','duplicate'].includes(result.status)){const blocked=result.status==='persistence_error';bridgeError=String(result.detail||'The local companion could not accept the incoming event.').slice(0,240);try{socket.send(JSON.stringify({kind:'error',code:blocked?'LOCAL_STORAGE_BLOCKED':'LOCAL_EVENT_REJECTED',message:bridgeError}));}catch{}bridgeStatus='error';bridgeSocket=null;try{socket.close(4429,'Local event intake stopped');}catch{}}return;}
   if(envelope?.kind==='command'&&envelope.protocolVersion===1){
    const command=safeBridgeCommand(envelope.command);
-   if(!command){bridgeError='An unsupported remote command was rejected.';return;}
-   if(pendingBridgeCommands.length>=20){bridgeError='The local approval queue is full; no command was executed.';return;}
-   if(!pendingBridgeCommands.some(item=>item.commandId===command.commandId))pendingBridgeCommands.push({...command,receivedAt:new Date().toISOString()});
+   if(!command){
+    bridgeError='An unsupported remote command was rejected.';
+    const commandId=envelope.command?.commandId;
+    if(typeof commandId==='string')sendBridgeCommandReceipt(commandId,'failed');
+    return;
+   }
+   if(pendingBridgeCommands.some(item=>item.commandId===command.commandId)){sendBridgeCommandReceipt(command.commandId,'received');return;}
+   if(pendingBridgeCommands.length>=20){bridgeError='The local approval queue is full; no command was executed.';sendBridgeCommandReceipt(command.commandId,'rejected');return;}
+   pendingBridgeCommands.push({...command,receivedAt:new Date().toISOString()});
+   sendBridgeCommandReceipt(command.commandId,'received');
    return;
   }
   if(envelope?.kind==='error'){bridgeError=String(envelope.message||'The online relay reported an error.').slice(0,240);if(envelope.code==='AUTH_FAILED'||envelope.code==='PAIRING_REVOKED'){const failed=bridgeSocket;bridgeSocket=null;bridgeStatus='error';try{failed?.close(4001,'Pairing rejected');}catch{}}}
