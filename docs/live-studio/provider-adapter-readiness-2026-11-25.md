@@ -162,3 +162,50 @@ Each adapter must implement:
 The portable Creator Studio has a local event normalizer, bounded review-only show director, OBS local control and scene/output event intake, and an encrypted durable event journal under development in PR #1018. The event-journal key is derived from the unlocked encrypted workspace key and is wiped when the workspace locks. The online provider adapters are not represented as connected or production-ready merely because the vendor APIs are documented. TikTok LIVE remains approval-gated; YouTube, Meta and Twitch still need their authorized adapter implementations and real account tests; Zoom RTMS is a separately funded option.
 
 This document is a research and implementation contract, not evidence that a provider account has been connected or a public broadcast has been completed.
+
+
+## Research addendum — 2026-11-26 (official documentation re-check)
+
+This addendum records the current official documentation findings checked on 2026-11-26. It does not grant provider access or change any adapter from disabled to enabled.
+
+### Twitch EventSub transport details
+
+The EventSub WebSocket client must subscribe using the session ID supplied in \`session_welcome\`. By default, the client has 10 seconds after the Welcome message to create a subscription. The service sends \`session_keepalive\` when there are no event notifications within the configured keepalive window. A \`session_reconnect\` message supplies a reconnect URL; the old connection should remain open until the new connection is established. If the connection is simply lost, the client must reconnect and recreate subscriptions; Twitch documents that events missed during that gap are not replayed. WebSocket subscriptions use user access tokens, not app access tokens.
+
+Engineering consequence: the future Twitch adapter needs a two-socket handover for the documented reconnect message, bounded resubscription, provider message-ID deduplication, revocation handling, and an explicit event-gap marker after an unplanned disconnect. Do not send application-level JSON heartbeats to Twitch; follow EventSub's keepalive and WebSocket ping/pong protocol.
+
+Source: https://dev.twitch.tv/docs/eventsub/handling-websocket-events/
+
+### YouTube Live chat recovery
+
+The official \`liveChatMessages.streamList\` method is a low-latency server-streaming endpoint. It returns recent chat history and new messages, includes a \`nextPageToken\`, and supports reconnecting from the last continuation token. The official reference documents a quota cost of 5 units per call. The list endpoint recommends \`streamList\` instead of frequent polling.
+
+Engineering consequence: use the provider's continuation token for resume, deduplicate on the provider message ID, budget quota per tenant/channel, and never replace this with tight polling. Treat \`LIVE_CHAT_DISABLED\`, \`LIVE_CHAT_ENDED\`, permission failures and quota exhaustion as distinct states.
+
+Sources:
+- https://developers.google.com/youtube/data/live/reference/rest/v3/liveChatMessages/streamList
+- https://developers.google.com/youtube/data/live/reference/rest/v3/liveChatMessages/list
+
+### Meta Page Live comments and eligibility
+
+The current Graph API reference exposes a read endpoint at \`/{live-video-id}/comments\` for Live Video comments on New Page Experience. It documents chronological/reverse-chronological ordering and a stream filter. The Page Live Videos reference says the edge can create LiveVideo resources and states that accounts must meet the age and follower eligibility requirements; API existence does not imply an app has the needed permissions or review status.
+
+Engineering consequence: separate Page Live creation from comment reading; check Page task grants, app review, and the exact account eligibility before offering either capability. Do not use a personal profile token as a substitute for the required Page authority.
+
+Sources:
+- https://developers.facebook.com/docs/graph-api/reference/live-video/comments/
+- https://developers.facebook.com/docs/graph-api/reference/page/live_videos/
+
+### TikTok LIVE access boundary
+
+TikTok's published Developer Guidelines state that apps integrating with APIs and SDKs in Live are reviewed. Its general Webhooks and Events reference documents authorization-removal and other documented app events, but the reviewed general webhook reference does not define a public general-purpose LIVE chat/comment/gift stream.
+
+Engineering consequence: leave TikTok LIVE event intake disabled unless an approved app or authorized partner agreement explicitly grants the exact LIVE event capability. Do not substitute cookie scraping, private WebSocket reverse engineering, browser-session reuse or unofficial automation for approved access.
+
+Sources:
+- https://developers.tiktok.com/docs/en/our-guidelines/developer-guidelines
+- https://developers.tiktok.com/docs/en/webhooks-events
+
+### New transport rule for the Magnanimous bridge
+
+The online-to-local bridge now uses a low-frequency JSON ping/pong heartbeat while the paired session is active. This is only a liveness check for the Magnanimous relay connection; it is not a provider API heartbeat and must not be forwarded to Twitch, YouTube, Meta or TikTok adapters. Provider-specific transport rules remain inside their respective adapter workers.
