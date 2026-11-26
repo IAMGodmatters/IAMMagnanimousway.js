@@ -112,6 +112,29 @@ test('pair endpoint enforces the per-user pairing rate limit',async()=>{
  assert.equal(response.status,429);
 });
 
+test('pairing uses the Durable Object rate limiter when no separate rate-limit binding is configured',async()=>{
+ const attempts=new Map();let roomCreations=0;
+ const env={LIVE_BRIDGE_ROOMS:{
+  idFromName:id=>id,
+  get:id=>({fetch:async(request)=>{
+   if(String(id).startsWith('rate:')){
+    const body=await request.json(),key=body.tenantId+':'+body.userId,now=Date.now();
+    const recent=(attempts.get(key)||[]).filter(value=>value>now-60000);
+    if(recent.length>=5)return Response.json({success:false},{status:429});
+    recent.push(now);attempts.set(key,recent);return Response.json({success:true});
+   }
+   roomCreations++;return Response.json({ok:true});
+  }})
+ }}
+ };
+ const request=()=>new Request('https://iammagnanimousway.com/api/live-bridge/pair',{method:'POST',headers:{Origin:'https://iammagnanimousway.com','Sec-Fetch-Site':'same-origin','content-type':'application/json'},body:'{}'});
+ const user={id:'user-fallback',tenant_id:'tenant-fallback'};
+ for(let i=0;i<5;i++){const response=await handleLiveBridgeRelay(request(),env,user);assert.equal(response.status,201);}
+ const blocked=await handleLiveBridgeRelay(request(),env,user);
+ assert.equal(blocked.status,429);
+ assert.equal(roomCreations,5,'The sixth request must be blocked before allocating a new bridge room.');
+});
+
 test('Durable Object room stores only token hashes and rejects duplicate initialization',async()=>{
  const values=new Map();
  const alarms=[];
