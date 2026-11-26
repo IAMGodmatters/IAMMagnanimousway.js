@@ -62,7 +62,7 @@ export default function LiveEventBridgePage() {
           await persistLiveEvent(event);
         }catch(cause){
           setError(cause instanceof Error?cause.message:'The local event could not be saved safely. It remains unacknowledged so the relay can retry.');
-          return;
+          throw cause;
         }
         setEvents(current=>[event,...current.filter(item=>item.provider!==event.provider||item.eventId!==event.eventId)].slice(0,50));
         channelRef.current?.postMessage({kind:'event',event});
