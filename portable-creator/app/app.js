@@ -86,9 +86,9 @@ async function disconnectBridge(){
 }
 async function stopDeviceSpeech(){
  try{
-  if(window.speechSynthesis)window.speechSynthesis.cancel();
-  if(state.autonomyActive)await stopLiveAutonomy('operator_emergency_stop');
   const result=await api('/api/bridge/command/stop',{method:'POST',body:'{}'});
+  if(state.autonomyActive)await stopLiveAutonomy('operator_emergency_stop');
+  if(window.speechSynthesis)window.speechSynthesis.cancel();
   state.activeSpeechCount=0;
   message('bridgeMessage','Device speech stopped. '+Number(result.stopped||0)+' remote host speech request(s) cancelled.','success');
   await refreshBridgeStatus();
