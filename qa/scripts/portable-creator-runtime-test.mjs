@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const SOURCE=path.join(ROOT,'portable-creator');
-const eventTests=spawnSync(process.execPath,['--test',path.join(SOURCE,'live-event-runtime.test.mjs'),path.join(SOURCE,'live-show-autonomy.test.mjs')],{encoding:'utf8'});
+const eventTests=spawnSync(process.execPath,['--test',path.join(SOURCE,'live-event-runtime.test.mjs'),path.join(SOURCE,'live-event-journal.test.mjs'),path.join(SOURCE,'live-show-autonomy.test.mjs')],{encoding:'utf8'});
 if(eventTests.status!==0){console.error(eventTests.stdout||'');console.error(eventTests.stderr||'');throw new Error('Portable live-event runtime unit tests failed.');}
 console.log(eventTests.stdout.trim());
 
@@ -19,6 +19,7 @@ fs.mkdirSync(path.join(target,'app'),{recursive:true});
 fs.copyFileSync(path.join(SOURCE,'host.mjs'),path.join(target,'host.mjs'));
 fs.copyFileSync(path.join(SOURCE,'obs-client.mjs'),path.join(target,'obs-client.mjs'));
 fs.copyFileSync(path.join(SOURCE,'live-event-runtime.mjs'),path.join(target,'live-event-runtime.mjs'));
+fs.copyFileSync(path.join(SOURCE,'live-event-journal.mjs'),path.join(target,'live-event-journal.mjs'));
 fs.copyFileSync(path.join(SOURCE,'live-show-director.mjs'),path.join(target,'live-show-director.mjs'));
 fs.copyFileSync(path.join(SOURCE,'live-show-autonomy.mjs'),path.join(target,'live-show-autonomy.mjs'));
 for(const file of ['index.html','app.js','styles.css'])fs.copyFileSync(path.join(SOURCE,'app',file),path.join(target,'app',file));
@@ -73,11 +74,18 @@ try{
  assert.equal(health.model.ready,false,'Local generation must remain disabled when no runtime is installed.');
  const eventStatus=await (await fetch(origin+'/api/live/events/status')).json();
  assert.equal(eventStatus.queued,0,'Live event queue should start empty.');
+ const passphrase='magnanimous-test-passphrase-2026';
+ const lockedEvent={protocolVersion:1,eventId:'locked-'+Date.now(),provider:'manual',type:'chat.message',occurredAt:new Date().toISOString(),text:'must stay locked'};
+ assert.equal((await post(origin+'/api/live/events/ingest',origin,{event:lockedEvent})).status,423,'Live events must not be accepted before the encrypted workspace is unlocked.');
+ const created=await post(origin+'/api/vault/unlock',origin,{passphrase});
+ assert.equal(created.status,200,'A new encrypted workspace should be created.');
+ const createdData=await created.json();
+ assert.equal(createdData.created,true);
  const liveEvent={protocolVersion:1,eventId:'runtime-'+Date.now(),provider:'manual',type:'chat.message',occurredAt:new Date().toISOString(),actorName:'QA viewer',text:'Hello Magnanimous'};
  const spoofedEvent=await post(origin+'/api/live/events/ingest',origin,{event:{...liveEvent,eventId:'spoof-'+Date.now(),provider:'tiktok'}});
  assert.equal(spoofedEvent.status,403,'Browser intake must reject provider-labelled events without authenticated companion adapters.');
  const acceptedEvent=await post(origin+'/api/live/events/ingest',origin,{event:liveEvent});
- assert.equal(acceptedEvent.status,202,'Valid local live event should be accepted.');
+ assert.equal(acceptedEvent.status,202,'Valid local live event should be accepted and persisted.');
  const duplicateEvent=await post(origin+'/api/live/events/ingest',origin,{event:liveEvent});
  assert.equal(duplicateEvent.status,200,'Repeated provider event should be deduplicated.');
  const spoofedProvider=await post(origin+'/api/live/events/ingest',origin,{event:{...liveEvent,eventId:liveEvent.eventId+'-spoof',provider:'tiktok'}});
@@ -86,6 +94,8 @@ try{
  const consumedData=await consumedEvents.json();
  assert.equal(consumedData.events.length,1,'Operator consumer should receive one bounded event.');
  assert.equal(consumedData.events[0].text,'Hello Magnanimous');
+ assert.ok(consumedData.deliveryId,'Claimed event batch must include a delivery lease.');
+ assert.deepEqual(consumedData.eventKeys,['manual:'+liveEvent.eventId],'Claimed batch must use provider-scoped event keys.');
  assert.equal(consumedData.reviewCues.length,1,'Director should return one review cue for the event.');
  assert.equal(consumedData.reviewCues[0].requiresOperatorApproval,true,'Director cue must require operator approval.');
  assert.equal(consumedData.reviewCues[0].action,'review-only','Director cue must never execute an action.');
@@ -103,6 +113,14 @@ try{
  const receipts=await (await fetch(origin+'/api/live/cues/receipts')).json();
  assert.equal(receipts.receipts.length,1,'The operator receipt should be available during this session.');
  assert.equal(receipts.receipts[0].actionExecuted,false);
+ const ack=await postPath('/api/live/events/ack',{deliveryId:consumedData.deliveryId,eventKeys:consumedData.eventKeys});
+ assert.equal(ack.status,200,'A rendered event batch should be durably acknowledged.');
+ assert.equal((await ack.json()).status,'acknowledged');
+ assert.equal((await (await fetch(origin+'/api/live/events/status')).json()).queued,0,'Acknowledged events should leave the queue.');
+ const journalPath=path.join(target,'data','live-events.jsonl');
+ assert.ok(fs.existsSync(journalPath),'Accepted live events should be written to the encrypted USB recovery journal.');
+ const rawJournal=fs.readFileSync(journalPath,'utf8');
+ assert.equal(rawJournal.includes('Hello Magnanimous'),false,'Viewer text must never be stored as plaintext in the event journal.');
  const autonomyStatus=await (await fetch(origin+'/api/live/autonomy/status')).json();
  assert.equal(autonomyStatus.enabled,false,'AI takeover must default to manual mode.');
  assert.equal(autonomyStatus.mode,'manual');
@@ -127,11 +145,8 @@ try{
  assert.equal(noOrigin.status,403,'Origin-less browser mutations must be rejected.');
  const invalid=await post(origin+'/api/vault/unlock',origin,{passphrase:'short'});
  assert.equal(invalid.status,401,'Short passphrases must be rejected.');
- const passphrase='magnanimous-test-passphrase-2026';
- const created=await post(origin+'/api/vault/unlock',origin,{passphrase});
- assert.equal(created.status,200,'A new encrypted workspace should be created.');
- const createdData=await created.json();
- assert.equal(createdData.created,true);
+  const recoveryEvent={protocolVersion:1,eventId:'recovery-'+Date.now(),provider:'manual',type:'chat.message',occurredAt:new Date().toISOString(),actorName:'Recovery QA',text:'recover after vault lock'};
+ assert.equal((await post(origin+'/api/live/events/ingest',origin,{event:recoveryEvent})).status,202,'Unacknowledged events should be persisted for recovery.');
  const saved=await post(origin+'/api/projects',origin,{title:'Portable rehearsal',type:'live-show',content:'Private project body that must be encrypted at rest.'});
  assert.equal(saved.status,201,'Project should be saved into encrypted storage.');
  const vaultPath=path.join(target,'data','vault.enc');
@@ -152,6 +167,13 @@ try{
  assert.equal((await fetch(origin+'/api/projects')).status,423,'Wrong passphrase must not restore access.');
  const unlocked=await post(origin+'/api/vault/unlock',origin,{passphrase});
  assert.equal(unlocked.status,200,'Correct passphrase should unlock saved workspace.');
+ const unlockedData=await unlocked.json();
+ assert.equal(unlockedData.journal.recovered,2,'Unlock should replay both journaled event records.');
+ assert.equal(unlockedData.journal.acknowledged,1,'Unlock should replay the durable acknowledgement.');
+ const recoveredBatch=await postPath('/api/live/events/consume',{limit:1});
+ const recoveredData=await recoveredBatch.json();
+ assert.equal(recoveredData.events[0].eventId,recoveryEvent.eventId,'Only the unacknowledged event should return after recovery.');
+ assert.equal((await postPath('/api/live/events/ack',{deliveryId:recoveredData.deliveryId,eventKeys:recoveredData.eventKeys})).status,200,'Recovered event should be acknowledged successfully.');
  const afterUnlock=await (await fetch(origin+'/api/projects')).json();
  assert.equal(afterUnlock.projects[0].title,'Portable rehearsal','Saved project should survive lock and unlock.');
  const noModel=await post(origin+'/api/chat',origin,{prompt:'Write a short livestream welcome.'});
@@ -173,6 +195,7 @@ try{
  console.log('PASS bounded request and no cloud fallback');
  console.log('PASS explicit AI takeover consent and fail-closed capability checks');
  console.log('PASS operator review receipts and idempotent decision handling');
+ console.log('PASS encrypted live-event journal, leased delivery and vault-lock recovery');
  console.log('Magnanimous Portable Creator runtime tests passed.');
 }catch(error){
  console.error(error);

@@ -348,7 +348,7 @@ async function refreshReviewReceipts(){
  }
 }
 function renderLiveEvents(events,cues=[]){
- const cueByEvent=new Map(cues.map(cue=>[cue.eventId,cue]));
+ const cueByEvent=new Map(cues.map(cue=>[cue.cueId,cue]));
  const list=$('liveEventList');list.replaceChildren();
  if(!events.length){const empty=document.createElement('p');empty.className='muted';empty.textContent='No events in this batch. Connect an authorized provider adapter later, or send a local test event.';list.append(empty);return;}
  for(const event of events){
@@ -357,7 +357,7 @@ function renderLiveEvents(events,cues=[]){
   const actor=document.createElement('small');actor.textContent=event.actorName||event.actorId||'Viewer';
   const body=document.createElement('p');body.textContent=event.text||'(No message text)';
   item.append(meta,actor,body);
-  const cue=cueByEvent.get(event.eventId);
+  const cue=cueByEvent.get(event.provider+':'+event.eventId);
   if(cue){
    const review=document.createElement('section');review.className='director-cue';
    const title=document.createElement('strong');title.textContent='MAGNANIMOUS SUGGESTION · '+cue.title;
@@ -375,8 +375,12 @@ function renderLiveEvents(events,cues=[]){
  }
 }
 async function refreshLiveQueue(){
- try{const data=await api('/api/live/events/status');$('liveQueueStatus').textContent=data.queued+' queued · '+data.capacity+' capacity';$('liveQueueStatus').className='status '+(data.queued?'ready':'');}
- catch(error){$('liveQueueStatus').textContent='Local event queue unavailable';}
+ try{
+  const data=await api('/api/live/events/status');
+  const warning=data.journalError||data.journalWarning;
+  $('liveQueueStatus').textContent=warning?warning:data.recoveryLocked?'Unlock the workspace to recover queued events':data.queued+' queued · '+data.capacity+' capacity';
+  $('liveQueueStatus').className='status '+(warning||data.recoveryLocked?'warning':data.queued?'ready':'');
+ }catch(error){$('liveQueueStatus').textContent='Local event queue unavailable';}
 }
 async function sendLocalEvent(){
  const text=$('liveTestText').value.trim(),type=$('liveTestType').value;
@@ -390,8 +394,18 @@ window.addEventListener('beforeunload',()=>{if(state.autonomyActive){stopAutonom
 }
 async function pullLiveEvents(){
  $('livePullButton').disabled=true;
- try{const data=await api('/api/live/events/consume',{method:'POST',body:JSON.stringify({limit:20})});renderLiveEvents(data.events||[],data.reviewCues||[]);$('liveQueueStatus').textContent=data.queued+' queued · '+data.capacity+' capacity';message('liveEventMessage',(data.events||[]).length+' event(s) pulled from the local queue.','success');}
- catch(error){message('liveEventMessage',error.message,'error');}
+ try{
+  const data=await api('/api/live/events/consume',{method:'POST',body:JSON.stringify({limit:20})});
+  const events=data.events||[];
+  renderLiveEvents(events,data.reviewCues||[]);
+  if(data.deliveryId&&Array.isArray(data.eventKeys)&&data.eventKeys.length){
+   const ack=await api('/api/live/events/ack',{method:'POST',body:JSON.stringify({deliveryId:data.deliveryId,eventKeys:data.eventKeys})});
+   if(!['acknowledged','duplicate'].includes(ack.status))throw new Error('Events were displayed but the durable acknowledgement was not confirmed. They will remain queued for retry.');
+   message('liveEventMessage',events.length+' event(s) displayed and durably acknowledged.','success');
+  }else{
+   message('liveEventMessage',events.length?'Events displayed; no delivery acknowledgement was required.':'No unclaimed events are waiting.','success');
+  }
+ }catch(error){message('liveEventMessage',error.message,'error');}
  finally{$('livePullButton').disabled=false;await refreshLiveQueue();}
 }
 async function refresh(){
