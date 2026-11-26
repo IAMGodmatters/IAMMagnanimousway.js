@@ -14,6 +14,12 @@ test('normalizes approved platform events and strips unsafe fields',()=>{
  assert.deepEqual(event.tags,{source:'chat',safe:true});
 });
 
+test('redacts viewer email, phone numbers and pasted credentials before event persistence',()=>{
+ const event=normalizeRelayEvent({protocolVersion:1,eventId:'privacy-1',provider:'manual',type:'chat.message',occurredAt:new Date(NOW).toISOString(),actorName:'viewer@example.com',text:'Contact me at viewer@example.com or +1 (415) 555-0198. Bearer abcdefghijklmnopqrstuvwxyz123456'},NOW);
+ assert.equal(event.actorName,'[email redacted]');
+ assert.equal(event.text,'Contact me at [email redacted] or [phone redacted]. [credential redacted]');
+});
+ 
 test('recognizes platform event schemas but denies platform authority until an adapter is authorized',()=>{
  assert.equal(isRelayProviderAllowed('manual',['manual','obs','game','browser']),true);
  for(const provider of ['facebook','tiktok','youtube','twitch','zoom']){
