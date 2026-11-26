@@ -49,7 +49,8 @@ jobs:
 
       - name: Test portable creator event director and local host
         run: |
-          node --test portable-creator/live-event-runtime.test.mjs portable-creator/live-show-autonomy.test.mjs
+          node --check worker/src/live-bridge-relay.js
+          node --test portable-creator/live-event-runtime.test.mjs portable-creator/live-show-autonomy.test.mjs worker/src/live-bridge-relay.test.mjs
           node qa/scripts/portable-creator-runtime-test.mjs
 
       - name: Lock standalone AI, platform, and Shopify boundaries
