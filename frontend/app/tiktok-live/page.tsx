@@ -55,6 +55,8 @@ export default function TikTokLiveHost() {
   const [queuedComments, setQueuedComments] = useState<Array<{ id: number; text: string; source?: string }>>([]);
   const [bridgeStatus, setBridgeStatus] = useState<'connected' | 'reconnecting' | 'disconnected' | 'error'>('disconnected');
   const [bridgeEvents, setBridgeEvents] = useState<LiveEvent[]>([]);
+  const [useCompanionVoice, setUseCompanionVoice] = useState(false);
+  const [companionVoiceStatus, setCompanionVoiceStatus] = useState('Browser voice');
   const queuedCommentsRef = useRef<Array<{ id: number; text: string; source?: string }>>([]);
   const seenBridgeEventIdsRef = useRef(new Set<string>());
   const [failedQueuedComment, setFailedQueuedComment] = useState<{ id: number; text: string; source?: 'viewer' | 'show-rundown' } | null>(null);
@@ -66,6 +68,7 @@ export default function TikTokLiveHost() {
   const takeoverGreetingRef = useRef(false);
   const takeoverAbortRef = useRef<AbortController | null>(null);
   const processingQueueId = useRef<number | null>(null);
+  const companionChannelRef = useRef<BroadcastChannel | null>(null);
 
   queuedCommentsRef.current = queuedComments;
 
@@ -75,6 +78,44 @@ export default function TikTokLiveHost() {
     if (topic === 'Magnanimous Platform') return 'Explain I AM MAGNANIMOUS WAY and Magnanimous AI accurately. Do not claim any feature, connection, approval, deployment, or live status that has not been verified.';
     return 'Be a helpful, welcoming general-interest host. Answer the question directly, keep it conversational, and avoid unsupported claims.';
   }, [topic]);
+
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') return;
+    const channel = new BroadcastChannel('magnanimous-live-host-bridge-v1');
+    companionChannelRef.current = channel;
+    channel.onmessage = message => {
+      const payload = message.data;
+      if (!payload || typeof payload !== 'object') return;
+      if (payload.type === 'bridge.status' && typeof payload.connected === 'boolean') {
+        setBridgeStatus(payload.connected ? 'connected' : 'disconnected');
+        if (!payload.connected && useCompanionVoice) setCompanionVoiceStatus('Companion disconnected · browser voice remains available');
+        return;
+      }
+      if (payload.type === 'host.speak.result') {
+        if (payload.ok === true) {
+          setCompanionVoiceStatus('Request sent · waiting for local owner approval');
+          setStatus(takeoverRef.current ? 'AI TAKEOVER · COMPANION APPROVAL' : 'COMPANION APPROVAL REQUIRED');
+          setNotice('Magnanimous sent the host line to the paired USB Creator. The local owner must approve it before the companion speaks.');
+        } else {
+          setCompanionVoiceStatus('Request not delivered · check the companion bridge');
+          setNotice('The paired companion did not accept the speech request. Use browser voice or reconnect the bridge.');
+        }
+        return;
+      }
+      if (payload.type === 'host.speak.receipt') {
+        const label = payload.status === 'received' ? 'Received · waiting for USB owner approval'
+          : payload.status === 'approved' ? 'Approved · local voice is preparing'
+          : payload.status === 'rejected' ? 'Rejected by local owner'
+          : payload.status === 'completed' ? 'Completed · companion voice finished'
+          : 'Failed · companion could not complete speech';
+        setCompanionVoiceStatus(label);
+        if (payload.status === 'completed') setStatus(takeoverRef.current ? 'AI TAKEOVER ACTIVE · READY' : 'PREVIEW READY');
+        else if (payload.status === 'rejected' || payload.status === 'failed') setNotice('Companion voice '+payload.status+'. Browser voice is still available.');
+      }
+    };
+    channel.postMessage({ type: 'bridge.status.request' });
+    return () => { channel.close(); companionChannelRef.current = null; };
+  }, []);
 
   useEffect(() => {
     if (typeof BroadcastChannel === 'undefined') return;
@@ -114,6 +155,18 @@ export default function TikTokLiveHost() {
 
   function speak(text: string) {
     if (!text.trim()) return;
+    if (useCompanionVoice && bridgeStatus === 'connected' && companionChannelRef.current) {
+      setNotice('Sending this host line to the paired USB Creator. Local approval is required before it is spoken.');
+      setCompanionVoiceStatus('Sending host line to companion…');
+      companionChannelRef.current.postMessage({ type: 'host.speak', text: cleanLiveHostText(text).slice(0, 500) });
+      setSpeaking(false);
+      setStatus(takeoverRef.current ? 'AI TAKEOVER · COMPANION REQUEST' : 'COMPANION REQUEST SENT');
+      return;
+    }
+    if (useCompanionVoice) {
+      setCompanionVoiceStatus('Companion unavailable · using browser voice');
+      setNotice('The companion bridge is not connected. Magnanimous is using browser voice on this device.');
+    }
     primeNaturalSpeech(true);
     setNotice('');
     setSpeaking(true);
@@ -488,6 +541,8 @@ function cleanLiveViewerText(value: string) {
               <textarea value={viewerComment} onChange={event => setViewerComment(event.target.value)} rows={4} placeholder="Paste or type a viewer's TikTok comment here…" />
             </label>
             <label className="toggle"><input type="checkbox" checked={autoSpeak} disabled={takeoverActive} onChange={event => setAutoSpeak(event.target.checked)} /> Automatically speak each AI answer</label>
+            <label className="toggle"><input type="checkbox" checked={useCompanionVoice} disabled={takeoverActive} onChange={event => setUseCompanionVoice(event.target.checked)} /> Use paired USB Creator for host voice (local owner approval required)</label>
+            <small className="bridgeStatusNote">COMPANION VOICE · {companionVoiceStatus}</small>
             <button className="primary answerButton" type="submit" disabled={(!takeoverActive && busy) || !viewerComment.trim()}>{takeoverActive ? '＋ Queue comment for AI takeover' : busy ? 'Magnanimous is answering…' : '✦ Answer comment with Magnanimous AI'}</button>
           </form>
           {notice && <div className="notice">{notice}</div>}
