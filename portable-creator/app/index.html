@@ -88,6 +88,22 @@
         <div id="obsMessage" class="message" role="status"></div>
         <p class="muted">This controls local OBS scenes and recording only. It does not start a public livestream or connect TikTok, Facebook, YouTube or Zoom.</p>
       </article>
+      <article class="panel bridge-panel">
+        <div class="panel-heading"><div><small>SECURE ONLINE COMPANION</small><h2>Magnanimous Live Bridge</h2></div><span class="spark">↔</span></div>
+        <p class="muted">Connect this encrypted USB Creator to your signed-in Magnanimous Live Studio. Commands arrive as requests and wait here for your local approval. Nothing is executed automatically.</p>
+        <div class="status-row"><span id="bridgeStatus" class="status warning">Online bridge disconnected</span></div>
+        <label for="bridgeEndpoint">Magnanimous secure WebSocket address</label>
+        <input id="bridgeEndpoint" type="url" autocomplete="off" placeholder="wss://iammagnanimousway.com/api/live-bridge/ws/…">
+        <label for="bridgeToken">Temporary USB companion token</label>
+        <input id="bridgeToken" type="password" autocomplete="new-password" placeholder="Paste the companion token from Live Studio">
+        <div class="actions">
+          <button id="bridgeConnectButton" class="primary" disabled>Connect online bridge</button>
+          <button id="bridgeDisconnectButton" class="quiet" disabled>Disconnect</button>
+        </div>
+        <div id="bridgeCommandList" class="live-event-list"><p class="muted">No pending remote commands.</p></div>
+        <div id="bridgeMessage" class="message" role="status"></div>
+        <p class="muted">Only OBS scene changes and host speech are supported. Scene changes require OBS to be connected. Host speech uses this device's available browser voice. Pairing tokens expire; revoke them from the online Live Studio page when finished.</p>
+      </article>
       <article class="panel live-autonomy-panel">
         <div class="panel-heading"><div><small>OWNER-CONTROLLED SHOW MODE</small><h2>Magnanimous AI takeover</h2></div><span class="spark">✦</span></div>
         <p class="muted">When you enable takeover, Magnanimous can speak short AI-generated host lines and switch only the OBS scenes you approve below. It will stop automatically when this control surface disconnects or the session expires.</p>
