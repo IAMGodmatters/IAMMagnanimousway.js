@@ -296,7 +296,7 @@ function connectBridge(endpoint,token){
   }
  });
  socket.addEventListener('close',event=>{
-  if(bridgeSocket===socket){clearBridgeHeartbeat();bridgeSocket=null;bridgeStatus='disconnected';pendingBridgeCommands.length=0;approvedBridgeCommands.clear();if(event.code!==1000)bridgeError='The online relay closed the connection ('+event.code+'). Create a fresh pair if the token expired.';}
+  if(bridgeSocket===socket){clearBridgeHeartbeat();bridgeSocket=null;bridgeStatus='disconnected';pendingBridgeCommands.length=0;if(event.code!==1000)bridgeError='The online relay closed the connection ('+event.code+'). Approved local speech receipts remain pending for reconnect.';}
  });
  socket.addEventListener('error',()=>{if(bridgeSocket===socket){bridgeStatus='error';bridgeError='The secure online bridge connection failed.';}});
 }
