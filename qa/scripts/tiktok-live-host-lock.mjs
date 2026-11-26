@@ -8,6 +8,7 @@ const eventContract = fs.readFileSync(new URL('frontend/lib/live-studio/event-co
 const bridgeClient = fs.readFileSync(new URL('frontend/lib/live-studio/bridge-client.ts', root), 'utf8');
 const bridgeDocs = fs.readFileSync(new URL('docs/live-studio/bridge-protocol.md', root), 'utf8');
 const bridgeUi = fs.readFileSync(new URL('frontend/app/tiktok-live/bridge/page.tsx', root), 'utf8');
+const eventInbox = fs.readFileSync(new URL('frontend/lib/live-studio/event-inbox.ts', root), 'utf8');
 
 const checks = [
   ['host uses Magnanimous native chat transport', host.includes('postMagnanimousChat') && host.includes('${api}/api/chat')],
@@ -56,6 +57,8 @@ const checks = [
   ['bridge UI rejects provider passwords and uses a one-time pairing token', bridgeUi.includes('Do not enter TikTok, Google, Twitch, OBS or game-account passwords') && bridgeUi.includes('short-lived pairing token') && bridgeUi.includes('Browser role token (memory only)')],
   ['bridge UI never persists pairing tokens', bridgeUi.includes('never saved in browser storage') && !/\b(?:localStorage|sessionStorage)\.setItem\s*\(/.test(bridgeUi) && !/\bindexedDB\.open\s*\(/.test(bridgeUi)],
   ['bridge UI bounds the event feed', bridgeUi.includes('.slice(0,50)')],
+  ['local event inbox reclaims only already-delivered events and preserves pending items at capacity', eventInbox.includes('slotsToReclaim') && /remaining\.filter\(item => Number\.isFinite\(item\.deliveredAt\) && item\.deliveredAt > 0\)/.test(eventInbox) && eventInbox.includes('Existing events were preserved')],
+  ['bridge surfaces local inbox write failures without forwarding or acknowledging the event', /onEvent:async event=>\{\s*try\{\s*await persistLiveEvent\(event\);\s*\}catch/.test(bridgeUi) && bridgeUi.includes('It remains unacknowledged so the relay can retry.')],
 ];
 
 const failures = checks.filter(([, ok]) => !ok);
