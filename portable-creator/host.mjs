@@ -232,7 +232,7 @@ function pruneBridgeCommands(now=Date.now()){
  for(let index=pendingBridgeCommands.length-1;index>=0;index--){
   const item=pendingBridgeCommands[index],receivedAt=Date.parse(item.receivedAt);
   if(!Number.isFinite(receivedAt)||now-receivedAt>BRIDGE_COMMAND_TTL_MS){
-   pendingBridgeCommands.splice(index,1);sendBridgeCommandReceipt(item.commandId,'failed');
+   pendingBridgeCommands.splice(index,1);void sendBridgeCommandReceipt(item.commandId,'failed');
   }
  }
  for(const [commandId,item] of approvedBridgeCommands){
@@ -278,10 +278,10 @@ function connectBridge(endpoint,token){
   if(envelope?.kind==='command'&&envelope.protocolVersion===1){
    const command=safeBridgeCommand(envelope.command);
    if(!command){const id=envelope.command?.commandId;if(typeof id==='string')void sendBridgeCommandReceipt(id,'failed');return;}
-   if(pendingBridgeCommands.some(item=>item.commandId===command.commandId)||approvedBridgeCommands.has(command.commandId)){void void sendBridgeCommandReceipt(command.commandId,'received');return;}
+   if(pendingBridgeCommands.some(item=>item.commandId===command.commandId)||approvedBridgeCommands.has(command.commandId)){void sendBridgeCommandReceipt(command.commandId,'received');return;}
    if(pendingBridgeCommands.length>=20){bridgeError='The local approval queue is full; no command was executed.';void sendBridgeCommandReceipt(command.commandId,'rejected');return;}
    pendingBridgeCommands.push({...command,receivedAt:new Date().toISOString()});
-   void void sendBridgeCommandReceipt(command.commandId,'received');return;
+   void sendBridgeCommandReceipt(command.commandId,'received');return;
   }
   if(envelope?.kind==='error'){
    bridgeError=String(envelope.message||'The online relay reported an error.').slice(0,240);
@@ -445,7 +445,7 @@ async function handleApi(req,res,url){
   const body=await readJson(req),commandId=String(body.commandId||''),index=pendingBridgeCommands.findIndex(item=>item.commandId===commandId);
   if(index<0)return json(res,404,{detail:'The pending command was not found or has expired.'});
   if(body.approved!==true){
-   if(!sendBridgeCommandReceipt(commandId,'rejected'))return json(res,503,{detail:'The rejection could not reach the online relay. Keep the bridge connected and retry.'});
+   if(!await sendBridgeCommandReceipt(commandId,'rejected'))return json(res,503,{detail:'The rejection could not reach the online relay. Keep the bridge connected and retry.'});
    pendingBridgeCommands.splice(index,1);
    return json(res,200,{ok:true,approved:false});
   }
@@ -455,14 +455,14 @@ async function handleApi(req,res,url){
    if(!speechText)return json(res,400,{detail:'The host speech request is empty or invalid.'});
    pruneBridgeCommands();
    if(approvedBridgeCommands.size>=20)return json(res,429,{detail:'Too many approved host lines are awaiting local voice playback.'});
-   if(!sendBridgeCommandReceipt(commandId,'approved'))return json(res,503,{detail:'The approval receipt could not reach the online relay. No speech was started.'});
+   if(!await sendBridgeCommandReceipt(commandId,'approved'))return json(res,503,{detail:'The approval receipt could not reach the online relay. No speech was started.'});
    pendingBridgeCommands.splice(index,1);
    approvedBridgeCommands.set(commandId,{action:'host.speak',approvedAt:Date.now()});
    return json(res,200,{ok:true,approved:true,action:'host.speak',commandId,speechText});
   }
   if(command.action!=='scene.set')return json(res,409,{detail:'This command type is not implemented locally. No action was taken.'});
   if(!obsClient?.connected)return json(res,409,{detail:'Connect to OBS locally before approving a scene change.'});
-  if(!sendBridgeCommandReceipt(commandId,'approved'))return json(res,503,{detail:'The approval receipt could not reach the online relay. No OBS scene change was performed.'});
+  if(!await sendBridgeCommandReceipt(commandId,'approved'))return json(res,503,{detail:'The approval receipt could not reach the online relay. No OBS scene change was performed.'});
   pendingBridgeCommands.splice(index,1);
   try{
    const result=await obsClient.setProgramScene(command.sceneName);
