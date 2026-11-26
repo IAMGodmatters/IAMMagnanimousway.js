@@ -11,6 +11,9 @@ const bridgeUi = fs.readFileSync(new URL('frontend/app/tiktok-live/bridge/page.t
 const eventInbox = fs.readFileSync(new URL('frontend/lib/live-studio/event-inbox.ts', root), 'utf8');
 const relay = fs.readFileSync(new URL('worker/src/live-bridge-relay.js', root), 'utf8');
 const portableHost = fs.readFileSync(new URL('portable-creator/host.mjs', root), 'utf8');
+const bridgeCloseStart = portableHost.indexOf("socket.addEventListener('close'");
+const bridgeCloseEnd = portableHost.indexOf("socket.addEventListener('error'", bridgeCloseStart);
+const bridgeCloseHandler = bridgeCloseStart >= 0 && bridgeCloseEnd > bridgeCloseStart ? portableHost.slice(bridgeCloseStart, bridgeCloseEnd) : '';
 const hostEventReceipt = host.split("if (payload?.kind !== 'event')")[1]?.split("channel.postMessage({ kind: 'status'")[0] || '';
 const bridgeEventHandler = bridgeClient.split("if(envelope?.kind==='event'")[1]?.split("if(envelope?.kind==='event.receipt'")[0] || '';
 
@@ -66,6 +69,7 @@ const checks = [
   ['relay acknowledgement waits for the Host durable receipt, not merely bridge-tab persistence', bridgeEventHandler.includes('handlers.onEvent?.(event)') && !bridgeEventHandler.includes("kind:'event.ack'") && bridgeUi.includes('clientRef.current?.ackEvent(provider,data.eventId)') && hostEventReceipt.includes('.then(() => channel.postMessage({ kind: \'event.receipt\'')],
   ['relay redacts email, phone and pasted credentials before durable event storage', relay.includes('function redactLiveEventText') && relay.includes('[email redacted]') && relay.includes('[phone redacted]') && relay.includes('[credential redacted]')],
   ['companion approval waits for a durable relay receipt before OBS or speech execution', portableHost.includes("if(!await sendBridgeCommandReceipt(commandId,'approved'))") && portableHost.indexOf("if(!await sendBridgeCommandReceipt(commandId,'approved'))") < portableHost.indexOf("obsClient.setProgramScene(command.sceneName)")],
+  ['network interruption preserves approved local completion receipts for reconnect', bridgeCloseHandler.includes('pendingBridgeCommands.length=0') && !bridgeCloseHandler.includes('approvedBridgeCommands.clear()')],
   ['relay confirms command receipts only after the durable ledger write', relay.indexOf("await this.state.storage.put('commands',ledger.slice(-50));") < relay.indexOf("kind:'command.receipt.confirmed'") && relay.includes("kind:'command.receipt.confirmed'")],
 
 ];
