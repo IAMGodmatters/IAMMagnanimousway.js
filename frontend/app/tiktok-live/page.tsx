@@ -131,6 +131,15 @@ export default function TikTokLiveHost() {
     return () => channel.close();
   }, []);
 
+  // When the autonomous queue has room again, ask the paired bridge tab to
+  // replay any locally persisted events that were deliberately left unacked.
+  useEffect(() => {
+    if (!takeoverActive || takeoverPaused || queuedComments.length >= 25 || typeof BroadcastChannel === 'undefined') return;
+    const channel = new BroadcastChannel('magnanimous-live-events-v1');
+    channel.postMessage({ kind: 'retry-pending-events' });
+    return () => channel.close();
+  }, [takeoverActive, takeoverPaused, queuedComments.length]);
+
   useEffect(() => () => { takeoverRef.current = false; takeoverAbortRef.current?.abort(); stopNaturalSpeech(); }, []);
 
   function speak(text: string) {
