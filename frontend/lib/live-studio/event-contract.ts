@@ -18,12 +18,13 @@ export function normalizeLiveEvent(input:unknown,now=Date.now()):LiveEvent|null 
  if(currency&&/^[A-Z]{3}$/.test(currency))e.currency=currency; const tags=safeTags(v.tags);if(tags)e.tags=tags;
  if(e.type==='chat.message'&&!e.text)return null;return e;
 }
-export type LiveBridgeCommand={commandId:string;action:'scene.set';sceneName:string}|{commandId:string;action:'overlay.show'|'overlay.hide';overlayId:string}|{commandId:string;action:'audio.cue';cueId:string}|{commandId:string;action:'host.speak';text:string};
+export type LiveBridgeCommand={commandId:string;action:'scene.set';sceneName:string}|{commandId:string;action:'overlay.show'|'overlay.hide';overlayId:string}|{commandId:string;action:'audio.cue';cueId:string}|{commandId:string;action:'host.speak';text:string}|{commandId:string;action:'host.stop'};
 /** Only non-destructive, operator-approved production controls are allowed across the bridge. */
 export function normalizeLiveBridgeCommand(input:unknown):LiveBridgeCommand|null {
  if(!input||typeof input!=='object'||Array.isArray(input))return null;const v=input as Record<string,unknown>;if(typeof v.commandId!=='string'||!EVENT_ID.test(v.commandId))return null;
  if(v.action==='scene.set'){const sceneName=cleanText(v.sceneName,80);return sceneName?{commandId:v.commandId,action:'scene.set',sceneName}:null;}
  if(v.action==='overlay.show'||v.action==='overlay.hide'){const overlayId=cleanText(v.overlayId,80);return overlayId?{commandId:v.commandId,action:v.action,overlayId}:null;}
  if(v.action==='audio.cue'){const cueId=cleanText(v.cueId,80);return cueId?{commandId:v.commandId,action:'audio.cue',cueId}:null;}
- if(v.action==='host.speak'){const text=cleanText(v.text,500);return text?{commandId:v.commandId,action:'host.speak',text}:null;}return null;
+ if(v.action==='host.speak'){const text=cleanText(v.text,500);return text?{commandId:v.commandId,action:'host.speak',text}:null;}
+ if(v.action==='host.stop')return{commandId:v.commandId,action:'host.stop'};return null;
 }
