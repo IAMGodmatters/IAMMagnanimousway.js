@@ -100,6 +100,17 @@
     ]
   },
   "ai": { "binding": "AI" },
+  "ratelimits": [
+    { "name": "LIVE_BRIDGE_PAIR_LIMITER", "namespace_id": "917251017", "simple": { "limit": 5, "period": 60 } }
+  ],
+  "durable_objects": {
+    "bindings": [
+      { "name": "LIVE_BRIDGE_ROOMS", "class_name": "MagnanimousLiveBridgeRoom" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1-live-bridge-rooms", "new_sqlite_classes": ["MagnanimousLiveBridgeRoom"] }
+  ],
   "d1_databases": [
     {
       "binding": "DB",
