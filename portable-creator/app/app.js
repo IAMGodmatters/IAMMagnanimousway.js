@@ -1,5 +1,5 @@
 const $=id=>document.getElementById(id);
-const state={modelReady:false,vaultUnlocked:false,projects:[],obsConnected:false,obsRecording:false,autonomyActive:false};
+const state={modelReady:false,vaultUnlocked:false,projects:[],obsConnected:false,obsRecording:false,autonomyActive:false,bridgeConnected:false,bridgeStatus:'disconnected'};
 let autonomyTimer=null;
 let autonomyHeartbeatTimer=null;
 let autonomyTickBusy=false;
@@ -12,6 +12,91 @@ async function api(path,options={}){
  return data;
 }
 function message(id,text,kind='info'){const el=$(id);el.textContent=text;el.className='message '+kind;}
+function renderBridgeCommands(commands=[]){
+ const list=$('bridgeCommandList');list.replaceChildren();
+ $('bridgePendingCount').textContent=commands.length+' pending';
+ if(!commands.length){const empty=document.createElement('p');empty.className='muted';empty.textContent='No remote actions waiting for approval.';list.append(empty);return;}
+ for(const command of commands){
+  const card=document.createElement('article');card.className='bridge-command';
+  const title=document.createElement('strong');
+  title.textContent=command.action==='host.speak'?'AI host wants to speak':command.action==='scene.set'?'AI host requests an OBS scene change':'Unsupported remote action';
+  const detail=document.createElement('p');
+  detail.textContent=command.action==='host.speak'?String(command.text||'').slice(0,500):'Switch OBS to the scene: '+String(command.sceneName||'');
+  const meta=document.createElement('small');meta.textContent='Command '+String(command.commandId||'').slice(0,32)+' · '+new Date(command.receivedAt||Date.now()).toLocaleTimeString();
+  const actions=document.createElement('div');actions.className='actions';
+  const approve=document.createElement('button');approve.type='button';approve.className='secondary';approve.textContent=command.action==='host.speak'?'Approve & speak':'Approve & switch scene';
+  approve.addEventListener('click',()=>reviewBridgeCommand(command.commandId,true));
+  const reject=document.createElement('button');reject.type='button';reject.className='quiet';reject.textContent='Reject';
+  reject.addEventListener('click',()=>reviewBridgeCommand(command.commandId,false));
+  actions.append(approve,reject);card.append(title,detail,meta,actions);list.append(card);
+ }
+}
+async function refreshBridgeStatus(){
+ try{
+  const data=await api('/api/bridge/status');
+  state.bridgeConnected=Boolean(data.connected);state.bridgeStatus=String(data.status||'disconnected');
+  const status=$('bridgeStatus');
+  status.textContent=state.bridgeConnected?'SECURE COMPANION CONNECTED · '+(data.pendingCommands||[]).length+' pending'
+   :state.bridgeStatus==='connecting'?'PAIRING · WAITING FOR OTHER DEVICE'
+   :data.workspaceUnlocked?'DISCONNECTED · NO REMOTE ACCESS':'WORKSPACE LOCKED · NO REMOTE ACCESS';
+  status.className='status '+(state.bridgeConnected?'ready':state.bridgeStatus==='connecting'?'warning':'');
+  renderBridgeCommands(data.pendingCommands||[]);
+  if(data.error)message('bridgeMessage',data.error,'warning');
+  updateControls();
+ }catch(error){
+  state.bridgeConnected=false;state.bridgeStatus='error';
+  $('bridgeStatus').textContent='Companion status unavailable';
+  $('bridgeStatus').className='status warning';
+  updateControls();
+ }
+}
+async function connectBridge(){
+ const endpoint=$('bridgeEndpoint').value.trim(),token=$('bridgeToken').value.trim();
+ if(!endpoint||!token){message('bridgeMessage','Enter the official bridge address and one-time companion token.','error');return;}
+ $('bridgeConnectButton').disabled=true;
+ try{
+  const result=await api('/api/bridge/connect',{method:'POST',body:JSON.stringify({endpoint,token})});
+  $('bridgeToken').value='';
+  message('bridgeMessage',result.status==='connected'?'Secure companion connected.':'Pairing started. Keep the online Bridge tab open while the USB companion authenticates.','success');
+  await refreshBridgeStatus();
+ }catch(error){$('bridgeToken').value='';message('bridgeMessage',error.message,'error');}
+ finally{updateControls();}
+}
+async function disconnectBridge(){
+ try{
+  await api('/api/bridge/disconnect',{method:'POST',body:'{}'});
+  $('bridgeToken').value='';state.bridgeConnected=false;state.bridgeStatus='disconnected';
+  await refreshBridgeStatus();
+  message('bridgeMessage','Companion disconnected. Pending remote approvals were cleared.','success');
+ }catch(error){message('bridgeMessage',error.message,'error');}
+}
+async function finishBridgeSpeech(commandId,outcome){
+ try{await api('/api/bridge/command/result',{method:'POST',body:JSON.stringify({commandId,outcome})});}
+ catch(error){message('bridgeMessage','Local voice finished, but the online completion receipt could not be sent: '+error.message,'warning');}
+ await refreshBridgeStatus();
+}
+async function reviewBridgeCommand(commandId,approved){
+ try{
+  const result=await api('/api/bridge/command/review',{method:'POST',body:JSON.stringify({commandId,approved})});
+  if(!approved){message('bridgeMessage','Remote action rejected. Nothing was executed.','success');}
+  else if(result.action==='host.speak'){
+   if(!('speechSynthesis'in window)||typeof SpeechSynthesisUtterance==='undefined'){
+    await finishBridgeSpeech(result.commandId,'failed');
+    message('bridgeMessage','This browser has no supported speech engine. The request was marked failed.','error');
+    return;
+   }
+   const utterance=new SpeechSynthesisUtterance(String(result.speechText||'').slice(0,500));
+   utterance.rate=1;utterance.pitch=1;utterance.volume=1;
+   utterance.onend=()=>{message('bridgeMessage','Approved host speech completed on this device.','success');finishBridgeSpeech(result.commandId,'completed');};
+   utterance.onerror=()=>{message('bridgeMessage','The device voice could not complete the approved host line.','warning');finishBridgeSpeech(result.commandId,'failed');};
+   window.speechSynthesis.speak(utterance);
+   message('bridgeMessage','Approved. The local device is speaking the Magnanimous AI host line.','success');
+  }else{
+   message('bridgeMessage','Approved OBS scene change completed: '+String(result.sceneName||'scene changed')+'.','success');
+  }
+  await refreshBridgeStatus();await refreshObsStatus();
+ }catch(error){message('bridgeMessage',error.message,'error');await refreshBridgeStatus();}
+}
 function updateControls(){
  $('generateButton').disabled=!$('prompt').value.trim();
  $('saveButton').disabled=!state.vaultUnlocked||!$('output').value.trim();
@@ -19,6 +104,8 @@ function updateControls(){
  $('lockButton').disabled=!state.vaultUnlocked;
  $('vaultStatus').textContent=state.vaultUnlocked?'Encrypted workspace unlocked':'Workspace locked';
  $('vaultStatus').className='status '+(state.vaultUnlocked?'ready':'');
+ $('bridgeConnectButton').disabled=!state.vaultUnlocked||state.bridgeConnected||state.bridgeStatus==='connecting'||!$('bridgeEndpoint').value.trim()||!$('bridgeToken').value.trim();
+ $('bridgeDisconnectButton').disabled=!state.bridgeConnected&&state.bridgeStatus!=='connecting';
  $('obsConnectButton').disabled=state.obsConnected;
  $('obsDisconnectButton').disabled=!state.obsConnected;
  $('obsRefreshButton').disabled=!state.obsConnected;
@@ -430,6 +517,7 @@ async function refresh(){
   if(state.vaultUnlocked)await loadProjects();
   updateControls();
   await refreshObsStatus();
+  await refreshBridgeStatus();
  }catch(error){message('creatorMessage',error.message,'error');}
 }
 async function unlock(){
@@ -503,6 +591,10 @@ function exportCopy(){
  anchor.href=url;anchor.download=safe+'.md';anchor.click();URL.revokeObjectURL(url);
  message('creatorMessage','Exported a separate Markdown copy. Choose the USB drive as the save location.','success');
 }
+$('bridgeConnectButton').addEventListener('click',connectBridge);
+$('bridgeDisconnectButton').addEventListener('click',disconnectBridge);
+$('bridgeEndpoint').addEventListener('input',updateControls);
+$('bridgeToken').addEventListener('input',updateControls);
 $('obsConnectButton').addEventListener('click',connectObs);
 $('obsDisconnectButton').addEventListener('click',disconnectObs);
 $('obsRefreshButton').addEventListener('click',()=>refreshObsStatus());
@@ -527,3 +619,5 @@ $('output').addEventListener('input',updateControls);
 $('prompt').addEventListener('input',updateControls);
 refresh();
 refreshLiveQueue();
+refreshBridgeStatus();
+window.setInterval(refreshBridgeStatus,2500);
