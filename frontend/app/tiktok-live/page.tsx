@@ -6,6 +6,7 @@ import { postMagnanimousChat } from '../../lib/magnanimous-chat-transport';
 import { primeNaturalSpeech, speakTextNaturally, stopNaturalSpeech } from '../../lib/natural-speech';
 import { configurePersonaVoice } from '../../lib/persona-voice';
 import { normalizeLiveEvent, type LiveEvent } from '../../lib/live-studio/event-contract';
+import { listLiveEventInbox, markLiveEventDelivered } from '../../lib/live-studio/event-inbox';
 
 const api = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 type Line = { id: number; role: 'viewer' | 'host'; text: string };
@@ -79,6 +80,14 @@ export default function TikTokLiveHost() {
   useEffect(() => {
     if (typeof BroadcastChannel === 'undefined') return;
     const channel = new BroadcastChannel('magnanimous-live-events-v1');
+    void listLiveEventInbox().then(restored => {
+      setBridgeEvents(items => {
+        const merged = [...restored, ...items];
+        const unique = new Map<string, LiveEvent>();
+        for (const event of merged) unique.set(event.provider + ':' + event.eventId, event);
+        return [...unique.values()].slice(-12).reverse();
+      });
+    }).catch(() => setNotice('The local event inbox could not be restored; pending events will remain on the bridge for retry.'));
     channel.onmessage = message => {
       const payload = message.data;
       if (payload?.kind === 'status' && ['connected','reconnecting','disconnected','error'].includes(payload.status)) {
@@ -87,13 +96,23 @@ export default function TikTokLiveHost() {
       }
       if (payload?.kind !== 'event') return;
       const event = normalizeLiveEvent(payload.event);
-      if (!event || seenBridgeEventIdsRef.current.has(event.eventId)) return;
-      seenBridgeEventIdsRef.current.add(event.eventId);
+      if (!event) return;
+      const eventKey = event.provider + ':' + event.eventId;
+      if (seenBridgeEventIdsRef.current.has(eventKey)) {
+        void markLiveEventDelivered(event.provider, event.eventId)
+          .then(() => channel.postMessage({ kind: 'event.receipt', provider: event.provider, eventId: event.eventId }))
+          .catch(() => setNotice('The event was already displayed, but its durable receipt could not be saved.'));
+        return;
+      }
+      seenBridgeEventIdsRef.current.add(eventKey);
       if (seenBridgeEventIdsRef.current.size > 500) {
         const oldest = seenBridgeEventIdsRef.current.values().next().value;
         if (oldest) seenBridgeEventIdsRef.current.delete(oldest);
       }
-      setBridgeEvents(items => [event, ...items.filter(item => item.eventId !== event.eventId)].slice(0, 12));
+      setBridgeEvents(items => [event, ...items.filter(item => item.provider !== event.provider || item.eventId !== event.eventId)].slice(0, 12));
+      void markLiveEventDelivered(event.provider, event.eventId)
+        .then(() => channel.postMessage({ kind: 'event.receipt', provider: event.provider, eventId: event.eventId }))
+        .catch(() => setNotice('The event is displayed, but its durable receipt could not be saved. The bridge will retry it.'));
       if (!takeoverRef.current) return;
       const hostPrompt = liveEventToHostPrompt(event);
       if (!hostPrompt) return;
