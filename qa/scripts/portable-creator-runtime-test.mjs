@@ -74,9 +74,16 @@ try{
  assert.equal(health.model.ready,false,'Local generation must remain disabled when no runtime is installed.');
  const eventStatus=await (await fetch(origin+'/api/live/events/status')).json();
  assert.equal(eventStatus.queued,0,'Live event queue should start empty.');
- const passphrase='magnanimous-test-passphrase-2026';
  const lockedEvent={protocolVersion:1,eventId:'locked-'+Date.now(),provider:'manual',type:'chat.message',occurredAt:new Date().toISOString(),text:'must stay locked'};
  assert.equal((await post(origin+'/api/live/events/ingest',origin,{event:lockedEvent})).status,423,'Live events must not be accepted before the encrypted workspace is unlocked.');
+ assert.equal((await fetch(origin+'/api/projects')).status,423,'Project data must remain locked before passphrase entry.');
+ const wrongOrigin=await post(origin+'/api/vault/unlock','https://attacker.example',{passphrase:'this-is-a-long-test-passphrase'});
+ assert.equal(wrongOrigin.status,403,'Cross-origin state changes must be rejected.');
+ const noOrigin=await fetch(origin+'/api/vault/unlock',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({passphrase:'this-is-a-long-test-passphrase'})});
+ assert.equal(noOrigin.status,403,'Origin-less browser mutations must be rejected.');
+ const invalid=await post(origin+'/api/vault/unlock',origin,{passphrase:'short'});
+ assert.equal(invalid.status,401,'Short passphrases must be rejected.');
+ const passphrase='magnanimous-test-passphrase-2026';
  const created=await post(origin+'/api/vault/unlock',origin,{passphrase});
  assert.equal(created.status,200,'A new encrypted workspace should be created.');
  const createdData=await created.json();
@@ -138,13 +145,7 @@ try{
  const obsStatus=await (await fetch(origin+'/api/obs/status')).json();
  assert.equal(obsStatus.connected,false,'OBS must remain disconnected until the operator pairs it.');
  assert.equal((await fetch(origin+'/api/obs/scenes')).status,409,'OBS scene reads must fail closed before local pairing.');
- assert.equal((await fetch(origin+'/api/projects')).status,423,'Project data must remain locked before passphrase entry.');
- const wrongOrigin=await post(origin+'/api/vault/unlock','https://attacker.example',{passphrase:'this-is-a-long-test-passphrase'});
- assert.equal(wrongOrigin.status,403,'Cross-origin state changes must be rejected.');
- const noOrigin=await fetch(origin+'/api/vault/unlock',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({passphrase:'this-is-a-long-test-passphrase'})});
- assert.equal(noOrigin.status,403,'Origin-less browser mutations must be rejected.');
- const invalid=await post(origin+'/api/vault/unlock',origin,{passphrase:'short'});
- assert.equal(invalid.status,401,'Short passphrases must be rejected.');
+
   const recoveryEvent={protocolVersion:1,eventId:'recovery-'+Date.now(),provider:'manual',type:'chat.message',occurredAt:new Date().toISOString(),actorName:'Recovery QA',text:'recover after vault lock'};
  assert.equal((await post(origin+'/api/live/events/ingest',origin,{event:recoveryEvent})).status,202,'Unacknowledged events should be persisted for recovery.');
  const saved=await post(origin+'/api/projects',origin,{title:'Portable rehearsal',type:'live-show',content:'Private project body that must be encrypted at rest.'});
