@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {buildVibeScaffold,pickVibeTemplate,reviewVibeSource,MAGNANIMOUS_VIBE_STUDIO_POLICY} from '../../worker/src/magnanimous-vibe-studio.js';
+import {buildVibeScaffold,pickVibeTemplate,reviewVibeSource,reviewVibeProject,normalizeVibeFilePath,validateVibeFileContent,readBoundedVibeJson,MAGNANIMOUS_VIBE_STUDIO_POLICY} from '../../worker/src/magnanimous-vibe-studio.js';
 
 const read=path=>readFileSync(path,'utf8');
 assert.equal(MAGNANIMOUS_VIBE_STUDIO_POLICY.identity,'Magnanimous AI');
@@ -51,6 +51,47 @@ const migration=read('worker/migrations/0109_magnanimous_vibe_studio.sql');
 for(const word of ['magnanimous_vibe_projects','magnanimous_vibe_versions','tenant_id','user_id','PRIMARY KEY (project_id,revision)'])
  assert.ok(migration.includes(word),'D1 migration missing '+word);
 const runtime=read('worker/src/magnanimous-vibe-studio.js');
+const multiMigration=read('worker/migrations/0113_magnanimous_vibe_multifile.sql');
+for(const word of ['magnanimous_vibe_files','magnanimous_vibe_file_versions','PRIMARY KEY (project_id, path)','PRIMARY KEY (project_id, path, revision)','tenant_id','user_id','ON DELETE CASCADE'])
+ assert.ok(multiMigration.includes(word),'Multi-file Vibe Studio migration missing '+word);
+assert.equal(normalizeVibeFilePath('styles.css'),'styles.css');
+assert.equal(normalizeVibeFilePath('src/app.js'),'src/app.js');
+assert.equal(normalizeVibeFilePath('fixtures/demo.json'),'fixtures/demo.json');
+for(const path of ['/src/app.js','../secret.js','src/../secret.js','src\\\\app.js','index.html','.env','package.json','src/.secret.js','src/app.exe','CON.js','src/NUL.md','dir./app.js'])
+ assert.equal(normalizeVibeFilePath(path),'','Unsafe or unsupported project file path must be rejected: '+path);
+assert.equal(validateVibeFileContent('fixtures/demo.json','{"ok":true}'),'');
+assert.ok(validateVibeFileContent('fixtures/demo.json','{'),'Invalid JSON fixtures must be rejected.');
+assert.ok(validateVibeFileContent('styles.css','@import url(https://example.com/a.css);'),'External CSS imports must be rejected.');
+assert.ok(validateVibeFileContent('styles.css','</style><script>alert(1)</script>'),'CSS breakout must be rejected.');
+assert.ok(validateVibeFileContent('app.js','</script><script>alert(1)</script>'),'Script breakout must be rejected.');
+assert.ok(validateVibeFileContent('app.js','import React from \'react\';'),'Static JavaScript must not imply module or package installation support.');
+assert.ok(validateVibeFileContent('app.js','const fs = require(\'node:fs\');'),'Node require must not be advertised as a browser preview capability.');
+assert.ok(validateVibeFileContent('app.js','é'.repeat(32769)),'UTF-8 file byte limits must be enforced.');
+assert.equal(validateVibeFileContent('notes.md','# Private notes'),'');
+assert.equal(normalizeVibeFilePath(42),'','File paths must be supplied as strings.');
+const reviewHtml=buildVibeScaffold({title:'Review project',brief:'A valid local review project.'}).html;
+assert.equal(reviewVibeProject(reviewHtml,[{path:'src/app.js',content:'console.log("safe");'}]).valid,true);
+assert.equal(reviewVibeProject(reviewHtml,[{path:'src/app.js',content:'import x from "https://example.test/x.js";'}]).valid,false);
+assert.equal(reviewVibeProject(reviewHtml,[{path:'src/App.js',content:'ok'},{path:'src/app.js',content:'ok'}]).valid,false);
+assert.equal(reviewVibeProject(reviewHtml,Array.from({length:20},(_,i)=>({path:'file-'+i+'.md',content:'x'}))).valid,false);
+assert.ok(runtime.includes('reviewVibeProject(b.html,b.files===undefined?[]:b.files)'),'Preview review must validate all auxiliary files before iframe execution.');
+assert.ok(runtime.includes('lower(f.path)=lower(?)'),'File creation must prevent case-insensitive path collisions.');
+assert.ok(multiMigration.includes('ON magnanimous_vibe_files(project_id, lower(path))'),'Database must enforce portable path uniqueness.');
+assert.ok(validateVibeFileContent('app.js',42),'Non-string file content must be rejected.');
+assert.ok(validateVibeFileContent('styles.css','</style data-breakout="yes">'),'Malformed HTML style end tags must be rejected.');
+assert.ok(validateVibeFileContent('app.js','</script data-breakout="yes">'),'Malformed HTML script end tags must be rejected.');
+assert.ok(validateVibeFileContent('app.js','const value = "\u0001";'),'Unsupported control characters must be rejected.');
+
+const boundedRequest=await readBoundedVibeJson(new Request('https://example.test/files',{method:'POST',body:JSON.stringify({path:'app.js',content:'console.log("ok")'})}));
+assert.equal(boundedRequest.ok,true,'Bounded JSON reader must accept a valid small request.');
+assert.equal(boundedRequest.value.content,'console.log("ok")');
+const oversizedRequest=await readBoundedVibeJson(new Request('https://example.test/files',{method:'POST',body:'{"content":"123456789"}'}),8);
+assert.equal(oversizedRequest.ok,false,'Bounded JSON reader must stop oversized streaming bodies.');
+assert.equal(oversizedRequest.code,'VIBE_REQUEST_TOO_LARGE');
+const invalidJsonRequest=await readBoundedVibeJson(new Request('https://example.test/files',{method:'POST',body:'{'}));
+assert.equal(invalidJsonRequest.ok,false,'Bounded JSON reader must reject malformed JSON.');
+
+
 for(const word of ['requirePlatformOwner(request,env)','currentUser(request,env)','env.DB.batch([','tenant_id=? AND user_id=?','expected_revision','VIBE_REVISION_CONFLICT','NOT EXISTS (SELECT 1 FROM magnanimous_vibe_versions','MAX_HTML=65536','MAX_PROJECTS=25'])
  assert.ok(runtime.includes(word),'Vibe Studio runtime safety contract missing '+word);
 assert.ok(!runtime.includes('eval('),'Server must never eval prototype source.');
@@ -71,4 +112,39 @@ assert.ok(read('frontend/app/owner-center/page.tsx').includes('href="/vibe-studi
 assert.ok(read('frontend/app/god-coding/page.tsx').includes('href="/vibe-studio"'),'God Coding handoff link required.');
 assert.ok(read('worker/src/magnanimous-agent-skills.js').includes("name:'vibe-coding-studio'"),'Native vibe Agent Skill required.');
 assert.ok(read('worker/src/magnanimous-dev-agent.js').includes("id:'vibe-safe-release'"),'Dev Agent safe release skill required.');
-console.log('Magnanimous Vibe Studio: PASS — original runnable scaffolds, opaque-origin preview, owner D1 projects, checkpoint review and no-spend release boundary.');
+
+for(const word of ['MAX_VIBE_FILES=19','MAX_VIBE_FILE_BYTES=65536','MAX_VIBE_PROJECT_BYTES=262144','normalizeVibeFilePath','validateVibeFileContent','magnanimous_vibe_files','magnanimous_vibe_file_versions','tenant_id=? AND user_id=?','VIBE_FILE_REVISION_CONFLICT','VIBE_PROJECT_SIZE_LIMIT'])
+ assert.ok(runtime.includes(word),'Multi-file Vibe Studio runtime contract missing '+word);
+assert.ok(!runtime.includes('DELETE FROM magnanimous_vibe_files'),'File history must not be silently deleted.');
+assert.ok(runtime.includes('v.tenant_id=? AND v.user_id=?'),'File version existence checks must remain tenant/user scoped.');
+assert.ok(runtime.includes('UPDATE magnanimous_vibe_projects SET html=?,revision=revision+1,updated_at=? WHERE id=? AND tenant_id=? AND user_id=? AND revision=? AND length(CAST(? AS BLOB))'),'Legacy index.html saves must enforce the combined project byte limit inside the database update.');
+assert.ok(runtime.includes('Check that the required Vibe Studio migrations are applied'),'Migration failure diagnostics must mention the required schema.');
+const filesClient=read('frontend/app/vibe-studio/files/VibeStudioFilesClient.tsx');
+assert.ok(filesClient.includes('function inlineScriptJson(value:unknown)'),'Preview must use a dedicated safe inline-JSON serializer.');
+assert.ok(filesClient.includes("let output=String(html||'');"),'Preview must preserve user HTML and any existing CSP instead of regex-stripping source text.');
+assert.ok(filesClient.includes("const doctypeMatch=output.match(/^\\uFEFF?\\s*<!doctype\\b[^>]*>/i);"),'Preview CSP must be placed before any user-authored markup.');
+assert.ok(filesClient.includes("if(doctypeMatch)output=output.slice(0,doctypeMatch[0].length)+csp+output.slice(doctypeMatch[0].length);"),'The restrictive CSP must immediately follow an existing doctype before source markup.');
+assert.ok(filesClient.includes("else output='<!doctype html>'+csp+output;"),'Documents without a doctype must receive a safe doctype and CSP before source markup.');
+assert.ok(filesClient.includes("function insertBeforeLastClosingTag(source:string,tag:'body'|'html',insertion:string)"),'Preview must use a closing-tag-aware insertion helper.');
+assert.ok(filesClient.includes("source.matchAll(/<\\/body\\s*>/gi)"),'Preview must insert before the final body close, not a matching string inside inline JavaScript.');
+assert.ok(!filesClient.includes("output=output.replace(/<html\\b[^>]*>/i,match=>match+'<head></head>')"),'Preview must not insert a late head after user-authored markup; the CSP prelude creates the parser head first.');
+assert.ok(filesClient.includes(".replace(/</g,'\\\\u003c')"),'Inline JSON must use one JavaScript Unicode escape so fixture values round-trip exactly.');
+assert.ok(filesClient.includes('style.textContent=file.content'),'CSS source must be inserted through DOM textContent, not HTML markup concatenation.');
+assert.ok(filesClient.includes('script.textContent=file.content'),'JavaScript source must be inserted through DOM textContent, not HTML markup concatenation.');
+assert.ok(filesClient.includes('inlineScriptJson(fixtures)'),'JSON fixtures must be safely serialized into the isolated preview.');
+assert.ok(filesClient.includes('aria-keyshortcuts="Control+S Meta+S Control+Enter Meta+Enter"'),'The editor must advertise accessible save and preview shortcuts.');
+assert.ok(filesClient.includes("e.key.toLowerCase()==='s'"),'Control/Command+S must save a new checkpoint.');
+assert.ok(filesClient.includes("e.key==='Enter'"),'Control/Command+Enter must refresh the isolated preview.');
+assert.ok(filesClient.includes("aria-current={selectedPath===file.path?'page':undefined}"),'The active file must be exposed to assistive technology.');
+const fixturePayload=JSON.stringify({fixture:'</script>'}).replace(/</g,'\\u003c').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029');
+assert.ok(!fixturePayload.includes('</script>'),'Serialized fixture data must not contain a parser-visible script end tag.');
+assert.deepEqual(JSON.parse(fixturePayload),{fixture:'</script>'},'Serialized fixture data must round-trip without changing values.');
+
+for(const word of ['getPlatformAuthToken','sandbox="allow-scripts"','connect-src &#39;none&#39;','MAGNANIMOUS_FIXTURES','zipStore','crc32','/files/','/versions','Save file','Export ZIP'])
+ assert.ok(filesClient.includes(word),'Multi-file Vibe Studio UI feature missing '+word);
+assert.ok(!filesClient.includes('dangerouslySetInnerHTML'),'Multi-file source must never be injected into the parent app.');
+assert.ok(read('frontend/app/vibe-studio/files/page.tsx').includes('<VibeStudioFilesClient />'),'Multi-file workspace route must render its authenticated client.');
+assert.ok(read('frontend/app/vibe-studio/page.tsx').includes('href="/vibe-studio/files"'),'Single-file Vibe Studio must link to the multi-file workspace.');
+assert.ok(read('frontend/app/vibe-studio/files/vibe-files.css').includes('@media(max-width:520px)'),'Multi-file workspace must have a mobile layout.');
+
+console.log('Magnanimous Vibe Studio: PASS — single-file prototypes, tenant-scoped multi-file source, per-file checkpoints, ZIP export, opaque-origin preview and no-spend release boundary.');
