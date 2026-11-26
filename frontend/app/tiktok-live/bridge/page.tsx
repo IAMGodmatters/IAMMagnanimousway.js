@@ -83,10 +83,14 @@ export default function LiveEventBridgePage() {
   async function createPair() {
     setPairBusy(true);setError('');setNotice('');
     try {
+      if(pairId){
+        await revokePairId(pairId);
+        clientRef.current?.disconnect();clientRef.current=null;
+        setPairId('');setPairingToken('');setCompanionToken('');setEndpoint('');setReceipts([]);
+      }
       const response=await fetch('/api/live-bridge/pair',{method:'POST',headers:{'content-type':'application/json'},body:'{}',cache:'no-store'});
       const data=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(data.detail||'Sign in to Magnanimous before creating a bridge pair.');
-      if(pairId){await revokePairId(pairId);setPairId('');}
       setPairId(data.pairId);
       setReceipts([]);
       setEndpoint(data.endpoint);
