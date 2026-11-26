@@ -40,6 +40,7 @@ const pendingBridgeCommands=[];
 const approvedBridgeCommands=new Map();
 const bridgeReceiptOutbox=new Map();
 const bridgeReceiptConfirmations=new Map();
+let bridgeReceiptFlushBusy=false;
 const OBS_PORT=4455;
 fs.mkdirSync(DATA,{recursive:true});
 let liveEventsRestored=false;
@@ -207,15 +208,17 @@ function queueBridgeCommandReceipt(commandId,status){
  flushBridgeReceiptOutbox();
  return true;
 }
-function flushBridgeReceiptOutbox(){
- if(!bridgeSocket||bridgeSocket.readyState!==1)return;
- for(const [commandId,item] of bridgeReceiptOutbox){
-  if(Date.now()-item.createdAt>5*60_000){bridgeReceiptOutbox.delete(commandId);continue;}
-  void sendBridgeCommandReceipt(commandId,item.status).then(confirmed=>{
-   if(confirmed)bridgeReceiptOutbox.delete(commandId);
-  });
-  break;
- }
+async function flushBridgeReceiptOutbox(){
+ if(bridgeReceiptFlushBusy||!bridgeSocket||bridgeSocket.readyState!==1)return;
+ bridgeReceiptFlushBusy=true;
+ try{
+  for(const [commandId,item] of bridgeReceiptOutbox){
+   if(Date.now()-item.createdAt>5*60_000){bridgeReceiptOutbox.delete(commandId);continue;}
+   const confirmed=await sendBridgeCommandReceipt(commandId,item.status);
+   if(!confirmed)break;
+   bridgeReceiptOutbox.delete(commandId);
+  }
+ }finally{bridgeReceiptFlushBusy=false;}
 }
 function clearBridgeHeartbeat(){if(bridgeHeartbeat)clearInterval(bridgeHeartbeat);bridgeHeartbeat=null;}
 function closeBridge(reason='operator_disconnect'){
