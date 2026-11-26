@@ -33,6 +33,8 @@
     "STRIPE_PAYMENT_LINK_AGENCY_PRO": "https://buy.stripe.com/3cI9AS77f9Qw2D04psbV60d",
     "STRIPE_PAYMENT_LINK_USAGE_TOPUP": "https://buy.stripe.com/7sYaEWgHP5Ag7Xk4psbV60s",
     "ENABLE_METERED_PROVIDERS": "false",
+    // The live bridge stays off until the owner verifies the Cloudflare plan and usage budget.
+    "LIVE_BRIDGE_ENABLED": "false",
     // Magnanimous AI remains the platform brain. These are internal execution helpers only.
     "CLOUDFLARE_AI_MODEL": "@cf/zai-org/glm-4.7-flash",
     // Agent Mesh starts with a fast reasoning worker; the runtime retains bounded GLM/Gemma/Nemotron fallbacks beneath Magnanimous.
