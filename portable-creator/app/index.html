@@ -88,6 +88,23 @@
         <div id="obsMessage" class="message" role="status"></div>
         <p class="muted">This controls local OBS scenes and recording only. It does not start a public livestream or connect TikTok, Facebook, YouTube or Zoom.</p>
       </article>
+      <article class="panel companion-bridge-panel">
+        <div class="panel-heading"><div><small>SECURE ONLINE COMPANION</small><h2>Connect the AI host to this USB Creator</h2></div><span class="spark">↔</span></div>
+        <p class="muted">Pair this local Creator with the Magnanimous online AI Host. The online host can send a short host line or request an OBS scene change. Every remote action waits here for your approval. The pairing token stays in memory and is cleared when you disconnect or lock the workspace.</p>
+        <div class="status-row"><span id="bridgeStatus" class="status warning">Disconnected · no remote access</span></div>
+        <label for="bridgeEndpoint">Official secure bridge address</label>
+        <input id="bridgeEndpoint" type="url" autocomplete="off" spellcheck="false" placeholder="wss://iammagnanimousway.com/api/live-bridge/ws/…">
+        <label for="bridgeToken">Temporary USB companion token</label>
+        <input id="bridgeToken" type="password" autocomplete="off" spellcheck="false" maxlength="43" placeholder="Paste the one-time companion token">
+        <div class="actions">
+          <button id="bridgeConnectButton" class="primary" disabled>Connect secure companion</button>
+          <button id="bridgeDisconnectButton" class="quiet" disabled>Disconnect</button>
+        </div>
+        <div id="bridgeMessage" class="message" role="status">Unlock your encrypted workspace before pairing.</div>
+        <div class="bridge-command-heading"><small>REMOTE ACTIONS · LOCAL APPROVAL REQUIRED</small><span id="bridgePendingCount" class="count">0 pending</span></div>
+        <div id="bridgeCommandList" class="bridge-command-list"><p class="muted">No remote actions waiting.</p></div>
+        <p class="muted">Supported now: host speech through this device's speech engine, and a named OBS scene already present in OBS. The bridge cannot start/end a public broadcast, send social chat, moderate people, make purchases, change accounts or run system commands.</p>
+      </article>
       <article class="panel live-autonomy-panel">
         <div class="panel-heading"><div><small>OWNER-CONTROLLED SHOW MODE</small><h2>Magnanimous AI takeover</h2></div><span class="spark">✦</span></div>
         <p class="muted">When you enable takeover, Magnanimous can speak short AI-generated host lines and switch only the OBS scenes you approve below. It will stop automatically when this control surface disconnects or the session expires.</p>
