@@ -211,7 +211,7 @@ export default function LiveEventBridgePage() {
             <textarea value={speech} onChange={e=>setSpeech(e.target.value)} rows={4} maxLength={500} placeholder="Write what Magnanimous should say…" />
           </label>}
           <button onClick={sendCommand} disabled={!connected||(needsTarget?!target.trim():!speech.trim())}>Send approved command</button>
-          <p className="hint">The bridge allows only scene selection, overlay visibility, approved audio cues and host speech. It cannot start or stop broadcasts, manage accounts, moderate viewers, spend money, run shell commands or execute arbitrary code.</p>
+          <p className="hint">Only OBS scene selection and local host speech are supported, and both require approval on the USB companion. The bridge cannot start or stop broadcasts, manage accounts, moderate viewers, spend money, run shell commands or execute arbitrary code.</p>
         </div>
       </section>
       {receipts.length>0&&<section className="panel receipts" aria-live="polite"><div className="panelHead"><div><small>04 • COMPANION-REPORTED RECEIPTS</small><h2>Local action status</h2></div><span className="count">{receipts.length} / 20</span></div>{receipts.map(receipt=><article key={receipt.commandId}><strong>{receipt.status.toUpperCase()}</strong><span>{receipt.commandId}</span><time>{new Date(receipt.updatedAt).toLocaleTimeString()}</time></article>)}<p className="hint">These receipts are reported by the paired local companion; they are not independent verification.</p></section>}
