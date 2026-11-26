@@ -30,6 +30,11 @@ let chatWindow=Date.now();
 let chatCount=0;
 let serverPort=PORT;
 let obsClient=null;
+let bridgeSocket=null;
+let bridgeStatus='disconnected';
+let bridgeError='';
+const pendingBridgeCommands=[];
+const approvedBridgeCommands=new Map();
 const OBS_PORT=4455;
 fs.mkdirSync(DATA,{recursive:true});
 let liveEventsRestored=false;
@@ -151,6 +156,7 @@ function unlockVault(passphrase){
  }
 }
 function lockVault(){
+ closeBridge();
  liveEvents.clear();liveEventsRestored=false;liveEventJournalError='';liveEventJournalWarning='';
  if(vaultKey)vaultKey.fill(0);
  vaultKey=null;vaultSalt=null;vaultData=null;
@@ -166,6 +172,93 @@ async function modelStatus(){
   return {ready:true,name:String(data?.data?.[0]?.id||'Local GGUF model').slice(0,120)};
  }catch{return {ready:false,reason:'The local model runtime is not responding.'};}
  finally{clearTimeout(timeout);}
+}
+function safeBridgeCommand(value){
+ if(!value||typeof value!=='object'||typeof value.commandId!=='string'||!/^[A-Za-z0-9._:-]{1,160}$/.test(value.commandId))return null;
+ if(value.action==='scene.set'&&typeof value.sceneName==='string'&&value.sceneName.trim())return{commandId:value.commandId,action:'scene.set',sceneName:value.sceneName.trim().slice(0,80)};
+ if(value.action==='host.speak'&&typeof value.text==='string'&&value.text.trim())return{commandId:value.commandId,action:'host.speak',text:value.text.trim().slice(0,500)};
+ return null;
+}
+function sendBridgeCommandReceipt(commandId,status){
+ if(!/^[A-Za-z0-9._:-]{1,160}$/.test(String(commandId||''))||!['received','approved','rejected','completed','failed'].includes(status))return false;
+ if(!bridgeSocket||bridgeSocket.readyState!==1)return false;
+ try{bridgeSocket.send(JSON.stringify({kind:'command.receipt',protocolVersion:1,receipt:{commandId,status}}));return true;}catch{return false;}
+}
+function closeBridge(){
+ const socket=bridgeSocket;
+ if(socket&&socket.readyState===1){
+  for(const item of pendingBridgeCommands)sendBridgeCommandReceipt(item.commandId,'rejected');
+  for(const [id] of approvedBridgeCommands)sendBridgeCommandReceipt(id,'failed');
+ }
+ bridgeSocket=null;bridgeStatus='disconnected';bridgeError='';
+ pendingBridgeCommands.length=0;approvedBridgeCommands.clear();
+ if(socket){try{socket.close(1000,'Operator disconnected');}catch{}}
+}
+function bridgeSnapshot(){
+ return{status:bridgeStatus,connected:bridgeStatus==='connected',error:bridgeError,pendingCommands:pendingBridgeCommands.map(({commandId,action,sceneName,text,receivedAt})=>({commandId,action,sceneName,text,receivedAt}))};
+}
+function validateBridgePairing(endpoint,token){
+ if(typeof WebSocket!=='function')throw new Error('Online bridge requires Node.js 22 or newer. Offline creation remains available.');
+ let url;try{url=new URL(endpoint);}catch{throw new Error('Use the official secure Magnanimous live-bridge address.');}
+ if(url.protocol!=='wss:'||url.hostname!=='iammagnanimousway.com'||(url.port&&url.port!=='443')||url.username||url.password||url.search||url.hash||!/^\/api\/live-bridge\/ws\/[0-9a-f-]{36}$/i.test(url.pathname))throw new Error('Use the official secure Magnanimous live-bridge address.');
+ if(typeof token!=='string'||token.length!==43||!/^[A-Za-z0-9_-]{43}$/.test(token))throw new Error('The companion pairing token is invalid or expired.');
+ return url;
+}
+function connectBridge(endpoint,token){
+ const url=validateBridgePairing(endpoint,token);
+ closeBridge();
+ bridgeStatus='connecting';bridgeError='';
+ const socket=new WebSocket(url.toString());bridgeSocket=socket;
+ const authenticate=()=>{if(bridgeSocket===socket)socket.send(JSON.stringify({kind:'auth',protocolVersion:1,token}));socket.removeEventListener('open',authenticate);};
+ socket.addEventListener('open',authenticate,{once:true});
+ socket.addEventListener('message',message=>{
+  if(bridgeSocket!==socket)return;
+  let envelope;try{envelope=JSON.parse(String(message.data));}catch{bridgeError='The online relay sent an unreadable message.';return;}
+  if(envelope?.kind==='ready'&&envelope.protocolVersion===1){bridgeStatus='connected';bridgeError='';return;}
+  if(envelope?.kind==='waiting'){bridgeStatus='connecting';return;}
+  if(envelope?.kind==='event'&&envelope.protocolVersion===1){
+   const result=liveEvents.ingest(envelope.event,{bypassRateLimit:true});
+   if(!['accepted','duplicate'].includes(result.status)){
+    const blocked=result.status==='persistence_error';
+    bridgeError=String(result.detail||'The local companion could not accept the incoming event.').slice(0,240);
+    try{socket.send(JSON.stringify({kind:'error',code:blocked?'LOCAL_STORAGE_BLOCKED':'LOCAL_EVENT_REJECTED',message:bridgeError}));}catch{}
+    bridgeStatus='error';bridgeSocket=null;
+    try{socket.close(4429,'Local event intake stopped');}catch{}
+   }
+   return;
+  }
+  if(envelope?.kind==='command'&&envelope.protocolVersion===1){
+   const command=safeBridgeCommand(envelope.command);
+   if(!command){
+    bridgeError='An unsupported remote command was rejected.';
+    const commandId=envelope.command?.commandId;
+    if(typeof commandId==='string')sendBridgeCommandReceipt(commandId,'failed');
+    return;
+   }
+   if(pendingBridgeCommands.some(item=>item.commandId===command.commandId)){sendBridgeCommandReceipt(command.commandId,'received');return;}
+   if(approvedBridgeCommands.has(command.commandId)){sendBridgeCommandReceipt(command.commandId,'approved');return;}
+   if(pendingBridgeCommands.length>=20){bridgeError='The local approval queue is full; no command was executed.';sendBridgeCommandReceipt(command.commandId,'rejected');return;}
+   pendingBridgeCommands.push({...command,receivedAt:new Date().toISOString()});
+   sendBridgeCommandReceipt(command.commandId,'received');
+   return;
+  }
+  if(envelope?.kind==='error'){
+   bridgeError=String(envelope.message||'The online relay reported an error.').slice(0,240);
+   if(envelope.code==='AUTH_FAILED'||envelope.code==='PAIRING_REVOKED'){
+    const failed=bridgeSocket;bridgeSocket=null;bridgeStatus='error';
+    pendingBridgeCommands.length=0;approvedBridgeCommands.clear();
+    try{failed?.close(4001,'Pairing rejected');}catch{}
+   }
+  }
+ });
+ socket.addEventListener('close',event=>{
+  if(bridgeSocket===socket){
+   bridgeSocket=null;bridgeStatus='disconnected';
+   pendingBridgeCommands.length=0;approvedBridgeCommands.clear();
+   if(event.code!==1000)bridgeError='The online relay closed the connection ('+event.code+'). Create a fresh pair if the token expired.';
+  }
+ });
+ socket.addEventListener('error',()=>{if(bridgeSocket===socket){bridgeStatus='error';bridgeError='The secure online bridge connection failed.';}});
 }
 function safeProject(value){
  const title=String(value?.title||'Untitled project').replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,120)||'Untitled project';
