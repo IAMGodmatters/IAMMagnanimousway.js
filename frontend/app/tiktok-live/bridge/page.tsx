@@ -58,7 +58,12 @@ export default function LiveEventBridgePage() {
     const client=createLiveBridgeClient(targetEndpoint,targetToken,{
       onStatus:next=>{statusRef.current=next;setStatus(next);channelRef.current?.postMessage({kind:'status',status:next});},
       onEvent:async event=>{
-        await persistLiveEvent(event);
+        try{
+          await persistLiveEvent(event);
+        }catch(cause){
+          setError(cause instanceof Error?cause.message:'The local event could not be saved safely. It remains unacknowledged so the relay can retry.');
+          return;
+        }
         setEvents(current=>[event,...current.filter(item=>item.provider!==event.provider||item.eventId!==event.eventId)].slice(0,50));
         channelRef.current?.postMessage({kind:'event',event});
       },
