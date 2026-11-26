@@ -5,6 +5,7 @@ import { createLiveBridgeClient, type LiveBridgeCommandReceipt, type LiveBridgeS
 import type { LiveEvent } from '../../../lib/live-studio/event-contract';
 
 type CommandAction = 'scene.set' | 'overlay.show' | 'overlay.hide' | 'audio.cue' | 'host.speak';
+function newCommandId(){return globalThis.crypto?.randomUUID?.()||('cmd-'+Date.now()+'-'+Math.random().toString(36).slice(2,12));}
 
 export default function LiveEventBridgePage() {
   const [endpoint,setEndpoint]=useState('');
@@ -36,7 +37,7 @@ export default function LiveEventBridgePage() {
       if(data.type!=='host.speak'||typeof data.text!=='string')return;
       const text=data.text.replace(/[\\u0000-\\u001f\\u007f]/g,' ').trim().slice(0,500);
       if(!text)return;
-      const commandId=globalThis.crypto?.randomUUID?.()||String(Date.now());
+      const commandId=newCommandId();
       const sent=clientRef.current?.sendCommand({commandId,action:'host.speak',text})||false;
       channel.postMessage({type:'host.speak.result',ok:sent,commandId});
     });
@@ -87,6 +88,7 @@ export default function LiveEventBridgePage() {
       if(!response.ok)throw new Error(data.detail||'Sign in to Magnanimous before creating a bridge pair.');
       if(pairId){await revokePairId(pairId);setPairId('');}
       setPairId(data.pairId);
+      setReceipts([]);
       setEndpoint(data.endpoint);
       setPairingToken('');
       setCompanionToken(data.companionToken);
@@ -116,7 +118,7 @@ export default function LiveEventBridgePage() {
     try {
       await revokePairId(pairId);
       clientRef.current?.disconnect();clientRef.current=null;
-      setPairId('');setPairingToken('');setCompanionToken('');setEndpoint('');
+      setPairId('');setPairingToken('');setCompanionToken('');setEndpoint('');setReceipts([]);
       setStatus('disconnected');
       setNotice('Pairing revoked. The local companion has lost access and must be paired again.');
     } catch(cause) {
@@ -133,7 +135,7 @@ export default function LiveEventBridgePage() {
 
   function sendCommand() {
     if(action!=='scene.set'&&action!=='host.speak'){setNotice('Overlay and audio-cue commands are not enabled yet. No command was sent.');return;}
-    const commandId=globalThis.crypto?.randomUUID?.()||String(Date.now());
+    const commandId=newCommandId();
     const payload=action==='scene.set'?{sceneName:target}:{text:speech};
     const sent=clientRef.current?.sendCommand({commandId,action,...payload})||false;
     setNotice(sent?'Command transmitted. Waiting for the local companion to confirm receipt and request your approval.':'No command sent. Confirm that the companion is connected and that the command fields are valid.');
@@ -208,7 +210,7 @@ export default function LiveEventBridgePage() {
           </label>:<label>Words for the AI host
             <textarea value={speech} onChange={e=>setSpeech(e.target.value)} rows={4} maxLength={500} placeholder="Write what Magnanimous should say…" />
           </label>}
-          <button onClick={sendCommand} disabled={!connected||(action!=='scene.set'&&action!=='host.speak')||(needsTarget?!target.trim():!speech.trim())}>Send approved command</button>
+          <button onClick={sendCommand} disabled={!connected||(action!=='scene.set'&&action!=='host.speak')||(needsTarget?!target.trim():!speech.trim())}>Send to local approval queue</button>
           <p className="hint">Currently supported: OBS scene changes and AI host speech after local operator approval. Overlay and audio-cue commands are disabled until their local engines are implemented and verified. The bridge cannot start or stop broadcasts, manage accounts, moderate viewers, spend money, run shell commands or execute arbitrary code.</p>
         </div>
       </section>
