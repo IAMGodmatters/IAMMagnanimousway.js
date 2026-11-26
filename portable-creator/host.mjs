@@ -35,6 +35,7 @@ let bridgeStatus='disconnected';
 let bridgeError='';
 const pendingBridgeCommands=[];
 const approvedBridgeCommands=new Map();
+let bridgeStopRequest=null;
 const OBS_PORT=4455;
 fs.mkdirSync(DATA,{recursive:true});
 let liveEventsRestored=false;
@@ -177,6 +178,7 @@ function safeBridgeCommand(value){
  if(!value||typeof value!=='object'||typeof value.commandId!=='string'||!/^[A-Za-z0-9._:-]{1,160}$/.test(value.commandId))return null;
  if(value.action==='scene.set'&&typeof value.sceneName==='string'&&value.sceneName.trim())return{commandId:value.commandId,action:'scene.set',sceneName:value.sceneName.trim().slice(0,80)};
  if(value.action==='host.speak'&&typeof value.text==='string'&&value.text.trim())return{commandId:value.commandId,action:'host.speak',text:value.text.trim().slice(0,500)};
+ if(value.action==='host.stop')return{commandId:value.commandId,action:'host.stop'};
  return null;
 }
 function sendBridgeCommandReceipt(commandId,status){
@@ -191,11 +193,11 @@ function closeBridge(){
   for(const [id] of approvedBridgeCommands)sendBridgeCommandReceipt(id,'failed');
  }
  bridgeSocket=null;bridgeStatus='disconnected';bridgeError='';
- pendingBridgeCommands.length=0;approvedBridgeCommands.clear();
+ pendingBridgeCommands.length=0;approvedBridgeCommands.clear();bridgeStopRequest=null;
  if(socket){try{socket.close(1000,'Operator disconnected');}catch{}}
 }
 function bridgeSnapshot(){
- return{status:bridgeStatus,connected:bridgeStatus==='connected',error:bridgeError,pendingCommands:pendingBridgeCommands.map(({commandId,action,sceneName,text,receivedAt})=>({commandId,action,sceneName,text,receivedAt}))};
+ return{status:bridgeStatus,connected:bridgeStatus==='connected',error:bridgeError,pendingCommands:pendingBridgeCommands.map(({commandId,action,sceneName,text,receivedAt})=>({commandId,action,sceneName,text,receivedAt})),activeSpeechCount:[...approvedBridgeCommands.values()].filter(item=>item.action==='host.speak'&&!item.stopped).length,stopRequest:bridgeStopRequest};
 }
 function validateBridgePairing(endpoint,token){
  if(typeof WebSocket!=='function')throw new Error('Online bridge requires Node.js 22 or newer. Offline creation remains available.');
@@ -237,6 +239,20 @@ function connectBridge(endpoint,token){
    }
    if(pendingBridgeCommands.some(item=>item.commandId===command.commandId)){sendBridgeCommandReceipt(command.commandId,'received');return;}
    if(approvedBridgeCommands.has(command.commandId)){sendBridgeCommandReceipt(command.commandId,'approved');return;}
+   if(command.action==='host.stop'){
+    for(let i=pendingBridgeCommands.length-1;i>=0;i--){
+     const pending=pendingBridgeCommands[i];
+     if(pending.action==='host.speak'){pendingBridgeCommands.splice(i,1);sendBridgeCommandReceipt(pending.commandId,'failed');}
+    }
+    for(const [id,item] of approvedBridgeCommands){
+     if(item.action==='host.speak'&&!item.stopped){item.stopped=true;item.stoppedAt=Date.now();sendBridgeCommandReceipt(id,'failed');}
+    }
+    approvedBridgeCommands.set(command.commandId,{action:'host.stop',approvedAt:Date.now()});
+    bridgeStopRequest={commandId:command.commandId,issuedAt:Date.now()};
+    sendBridgeCommandReceipt(command.commandId,'received');
+    sendBridgeCommandReceipt(command.commandId,'approved');
+    return;
+   }
    if(pendingBridgeCommands.length>=20){bridgeError='The local approval queue is full; no command was executed.';sendBridgeCommandReceipt(command.commandId,'rejected');return;}
    pendingBridgeCommands.push({...command,receivedAt:new Date().toISOString()});
    sendBridgeCommandReceipt(command.commandId,'received');
@@ -246,7 +262,7 @@ function connectBridge(endpoint,token){
    bridgeError=String(envelope.message||'The online relay reported an error.').slice(0,240);
    if(envelope.code==='AUTH_FAILED'||envelope.code==='PAIRING_REVOKED'){
     const failed=bridgeSocket;bridgeSocket=null;bridgeStatus='error';
-    pendingBridgeCommands.length=0;approvedBridgeCommands.clear();
+    pendingBridgeCommands.length=0;approvedBridgeCommands.clear();bridgeStopRequest=null;
     try{failed?.close(4001,'Pairing rejected');}catch{}
    }
   }
@@ -254,7 +270,7 @@ function connectBridge(endpoint,token){
  socket.addEventListener('close',event=>{
   if(bridgeSocket===socket){
    bridgeSocket=null;bridgeStatus='disconnected';
-   pendingBridgeCommands.length=0;approvedBridgeCommands.clear();
+   pendingBridgeCommands.length=0;approvedBridgeCommands.clear();bridgeStopRequest=null;
    if(event.code!==1000)bridgeError='The online relay closed the connection ('+event.code+'). Create a fresh pair if the token expired.';
   }
  });
@@ -438,14 +454,23 @@ async function handleApi(req,res,url){
    return json(res,502,{detail:error.message||'OBS did not confirm the scene change.'});
   }
  }
+ if(req.method==='POST'&&url.pathname==='/api/bridge/command/stop'){
+  let stopped=0;
+  for(const [id,item] of approvedBridgeCommands){
+   if(item.action==='host.speak'&&!item.stopped){item.stopped=true;item.stoppedAt=Date.now();sendBridgeCommandReceipt(id,'failed');stopped++;}
+  }
+  return json(res,200,{ok:true,stopped});
+ }
  if(req.method==='POST'&&url.pathname==='/api/bridge/command/result'){
   const body=await readJson(req),commandId=String(body.commandId||''),outcome=String(body.outcome||'');
   if(!/^[A-Za-z0-9._:-]{1,160}$/.test(commandId)||!['completed','failed'].includes(outcome))return json(res,400,{detail:'A valid command ID and playback outcome are required.'});
   const approved=approvedBridgeCommands.get(commandId);
   if(!approved)return json(res,404,{detail:'The approved host command was not found or its receipt window expired.'});
+  if(approved.stopped){approvedBridgeCommands.delete(commandId);return json(res,200,{ok:true,status:'failed',stopped:true});}
   approvedBridgeCommands.delete(commandId);
-  if(Date.now()-approved.approvedAt>5*60_000){sendBridgeCommandReceipt(commandId,'failed');return json(res,410,{detail:'The local voice completion receipt expired.'});}
+  if(Date.now()-approved.approvedAt>5*60_000){sendBridgeCommandReceipt(commandId,'failed');if(bridgeStopRequest?.commandId===commandId)bridgeStopRequest=null;return json(res,410,{detail:'The local voice completion receipt expired.'});}
   sendBridgeCommandReceipt(commandId,outcome);
+  if(bridgeStopRequest?.commandId===commandId)bridgeStopRequest=null;
   return json(res,200,{ok:true,status:outcome});
  }
  if(req.method==='GET'&&url.pathname==='/api/live/events/status'){
