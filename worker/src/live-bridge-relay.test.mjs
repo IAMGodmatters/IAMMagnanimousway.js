@@ -2,7 +2,7 @@ import test from 'node:test';
 import crypto from 'node:crypto';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {handleLiveBridgeRelay,isRelayProviderAllowed,MagnanimousLiveBridgeRoom,normalizeRelayCommand,normalizeRelayCommandReceipt,normalizeRelayEvent,isBridgePairExpired} from './live-bridge-relay.js';
+import {handleLiveBridgeRelay,isRelayProviderAllowed,MagnanimousLiveBridgeRoom,normalizeRelayCommand,normalizeRelayCommandReceipt,normalizeRelayEvent,isBridgePairExpired,isBridgePairTokenExpired} from './live-bridge-relay.js';
 
 const NOW=Date.parse('2026-11-25T00:00:00.000Z');
 
@@ -42,6 +42,8 @@ test('an established bridge session survives the initial pairing-token window un
  const pair={pairExpiresAt:NOW-1,sessionExpiresAt:NOW+60_000};
  assert.equal(isBridgePairExpired(pair,NOW),false);
  assert.equal(isBridgePairExpired(pair,NOW+60_001),true);
+ assert.equal(isBridgePairTokenExpired(pair,NOW),true,'The pairing token expires even while an already established session remains valid.');
+ assert.equal(isBridgePairTokenExpired({...pair,pairExpiresAt:NOW+60_000},NOW),false);
  assert.equal(isBridgePairExpired({...pair,sessionExpiresAt:0},NOW),true);
  assert.equal(isBridgePairExpired(null,NOW),true);
 });
