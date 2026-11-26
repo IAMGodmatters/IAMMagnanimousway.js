@@ -160,14 +160,22 @@ export class MagnanimousLiveBridgeRoom {
    if(!isRelayProviderAllowed(event.provider,attachment.allowedProviders)){ws.send(JSON.stringify({kind:'error',code:'PROVIDER_NOT_AUTHORIZED',message:'This provider has no approved adapter for this bridge pair.'}));return;}
    const key=relayEventKey(event.provider,event.eventId);
    const stored=await this.state.storage.get('events');
-   const ledger=(Array.isArray(stored)?stored:[]).filter(item=>item&&typeof item.key==='string'&&Number(item.expiresAt)>Date.now()).slice(-MAX_DURABLE_EVENTS);
+   const ledger=(Array.isArray(stored)?stored:[]).filter(item=>item&&typeof item.key==='string'&&Number(item.expiresAt)>Date.now());
    const existing=ledger.find(item=>item.key===key);
    if(existing){
     if(!existing.acknowledgedAt)this.sendToRole('browser',{kind:'event',protocolVersion:1,event:existing.event,deliveryKey:key});
     return;
    }
+   while(ledger.length>=MAX_DURABLE_EVENTS){
+    const acknowledgedIndex=ledger.findIndex(item=>item.acknowledgedAt);
+    if(acknowledgedIndex<0){
+     ws.send(JSON.stringify({kind:'error',code:'EVENT_QUEUE_FULL',message:'The durable event inbox is full of unacknowledged events. No existing event was discarded.'}));
+     return;
+    }
+    ledger.splice(acknowledgedIndex,1);
+   }
    ledger.push({key,event,createdAt:Date.now(),expiresAt:Date.now()+EVENT_TTL_MS,acknowledgedAt:0});
-   await this.state.storage.put('events',ledger.slice(-MAX_DURABLE_EVENTS));
+   await this.state.storage.put('events',ledger);
    this.sendToRole('browser',{kind:'event',protocolVersion:1,event,deliveryKey:key});
    return;
   }
