@@ -244,10 +244,11 @@ function useNextHostScriptSection(){
  $('hostStageStatus').textContent='Script section '+state.hostSectionIndex+' ready';
  message('hostMessage','Loaded the next script section. Review before speaking.','success');
 }
-function speakHostLine(){
+function speakHostLine(onResult){
+ const finish=(()=>{let sent=false;return outcome=>{if(sent)return;sent=true;if(typeof onResult==='function')onResult(outcome);};})();
  const text=$('hostLine').value.trim();
- if(!text){message('hostMessage','Generate or write a host line first.','warning');return;}
- if(!('speechSynthesis' in window)||typeof SpeechSynthesisUtterance==='undefined'){message('hostMessage','This browser/device does not provide speech synthesis. Use a separately licensed local voice engine.','error');return;}
+ if(!text){message('hostMessage','Generate or write a host line first.','warning');finish('failed');return false;}
+ if(!('speechSynthesis' in window)||typeof SpeechSynthesisUtterance==='undefined'){message('hostMessage','This browser/device does not provide speech synthesis. Use a separately licensed local voice engine.','error');finish('failed');return false;}
  window.speechSynthesis.cancel();
  const utterance=new SpeechSynthesisUtterance(text);
  publishHostAvatar({type:'line',text});
@@ -255,9 +256,10 @@ function speakHostLine(){
  const selectedVoice=$('hostVoiceSelect').value;
  if(selectedVoice){const voice=window.speechSynthesis.getVoices().find(item=>item.name===selectedVoice);if(voice)utterance.voice=voice;}
  utterance.onstart=()=>{publishHostAvatar({type:'speaking'});$('hostStageStatus').textContent='Speaking';$('hostVoiceStatus').textContent='Device voice active';$('hostVoiceStatus').className='status ready';$('hostAvatar').classList.add('host-speaking');};
- utterance.onend=()=>{publishHostAvatar({type:'stopped'});$('hostStageStatus').textContent='Ready for the next line';$('hostAvatar').classList.remove('host-speaking');};
- utterance.onerror=()=>{publishHostAvatar({type:'stopped'});$('hostStageStatus').textContent='Voice playback stopped';$('hostAvatar').classList.remove('host-speaking');message('hostMessage','The device voice could not complete playback.','warning');};
+ utterance.onend=()=>{publishHostAvatar({type:'stopped'});$('hostStageStatus').textContent='Ready for the next line';$('hostAvatar').classList.remove('host-speaking');finish('completed');};
+ utterance.onerror=()=>{publishHostAvatar({type:'stopped'});$('hostStageStatus').textContent='Voice playback stopped';$('hostAvatar').classList.remove('host-speaking');message('hostMessage','The device voice could not complete playback.','warning');finish('failed');};
  window.speechSynthesis.speak(utterance);
+ return true;
 }
 function stopHostVoice(){
  if('speechSynthesis' in window)window.speechSynthesis.cancel();publishHostAvatar({type:'stopped'});
@@ -349,10 +351,14 @@ async function reviewBridgeCommand(commandId,approved){
   const result=await api('/api/bridge/command/review',{method:'POST',body:JSON.stringify({commandId,approved})});
   if(approved&&result.action==='host.speak'&&result.speechText){
    $('hostLine').value=String(result.speechText).slice(0,500);
-   message('hostMessage','Online host speech approved locally. Starting the selected device voice.','success');
-   speakHostLine();
+   message('hostMessage','Online host speech approved locally. Playing through this device voice.','success');
+   speakHostLine(async outcome=>{
+    try{await api('/api/bridge/command/result',{method:'POST',body:JSON.stringify({commandId:result.commandId,outcome})});}
+    catch(error){message('bridgeMessage','Voice playback ended, but the completion receipt could not reach the online host: '+error.message,'warning');}
+   });
+  }else{
+   message('bridgeMessage',approved?'Approved command completed locally'+(result.sceneName?' · '+result.sceneName:'')+'.':'Remote command rejected.','success');
   }
-  message('bridgeMessage',approved?'Approved command completed locally'+(result.sceneName?' · '+result.sceneName:'')+(result.action==='host.speak'?' · host speech sent to device voice':'')+'.':'Remote command rejected.','success');
   await refreshBridgeStatus();await refreshObsStatus();
  }catch(error){message('bridgeMessage',error.message,'error');}
 }
