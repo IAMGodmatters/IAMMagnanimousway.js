@@ -21,6 +21,13 @@ const eventRuntime=read('portable-creator/live-event-runtime.mjs');
 const eventJournal=read('portable-creator/live-event-journal.mjs');
 const eventJournalTests=read('portable-creator/live-event-journal.test.mjs');
 const runtimeQa=read('qa/scripts/portable-creator-runtime-test.mjs');
+const bridgeRelay=read('worker/src/live-bridge-relay.js');
+const bridgeRelayTests=read('worker/src/live-bridge-relay.test.mjs');
+const bridgeClient=read('frontend/lib/live-studio/bridge-client.ts');
+const bridgePage=read('frontend/app/tiktok-live/bridge/page.tsx');
+const aiHost=read('frontend/app/tiktok-live/page.tsx');
+const workerEntry=read('worker/src/security-entrypoint.js');
+const workerConfig=read('worker/wrangler.jsonc');
 
 execFileSync(process.execPath,['--check',path.join(ROOT,'portable-creator/host.mjs')],{cwd:ROOT,stdio:'inherit'});
 execFileSync(process.execPath,['--check',path.join(ROOT,'portable-creator/app/app.js')],{cwd:ROOT,stdio:'inherit'});
@@ -96,6 +103,32 @@ checks.push(
  ['live-event delivery uses short leases and explicit durable acknowledgements',eventRuntime.includes('claim(limit=10)')&&eventRuntime.includes('acknowledge(deliveryId,eventKeys)')&&host.includes("/api/live/events/ack")&&app.includes("/api/live/events/ack")],
  ['live-event intake and review require a verified unlocked workspace',host.includes('restoreLiveEvents()')&&host.includes('liveEvents.clear();liveEventsRestored=false')&&host.includes('Unlock the encrypted USB workspace before accepting events.')],
  ['runtime QA covers journal authentication, interrupted writes and vault-lock recovery',eventJournalTests.includes('wrong-key recovery cannot erase')&&eventJournalTests.includes('simulated interrupted USB write')&&runtimeQa.includes('live-event-journal.test.mjs')]
+);
+checks.push(
+ ['live bridge relay is exported through the existing secured Worker entrypoint',workerEntry.includes("import { handleLiveBridgeRelay, MagnanimousLiveBridgeRoom } from './live-bridge-relay.js'")&&workerEntry.includes("policyUrl.pathname.startsWith('/api/live-bridge/')")&&workerEntry.includes('if(bridgeResponse.status===101)return bridgeResponse')],
+ ['live bridge Durable Object and account-scoped pairing rate limit are declared',workerConfig.includes('"LIVE_BRIDGE_ROOMS"')&&workerConfig.includes('"MagnanimousLiveBridgeRoom"')&&workerConfig.includes('"LIVE_BRIDGE_PAIR_LIMITER"')&&workerConfig.includes('"v1-live-bridge-rooms"')],
+ ['bridge pairs bind browser and companion tokens to one tenant and owner with short pairing expiry',bridgeRelay.includes('browserHash')&&bridgeRelay.includes('companionHash')&&bridgeRelay.includes('tenantId')&&bridgeRelay.includes('userId')&&bridgeRelay.includes('TOKEN_TTL_MS = 10 * 60 * 1000')&&bridgeRelay.includes('SESSION_TTL_MS = 12 * 60 * 60 * 1000')],
+ ['bridge authentication assigns separate browser and companion roles and checks the expected origin',bridgeRelay.includes("role==='browser'&&attachment.origin!==attachment.expectedOrigin")&&bridgeRelay.includes("role==='companion'&&attachment.origin!==null")&&bridgeRelay.includes('ORIGIN_ROLE_MISMATCH')],
+ ['bridge relay bounds message size, connection count, session duration and role-specific rate',bridgeRelay.includes('MAX_MESSAGE_BYTES = 16 * 1024')&&bridgeRelay.includes('length>=4')&&bridgeRelay.includes('SESSION_TTL_MS')&&bridgeRelay.includes("attachment.role==='browser'?10:30")],
+ ['bridge pair revocation verifies tenant and owner, deletes command history and closes sockets',bridgeRelay.includes('This bridge pair belongs to another account.')&&bridgeRelay.includes("storage.delete('commands')")&&bridgeRelay.includes("socket.close(4001,'Bridge pair revoked')")],
+ ['bridge remote production controls are limited to host speech and OBS scene selection',bridgeRelay.includes("input.action==='scene.set'")&&bridgeRelay.includes("input.action==='host.speak'")&&!bridgeRelay.includes("input.action==='broadcast.start'")&&!bridgeRelay.includes("input.action==='moderate_chat'")],
+ ['bridge command ledger prevents duplicates and enforces 5-minute expiry and a 20-command ceiling',bridgeRelay.includes('now+5*60_000')&&bridgeRelay.includes('COMMAND_QUEUE_FULL')&&bridgeRelay.includes('DUPLICATE_COMMAND')&&bridgeRelay.includes('ledger.slice(-50)')],
+ ['bridge command receipts accept only known statuses and enforce the owner approval lifecycle',bridgeRelay.includes("new Set(['received','approved','rejected','completed','failed'])")&&bridgeRelay.includes('COMMAND_TRANSITIONS')&&bridgeRelay.includes('INVALID_COMMAND_TRANSITION')],
+ ['bridge returns explicit failure when the companion is offline or the socket cannot receive a command',bridgeRelay.includes('COMMAND_NOT_DELIVERED')&&bridgeRelay.includes('not delivered')],
+ ['bridge replays recent command receipts after reconnect and does not expose receipt speech text',bridgeRelay.includes("kind:'command.receipt'")&&bridgeRelay.includes('recentReceipts')&&!bridgeRelay.includes('speechText:receipt')],
+ ['secure bridge client validates the official remote WSS endpoint and only permits loopback ws for local use',bridgeClient.includes("url.hostname==='iammagnanimousway.com'")&&bridgeClient.includes("url.protocol==='ws:'&&loopback")&&bridgeClient.includes('/api/live-bridge/ws/')],
+ ['secure browser companion keeps pairing tokens in component state and clears them on disconnect',bridgePage.includes('setPairingToken(\'\')')&&bridgePage.includes('setCompanionToken(\'\')')&&!/localStorage\\.(setItem|getItem).*Token/i.test(bridgePage)],
+ ['bridge UI exposes lifecycle receipts and never calls a remote command completed merely because it was sent',bridgePage.includes('onCommandReceipt:receipt=>')&&bridgePage.includes('VERIFIED COMMAND RECEIPTS')&&bridgePage.includes('The command was transmitted')],
+ ['online AI Host preserves existing takeover and can route generated voice to the paired USB Creator',aiHost.includes('useCompanionVoice')&&aiHost.includes('magnanimous-live-host-bridge-v1')&&aiHost.includes('host.speak')&&aiHost.includes('Start AI takeover')&&aiHost.includes('STOP AI TAKEOVER')],
+ ['online AI Host reports companion receipt status and pauses additional speech until terminal result',aiHost.includes('host.speak.receipt')&&aiHost.includes("payload.status === 'rejected'")&&aiHost.includes('setSpeaking(true)')],
+ ['portable bridge connection only accepts the official WSS endpoint and clears pending actions when vault locks',host.includes("url.hostname!=='iammagnanimousway.com'")&&host.includes('function validateBridgePairing')&&host.includes('function lockVault(){\n closeBridge();')],
+ ['portable host speech and scene commands remain in a local approval queue before execution',host.includes('pendingBridgeCommands.push')&&host.includes("url.pathname==='/api/bridge/command/review'")&&html.includes('LOCAL APPROVAL REQUIRED')],
+ ['portable bridge receipt confirms speech only after local speech synthesis reports onend',app.includes('utterance.onend=')&&app.includes("finishBridgeSpeech(result.commandId,'completed')")&&host.includes("url.pathname==='/api/bridge/command/result'")],
+ ['portable OBS bridge command requires connected OBS and reports completion after the local scene switch',host.includes("if(!obsClient?.connected)return json(res,409,{detail:'Connect to OBS locally before approving a scene change.'})")&&host.includes('await obsClient.setProgramScene(command.sceneName)')&&host.includes("sendBridgeCommandReceipt(commandId,'completed')")],
+ ['portable Creator exposes explicit connect, disconnect, approve and reject controls for the companion',html.includes('id="bridgeConnectButton"')&&html.includes('id="bridgeDisconnectButton"')&&app.includes('reviewBridgeCommand(command.commandId,true)')&&app.includes('reviewBridgeCommand(command.commandId,false)')],
+ ['portable companion pairing inputs are not persisted and are cleared from memory on disconnect',app.includes("$('bridgeToken').value=''")&&host.includes('pendingBridgeCommands.length=0;approvedBridgeCommands.clear()')&&!/(localStorage|sessionStorage).*bridgeToken/i.test(app)],
+ ['full platform QA executes the bridge relay tests and syntax-checks the Worker module',workflow.includes('worker/src/live-bridge-relay.test.mjs')&&workflow.includes('node --check worker/src/live-bridge-relay.js')],
+ ['relay regression suite covers offline delivery, duplicate IDs, receipt state transitions and reconnect recovery',bridgeRelayTests.includes('offline')&&bridgeRelayTests.includes('DUPLICATE_COMMAND')&&bridgeRelayTests.includes('INVALID_COMMAND_TRANSITION')&&bridgeRelayTests.includes('browser reconnect receives the latest non-expired local command receipt')]
 );
 const failures=checks.filter(([,ok])=>!ok);
 for(const [name,ok] of checks)console.log(`${ok?'PASS':'FAIL'} ${name}`);
