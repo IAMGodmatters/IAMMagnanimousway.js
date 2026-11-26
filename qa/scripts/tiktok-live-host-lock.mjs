@@ -46,15 +46,15 @@ const checks = [
   ['autonomous viewer comments cannot invoke Magnanimous tools or actions', host.includes('use_tools: false') && host.includes('Do not pretend to be a human')],
   ['paired event bridge relays only normalized events into the host queue', host.includes('normalizeLiveEvent(payload.event)') && host.includes("new BroadcastChannel('magnanimous-live-events-v1')") && host.includes('liveEventToHostPrompt')],
   ['AI host discovers an already-paired companion tab without storing bridge tokens', host.includes("kind: 'request-status'") && bridgeUi.includes('statusRef.current') && bridgeUi.includes("message.data?.kind==='request-status'") && !host.includes('localStorage.setItem')],
-  ['event bridge page sends authenticated companion events to the host tab', bridgeUi.includes("new BroadcastChannel('magnanimous-live-events-v1')") && bridgeUi.includes("postMessage({kind:'event',event})") && bridgeUi.includes('onEvent:event=>')],
+  ['event bridge page sends authenticated companion events to the host tab', bridgeUi.includes("new BroadcastChannel('magnanimous-live-events-v1')") && bridgeUi.includes("postMessage({kind:'event',event})") && /onEvent:\s*async\s+event\s*=>/.test(bridgeUi) && bridgeUi.includes('await persistLiveEvent(event)')],
   ['autonomous queue is capped for companion events as well as typed comments', host.includes('queuedCommentsRef.current.length >= 25') && host.includes('The live event queue is full (25 items)')],
 
   ['manual speaking controls cannot interrupt autonomous host speech', host.includes('onClick={welcome} disabled={takeoverActive}') && host.includes('onClick={() => speak(hostReply)} disabled={takeoverActive}')],
   ['LIVE Host links to the event bridge control room', host.includes('href="/tiktok-live/bridge"')],
   ['bridge UI uses the provider-neutral client', bridgeUi.includes('createLiveBridgeClient') && bridgeUi.includes('LiveEvent')],
   ['bridge UI truthfully discloses that the companion and adapters are not deployed', bridgeUi.includes('companion server and platform adapters are not deployed yet')],
-  ['bridge UI rejects provider passwords and uses a one-time pairing token', bridgeUi.includes('Do not enter TikTok, Google, Twitch, OBS or game-account passwords') && bridgeUi.includes('One-time pairing token')],
-  ['bridge UI never persists pairing tokens', bridgeUi.includes('never saved in browser storage') && !bridgeUi.includes('localStorage')],
+  ['bridge UI rejects provider passwords and uses a one-time pairing token', bridgeUi.includes('Do not enter TikTok, Google, Twitch, OBS or game-account passwords') && bridgeUi.includes('short-lived pairing token') && bridgeUi.includes('Browser role token (memory only)')],
+  ['bridge UI never persists pairing tokens', bridgeUi.includes('never saved in browser storage') && !/\b(?:localStorage|sessionStorage)\.setItem\s*\(/.test(bridgeUi) && !/\bindexedDB\.open\s*\(/.test(bridgeUi)],
   ['bridge UI bounds the event feed', bridgeUi.includes('.slice(0,50)')],
 ];
 
