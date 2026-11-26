@@ -51,6 +51,12 @@ The AI Host must be able to run an owner-approved show rundown, accept authorize
 - Added/updated regression assertions for queue backpressure, pending replay, two-phase acknowledgements, phone redaction and browser heartbeat/reconnect behavior.
 - Updated bridge protocol documentation to state only the commands actually implemented.
 
+## Follow-up hardening after initial checkpoint
+
+- The portable companion now applies the same privacy boundary before local event-journal acceptance: viewer actor names, event text and safe string tags redact email addresses, international phone numbers (including the leading +), Bearer credentials and common API/access/refresh-token assignments.
+- The local live-event runtime unit suite now includes a test proving that the journal callback receives only redacted content. The portable Creator QA lock also checks the local redaction contract.
+- This is an additional privacy layer; the encrypted journal remains encrypted at rest and is not a reason to retain raw viewer contact details.
+
 ## Not yet verified — do not claim complete
 
 - The PR is not merged and this work has not been deployed to production.
