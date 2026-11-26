@@ -104,6 +104,22 @@ export default function TikTokLiveHost() {
         }
         return;
       }
+      if (payload.type === 'host.stop.result') {
+        setCompanionVoiceStatus(payload.ok === true ? 'Emergency stop sent · waiting for device confirmation' : 'Emergency stop not delivered · check companion connection');
+        if (payload.ok !== true) setNotice('The USB companion did not receive the stop request. Stop speech directly on the USB Creator.');
+        return;
+      }
+      if (payload.type === 'host.stop.receipt') {
+        if (payload.status === 'completed') {
+          setSpeaking(false);
+          setCompanionVoiceStatus('Emergency stop confirmed on USB Creator');
+          setStatus('PREVIEW READY');
+          setNotice('The paired USB Creator confirmed that device speech has stopped.');
+        } else if (payload.status === 'failed') {
+          setNotice('The USB Creator could not confirm the emergency stop. Use its local stop control.');
+        }
+        return;
+      }
       if (payload.type === 'host.speak.receipt') {
         const label = payload.status === 'received' ? 'Received · waiting for USB owner approval'
           : payload.status === 'approved' ? 'Approved · local voice is preparing'
@@ -190,6 +206,10 @@ export default function TikTokLiveHost() {
   }
 
   function stop() {
+    if (useCompanionVoice && bridgeStatus === 'connected') {
+      setCompanionVoiceStatus('Sending emergency stop to USB Creator…');
+      companionChannelRef.current?.postMessage({ type: 'host.stop' });
+    }
     takeoverGreetingRef.current = false;
     stopNaturalSpeech();
     setSpeaking(false);
@@ -360,6 +380,10 @@ function cleanLiveViewerText(value: string) {
   }
 
   function stopTakeover(reason = 'operator_stop') {
+    if (useCompanionVoice && bridgeStatus === 'connected') {
+      setCompanionVoiceStatus('Sending emergency stop to USB Creator…');
+      companionChannelRef.current?.postMessage({ type: 'host.stop' });
+    }
     takeoverRef.current = false;
     takeoverDeadlineRef.current = null;
     takeoverStartedAtRef.current = null;
