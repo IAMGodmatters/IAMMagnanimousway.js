@@ -94,7 +94,7 @@ checks.push(
  ['live-event journal uses AES-256-GCM and a key derived from the unlocked workspace',eventJournal.includes("createCipheriv('aes-256-gcm'")&&host.includes("createHmac('sha256',vaultKey)")&&host.includes('magnanimous-live-event-journal-v1')],
  ['live-event journal has bounded storage, fsynced appends and atomic compaction',eventJournal.includes('DEFAULT_MAX_BYTES=8*1024*1024')&&eventJournal.includes('fs.fsyncSync(fd)')&&eventJournal.includes('compact(events,seenKeys=[])')],
  ['live-event delivery uses short leases and explicit durable acknowledgements',eventRuntime.includes('claim(limit=10)')&&eventRuntime.includes('acknowledge(deliveryId,eventKeys)')&&host.includes("/api/live/events/ack")&&app.includes("/api/live/events/ack")],
- ['live-event intake and review require a verified unlocked workspace',host.includes('restoreLiveEvents()')&&host.includes('liveEvents.clear();liveEventsRestored=false')&&host.includes('encrypted workspace before accepting events')],
+ ['live-event intake and review require a verified unlocked workspace',host.includes('restoreLiveEvents()')&&host.includes('liveEvents.clear();liveEventsRestored=false')&&host.includes('Unlock the encrypted USB workspace before accepting events.')],
  ['runtime QA covers journal authentication, interrupted writes and vault-lock recovery',eventJournalTests.includes('wrong-key recovery cannot erase')&&eventJournalTests.includes('simulated interrupted USB write')&&runtimeQa.includes('live-event-journal.test.mjs')]
 );
 const failures=checks.filter(([,ok])=>!ok);
