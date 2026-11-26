@@ -21,7 +21,7 @@ function redactLiveEventText(value,max){
  if(!text)return undefined;
  return text
   .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,'[email redacted]')
-  .replace(/\b(?:\+?\d{1,3}[\s.-]?)?(?:\(?\d{2,4}\)?[\s.-]?)\d{3,4}[\s.-]?\d{3,4}\b/g,'[phone redacted]')
+  .replace(/(?<!\w)(?:\+?\d{1,3}[\s.-]?)?(?:\(?\d{2,4}\)?[\s.-]?)\d{3,4}[\s.-]?\d{3,4}(?!\w)/g,'[phone redacted]')
   .replace(/\bBearer\s+[A-Za-z0-9._~+/-]{12,}\b/gi,'[credential redacted]')
   .replace(/\b(?:api[_-]?key|access[_-]?token|refresh[_-]?token)\s*[:=]\s*[^\s,;]{8,}/gi,'[credential redacted]');
 }
