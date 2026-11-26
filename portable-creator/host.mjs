@@ -377,7 +377,7 @@ async function handleApi(req,res,url){
   catch(error){bridgeStatus='error';bridgeError=error.message;return json(res,400,{detail:error.message});}
  }
  if(req.method==='POST'&&url.pathname==='/api/bridge/disconnect'){
-  closeBridge();pendingBridgeCommands.length=0;return json(res,200,{ok:true,status:bridgeStatus});
+  closeBridge();pendingBridgeCommands.length=0;approvedBridgeCommands.clear();return json(res,200,{ok:true,status:bridgeStatus});
  }
  if(req.method==='POST'&&url.pathname==='/api/bridge/command/review'){
   const body=await readJson(req),commandId=String(body.commandId||''),index=pendingBridgeCommands.findIndex(item=>item.commandId===commandId);
@@ -391,6 +391,7 @@ async function handleApi(req,res,url){
   if(command.action==='host.speak'){
    const speechText=String(command.text||'').replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,500);
    if(!speechText)return json(res,400,{detail:'The host speech request is empty or invalid.'});
+   for(const [id,item] of approvedBridgeCommands){if(Date.now()-item.approvedAt>5*60_000){approvedBridgeCommands.delete(id);sendBridgeCommandReceipt(id,'failed');}}
    if(approvedBridgeCommands.size>=20)return json(res,429,{detail:'Too many approved host lines are awaiting local voice playback.'});
    pendingBridgeCommands.splice(index,1);
    approvedBridgeCommands.set(commandId,{action:'host.speak',approvedAt:Date.now()});
@@ -417,6 +418,7 @@ async function handleApi(req,res,url){
   const approved=approvedBridgeCommands.get(commandId);
   if(!approved)return json(res,404,{detail:'The approved host command was not found or its receipt window expired.'});
   approvedBridgeCommands.delete(commandId);
+  if(Date.now()-approved.approvedAt>5*60_000){sendBridgeCommandReceipt(commandId,'failed');return json(res,410,{detail:'The local voice completion receipt expired.'});}
   sendBridgeCommandReceipt(commandId,outcome);
   return json(res,200,{ok:true,status:outcome});
  }
