@@ -61,6 +61,18 @@ export class MagnanimousLiveBridgeRoom {
  async fetch(request){
   const url=new URL(request.url);
 
+  if(url.pathname==='/internal/rate-limit'&&request.method==='POST'){
+   const body=await request.json().catch(()=>null);
+   if(!body||typeof body.tenantId!=='string'||!body.tenantId||typeof body.userId!=='string'||!body.userId)return json({detail:'Invalid rate-limit identity.'},400);
+   const now=Date.now(),stored=await this.state.storage.get('pair-rate');
+   const recent=(Array.isArray(stored)?stored:[]).filter(value=>Number.isFinite(value)&&value>now-60_000);
+   if(recent.length>=5)return json({success:false},429);
+   recent.push(now);
+   await this.state.storage.put('pair-rate',recent);
+   await this.state.storage.setAlarm(now+60_000);
+   return json({success:true},200);
+  }
+
   if(url.pathname==='/internal/revoke'&&request.method==='POST'){
    const pair=await this.state.storage.get('pair');
    if(!pair)return json({ok:true,revoked:false});
@@ -236,6 +248,22 @@ export class MagnanimousLiveBridgeRoom {
  }
 }
 
+async function consumePairRateLimit(env,user){
+ if(env.LIVE_BRIDGE_PAIR_LIMITER?.limit){
+  const result=await env.LIVE_BRIDGE_PAIR_LIMITER.limit({key:String(user.tenant_id)+':'+String(user.id)});
+  return Boolean(result?.success);
+ }
+ const rateId=env.LIVE_BRIDGE_ROOMS.idFromName('rate:'+String(user.tenant_id)+':'+String(user.id));
+ const stub=env.LIVE_BRIDGE_ROOMS.get(rateId);
+ const response=await stub.fetch(new Request('https://bridge.internal/internal/rate-limit',{
+  method:'POST',headers:{'content-type':'application/json'},
+  body:JSON.stringify({tenantId:String(user.tenant_id),userId:String(user.id)})
+ }));
+ if(!response.ok)return false;
+ const result=await response.json().catch(()=>null);
+ return result?.success===true;
+}
+
 export async function handleLiveBridgeRelay(request,env,user=null){
  const url=new URL(request.url);
 
@@ -244,9 +272,8 @@ export async function handleLiveBridgeRelay(request,env,user=null){
   const fetchSite=request.headers.get('Sec-Fetch-Site');
   if(fetchSite&&fetchSite!=='same-origin')return json({detail:'Cross-site revoke requests are not allowed.'},403);
   if(!user?.id||!user?.tenant_id)return json({detail:'Sign in to revoke a live bridge.'},401);
-  if(!env.LIVE_BRIDGE_ROOMS||!env.LIVE_BRIDGE_PAIR_LIMITER?.limit)return json({detail:'The online bridge service is not configured on this deployment.'},503);
-  const rate=await env.LIVE_BRIDGE_PAIR_LIMITER.limit({key:String(user.tenant_id)+':'+String(user.id)});
-  if(!rate?.success)return json({detail:'Too many pairing requests. Wait one minute before trying again.'},429);
+  if(!env.LIVE_BRIDGE_ROOMS)return json({detail:'The online bridge service is not configured on this deployment.'},503);
+  if(!await consumePairRateLimit(env,user))return json({detail:'Too many bridge requests. Wait one minute before trying again.'},429);
   let body={};try{body=await request.json();}catch{return json({detail:'Invalid revoke request.'},400);}
   const pairId=String(body.pairId||'');
   if(!/^[0-9a-f-]{36}$/i.test(pairId))return json({detail:'The bridge pair identifier is invalid.'},400);
@@ -262,8 +289,7 @@ export async function handleLiveBridgeRelay(request,env,user=null){
   const origin=request.headers.get('Origin');
   if(origin!==url.origin||url.origin!=='https://iammagnanimousway.com'||(request.headers.get('Sec-Fetch-Site')&&request.headers.get('Sec-Fetch-Site')!=='same-origin'))return json({detail:'Bridge pairing must be initiated from the signed-in Magnanimous website.'},403);
   if(!env.LIVE_BRIDGE_ROOMS||!env.LIVE_BRIDGE_PAIR_LIMITER?.limit)return json({detail:'The online bridge service is not configured on this deployment.'},503);
-  const rate=await env.LIVE_BRIDGE_PAIR_LIMITER.limit({key:String(user.tenant_id)+':'+String(user.id)});
-  if(!rate?.success)return json({detail:'Too many pairing requests. Wait one minute before creating another pair.'},429);
+  if(!await consumePairRateLimit(env,user))return json({detail:'Too many pairing requests. Wait one minute before creating another pair.'},429);
   const pairId=crypto.randomUUID();
   const browserToken=randomToken(),companionToken=randomToken();
   const pairExpiresAt=Date.now()+TOKEN_TTL_MS;
