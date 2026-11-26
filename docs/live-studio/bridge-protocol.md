@@ -24,6 +24,8 @@ Outgoing commands are restricted to OBS scene selection and locally approved hos
 - Pairing tokens remain in memory and never enter browser storage, URLs or logs.
 - Remote bridges require TLS, short-lived pairing, revocation, tenant authorization, replay protection, event deduplication, bounded queues and audit logs.
 - Reconnect attempts are bounded; after five attempts the operator must retry.
+- Browser and USB companion clients send a low-frequency 20-second JSON ping to the Magnanimous relay; the relay replies with `pong`. This is only a relay liveness check and must never be forwarded to a provider's own WebSocket/API transport.
+- Command receipts are companion-reported evidence, not independent cryptographic attestations from OBS, the operating system or a platform. `completed` means the local companion observed the OBS scene request succeed or its local speech API report playback ended; the UI must retain that distinction.
 - Minimize events before adding them to Magnanimous context. Raw provider payload retention requires explicit creator settings.
 - AI hosts remain disclosed. Viewer text is untrusted and cannot grant tools, account, moderation, payment or deployment permissions.
 
