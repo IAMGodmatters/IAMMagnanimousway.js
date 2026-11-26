@@ -170,7 +170,7 @@ This addendum records the current official documentation findings checked on 202
 
 ### Twitch EventSub transport details
 
-The EventSub WebSocket client must subscribe using the session ID supplied in \`session_welcome\`. By default, the client has 10 seconds after the Welcome message to create a subscription. The service sends \`session_keepalive\` when there are no event notifications within the configured keepalive window. A \`session_reconnect\` message supplies a reconnect URL; the old connection should remain open until the new connection is established. If the connection is simply lost, the client must reconnect and recreate subscriptions; Twitch documents that events missed during that gap are not replayed. WebSocket subscriptions use user access tokens, not app access tokens.
+The EventSub WebSocket client must subscribe using the session ID supplied in `session_welcome`. By default, the client has 10 seconds after the Welcome message to create a subscription. The service sends `session_keepalive` when there are no event notifications within the configured keepalive window. A `session_reconnect` message supplies a reconnect URL; the old connection should remain open until the new connection is established. If the connection is simply lost, the client must reconnect and recreate subscriptions; Twitch documents that events missed during that gap are not replayed. WebSocket subscriptions use user access tokens, not app access tokens.
 
 Engineering consequence: the future Twitch adapter needs a two-socket handover for the documented reconnect message, bounded resubscription, provider message-ID deduplication, revocation handling, and an explicit event-gap marker after an unplanned disconnect. Do not send application-level JSON heartbeats to Twitch; follow EventSub's keepalive and WebSocket ping/pong protocol.
 
@@ -178,9 +178,9 @@ Source: https://dev.twitch.tv/docs/eventsub/handling-websocket-events/
 
 ### YouTube Live chat recovery
 
-The official \`liveChatMessages.streamList\` method is a low-latency server-streaming endpoint. It returns recent chat history and new messages, includes a \`nextPageToken\`, and supports reconnecting from the last continuation token. The official reference documents a quota cost of 5 units per call. The list endpoint recommends \`streamList\` instead of frequent polling.
+The official `liveChatMessages.streamList` method is a low-latency server-streaming endpoint. It returns recent chat history and new messages, includes a `nextPageToken`, and supports reconnecting from the last continuation token. The official reference documents a quota cost of 5 units per call. The list endpoint recommends `streamList` instead of frequent polling.
 
-Engineering consequence: use the provider's continuation token for resume, deduplicate on the provider message ID, budget quota per tenant/channel, and never replace this with tight polling. Treat \`LIVE_CHAT_DISABLED\`, \`LIVE_CHAT_ENDED\`, permission failures and quota exhaustion as distinct states.
+Engineering consequence: use the provider's continuation token for resume, deduplicate on the provider message ID, budget quota per tenant/channel, and never replace this with tight polling. Treat `LIVE_CHAT_DISABLED`, `LIVE_CHAT_ENDED`, permission failures and quota exhaustion as distinct states.
 
 Sources:
 - https://developers.google.com/youtube/data/live/reference/rest/v3/liveChatMessages/streamList
@@ -188,7 +188,7 @@ Sources:
 
 ### Meta Page Live comments and eligibility
 
-The current Graph API reference exposes a read endpoint at \`/{live-video-id}/comments\` for Live Video comments on New Page Experience. It documents chronological/reverse-chronological ordering and a stream filter. The Page Live Videos reference says the edge can create LiveVideo resources and states that accounts must meet the age and follower eligibility requirements; API existence does not imply an app has the needed permissions or review status.
+The current Graph API reference exposes a read endpoint at `/{live-video-id}/comments` for Live Video comments on New Page Experience. It documents chronological/reverse-chronological ordering and a stream filter. The Page Live Videos reference says the edge can create LiveVideo resources and states that accounts must meet the age and follower eligibility requirements; API existence does not imply an app has the needed permissions or review status.
 
 Engineering consequence: separate Page Live creation from comment reading; check Page task grants, app review, and the exact account eligibility before offering either capability. Do not use a personal profile token as a substitute for the required Page authority.
 
