@@ -329,6 +329,7 @@ test('relays command receipts only for commands issued by the browser and enforc
  const room=new MagnanimousLiveBridgeRoom(state,{});
  await room.webSocketMessage(companion,JSON.stringify({kind:'command.receipt',protocolVersion:1,receipt:{commandId:'command-42',status:'received'}}));
  assert.deepEqual(browser.messages.at(-1),{kind:'command.receipt',protocolVersion:1,receipt:{commandId:'command-42',status:'received'}});
+ assert.deepEqual(companion.messages.at(-1),{kind:'command.receipt.confirmed',protocolVersion:1,receipt:{commandId:'command-42',status:'received'}},'The local companion only receives confirmation after the durable ledger write.');
  assert.equal(values.get('commands')[0].status,'received');
  await room.webSocketMessage(companion,JSON.stringify({kind:'command.receipt',protocolVersion:1,receipt:{commandId:'command-42',status:'completed'}}));
  assert.equal(companion.messages.at(-1)?.code,'INVALID_COMMAND_TRANSITION');
