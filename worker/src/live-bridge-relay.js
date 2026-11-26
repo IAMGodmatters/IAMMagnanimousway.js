@@ -134,7 +134,10 @@ export class MagnanimousLiveBridgeRoom {
   if(attachment.role==='browser'&&envelope?.kind==='command'&&envelope.protocolVersion===1){
    const command=normalizeRelayCommand(envelope.command);
    if(!command){ws.send(JSON.stringify({kind:'error',code:'INVALID_COMMAND',message:'The command is not supported.'}));return;}
-   this.sendToRole('companion',{kind:'command',protocolVersion:1,command});
+   const delivered=this.sendToRole('companion',{kind:'command',protocolVersion:1,command});
+   if(!delivered){
+    ws.send(JSON.stringify({kind:'error',code:'COMMAND_NOT_DELIVERED',message:'The local companion is not connected or could not receive this command. It was not delivered.'}));
+   }
    return;
   }
   ws.send(JSON.stringify({kind:'error',code:'MESSAGE_NOT_ALLOWED',message:'This message is not allowed for this connection role.'}));
