@@ -8,6 +8,7 @@ import { LiveEventRuntime } from './live-event-runtime.mjs';
 import { LiveEventJournal } from './live-event-journal.mjs';
 import { createReviewCue, createReviewCues, createReviewLedger } from './live-show-director.mjs';
 import { createLiveShowAutonomy } from './live-show-autonomy.mjs';
+import { createLocalGameIntegrationToken, verifyLocalGameIntegrationToken, normalizeLocalGameEvent } from './game-event-integration.mjs';
 
 const args=process.argv.slice(2);
 function arg(name,fallback){const i=args.indexOf(name);return i>=0?args[i+1]:fallback;}
@@ -30,6 +31,19 @@ let chatWindow=Date.now();
 let chatCount=0;
 let serverPort=PORT;
 let obsClient=null;
+let bridgeSocket=null;
+let bridgeHeartbeat=null;
+let bridgeReconnectTimer=null;
+let bridgeReconnectCount=0;
+let bridgeStatus='disconnected';
+let bridgeError='';
+let bridgeEndpoint='';
+let bridgeToken='';
+let bridgeClosing=true;
+let gameIntegrationToken=null;
+const pendingBridgeCommands=[];
+const approvedBridgeCommands=new Map();
+const pendingBridgeReceiptAcks=new Map();
 let bridgeSocket=null;
 let bridgeHeartbeat=null;
 let bridgeStatus='disconnected';
@@ -157,6 +171,8 @@ function unlockVault(passphrase){
  }
 }
 function lockVault(){
+ closeBridge();
+ gameIntegrationToken=null;
  closeBridge('workspace_locked');
  liveEvents.clear();liveEventsRestored=false;liveEventJournalError='';liveEventJournalWarning='';
  if(vaultKey)vaultKey.fill(0);
