@@ -16,6 +16,15 @@ function randomToken(){const bytes=crypto.getRandomValues(new Uint8Array(32));re
 async function hash(value){const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value));return [...new Uint8Array(bytes)].map(x=>x.toString(16).padStart(2,'0')).join('');}
 function sameHex(a,b){if(typeof a!=='string'||typeof b!=='string'||a.length!==b.length)return false;let diff=0;for(let i=0;i<a.length;i++)diff|=a.charCodeAt(i)^b.charCodeAt(i);return diff===0;}
 function clean(value,max){if(typeof value!=='string')return undefined;const out=value.replace(CONTROL,'').trim().slice(0,max);return out||undefined;}
+function redactLiveEventText(value,max){
+ const text=clean(value,max);
+ if(!text)return undefined;
+ return text
+  .replace(/\\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\b/gi,'[email redacted]')
+  .replace(/\\b(?:\\+?\\d{1,3}[\\s.-]?)?(?:\\(?\\d{2,4}\\)?[\\s.-]?)\\d{3,4}[\\s.-]?\\d{3,4}\\b/g,'[phone redacted]')
+  .replace(/\\bBearer\\s+[A-Za-z0-9._~+/-]{12,}\\b/gi,'[credential redacted]')
+  .replace(/\\b(?:api[_-]?key|access[_-]?token|refresh[_-]?token)\\s*[:=]\\s*[^\\s,;]{8,}/gi,'[credential redacted]');
+}
 
 export function normalizeRelayEvent(input,now=Date.now()){
  if(!input||typeof input!=='object'||Array.isArray(input))return null;
@@ -24,10 +33,10 @@ export function normalizeRelayEvent(input,now=Date.now()){
  if(input.occurredAt!==undefined&&!Number.isFinite(parsed))return null;
  if(Number.isFinite(parsed)&&(parsed>now+5*60_000||parsed<now-7*86400_000))return null;
  const event={protocolVersion:1,eventId:input.eventId,provider:input.provider,type:input.type,occurredAt:Number.isFinite(parsed)?new Date(parsed).toISOString():new Date(now).toISOString(),receivedAt:new Date(now).toISOString()};
- for(const [key,max] of [['roomId',120],['actorId',120],['actorName',80],['text',500]]){const value=clean(input[key],max);if(value)event[key]=value;}
+ for(const [key,max] of [['roomId',120],['actorId',120],['actorName',80],['text',500]]){const value=key==='text'||key==='actorName'?redactLiveEventText(input[key],max):clean(input[key],max);if(value)event[key]=value;}
  if(typeof input.amount==='number'&&Number.isFinite(input.amount)&&input.amount>=0&&input.amount<=1_000_000)event.amount=input.amount;
  if(typeof input.currency==='string'&&/^[A-Z]{3}$/.test(input.currency))event.currency=input.currency;
- if(input.tags&&typeof input.tags==='object'&&!Array.isArray(input.tags)){const tags={};for(const [key,value] of Object.entries(input.tags).slice(0,8)){if(!/^[a-zA-Z][a-zA-Z0-9_.-]{0,39}$/.test(key)||SENSITIVE.test(key))continue;if(typeof value==='string')tags[key]=value.replace(CONTROL,'').slice(0,120);else if(typeof value==='boolean'||(typeof value==='number'&&Number.isFinite(value)))tags[key]=value;}if(Object.keys(tags).length)event.tags=tags;}
+ if(input.tags&&typeof input.tags==='object'&&!Array.isArray(input.tags)){const tags={};for(const [key,value] of Object.entries(input.tags).slice(0,8)){if(!/^[a-zA-Z][a-zA-Z0-9_.-]{0,39}$/.test(key)||SENSITIVE.test(key))continue;if(typeof value==='string'){const safe=redactLiveEventText(value,120);if(safe)tags[key]=safe;}else if(typeof value==='boolean'||(typeof value==='number'&&Number.isFinite(value)))tags[key]=value;}if(Object.keys(tags).length)event.tags=tags;}
  if(event.type==='chat.message'&&!event.text)return null;
  return event;
 }
