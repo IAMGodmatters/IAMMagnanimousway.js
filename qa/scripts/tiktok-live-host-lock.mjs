@@ -2,6 +2,7 @@ import fs from 'node:fs';
 
 const root = new URL('../..', import.meta.url);
 const host = fs.readFileSync(new URL('frontend/app/tiktok-live/page.tsx', root), 'utf8');
+const companion = fs.readFileSync(new URL('portable-creator/host.mjs', root), 'utf8');
 const social = fs.readFileSync(new URL('frontend/app/social-hub/page.tsx', root), 'utf8');
 
 const eventContract = fs.readFileSync(new URL('frontend/lib/live-studio/event-contract.ts', root), 'utf8');
@@ -37,7 +38,7 @@ const checks = [
   ['browser pairing tokens can only reach the official Magnanimous WSS host and pairing path', bridgeClient.includes("url.protocol!=='wss:'") && bridgeClient.includes("url.hostname!=='iammagnanimousway.com'") && bridgeClient.includes('pairPath.test(url.pathname)') && bridgeClient.includes("url.port&&url.port!=='443'")],
   ['pairing credentials are sent in the message body, not URL parameters', bridgeClient.includes("kind:'auth'") && bridgeClient.includes('token')],
   ['bridge reconnect attempts are bounded', bridgeClient.includes('retryCount>=5')],
-  ['browser and USB companion maintain a low-frequency relay heartbeat and clear timers on disconnect', bridgeClient.includes("setInterval") && bridgeClient.includes("kind:'ping'") && bridgeClient.includes("kind==='pong'") && bridgeClient.includes('clearHeartbeat();') && host.includes('bridgeHeartbeat=setInterval') && host.includes('clearBridgeHeartbeat()')],
+  ['browser and USB companion maintain a low-frequency relay heartbeat and clear timers on disconnect', bridgeClient.includes("setInterval") && bridgeClient.includes("kind:'ping'") && bridgeClient.includes("kind==='pong'") && bridgeClient.includes('clearHeartbeat();') && companion.includes('bridgeHeartbeat=setInterval') && companion.includes('clearBridgeHeartbeat()')],
   ['replacing a bridge pair revokes the old pair before allocating a new room', (()=>{const start=bridgeUi.indexOf('async function createPair()');const revoke=bridgeUi.indexOf('await revokePairId(pairId)',start);const create=bridgeUi.indexOf("fetch('/api/live-bridge/pair'",start);return start>=0&&revoke>start&&create>revoke;})()],
   ['bridge commands are allowlisted and do not expose destructive controls', eventContract.includes('normalizeLiveBridgeCommand') && !eventContract.includes("'broadcast.start'")],
   ['bridge protocol documents provider consent and tenant isolation', bridgeDocs.includes('tenant authorization') && bridgeDocs.includes('official OAuth')],
