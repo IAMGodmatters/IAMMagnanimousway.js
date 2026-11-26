@@ -33,13 +33,32 @@ function validBridgeUrl(raw:string):URL {
 export function createLiveBridgeClient(endpoint:string,pairingToken:string,handlers:LiveBridgeHandlers={}) {
   const url=validBridgeUrl(endpoint),token=pairingToken.trim();
   if(token.length<32||token.length>256)throw new Error('The one-time pairing token is invalid.');
-  let socket:WebSocket|null=null,retryTimer:ReturnType<typeof setTimeout>|null=null,retryCount=0,stopped=false,fatal=false;
+  let socket:WebSocket|null=null,retryTimer:ReturnType<typeof setTimeout>|null=null,heartbeatTimer:ReturnType<typeof setInterval>|null=null,retryCount=0,lastPongAt=0,stopped=false,fatal=false;
   const status=(value:LiveBridgeStatus)=>handlers.onStatus?.(value);
   const clearRetry=()=>{if(retryTimer)clearTimeout(retryTimer);retryTimer=null;};
+  const clearHeartbeat=()=>{if(heartbeatTimer)clearInterval(heartbeatTimer);heartbeatTimer=null;};
+  const startHeartbeat=(active:WebSocket)=>{
+    clearHeartbeat();
+    lastPongAt=Date.now();
+    heartbeatTimer=setInterval(()=>{
+      if(socket!==active||active.readyState!==WebSocket.OPEN){clearHeartbeat();return;}
+      if(Date.now()-lastPongAt>45_000){
+        handlers.onError?.('The live bridge heartbeat timed out. Magnanimous is reconnecting while the pairing remains valid.');
+        try{active.close(4000,'Heartbeat timeout');}catch{scheduleRetry();}
+        return;
+      }
+      try{active.send(JSON.stringify({kind:'ping'}));}
+      catch{try{active.close(4000,'Heartbeat send failed');}catch{scheduleRetry();}}
+    },20_000);
+  };
   const scheduleRetry=()=>{
     if(stopped||fatal||retryTimer)return;
-    if(retryCount>=5){status('error');handlers.onError?.('The bridge could not reconnect after five attempts. Check the companion and reconnect manually.');return;}
-    const delay=Math.min(15000,750*2**retryCount);retryCount++;status('reconnecting');
+    // Keep retrying while the short-lived pair is still valid. The delay is capped
+    // so mobile network recovery does not require a manual reconnect after five tries.
+    const delay=Math.min(30_000,1000*2**Math.min(retryCount,5));
+    retryCount=Math.min(retryCount+1,5);
+    status('reconnecting');
+    handlers.onError?.(`The live bridge is reconnecting; next attempt in ${Math.ceil(delay/1000)} seconds.`);
     retryTimer=setTimeout(()=>{retryTimer=null;connect();},delay);
   };
   const send=(value:unknown):boolean=>{
@@ -58,8 +77,9 @@ export function createLiveBridgeClient(endpoint:string,pairingToken:string,handl
       let envelope:Envelope;
       try{envelope=JSON.parse(String(message.data)) as Envelope;}
       catch{handlers.onError?.('The bridge sent an unreadable message; it was ignored.');return;}
-      if(envelope?.kind==='ready'&&envelope.protocolVersion===1){retryCount=0;status('connected');return;}
-      if(envelope?.kind==='waiting'&&envelope.protocolVersion===1){status('connecting');return;}
+      if(envelope?.kind==='ready'&&envelope.protocolVersion===1){retryCount=0;startHeartbeat(active);status('connected');return;}
+      if(envelope?.kind==='waiting'&&envelope.protocolVersion===1){startHeartbeat(active);status('connecting');return;}
+      if(envelope?.kind==='pong'){lastPongAt=Date.now();return;}
       if(envelope?.kind==='event'&&envelope.protocolVersion===1){
         const event=normalizeLiveEvent(envelope.event);
         if(!event){handlers.onError?.('An invalid or unsupported bridge event was ignored and not acknowledged.');return;}
@@ -89,7 +109,7 @@ export function createLiveBridgeClient(endpoint:string,pairingToken:string,handl
       }
     };
     active.onerror=()=>{if(socket===active)handlers.onError?.('The live bridge connection encountered a network error.');};
-    active.onclose=()=>{if(socket===active)socket=null;if(!stopped&&!fatal)scheduleRetry();else status('disconnected');};
+    active.onclose=()=>{if(socket===active)socket=null;clearHeartbeat();if(!stopped&&!fatal)scheduleRetry();else status(fatal?'error':'disconnected');};
   };
   connect();
   return {
@@ -102,7 +122,7 @@ export function createLiveBridgeClient(endpoint:string,pairingToken:string,handl
       return send({kind:'event.ack',protocolVersion:1,provider,eventId});
     },
     disconnect(){
-      stopped=true;clearRetry();
+      stopped=true;clearRetry();clearHeartbeat();
       const active=socket;socket=null;
       try{active?.close(1000,'Operator disconnected');}catch{}
       status('disconnected');
