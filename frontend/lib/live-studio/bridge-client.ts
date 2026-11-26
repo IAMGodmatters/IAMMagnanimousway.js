@@ -30,5 +30,5 @@ export function createLiveBridgeClient(endpoint:string,pairingToken:string,handl
  socket.onerror=()=>handlers.onError?.('The live bridge connection encountered a network error.');
  socket.onclose=()=>{clearHeartbeat();socket=null;if(!stopped&&!fatal)scheduleRetry();else status('disconnected');};
  };connect();
- return {sendCommand(input:unknown):boolean{const command:LiveBridgeCommand|null=normalizeLiveBridgeCommand(input);if(!command||!socket||socket.readyState!==WebSocket.OPEN)return false;socket.send(JSON.stringify({kind:'command',protocolVersion:1,command}));return true;},disconnect(){stopped=true;clearRetry();socket?.close(1000,'Operator disconnected');socket=null;status('disconnected');}};
+ return {sendCommand(input:unknown):boolean{const command:LiveBridgeCommand|null=normalizeLiveBridgeCommand(input);if(!command||!socket||socket.readyState!==WebSocket.OPEN)return false;try{socket.send(JSON.stringify({kind:'command',protocolVersion:1,command}));return true;}catch{handlers.onError?.('The live bridge could not queue the command for transmission.');return false;}},disconnect(){stopped=true;clearRetry();socket?.close(1000,'Operator disconnected');socket=null;status('disconnected');}};
 }
