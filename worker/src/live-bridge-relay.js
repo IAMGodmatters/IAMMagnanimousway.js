@@ -37,7 +37,7 @@ export function normalizeRelayCommand(input){
 }
 const COMMAND_RECEIPT_STATUSES=new Set(['received','approved','rejected','completed','failed']);
 const COMMAND_TERMINAL_STATUSES=new Set(['rejected','completed','failed']);
-const COMMAND_TRANSITIONS={sent:new Set(['received','rejected','failed']),received:new Set(['approved','rejected','completed','failed']),approved:new Set(['completed','failed'])};
+const COMMAND_TRANSITIONS={sent:new Set(['received','rejected','failed']),received:new Set(['approved','rejected','failed']),approved:new Set(['completed','failed'])};
 export function normalizeRelayCommandReceipt(input){
  if(!input||typeof input!=='object'||Array.isArray(input)||typeof input.commandId!=='string'||!EVENT_ID.test(input.commandId)||!COMMAND_RECEIPT_STATUSES.has(input.status))return null;
  return {commandId:input.commandId,status:input.status};
