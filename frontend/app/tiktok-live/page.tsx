@@ -10,6 +10,8 @@ import { listLiveEventInbox, markLiveEventDelivered } from '../../lib/live-studi
 
 const api = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 type Line = { id: number; role: 'viewer' | 'host'; text: string };
+type LiveEventReceipt = { provider: LiveEvent['provider']; eventId: string };
+type HostQueueItem = { id: number; text: string; source?: string; delivery?: LiveEventReceipt };
 
 async function read(response: Response) {
   const raw = await response.text();
@@ -53,12 +55,14 @@ export default function TikTokLiveHost() {
   const [takeoverDuration, setTakeoverDuration] = useState(30);
   const [takeoverEndsAt, setTakeoverEndsAt] = useState<number | null>(null);
   const [takeoverSeconds, setTakeoverSeconds] = useState(0);
-  const [queuedComments, setQueuedComments] = useState<Array<{ id: number; text: string; source?: string }>>([]);
+  const [queuedComments, setQueuedComments] = useState<HostQueueItem[]>([]);
   const [bridgeStatus, setBridgeStatus] = useState<'connected' | 'reconnecting' | 'disconnected' | 'error'>('disconnected');
   const [bridgeEvents, setBridgeEvents] = useState<LiveEvent[]>([]);
-  const queuedCommentsRef = useRef<Array<{ id: number; text: string; source?: string }>>([]);
+  const queuedCommentsRef = useRef<HostQueueItem[]>([]);
   const seenBridgeEventIdsRef = useRef(new Set<string>());
-  const [failedQueuedComment, setFailedQueuedComment] = useState<{ id: number; text: string; source?: 'viewer' | 'show-rundown' } | null>(null);
+  const completedBridgeEventIdsRef = useRef(new Set<string>());
+  const hostEventChannelRef = useRef<BroadcastChannel | null>(null);
+  const [failedQueuedComment, setFailedQueuedComment] = useState<HostQueueItem | null>(null);
   const [takeoverPaused, setTakeoverPaused] = useState(false);
   const takeoverRef = useRef(false);
   const takeoverDeadlineRef = useRef<number | null>(null);
@@ -70,6 +74,15 @@ export default function TikTokLiveHost() {
 
   queuedCommentsRef.current = queuedComments;
 
+  async function acknowledgeBridgeEvent(delivery: LiveEventReceipt) {
+    const key = delivery.provider + ':' + delivery.eventId;
+    completedBridgeEventIdsRef.current.add(key);
+    await markLiveEventDelivered(delivery.provider, delivery.eventId);
+    const channel = hostEventChannelRef.current;
+    if (!channel) throw new Error('The Host completion was saved, but the bridge receipt channel is not connected yet.');
+    channel.postMessage({ kind: 'event.receipt', provider: delivery.provider, eventId: delivery.eventId });
+  }
+
   const topicInstruction = useMemo(() => {
     if (topic === 'Faith & Scripture') return 'You are speaking in a Christian ministry and Bible-learning context. When relevant, use the King James Version (KJV), distinguish Scripture from your own explanation, and never invent a verse or claim a quotation is Scripture unless accurate.';
     if (topic === 'AI Education') return 'Teach AI clearly for beginners. Explain terms in plain language, give practical examples, and do not pretend uncertain claims are facts.';
@@ -80,6 +93,7 @@ export default function TikTokLiveHost() {
   useEffect(() => {
     if (typeof BroadcastChannel === 'undefined') return;
     const channel = new BroadcastChannel('magnanimous-live-events-v1');
+    hostEventChannelRef.current = channel;
     void listLiveEventInbox().then(restored => {
       setBridgeEvents(items => {
         const merged = [...restored, ...items];
@@ -88,7 +102,7 @@ export default function TikTokLiveHost() {
         return [...unique.values()].slice(-12).reverse();
       });
     }).catch(() => setNotice('The local event inbox could not be restored; pending events will remain on the bridge for retry.'));
-    channel.onmessage = message => {
+    channel.onmessage = async message => {
       const payload = message.data;
       if (payload?.kind === 'status' && ['connected','reconnecting','disconnected','error'].includes(payload.status)) {
         setBridgeStatus(payload.status);
@@ -97,18 +111,31 @@ export default function TikTokLiveHost() {
       if (payload?.kind !== 'event') return;
       const event = normalizeLiveEvent(payload.event);
       if (!event) return;
-      const hostPrompt = takeoverRef.current ? liveEventToHostPrompt(event) : '';
-      // Apply backpressure before marking the event seen or delivered. A full
-      // queue must leave the event pending in IndexedDB and on the relay.
-      if (takeoverRef.current && hostPrompt && queuedCommentsRef.current.length >= 25) {
-        setNotice('The live event queue is full (25 items). Magnanimous is keeping this event pending and will retry when a slot opens.');
+      const eventKey = event.provider + ':' + event.eventId;
+      setBridgeEvents(items => [event, ...items.filter(item => item.provider !== event.provider || item.eventId !== event.eventId)].slice(0, 12));
+
+      // A completion receipt means the Host finished handling this event, not
+      // merely that it entered React state. Re-ack after reload without repeating AI.
+      try {
+        if (completedBridgeEventIdsRef.current.has(eventKey) || await isLiveEventDelivered(event.provider, event.eventId)) {
+          await acknowledgeBridgeEvent({ provider: event.provider, eventId: event.eventId });
+          return;
+        }
+      } catch {
+        setNotice('The Host completion receipt could not be checked or acknowledged. The event remains pending for retry.');
         return;
       }
-      const eventKey = event.provider + ':' + event.eventId;
-      if (seenBridgeEventIdsRef.current.has(eventKey)) {
-        void markLiveEventDelivered(event.provider, event.eventId)
-          .then(() => channel.postMessage({ kind: 'event.receipt', provider: event.provider, eventId: event.eventId }))
-          .catch(() => setNotice('The event was already displayed, but its durable receipt could not be saved.'));
+      if (seenBridgeEventIdsRef.current.has(eventKey)) return;
+
+      const hostPrompt = takeoverRef.current ? liveEventToHostPrompt(event) : '';
+      // Without an owner-authorized takeover, keep the event pending in the
+      // durable inbox so it can be replayed when the owner starts the AI Host.
+      if (!takeoverRef.current || !hostPrompt) return;
+
+      // Apply backpressure before marking the event seen or queuing it. A full
+      // queue must leave the event pending in IndexedDB and on the relay.
+      if (queuedCommentsRef.current.length >= 25) {
+        setNotice('The live event queue is full (25 items). Magnanimous is keeping this event pending and will retry when a slot opens.');
         return;
       }
       seenBridgeEventIdsRef.current.add(eventKey);
@@ -116,19 +143,18 @@ export default function TikTokLiveHost() {
         const oldest = seenBridgeEventIdsRef.current.values().next().value;
         if (oldest) seenBridgeEventIdsRef.current.delete(oldest);
       }
-      if (takeoverRef.current && hostPrompt) {
-        const item = { id: Date.now() + Math.floor(Math.random() * 1000), text: hostPrompt, source: event.provider + ' · ' + event.type };
-        const next = [...queuedCommentsRef.current, item];
-        queuedCommentsRef.current = next;
-        setQueuedComments(next);
-      }
-      setBridgeEvents(items => [event, ...items.filter(item => item.provider !== event.provider || item.eventId !== event.eventId)].slice(0, 12));
-      void markLiveEventDelivered(event.provider, event.eventId)
-        .then(() => channel.postMessage({ kind: 'event.receipt', provider: event.provider, eventId: event.eventId }))
-        .catch(() => setNotice('The event is displayed, but its durable receipt could not be saved. The bridge will retry it.'));
+      const item: HostQueueItem = {
+        id: Date.now() + Math.floor(Math.random() * 1000),
+        text: hostPrompt,
+        source: event.provider + ' · ' + event.type,
+        delivery: { provider: event.provider, eventId: event.eventId }
+      };
+      const next = [...queuedCommentsRef.current, item];
+      queuedCommentsRef.current = next;
+      setQueuedComments(next);
     };
     channel.postMessage({ kind: 'request-status' });
-    return () => channel.close();
+    return () => { if (hostEventChannelRef.current === channel) hostEventChannelRef.current = null; channel.close(); };
   }, []);
 
   // When the autonomous queue has room again, ask the paired bridge tab to
