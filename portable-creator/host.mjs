@@ -212,7 +212,7 @@ function closeBridge(){
  if(socket){try{socket.close(1000,'Operator disconnected');}catch{}}
 }
 const BRIDGE_COMMAND_TTL_MS=4*60_000;
-function prunePendingBridgeCommands(now=Date.now()){
+function pruneBridgeCommands(now=Date.now()){
  for(let index=pendingBridgeCommands.length-1;index>=0;index--){
   const item=pendingBridgeCommands[index],receivedAt=Date.parse(item.receivedAt);
   if(!Number.isFinite(receivedAt)||now-receivedAt>BRIDGE_COMMAND_TTL_MS){
@@ -220,8 +220,15 @@ function prunePendingBridgeCommands(now=Date.now()){
    sendBridgeCommandReceipt(item.commandId,'failed');
   }
  }
+ for(const [commandId,item] of approvedBridgeCommands){
+  if(!Number.isFinite(item.approvedAt)||now-item.approvedAt>5*60_000){
+   approvedBridgeCommands.delete(commandId);
+   sendBridgeCommandReceipt(commandId,'failed');
+  }
+ }
 }
 function bridgeSnapshot(){
+ pruneBridgeCommands();
  return{status:bridgeStatus,connected:bridgeStatus==='connected',error:bridgeError,pendingCommands:pendingBridgeCommands.map(({commandId,action,sceneName,overlayId,cueId,text,receivedAt})=>({commandId,action,sceneName,overlayId,cueId,text,receivedAt}))};
 }
 function validateBridgePairing(endpoint,token){
@@ -395,7 +402,7 @@ async function handleApi(req,res,url){
   closeBridge();pendingBridgeCommands.length=0;approvedBridgeCommands.clear();return json(res,200,{ok:true,status:bridgeStatus});
  }
  if(req.method==='POST'&&url.pathname==='/api/bridge/command/review'){
-  prunePendingBridgeCommands();
+  pruneBridgeCommands();
   const body=await readJson(req),commandId=String(body.commandId||''),index=pendingBridgeCommands.findIndex(item=>item.commandId===commandId);
   if(index<0)return json(res,404,{detail:'The pending command was not found or has expired.'});
   if(body.approved!==true){
@@ -407,7 +414,7 @@ async function handleApi(req,res,url){
   if(command.action==='host.speak'){
    const speechText=String(command.text||'').replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,500);
    if(!speechText)return json(res,400,{detail:'The host speech request is empty or invalid.'});
-   for(const [id,item] of approvedBridgeCommands){if(Date.now()-item.approvedAt>5*60_000){approvedBridgeCommands.delete(id);sendBridgeCommandReceipt(id,'failed');}}
+   pruneBridgeCommands();
    if(approvedBridgeCommands.size>=20)return json(res,429,{detail:'Too many approved host lines are awaiting local voice playback.'});
    pendingBridgeCommands.splice(index,1);
    if(!sendBridgeCommandReceipt(commandId,'approved'))return json(res,503,{detail:'The approval receipt could not reach the online relay. No speech was started.'});
