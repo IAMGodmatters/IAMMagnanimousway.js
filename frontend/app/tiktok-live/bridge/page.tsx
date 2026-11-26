@@ -25,6 +25,7 @@ export default function LiveEventBridgePage() {
   const clientRef=useRef<ReturnType<typeof createLiveBridgeClient>|null>(null);
   const hostChannelRef=useRef<BroadcastChannel|null>(null);
   const legacyChannelRef=useRef<BroadcastChannel|null>(null);
+  const outboundKindsRef=useRef<Map<string,'host.speak'|'host.stop'>>(new Map());
   const statusRef=useRef<LiveBridgeStatus>(status);
 
   useEffect(()=>{
@@ -40,12 +41,20 @@ export default function LiveEventBridgePage() {
       const data=event.data;
       if(!data||typeof data!=='object')return;
       if(data.type==='bridge.status.request'){channel.postMessage({type:'bridge.status',connected:statusRef.current==='connected'});return;}
+      if(data.type==='host.stop'){
+        const commandId=newCommandId();outboundKindsRef.current.set(commandId,'host.stop');
+        const sent=clientRef.current?.sendCommand({commandId,action:'host.stop'})||false;
+        channel.postMessage({type:'host.stop.result',ok:sent,commandId});
+        if(!sent)outboundKindsRef.current.delete(commandId);
+        return;
+      }
       if(data.type!=='host.speak'||typeof data.text!=='string')return;
       const text=data.text.replace(/[\\u0000-\\u001f\\u007f]/g,' ').trim().slice(0,500);
       if(!text)return;
-      const commandId=newCommandId();
+      const commandId=newCommandId();outboundKindsRef.current.set(commandId,'host.speak');
       const sent=clientRef.current?.sendCommand({commandId,action:'host.speak',text})||false;
       channel.postMessage({type:'host.speak.result',ok:sent,commandId});
+      if(!sent)outboundKindsRef.current.delete(commandId);
     });
     return ()=>{
       channel.close();hostChannelRef.current=null;
@@ -69,7 +78,10 @@ export default function LiveEventBridgePage() {
         setReceipts(current=>[{...receipt,updatedAt:new Date().toISOString()},...current.filter(item=>item.commandId!==receipt.commandId)].slice(0,20));
         const labels:Record<LiveBridgeCommandReceipt['status'],string>={received:'USB companion received the command; it is waiting for local owner approval.',approved:'The local owner approved the command.',rejected:'The local owner rejected the command.',completed:'The approved action completed on the local device.',failed:'The local device reported that the action failed.'};
         setNotice(labels[receipt.status]);
-        hostChannelRef.current?.postMessage({type:'host.speak.receipt',commandId:receipt.commandId,status:receipt.status});
+        const outboundKind=outboundKindsRef.current.get(receipt.commandId);
+        if(outboundKind==='host.stop')hostChannelRef.current?.postMessage({type:'host.stop.receipt',commandId:receipt.commandId,status:receipt.status});
+        else if(outboundKind==='host.speak')hostChannelRef.current?.postMessage({type:'host.speak.receipt',commandId:receipt.commandId,status:receipt.status});
+        if(['completed','rejected','failed'].includes(receipt.status))outboundKindsRef.current.delete(receipt.commandId);
       },
       onError:setError,
     });
