@@ -186,7 +186,7 @@ export class MagnanimousLiveBridgeRoom {
  }
  findRole(role,exclude=null){
   for(const socket of this.state.getWebSockets()){
-   if(socket===exclude)continue;
+   if(socket===exclude||socket.readyState===2||socket.readyState===3)continue;
    const attachment=socket.deserializeAttachment();
    if(attachment?.authenticated&&attachment.role===role)return socket;
   }
