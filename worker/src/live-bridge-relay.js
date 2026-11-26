@@ -35,6 +35,13 @@ export function normalizeRelayCommand(input){
  if(input.action==='host.speak'){const text=clean(input.text,500);return text?{commandId:input.commandId,action:'host.speak',text}:null;}
  return null;
 }
+const COMMAND_RECEIPT_STATUSES=new Set(['received','approved','rejected','completed','failed']);
+const COMMAND_TERMINAL_STATUSES=new Set(['rejected','completed','failed']);
+const COMMAND_TRANSITIONS={sent:new Set(['received','rejected','failed']),received:new Set(['approved','rejected','completed','failed']),approved:new Set(['completed','failed'])};
+export function normalizeRelayCommandReceipt(input){
+ if(!input||typeof input!=='object'||Array.isArray(input)||typeof input.commandId!=='string'||!EVENT_ID.test(input.commandId)||!COMMAND_RECEIPT_STATUSES.has(input.status))return null;
+ return {commandId:input.commandId,status:input.status};
+}
 
 /**
  * One room coordinates exactly one authenticated browser and one local companion.
@@ -51,6 +58,7 @@ export class MagnanimousLiveBridgeRoom {
    let body={};try{body=await request.json();}catch{return json({detail:'Invalid revoke request.'},400);}
    if(body.tenantId!==pair.tenantId||body.userId!==pair.userId)return json({detail:'This bridge pair belongs to another account.'},403);
    await this.state.storage.delete('pair');
+   await this.state.storage.delete('commands');
    for(const socket of this.state.getWebSockets()){
     try{socket.send(JSON.stringify({kind:'error',code:'PAIRING_REVOKED',message:'The account owner revoked this bridge pairing.'}));socket.close(4003,'Pair revoked');}catch{}
    }
@@ -131,11 +139,34 @@ export class MagnanimousLiveBridgeRoom {
    this.sendToRole('browser',{kind:'error',code,message});
    return;
   }
+  if(attachment.role==='companion'&&envelope?.kind==='command.receipt'&&envelope.protocolVersion===1){
+   const receipt=normalizeRelayCommandReceipt(envelope.receipt);
+   if(!receipt){ws.send(JSON.stringify({kind:'error',code:'INVALID_COMMAND_RECEIPT',message:'The companion command receipt is invalid.'}));return;}
+   const commands=await this.state.storage.get('commands');
+   const ledger=Array.isArray(commands)?commands.filter(item=>item&&typeof item.commandId==='string'&&Number(item.expiresAt)>Date.now()):[];
+   const index=ledger.findIndex(item=>item.commandId===receipt.commandId);
+   if(index<0){ws.send(JSON.stringify({kind:'error',code:'UNKNOWN_COMMAND_RECEIPT',message:'This command is unknown or its receipt window has expired.'}));return;}
+   const previous=ledger[index].status;
+   if(previous!==receipt.status&&!COMMAND_TRANSITIONS[previous]?.has(receipt.status)){
+    ws.send(JSON.stringify({kind:'error',code:'INVALID_COMMAND_TRANSITION',message:'The command receipt does not match the expected approval sequence.'}));return;
+   }
+   ledger[index]={...ledger[index],status:receipt.status,updatedAt:Date.now()};
+   await this.state.storage.put('commands',ledger.slice(-50));
+   this.sendToRole('browser',{kind:'command.receipt',protocolVersion:1,receipt});
+   return;
+  }
   if(attachment.role==='browser'&&envelope?.kind==='command'&&envelope.protocolVersion===1){
    const command=normalizeRelayCommand(envelope.command);
    if(!command){ws.send(JSON.stringify({kind:'error',code:'INVALID_COMMAND',message:'The command is not supported.'}));return;}
+   const now=Date.now(),stored=await this.state.storage.get('commands');
+   const ledger=(Array.isArray(stored)?stored:[]).filter(item=>item&&typeof item.commandId==='string'&&Number(item.expiresAt)>now);
+   if(ledger.some(item=>item.commandId===command.commandId)){ws.send(JSON.stringify({kind:'error',code:'DUPLICATE_COMMAND',message:'This command ID has already been used. Create a new command.'}));return;}
+   if(ledger.filter(item=>!COMMAND_TERMINAL_STATUSES.has(item.status)).length>=20){ws.send(JSON.stringify({kind:'error',code:'COMMAND_QUEUE_FULL',message:'Too many live commands are waiting for local approval.'}));return;}
+   ledger.push({commandId:command.commandId,action:command.action,status:'sent',createdAt:now,expiresAt:now+5*60_000});
+   await this.state.storage.put('commands',ledger.slice(-50));
    const delivered=this.sendToRole('companion',{kind:'command',protocolVersion:1,command});
    if(!delivered){
+    await this.state.storage.put('commands',ledger.filter(item=>item.commandId!==command.commandId).slice(-50));
     ws.send(JSON.stringify({kind:'error',code:'COMMAND_NOT_DELIVERED',message:'The local companion is not connected or could not receive this command. It was not delivered.'}));
    }
    return;
