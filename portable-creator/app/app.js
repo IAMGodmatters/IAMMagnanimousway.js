@@ -392,15 +392,26 @@ window.addEventListener('beforeunload',()=>{if(state.autonomyActive){stopAutonom
  catch(error){message('liveEventMessage',error.message,'error');}
  finally{updateControls();}
 }
+let pendingLiveDelivery=null;
 async function pullLiveEvents(){
  $('livePullButton').disabled=true;
  try{
+  if(pendingLiveDelivery){
+   const pending=pendingLiveDelivery;
+   const retry=await api('/api/live/events/ack',{method:'POST',body:JSON.stringify({deliveryId:pending.deliveryId,eventKeys:pending.eventKeys})});
+   if(!['acknowledged','duplicate'].includes(retry.status))throw new Error('The displayed batch is still in the encrypted journal. Retry this acknowledgement before pulling another batch.');
+   pendingLiveDelivery=null;
+   message('liveEventMessage',pending.count+' previously displayed event(s) are now durably acknowledged.','success');
+   return;
+  }
   const data=await api('/api/live/events/consume',{method:'POST',body:JSON.stringify({limit:20})});
   const events=data.events||[];
   renderLiveEvents(events,data.reviewCues||[]);
   if(data.deliveryId&&Array.isArray(data.eventKeys)&&data.eventKeys.length){
+   pendingLiveDelivery={deliveryId:data.deliveryId,eventKeys:data.eventKeys,count:events.length};
    const ack=await api('/api/live/events/ack',{method:'POST',body:JSON.stringify({deliveryId:data.deliveryId,eventKeys:data.eventKeys})});
-   if(!['acknowledged','duplicate'].includes(ack.status))throw new Error('Events were displayed but the durable acknowledgement was not confirmed. They will remain queued for retry.');
+   if(!['acknowledged','duplicate'].includes(ack.status))throw new Error('The displayed batch remains in the encrypted journal. Retry its acknowledgement before pulling another batch.');
+   pendingLiveDelivery=null;
    message('liveEventMessage',events.length+' event(s) displayed and durably acknowledged.','success');
   }else{
    message('liveEventMessage',events.length?'Events displayed; no delivery acknowledgement was required.':'No unclaimed events are waiting.','success');
