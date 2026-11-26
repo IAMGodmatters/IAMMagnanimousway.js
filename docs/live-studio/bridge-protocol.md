@@ -18,7 +18,7 @@ Protocol version 1 begins with an `auth` envelope carrying a short-lived pairing
 
 Incoming events use `event-contract.ts`. Unknown providers/types, malformed IDs, stale timestamps and oversized fields are rejected. Sensitive values such as tokens, cookies, passwords and authorization headers are invalid event tags.
 
-Outgoing commands are restricted to scene selection, overlay visibility, approved audio cues and host speech. No broadcast start/stop, account management, moderation, payments, arbitrary navigation, shell or arbitrary code execution is exposed.
+Outgoing commands currently support only local-owner-approved scene selection (`scene.set`) and host speech (`host.speak`). Overlay visibility and audio-cue commands are not enabled in this relay version. No broadcast start/stop, account management, moderation, payments, arbitrary navigation, shell or arbitrary code execution is exposed.
 
 ## Reliability and privacy
 - Pairing tokens remain in memory and never enter browser storage, URLs or logs.
