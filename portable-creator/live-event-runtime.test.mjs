@@ -20,6 +20,9 @@ test('redacts viewer email, phone numbers and credentials before local journal a
  assert.equal(saved.text,'Call [phone redacted]; email [email redacted]; [credential redacted]');
  assert.deepEqual(saved.tags,{topic:'email [email redacted]',support:'[phone redacted]'});
  assert.equal(accepted.text,saved.text,'The journal callback must receive only redacted content.');
+ const philippines=q.ingest(event('privacy-local-ph',{text:'Contact +63 917 123 4567'}));
+ assert.equal(philippines.status,'accepted');
+ assert.equal(q.consume()[0].text,'Contact [phone redacted]');
 });
 test('applies per-provider rate limits',()=>{const q=new LiveEventRuntime({now:()=>1_700_000_000_000,rateLimitPerMinute:1});assert.equal(q.ingest(event('evt-1')).status,'accepted');assert.equal(q.ingest(event('evt-2')).status,'rate_limited');});
 test('applies queue backpressure without dropping accepted events',()=>{const q=new LiveEventRuntime({now:()=>1_700_000_000_000,maxQueue:1});assert.equal(q.ingest(event('evt-1')).status,'accepted');assert.equal(q.ingest(event('evt-2')).status,'queue_full');assert.equal(q.consume()[0].eventId,'evt-1');});
