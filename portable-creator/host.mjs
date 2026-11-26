@@ -241,10 +241,10 @@ function connectBridge(endpoint,token){
  socket.addEventListener('message',message=>{
   if(bridgeSocket!==socket)return;
   let envelope;try{envelope=JSON.parse(String(message.data));}catch{bridgeError='The online relay sent an unreadable message.';return;}
-  if(envelope?.kind==='ready'&&envelope.protocolVersion===1){bridgeStatus='connected';bridgeError='';clearBridgeHeartbeat();bridgeHeartbeat=setInterval(()=>{if(bridgeSocket===socket&&socket.readyState===1){try{socket.send(JSON.stringify({kind:'ping'}));}catch{clearBridgeHeartbeat();bridgeStatus='error';bridgeError='The online bridge heartbeat failed.';}}},20000);return;}
+  if(envelope?.kind==='ready'&&envelope.protocolVersion===1){bridgeStatus='connected';bridgeError='';clearBridgeHeartbeat();bridgeHeartbeat=setInterval(()=>{if(bridgeSocket===socket&&socket.readyState===1){try{socket.send(JSON.stringify({kind:'ping'}));}catch{clearBridgeHeartbeat();bridgeStatus='error';bridgeError='The online bridge heartbeat failed.';try{socket.close(4000,'Heartbeat send failed');}catch{}}}},20000);return;}
   if(envelope?.kind==='pong')return;
   if(envelope?.kind==='waiting'){bridgeStatus='connecting';return;}
-  if(envelope?.kind==='event'&&envelope.protocolVersion===1){const result=liveEvents.ingest(envelope.event,{bypassRateLimit:true});if(!['accepted','duplicate'].includes(result.status)){const blocked=result.status==='persistence_error';bridgeError=String(result.detail||'The local companion could not accept the incoming event.').slice(0,240);try{socket.send(JSON.stringify({kind:'error',code:blocked?'LOCAL_STORAGE_BLOCKED':'LOCAL_EVENT_REJECTED',message:bridgeError}));}catch{}bridgeStatus='error';bridgeSocket=null;try{socket.close(4429,'Local event intake stopped');}catch{}}return;}
+  if(envelope?.kind==='event'&&envelope.protocolVersion===1){const result=liveEvents.ingest(envelope.event,{bypassRateLimit:true});if(!['accepted','duplicate'].includes(result.status)){const blocked=result.status==='persistence_error';bridgeError=String(result.detail||'The local companion could not accept the incoming event.').slice(0,240);try{socket.send(JSON.stringify({kind:'error',code:blocked?'LOCAL_STORAGE_BLOCKED':'LOCAL_EVENT_REJECTED',message:bridgeError}));}catch{}clearBridgeHeartbeat();bridgeStatus='error';bridgeSocket=null;try{socket.close(4429,'Local event intake stopped');}catch{}}return;}
   if(envelope?.kind==='command'&&envelope.protocolVersion===1){
    const command=safeBridgeCommand(envelope.command);
    if(!command){
@@ -259,7 +259,7 @@ function connectBridge(endpoint,token){
    sendBridgeCommandReceipt(command.commandId,'received');
    return;
   }
-  if(envelope?.kind==='error'){bridgeError=String(envelope.message||'The online relay reported an error.').slice(0,240);if(envelope.code==='AUTH_FAILED'||envelope.code==='PAIRING_REVOKED'){const failed=bridgeSocket;bridgeSocket=null;bridgeStatus='error';try{failed?.close(4001,'Pairing rejected');}catch{}}}
+  if(envelope?.kind==='error'){bridgeError=String(envelope.message||'The online relay reported an error.').slice(0,240);if(envelope.code==='AUTH_FAILED'||envelope.code==='PAIRING_REVOKED'){const failed=bridgeSocket;clearBridgeHeartbeat();bridgeSocket=null;bridgeStatus='error';try{failed?.close(4001,'Pairing rejected');}catch{}}}
  });
  socket.addEventListener('close',event=>{if(bridgeSocket===socket){clearBridgeHeartbeat();bridgeSocket=null;bridgeStatus='disconnected';pendingBridgeCommands.length=0;approvedBridgeCommands.clear();if(event.code!==1000)bridgeError='The online relay closed the connection ('+event.code+'). Create a fresh pair if the token expired.';}});
  socket.addEventListener('error',()=>{if(bridgeSocket===socket){bridgeStatus='error';bridgeError='The secure online bridge connection failed.';}});
