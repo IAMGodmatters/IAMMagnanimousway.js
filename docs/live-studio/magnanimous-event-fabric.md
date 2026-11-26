@@ -16,6 +16,16 @@ The same event can be consumed by the online AI Host, the local USB Creator, OBS
 
 A provider adapter may emit events. It cannot directly execute OBS actions, moderation, account changes, purchases, public broadcast start/stop, or arbitrary code.
 
+## Activation and cost gate
+
+Production configuration sets LIVE_BRIDGE_ENABLED=false. Pairing and relay routes remain unavailable until the owner explicitly enables the feature after checking the Cloudflare account plan and usage budget.
+
+Cloudflare documents Durable Objects on Workers Free with daily request and compute allowances; over-limit Free-plan operations fail rather than automatically becoming billable. Workers Paid has separate included allowances and usage-based charges beyond them. Do not assume the account is on Free: verify the actual account plan and configure an appropriate spending limit before enabling this feature.
+
+References:
+- https://developers.cloudflare.com/durable-objects/platform/pricing/
+- https://developers.cloudflare.com/durable-objects/platform/limits/
+
 ## Canonical event envelope
 
 Every adapter maps into the versioned LiveEvent contract:
