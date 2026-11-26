@@ -224,7 +224,8 @@ function closeBridge(reason='operator_disconnect'){
  for(const command of pendingBridgeCommands)void sendBridgeCommandReceipt(command.commandId,'rejected');
  const socket=bridgeSocket;bridgeSocket=null;bridgeStatus='disconnected';bridgeError='';
  for(const [commandId] of approvedBridgeCommands)void sendBridgeCommandReceipt(commandId,'failed');
- pendingBridgeCommands.length=0;approvedBridgeCommands.clear();bridgeReceiptOutbox.clear();
+ pendingBridgeCommands.length=0;approvedBridgeCommands.clear();
+ if(['workspace_locked','host_shutdown','replaced_by_new_pair'].includes(String(reason)))bridgeReceiptOutbox.clear();
  if(socket){try{socket.close(1000,String(reason).slice(0,80));}catch{}}
 }
 const BRIDGE_COMMAND_TTL_MS=4*60_000;
