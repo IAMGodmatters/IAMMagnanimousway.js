@@ -20,10 +20,12 @@ type Envelope=
   |{kind:'pong'};
 
 function validBridgeUrl(raw:string):URL {
-  const url=new URL(raw);
-  const loopback=['localhost','127.0.0.1','[::1]'].includes(url.hostname);
-  if(url.protocol!=='wss:'&&!(url.protocol==='ws:'&&loopback))throw new Error('Use a secure wss:// bridge, or ws:// only for a local loopback companion.');
-  if(url.username||url.password||url.search||url.hash)throw new Error('Bridge URLs cannot contain credentials, query parameters, or fragments.');
+  let url:URL;
+  try{url=new URL(raw);}catch{throw new Error('Use the official Magnanimous live bridge address.');}
+  const prefix='/api/live-bridge/ws/';
+  if(url.protocol!=='wss:'||url.hostname!=='iammagnanimousway.com'||url.username||url.password||url.search||url.hash||!url.pathname.startsWith(prefix)||! /^[0-9a-f-]{36}$/i.test(url.pathname.slice(prefix.length))){
+    throw new Error('Only the official secure Magnanimous live bridge can receive this pairing token.');
+  }
   return url;
 }
 
