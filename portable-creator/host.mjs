@@ -389,6 +389,65 @@ async function handleApi(req,res,url){
   try{const result=await obsClient.stopRecording();return json(res,200,{ok:true,recording:false,outputPath:String(result.outputPath||'')});}
   catch(error){return json(res,502,{detail:error.message||'OBS could not stop recording.'});}
  }
+ if(req.method==='GET'&&url.pathname==='/api/bridge/status'){
+  return json(res,200,{...bridgeSnapshot(),workspaceUnlocked:Boolean(vaultKey),journalError:liveEventJournalError,journalWarning:liveEventJournalWarning});
+ }
+ if(req.method==='POST'&&url.pathname==='/api/bridge/connect'){
+  const body=await readJson(req);
+  if(!vaultKey)return json(res,423,{detail:'Unlock the encrypted USB workspace before connecting the online bridge.'});
+  if(!liveEventsRestored||liveEventJournalError||liveEventJournalWarning)return json(res,503,{detail:liveEventJournalError||liveEventJournalWarning||'The encrypted event journal has not been verified.'});
+  try{validateBridgePairing(String(body.endpoint||''),String(body.token||''));}
+  catch(error){bridgeStatus='error';bridgeError=error.message;return json(res,400,{detail:error.message});}
+  try{connectBridge(String(body.endpoint||''),String(body.token||''));return json(res,202,{ok:true,status:bridgeStatus});}
+  catch(error){bridgeStatus='error';bridgeError=String(error.message||'Could not connect to the secure bridge.').slice(0,240);return json(res,400,{detail:bridgeError});}
+ }
+ if(req.method==='POST'&&url.pathname==='/api/bridge/disconnect'){
+  closeBridge();
+  return json(res,200,{ok:true,status:bridgeStatus});
+ }
+ if(req.method==='POST'&&url.pathname==='/api/bridge/command/review'){
+  const body=await readJson(req),commandId=String(body.commandId||''),index=pendingBridgeCommands.findIndex(item=>item.commandId===commandId);
+  if(index<0)return json(res,404,{detail:'The pending command was not found or has expired.'});
+  if(body.approved!==true){
+   pendingBridgeCommands.splice(index,1);
+   sendBridgeCommandReceipt(commandId,'rejected');
+   return json(res,200,{ok:true,approved:false});
+  }
+  const command=pendingBridgeCommands[index];
+  if(command.action==='host.speak'){
+   const speechText=String(command.text||'').replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,500);
+   if(!speechText)return json(res,400,{detail:'The host speech request is empty or invalid.'});
+   for(const [id,item] of approvedBridgeCommands){if(Date.now()-item.approvedAt>5*60_000){approvedBridgeCommands.delete(id);sendBridgeCommandReceipt(id,'failed');}}
+   if(approvedBridgeCommands.size>=20)return json(res,429,{detail:'Too many approved host lines are awaiting local voice playback.'});
+   pendingBridgeCommands.splice(index,1);
+   approvedBridgeCommands.set(commandId,{action:'host.speak',approvedAt:Date.now()});
+   sendBridgeCommandReceipt(commandId,'approved');
+   return json(res,200,{ok:true,approved:true,action:'host.speak',commandId,speechText});
+  }
+  if(command.action!=='scene.set')return json(res,409,{detail:'This command type is not implemented locally. No action was taken.'});
+  if(!obsClient?.connected)return json(res,409,{detail:'Connect to OBS locally before approving a scene change.'});
+  try{
+   const result=await obsClient.setProgramScene(command.sceneName);
+   pendingBridgeCommands.splice(index,1);
+   sendBridgeCommandReceipt(commandId,'approved');
+   sendBridgeCommandReceipt(commandId,'completed');
+   return json(res,200,{ok:true,approved:true,commandId,sceneName:result.sceneName||command.sceneName});
+  }catch(error){
+   pendingBridgeCommands.splice(index,1);
+   sendBridgeCommandReceipt(commandId,'failed');
+   return json(res,502,{detail:error.message||'OBS did not confirm the scene change.'});
+  }
+ }
+ if(req.method==='POST'&&url.pathname==='/api/bridge/command/result'){
+  const body=await readJson(req),commandId=String(body.commandId||''),outcome=String(body.outcome||'');
+  if(!/^[A-Za-z0-9._:-]{1,160}$/.test(commandId)||!['completed','failed'].includes(outcome))return json(res,400,{detail:'A valid command ID and playback outcome are required.'});
+  const approved=approvedBridgeCommands.get(commandId);
+  if(!approved)return json(res,404,{detail:'The approved host command was not found or its receipt window expired.'});
+  approvedBridgeCommands.delete(commandId);
+  if(Date.now()-approved.approvedAt>5*60_000){sendBridgeCommandReceipt(commandId,'failed');return json(res,410,{detail:'The local voice completion receipt expired.'});}
+  sendBridgeCommandReceipt(commandId,outcome);
+  return json(res,200,{ok:true,status:outcome});
+ }
  if(req.method==='GET'&&url.pathname==='/api/live/events/status'){
   return json(res,200,{
    ...liveEvents.status(),
