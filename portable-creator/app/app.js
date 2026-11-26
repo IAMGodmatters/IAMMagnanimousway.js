@@ -1,5 +1,5 @@
 const $=id=>document.getElementById(id);
-const state={modelReady:false,vaultUnlocked:false,projects:[],obsConnected:false,obsRecording:false,autonomyActive:false,bridgeConnected:false,bridgeStatus:'disconnected'};
+const state={modelReady:false,vaultUnlocked:false,projects:[],obsConnected:false,obsRecording:false,autonomyActive:false,bridgeConnected:false,bridgeStatus:'disconnected',activeSpeechCount:0,lastBridgeStopCommandId:''};
 let autonomyTimer=null;
 let autonomyHeartbeatTimer=null;
 let autonomyTickBusy=false;
@@ -35,6 +35,20 @@ async function refreshBridgeStatus(){
  try{
   const data=await api('/api/bridge/status');
   state.bridgeConnected=Boolean(data.connected);state.bridgeStatus=String(data.status||'disconnected');
+  state.activeSpeechCount=Number.isFinite(data.activeSpeechCount)?Math.max(0,Math.min(20,Number(data.activeSpeechCount))):0;
+  const stopCommandId=typeof data.stopRequest?.commandId==='string'?data.stopRequest.commandId:'';
+  if(stopCommandId&&stopCommandId!==state.lastBridgeStopCommandId){
+   state.lastBridgeStopCommandId=stopCommandId;
+   try{
+    if(window.speechSynthesis)window.speechSynthesis.cancel();
+    if(state.autonomyActive)await stopLiveAutonomy('remote_emergency_stop');
+    await api('/api/bridge/command/result',{method:'POST',body:JSON.stringify({commandId:stopCommandId,outcome:'completed'})});
+    message('bridgeMessage','Emergency stop confirmed. Device speech has been cancelled.','success');
+   }catch(error){
+    state.lastBridgeStopCommandId='';
+    message('bridgeMessage','Emergency stop received but could not be confirmed: '+error.message,'error');
+   }
+  }
   const status=$('bridgeStatus');
   status.textContent=state.bridgeConnected?'SECURE COMPANION CONNECTED · '+(data.pendingCommands||[]).length+' pending'
    :state.bridgeStatus==='connecting'?'PAIRING · WAITING FOR OTHER DEVICE'
@@ -65,10 +79,20 @@ async function connectBridge(){
 async function disconnectBridge(){
  try{
   await api('/api/bridge/disconnect',{method:'POST',body:'{}'});
-  $('bridgeToken').value='';state.bridgeConnected=false;state.bridgeStatus='disconnected';
+  $('bridgeToken').value='';state.bridgeConnected=false;state.bridgeStatus='disconnected';state.activeSpeechCount=0;state.lastBridgeStopCommandId='';
   await refreshBridgeStatus();
   message('bridgeMessage','Companion disconnected. Pending remote approvals were cleared.','success');
  }catch(error){message('bridgeMessage',error.message,'error');}
+}
+async function stopDeviceSpeech(){
+ try{
+  if(window.speechSynthesis)window.speechSynthesis.cancel();
+  if(state.autonomyActive)await stopLiveAutonomy('operator_emergency_stop');
+  const result=await api('/api/bridge/command/stop',{method:'POST',body:'{}'});
+  state.activeSpeechCount=0;
+  message('bridgeMessage','Device speech stopped. '+Number(result.stopped||0)+' remote host speech request(s) cancelled.','success');
+  await refreshBridgeStatus();
+ }catch(error){message('bridgeMessage','Device speech cancellation could not be confirmed: '+error.message,'error');}
 }
 async function finishBridgeSpeech(commandId,outcome){
  try{await api('/api/bridge/command/result',{method:'POST',body:JSON.stringify({commandId,outcome})});}
@@ -106,6 +130,7 @@ function updateControls(){
  $('vaultStatus').className='status '+(state.vaultUnlocked?'ready':'');
  $('bridgeConnectButton').disabled=!state.vaultUnlocked||state.bridgeConnected||state.bridgeStatus==='connecting'||!$('bridgeEndpoint').value.trim()||!$('bridgeToken').value.trim();
  $('bridgeDisconnectButton').disabled=!state.bridgeConnected&&state.bridgeStatus!=='connecting';
+ $('bridgeStopSpeechButton').disabled=!state.bridgeConnected&&!state.autonomyActive&&state.activeSpeechCount===0;
  $('obsConnectButton').disabled=state.obsConnected;
  $('obsDisconnectButton').disabled=!state.obsConnected;
  $('obsRefreshButton').disabled=!state.obsConnected;
@@ -593,6 +618,7 @@ function exportCopy(){
 }
 $('bridgeConnectButton').addEventListener('click',connectBridge);
 $('bridgeDisconnectButton').addEventListener('click',disconnectBridge);
+$('bridgeStopSpeechButton').addEventListener('click',stopDeviceSpeech);
 $('bridgeEndpoint').addEventListener('input',updateControls);
 $('bridgeToken').addEventListener('input',updateControls);
 $('obsConnectButton').addEventListener('click',connectObs);
