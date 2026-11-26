@@ -108,7 +108,7 @@ export class MagnanimousLiveBridgeRoom {
   if(!attachment.authenticated){
    if(envelope?.kind!=='auth'||envelope.protocolVersion!==1||typeof envelope.token!=='string'||envelope.token.length<32||envelope.token.length>256){ws.close(4001,'Authentication required');return;}
    const pair=await this.state.storage.get('pair');
-   if(isBridgePairExpired(pair)){ws.send(JSON.stringify({kind:'error',code:'PAIRING_REVOKED',message:'The pairing code or bridge session expired. Create a new pair.'}));ws.close(4001,'Pairing expired');return;}
+   if(isBridgePairTokenExpired(pair)){ws.send(JSON.stringify({kind:'error',code:'PAIRING_REVOKED',message:'The pairing code expired. Create a new pair.'}));ws.close(4001,'Pairing expired');return;}
    const supplied=await hash(envelope.token);
    const role=sameHex(supplied,pair.browserHash)?'browser':sameHex(supplied,pair.companionHash)?'companion':null;
    if(!role){ws.send(JSON.stringify({kind:'error',code:'AUTH_FAILED',message:'The companion pairing token is invalid.'}));ws.close(4001,'Invalid pairing token');return;}
