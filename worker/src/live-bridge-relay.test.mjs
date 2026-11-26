@@ -125,8 +125,7 @@ test('pairing uses the Durable Object rate limiter when no separate rate-limit b
    }
    roomCreations++;return Response.json({ok:true});
   }})
- }}
- };
+ }};
  const request=()=>new Request('https://iammagnanimousway.com/api/live-bridge/pair',{method:'POST',headers:{Origin:'https://iammagnanimousway.com','Sec-Fetch-Site':'same-origin','content-type':'application/json'},body:'{}'});
  const user={id:'user-fallback',tenant_id:'tenant-fallback'};
  for(let i=0;i<5;i++){const response=await handleLiveBridgeRelay(request(),env,user);assert.equal(response.status,201);}
