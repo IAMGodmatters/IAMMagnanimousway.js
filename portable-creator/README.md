@@ -8,7 +8,7 @@ A Windows-first, offline-first creator workspace designed to live on an external
 - Uses a local GGUF model through a loopback-only `llama-server` when a model and runtime are installed.
 - Creates scripts, lessons, livestream rundowns, storyboards and creative outlines without sending prompts to a cloud API.
 - Stores saved projects in an AES-256-GCM encrypted vault on the removable drive. The passphrase is not stored by the app; the key is held in memory only while the vault is unlocked.
-- Does not download binaries or models, enable telemetry, open a LAN listener, run shell commands from the browser, or connect to external providers.
+- Does not download binaries or models, enable telemetry, open a LAN listener, run shell commands from the browser, or connect to external providers by default. The optional online companion requires a separate owner-created, short-lived secure pairing.
 - Can optionally start a portable OBS installation. The local creator includes an authenticated OBS WebSocket v5 control adapter for scene listing, scene switching and recording start/stop. OBS must already be installed/running with its WebSocket server enabled; this adapter does not install OBS or drivers.
 - OBS pairing is restricted to `127.0.0.1:4455`. The password is sent only to the local host for the OBS challenge handshake, is not stored in the vault or browser storage, and is not forwarded to any cloud service. Scene switching and recording require explicit operator clicks.
 
@@ -44,7 +44,7 @@ Magnanimous-Portable/
 ## First start
 
 1. Copy the complete folder to a USB SSD or another writable drive.
-2. Add a reviewed Node.js 20+ Windows x64 runtime under `runtime/node/node.exe`, or use an existing Node.js 20+ installation for development.
+2. Add a reviewed Node.js 22+ Windows x64 runtime under `runtime/node/node.exe`, or use an existing Node.js 22+ installation for development. The encrypted offline Creator foundation can run on compatible earlier Node.js versions, but the secure online companion requires the built-in WebSocket runtime available in Node.js 22+.
 3. For offline AI generation, add a compatible `llama-server.exe` under `runtime/llama.cpp/` and a GGUF model at `models/magnanimous.gguf`. The launcher never downloads either file.
 4. Double-click `Start-Magnanimous-Portable.cmd`.
 5. The browser opens at `http://127.0.0.1:3219`. On first use, create a passphrase of at least 12 characters. Save it somewhere safe; the project vault cannot be recovered without it.
@@ -74,6 +74,16 @@ Direct browser intake accepts operator-entered `manual` events only. When the au
 Queue and deduplication state are journaled to `data/live-events.jsonl` using AES-256-GCM with a key derived from the unlocked workspace key; viewer text is never written as plaintext. Delivery uses short-lived leases so two consumers do not receive the same batch concurrently. The browser acknowledges a batch only after rendering it, and the acknowledgement is written durably before the queue removes those events. After a restart or vault lock/unlock, unacknowledged events are restored while acknowledged event IDs remain deduplicated. The journal is size-bounded and safely compacted; if authentication, disk space or recovery verification fails, event intake stops and existing journal data is preserved. The endpoints are a local event-processing foundation only: no TikTok, Facebook, YouTube, Twitch or game adapter is connected by this change. Public broadcasting, account control, moderation and payments are not exposed.
 
 The portable UI includes an operator-controlled event review panel to pull and inspect a bounded batch. Browser intake accepts manual events only; it cannot impersonate a TikTok, Facebook, YouTube, Twitch or game adapter. The portable runtime QA suite copies this module into an isolated temporary host and exercises event ingestion, duplicate rejection, spoofed-provider rejection and bounded consumption. Unit tests cover validation, sanitization, rate limits, queue backpressure and cleanup.
+
+## Secure online AI Host companion
+
+The USB Creator can be paired with the signed-in Magnanimous AI Host from the secure Bridge page. The Worker relay creates separate browser and companion tokens bound to the same account and owner. Pairing tokens expire after ten minutes; an authenticated session is limited to twelve hours. The local companion token is entered only while the encrypted vault is unlocked, held in memory, and cleared when disconnected or when the vault locks. The Bridge page also attempts to revoke the pair when the page exits.
+
+The online host can request a short voice line or a named OBS scene change. By default, both requests enter the USB owner's local approval queue. A voice line is marked complete only after the local device voice reports playback ended; an OBS scene switch is marked complete only after OBS confirms it. The online host's STOP control sends a dedicated emergency stop that cancels device speech and confirms the result. The USB Creator also has its own **Stop device speech** control. This stop affects host speech only; it does not end the public broadcast or change a social account. Overlay/audio-cue controls, platform chat, viewer moderation, purchases, account changes and shell/system commands are not exposed.
+
+The relay implementation uses a SQLite-backed Cloudflare Durable Object. Cloudflare documents Workers Free support for SQLite Durable Objects with daily limits including 100,000 Durable Object requests, 13,000 GB-seconds of compute duration, 5 million row reads, 100,000 row writes and 5 GB of stored data. On Workers Free, operations beyond a free limit fail rather than automatically becoming paid usage. Paid plans can incur overage charges. Therefore, keep the integration on Workers Free only and do not upgrade or deploy to a paid plan without a separately approved budget. The Durable Object uses the WebSocket hibernation interface; verify actual usage in the Cloudflare dashboard before any broader rollout. References: [Cloudflare Durable Objects pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/), [Wrangler Durable Object configuration](https://developers.cloudflare.com/workers/wrangler/configuration/).
+
+This feature is source-integrated but not yet active on the production domain. The Worker Durable Object migration and rate-limit binding must be deployed on the approved Free plan, then the browser/USB/OBS/audio flow must pass a real target-device smoke test. No platform provider adapter is connected by this change; comments from TikTok and other platforms remain operator-entered until an authorized, documented adapter is actually connected.
 
 ## Broadcast and Zoom boundaries
 
