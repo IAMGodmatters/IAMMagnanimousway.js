@@ -209,3 +209,15 @@ Sources:
 ### New transport rule for the Magnanimous bridge
 
 The online-to-local bridge now uses a low-frequency JSON ping/pong heartbeat while the paired session is active. This is only a liveness check for the Magnanimous relay connection; it is not a provider API heartbeat and must not be forwarded to Twitch, YouTube, Meta or TikTok adapters. Provider-specific transport rules remain inside their respective adapter workers.
+
+
+### Twitch chat authorization clarification
+
+Twitch's current chatbot authentication guide distinguishes three cases:
+- An installed chatbot can read chat with a broadcaster User Access Token carrying user:read:chat; user:write:chat is optional and must not be requested for a read-only host.
+- A cloud chatbot uses an App Access Token for the bot and a separate broadcaster User Access Token. The bot token requires user:read:chat, user:write:chat and user:bot; the broadcaster token requires channel:bot for the bot's EventSub subscription.
+- WebSocket EventSub subscriptions use User Access Tokens; webhook subscriptions use App Access Tokens.
+
+The guide also currently says reviews for chatbot verification are temporarily paused while Twitch revises its process. This is an application-review dependency to re-check before launch, not a reason to bypass official authorization.
+
+Source: https://dev.twitch.tv/docs/chat/authenticating/
