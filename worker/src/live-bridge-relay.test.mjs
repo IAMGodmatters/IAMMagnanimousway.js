@@ -276,6 +276,22 @@ test('limits authenticated browser message rate',async()=>{
  assert.equal(closed,4429);
 });
 
+test('browser emergency stop command reaches the companion and completes the receipt sequence',async()=>{
+ const browser=makeSocket({authenticated:true,role:'browser',sessionExpiresAt:Date.now()+60000,windowStartedAt:Date.now(),windowCount:0});
+ const companion=makeSocket({authenticated:true,role:'companion',sessionExpiresAt:Date.now()+60000,windowStartedAt:Date.now(),windowCount:0});
+ const values=new Map();
+ const state={storage:{get:async key=>values.get(key),put:async(key,value)=>values.set(key,value)},getWebSockets:()=>[browser,companion]};
+ const room=new MagnanimousLiveBridgeRoom(state,{});
+ await room.webSocketMessage(browser,JSON.stringify({kind:'command',protocolVersion:1,command:{commandId:'host-stop-live-1',action:'host.stop'}}));
+ assert.equal(companion.messages.at(-1)?.command?.action,'host.stop');
+ assert.equal(values.get('commands')[0].status,'sent');
+ for(const status of ['received','approved','completed']){
+  await room.webSocketMessage(companion,JSON.stringify({kind:'command.receipt',protocolVersion:1,receipt:{commandId:'host-stop-live-1',status}}));
+  assert.equal(browser.messages.at(-1)?.receipt?.status,status);
+ }
+ assert.equal(values.get('commands')[0].status,'completed');
+});
+
 test('normalizes the narrow host emergency-stop command and rejects unrelated controls',()=>{
  assert.deepEqual(normalizeRelayCommand({commandId:'stop-1',action:'host.stop'}),{commandId:'stop-1',action:'host.stop'});
  assert.equal(normalizeRelayCommand({commandId:'bad-1',action:'broadcast.stop'}),null);
