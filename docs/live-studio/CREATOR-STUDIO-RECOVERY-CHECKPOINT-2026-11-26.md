@@ -31,11 +31,19 @@ The AI Host must be able to run an owner-approved show rundown, accept authorize
 
 - Cloud Durable Object relay stores a bounded event inbox, deduplicates event IDs, replays unacknowledged events after reconnect, and rejects new events when all slots contain unacknowledged items rather than evicting earlier events.
 - Browser IndexedDB persists normalized events before handing them to the Host. It reclaims only already-delivered items; a full inbox of pending records fails visibly without deleting them.
-- A relay acknowledgement is sent only after the AI Host persists the delivery receipt. Bridge-tab persistence alone is not treated as Host acceptance.
-- The AI Host now checks its 25-item work queue before marking an event seen or delivered. When a queue slot opens, it asks the bridge tab to replay still-pending local events.
+- A relay acknowledgement is sent only after Magnanimous completes the AI response and persists the Host-completion receipt in IndexedDB. Merely displaying an event or adding it to the React/in-memory queue never acknowledges it.
+- Host queue items retain the source provider/event identity. Failed AI responses preserve that identity for retry; an owner-selected skip is recorded explicitly. Already-completed events are re-acknowledged after a reload without repeating the AI response.
+- Events received while takeover is inactive remain pending in the local inbox and relay. Starting a new owner-approved takeover requests replay; stopping takeover clears only in-memory dedupe state and does not falsely complete queued events.
+- The AI Host checks its 25-item work queue before marking an event seen or queuing it. When a queue slot opens, it asks the bridge tab to replay still-pending local events.
 - Viewer names, text and event tags are bounded and redact email addresses, phone numbers (including international + prefixes) and common pasted credentials before durable relay storage.
 - The browser bridge now sends a ping every 20 seconds and requires a pong within 45 seconds. It reconnects with exponential backoff capped at 30 seconds while the pairing/session remains valid. Explicit disconnect, authentication failure, revocation or expiry stops reconnection.
 - The local companion already sends heartbeat pings and maintains a bounded receipt outbox for command completion acknowledgements.
+
+### No-spend activation gate
+
+- `LIVE_BRIDGE_ENABLED` defaults to `false` in the Worker configuration. The API routes return a fail-closed 503 until the owner explicitly enables the bridge.
+- Do not enable or deploy the relay until the actual Cloudflare plan, Durable Objects limits, expected request/compute usage and an owner-approved spending budget are checked. Do not infer that the account is on Free from source defaults.
+- The no-spend and payment-safety QA locks cover this default. No paid provider, AI model, carrier or GPU is activated by this branch.
 
 ### AI Host and controlled execution
 
@@ -54,7 +62,7 @@ The AI Host must be able to run an owner-approved show rundown, accept authorize
 ## Follow-up hardening after initial checkpoint
 
 - The portable companion now applies the same privacy boundary before local event-journal acceptance: viewer actor names, event text and safe string tags redact email addresses, international phone numbers (including the leading +), Bearer credentials and common API/access/refresh-token assignments.
-- The local live-event runtime unit suite now includes a test proving that the journal callback receives only redacted content. The portable Creator QA lock also checks the local redaction contract.
+- The local live-event runtime unit suite now includes a test proving that the journal callback receives only redacted content, including a Philippine `+63 917 123 4567` example. The portable Creator QA lock also checks the local redaction contract.
 - This is an additional privacy layer; the encrypted journal remains encrypted at rest and is not a reason to retain raw viewer contact details.
 
 ## Not yet verified — do not claim complete
