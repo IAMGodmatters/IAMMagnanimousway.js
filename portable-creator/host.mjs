@@ -267,7 +267,7 @@ function connectBridge(endpoint,token){
   let envelope;try{envelope=JSON.parse(String(message.data));}catch{bridgeError='The online relay sent an unreadable message.';return;}
   if(envelope?.kind==='ready'&&envelope.protocolVersion===1){
    bridgeStatus='connected';bridgeError='';clearBridgeHeartbeat();
-   bridgeHeartbeat=setInterval(()=>{if(bridgeSocket===socket&&socket.readyState===1){try{socket.send(JSON.stringify({kind:'ping'}));}catch{clearBridgeHeartbeat();bridgeStatus='error';bridgeError='The online bridge heartbeat failed.';try{socket.close(4000,'Heartbeat send failed');}catch{}}}},20000);
+   bridgeHeartbeat=setInterval(()=>{if(bridgeSocket===socket&&socket.readyState===1){flushBridgeReceiptOutbox();try{socket.send(JSON.stringify({kind:'ping'}));}catch{clearBridgeHeartbeat();bridgeStatus='error';bridgeError='The online bridge heartbeat failed.';try{socket.close(4000,'Heartbeat send failed');}catch{}}}},20000);
    for(const event of liveEvents.queue.slice(-100)){try{socket.send(JSON.stringify({kind:'event',protocolVersion:1,event}));}catch{break;}}
    flushBridgeReceiptOutbox();
    return;
