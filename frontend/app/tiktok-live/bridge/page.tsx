@@ -59,7 +59,7 @@ export default function LiveEventBridgePage() {
       onEvent:event=>{setEvents(current=>[event,...current.filter(item=>item.eventId!==event.eventId)].slice(0,50));hostChannelRef.current?.postMessage({type:'live.event',event});},
       onCommandReceipt:receipt=>{
         setReceipts(current=>[{...receipt,updatedAt:new Date().toISOString()},...current.filter(item=>item.commandId!==receipt.commandId)].slice(0,20));
-        const labels:Record<LiveBridgeCommandReceipt['status'],string>={received:'USB companion received the command; it is waiting for local owner approval.',approved:'The local owner approved the command.',rejected:'The local owner rejected the command.',completed:'The approved action completed on the local device.',failed:'The local device reported that the action failed.'};
+        const labels:Record<LiveBridgeCommandReceipt['status'],string>={received:'USB companion received the command; it is waiting for local owner approval.',approved:'The local companion reports that the owner approved the command.',rejected:'The local owner rejected the command.',completed:'The local companion reports that the approved action completed.',failed:'The local device reported that the action failed.'};
         setNotice(labels[receipt.status]);
         hostChannelRef.current?.postMessage({type:'host.speak.receipt',commandId:receipt.commandId,status:receipt.status});
       },
@@ -216,7 +216,7 @@ export default function LiveEventBridgePage() {
       </section>
       {(error||notice)&&<div className={error?'error':'notice'} role="status">{error||notice}</div>}
       {receipts.length>0&&<section className="panel receipts" aria-live="polite">
-        <div className="panelHead"><div><small>04 • VERIFIED COMMAND RECEIPTS</small><h2>Live action status</h2></div><span className="count">{receipts.length} / 20</span></div>
+        <div className="panelHead"><div><small>04 • COMPANION-REPORTED RECEIPTS</small><h2>Live action status</h2></div><span className="count">{receipts.length} / 20</span></div>
         {receipts.map(receipt=><article key={receipt.commandId}>
           <strong>{receipt.status.toUpperCase().replace('_',' ')}</strong>
           <span>{receipt.commandId}</span>
