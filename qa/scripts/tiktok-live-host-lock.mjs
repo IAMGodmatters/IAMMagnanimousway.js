@@ -11,6 +11,8 @@ const bridgeUi = fs.readFileSync(new URL('frontend/app/tiktok-live/bridge/page.t
 const eventInbox = fs.readFileSync(new URL('frontend/lib/live-studio/event-inbox.ts', root), 'utf8');
 const relay = fs.readFileSync(new URL('worker/src/live-bridge-relay.js', root), 'utf8');
 const portableHost = fs.readFileSync(new URL('portable-creator/host.mjs', root), 'utf8');
+const hostEventReceipt = host.split("if (payload?.kind !== 'event')")[1]?.split("channel.postMessage({ kind: 'status'")[0] || '';
+const bridgeEventHandler = bridgeClient.split("if(envelope?.kind==='event'")[1]?.split("if(envelope?.kind==='event.receipt'")[0] || '';
 
 const checks = [
   ['host uses Magnanimous native chat transport', host.includes('postMagnanimousChat') && host.includes('${api}/api/chat')],
@@ -61,7 +63,7 @@ const checks = [
   ['bridge UI bounds the event feed', bridgeUi.includes('.slice(0,50)')],
   ['local event inbox reclaims only already-delivered events and preserves pending items at capacity', eventInbox.includes('slotsToReclaim') && /remaining\.filter\(item => Number\.isFinite\(item\.deliveredAt\) && item\.deliveredAt > 0\)/.test(eventInbox) && eventInbox.includes('Existing events were preserved')],
   ['bridge surfaces local inbox write failures without forwarding or acknowledging the event', /onEvent:async event=>\{\s*try\{\s*await persistLiveEvent\(event\);\s*\}catch/.test(bridgeUi) && bridgeUi.includes('It remains unacknowledged so the relay can retry.')],
-  ['browser acknowledges relay events only after the async inbox write succeeds', bridgeClient.includes("Promise.resolve().then(()=>handlers.onEvent?.(event)).then(()=>{") && bridgeClient.includes("kind:'event.ack'")],
+  ['relay acknowledgement waits for the Host durable receipt, not merely bridge-tab persistence', bridgeEventHandler.includes('handlers.onEvent?.(event)') && !bridgeEventHandler.includes("kind:'event.ack'") && bridgeUi.includes('clientRef.current?.ackEvent(provider,data.eventId)') && hostEventReceipt.includes('.then(() => channel.postMessage({ kind: \'event.receipt\'')],
   ['relay redacts email, phone and pasted credentials before durable event storage', relay.includes('function redactLiveEventText') && relay.includes('[email redacted]') && relay.includes('[phone redacted]') && relay.includes('[credential redacted]')],
   ['companion approval waits for a durable relay receipt before OBS or speech execution', portableHost.includes("if(!await sendBridgeCommandReceipt(commandId,'approved'))") && portableHost.indexOf("if(!await sendBridgeCommandReceipt(commandId,'approved'))") < portableHost.indexOf("obsClient.setProgramScene(command.sceneName)")],
   ['relay confirms command receipts only after the durable ledger write', relay.indexOf("await this.state.storage.put('commands',ledger.slice(-50));") < relay.indexOf("kind:'command.receipt.confirmed'") && relay.includes("kind:'command.receipt.confirmed'")],
