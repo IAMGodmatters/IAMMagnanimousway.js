@@ -1,0 +1,22 @@
+{
+  "identity": "Magnanimous Communications",
+  "owner": "Magnanimous Telecom",
+  "public_upstream_identity": false,
+  "native_first": true,
+  "capabilities": {
+    "direct_messaging": "foundation",
+    "group_messaging": "foundation",
+    "communities": "foundation",
+    "media_messages": "foundation",
+    "read_receipts": "foundation",
+    "reactions": "domain_ready",
+    "presence_typing": "domain_ready",
+    "blocking_reporting": "domain_ready",
+    "multi_device": "domain_ready",
+    "internet_audio_calling": "port_ready",
+    "internet_video_calling": "port_ready",
+    "pstn_calling": "bridge_port_ready_authority_gated",
+    "end_to_end_encryption": "not_yet_claimable"
+  },
+  "truth_lock": "Capability states describe software implementation only and never imply live infrastructure or regulatory authority."
+}
